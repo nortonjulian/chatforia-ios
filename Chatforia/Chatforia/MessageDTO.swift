@@ -9,13 +9,10 @@ import Foundation
 
 struct MessageDTO: Codable, Identifiable {
     let id: Int
-
-    // ✅ Needed for optimistic reconciliation + socket de-dupe
-    // Backend should echo this back (even before you persist it in DB).
     let clientMessageId: String?
 
-    // Core content fields (matching backend)
-    let contentCiphertext: String?
+    // Core content fields
+    let contentCiphertext: JSONValue?     // ✅ changed
     let rawContent: String?
     let translations: [String: String]?
     let translatedFrom: String?
@@ -44,6 +41,7 @@ struct MessageDTO: Codable, Identifiable {
     let createdAt: String?
     let isAutoReply: Bool?
 }
+
 
 
 

@@ -8,6 +8,7 @@
 import Foundation
 
 enum Environment {
+
     static var apiBaseURL: URL {
         #if DEBUG
         return URL(string: "http://localhost:5002")!
@@ -17,5 +18,14 @@ enum Environment {
         return URL(string: "https://api.chatforia.com")!
         #endif
     }
+
+    static var requestTimeout: TimeInterval {
+        #if DEBUG
+        return 60   // longer for local debugging
+        #else
+        return 30   // production safe default
+        #endif
+    }
 }
+
 

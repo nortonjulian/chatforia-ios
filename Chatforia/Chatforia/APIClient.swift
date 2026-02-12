@@ -51,9 +51,9 @@ final class APIClient {
         req.timeoutInterval = Environment.requestTimeout
         req.setValue("application/json", forHTTPHeaderField: "Accept")
 
-        if request.body != nil {
+        if let body = request.body {
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            req.httpBody = request.body
+            req.httpBody = body
         }
 
         if request.requiresAuth {
@@ -63,26 +63,36 @@ final class APIClient {
 
         do {
             let (data, response) = try await URLSession.shared.data(for: req)
-            if let http = response as? HTTPURLResponse {
-                print("📡 STATUS \(http.statusCode) for \(request.path)")
-                print("📦 BYTES \(data.count)")
+
+            guard let http = response as? HTTPURLResponse else {
+                throw APIError.server(status: -1, message: "Non-HTTP response")
             }
 
-            let http = response as! HTTPURLResponse
+            print("📡 STATUS \(http.statusCode) for \(request.path)")
+            print("📦 BYTES \(data.count)")
+            print("🔎 RAW RESPONSE for \(request.path):")
+            print(String(data: data, encoding: .utf8) ?? "<non-utf8 data>")
 
+            // Handle auth + non-success statuses
             if http.statusCode == 401 {
                 let msg = String(data: data, encoding: .utf8)
-                throw APIError.server(status: 401, message: msg)
+                throw APIError.unauthorized  // or: .server(status: 401, message: msg)
+            }
+
+            guard (200...299).contains(http.statusCode) else {
+                let msg = String(data: data, encoding: .utf8)
+                throw APIError.server(status: http.statusCode, message: msg)
             }
 
             do {
-                print("🔎 RAW RESPONSE for \(request.path):")
-                print(String(data: data, encoding: .utf8) ?? "<non-utf8 data>")
-
                 return try JSONDecoder().decode(T.self, from: data)
             } catch {
                 throw APIError.decoding
             }
+
+        } catch let apiError as APIError {
+            // Don't re-wrap your own errors
+            throw apiError
         } catch {
             throw APIError.network(error)
         }

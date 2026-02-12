@@ -10,27 +10,31 @@ struct ChatThreadView: View {
     var body: some View {
         VStack(spacing: 0) {
             errorBanner
-
             messagesSection
-
             typingBanner
-
             Divider()
-
             composer
         }
         .navigationTitle(roomDisplayTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { toolbarContent }
-        .task(id: room.id) { // ✅ critical
+        .task(id: room.id) {
             await reload()
+
+            // ✅ bind socket room + listeners
+            vm.startSocket(
+                roomId: room.id,
+                token: TokenStore().read(),
+                myUsername: currentUsername
+            )
         }
         .onDisappear {
             vm.stopTypingNow(roomId: room.id)
+            vm.stopSocket()
         }
     }
 
-    // MARK: - Subviews (break up body to avoid type-check timeout)
+    // MARK: - Subviews
 
     private var errorBanner: some View {
         Group {
@@ -138,6 +142,11 @@ struct ChatThreadView: View {
         return nil
     }
 
+    private var currentUsername: String? {
+        if case .loggedIn(let user) = auth.state { return user.username }
+        return nil
+    }
+
     private var roomDisplayTitle: String {
         if let n = room.name?.trimmingCharacters(in: .whitespacesAndNewlines),
            !n.isEmpty {
@@ -210,7 +219,26 @@ private struct MessageBubbleView: View {
         if (msg.deletedForAll ?? false) { return "This message was deleted" }
         if let t = msg.translatedContent, !t.isEmpty { return t }
         if let r = msg.rawContent, !r.isEmpty { return r }
-        if let c = msg.contentCiphertext, !c.isEmpty { return "🔒 Encrypted message" }
+
+        // ✅ Fix your compile error: contentCiphertext may be JSONValue (not String)
+        if let c = msg.contentCiphertext {
+            let s = JSONValueStringify.asString(c)
+            if !s.isEmpty { return "🔒 Encrypted message" }
+        }
+
         return "—"
+    }
+}
+
+// MARK: - JSONValue helper (fixes “no member isEmpty” / nil-coalescing warnings)
+
+private enum JSONValueStringify {
+    static func asString(_ v: Any) -> String {
+        // If your MessageDTO uses a custom JSONValue type, it will still come through here.
+        // We just need a safe, non-crashy string representation.
+        if let s = v as? String { return s }
+        if let n = v as? NSNumber { return n.stringValue }
+        if let b = v as? Bool { return b ? "true" : "false" }
+        return String(describing: v)
     }
 }
