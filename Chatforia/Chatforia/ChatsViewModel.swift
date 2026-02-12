@@ -1,10 +1,3 @@
-//
-//  ChatsViewModel.swift
-//  Chatforia
-//
-//  Created by Julian Norton on 2/9/26.
-//
-
 import Foundation
 import Combine
 
@@ -14,8 +7,8 @@ final class ChatsViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var errorText: String?
 
-    // Change this ONE string if your backend route differs
-    private let listPath = "chatrooms"
+    /// ✅ Single source of truth for chatrooms base route
+    static let chatroomsBasePath = "chatrooms"
 
     func loadRooms(token: String?) async {
         guard let token else {
@@ -26,6 +19,8 @@ final class ChatsViewModel: ObservableObject {
         isLoading = true
         errorText = nil
         defer { isLoading = false }
+
+        let listPath = Self.chatroomsBasePath
 
         do {
             // Try decoding as an array first: [ChatRoomDTO]
@@ -71,4 +66,3 @@ private struct ChatRoomsResponse: Decodable {
 private struct ChatRoomsAltResponse: Decodable {
     let chatRooms: [ChatRoomDTO]
 }
-

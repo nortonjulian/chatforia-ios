@@ -10,6 +10,10 @@ import Foundation
 struct MessageDTO: Codable, Identifiable {
     let id: Int
 
+    // ✅ Needed for optimistic reconciliation + socket de-dupe
+    // Backend should echo this back (even before you persist it in DB).
+    let clientMessageId: String?
+
     // Core content fields (matching backend)
     let contentCiphertext: String?
     let rawContent: String?

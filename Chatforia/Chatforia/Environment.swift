@@ -8,8 +8,14 @@
 import Foundation
 
 enum Environment {
-    // TODO: change to your real backend base URL
-    static let apiBaseURL = URL(string: "http://localhost:5002")!
-
-    static let requestTimeout: TimeInterval = 30
+    static var apiBaseURL: URL {
+        #if DEBUG
+        return URL(string: "http://localhost:5002")!
+        #elseif STAGING
+        return URL(string: "https://staging-api.chatforia.com")!
+        #else
+        return URL(string: "https://api.chatforia.com")!
+        #endif
+    }
 }
+

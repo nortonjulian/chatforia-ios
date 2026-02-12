@@ -20,19 +20,21 @@ final class AuthStore: ObservableObject {
     @Published var state: State = .loading
 
     private let tokenStore = TokenStore()
-    let socket = SocketManager()
+    private(set) var socket = SocketManager.shared
 
     func bootstrap() async {
         guard let token = tokenStore.read() else {
             state = .loggedOut
             return
         }
-
+        
         do {
             let response: MeResponse = try await APIClient.shared.send(
                 APIRequest(path: "auth/me", method: .GET, requiresAuth: true),
                 token: token
             )
+            
+            print("AUTH ME:", response.user.id, response.user.email)
 
             state = .loggedIn(response.user)
             socket.connect(token: token)

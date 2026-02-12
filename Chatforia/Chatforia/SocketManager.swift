@@ -7,21 +7,53 @@
 
 import Foundation
 import Combine
+import SocketIO
 
-@MainActor
 final class SocketManager: ObservableObject {
-    @Published private(set) var isConnected: Bool = false
+    static let shared = SocketManager()
+
+    private let manager: SocketIO.SocketManager
+    private let socket: SocketIOClient
+
+    private init() {
+        // In your project, Environment.apiBaseURL is a URL (per Xcode error)
+        // This should be the base host, e.g. http://localhost:5002 or https://api.chatforia.com
+        let url: URL = Environment.apiBaseURL
+
+        self.manager = SocketIO.SocketManager(
+            socketURL: url,
+            config: [
+                .log(false),
+                .compress,
+                .path("/socket.io"),
+                .reconnects(true),
+                .reconnectAttempts(-1),
+                .reconnectWait(1),
+                .forceWebsockets(true)
+            ]
+        )
+
+        self.socket = manager.defaultSocket
+    }
 
     func connect(token: String) {
-        // TODO: replace with real Socket.IO / WebSocket connect logic
-        // For now, we just simulate "connected".
-        isConnected = true
-        print("🟢 Socket connected (stub) with token prefix:", token.prefix(12))
+        // Your backend reads handshake.auth.token
+        socket.connect(withPayload: ["token": token])
     }
 
     func disconnect() {
-        isConnected = false
-        print("🔴 Socket disconnected (stub)")
+        socket.disconnect()
+    }
+
+    func emit(_ event: String, _ payload: [String: Any]) {
+        socket.emit(event, payload)
+    }
+
+    func on(_ event: String, callback: @escaping NormalCallback) {
+        socket.on(event, callback: callback)
+    }
+
+    func off(_ event: String) {
+        socket.off(event)
     }
 }
-
