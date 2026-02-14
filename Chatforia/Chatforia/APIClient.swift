@@ -75,12 +75,13 @@ final class APIClient {
 
             // Handle auth + non-success statuses
             if http.statusCode == 401 {
-                let msg = String(data: data, encoding: .utf8)
-                throw APIError.unauthorized  // or: .server(status: 401, message: msg)
+                let msg = String(data: data, encoding: .utf8) ?? ""
+                if !msg.isEmpty { print("🚫 401 Unauthorized body:", msg) }
+                throw APIError.unauthorized
             }
 
             guard (200...299).contains(http.statusCode) else {
-                let msg = String(data: data, encoding: .utf8)
+                let msg = String(data: data, encoding: .utf8) ?? ""
                 throw APIError.server(status: http.statusCode, message: msg)
             }
 

@@ -75,6 +75,7 @@ final class ChatThreadViewModel: ObservableObject {
             translatedFrom: nil,
             translatedContent: nil,
             translatedTo: nil,
+            translatedForMe: nil,        // ✅ add
             isExplicit: nil,
             imageUrl: nil,
             audioUrl: nil,
@@ -85,12 +86,13 @@ final class ChatThreadViewModel: ObservableObject {
             deletedForAll: nil,
             deletedById: nil,
             senderId: nil,
+            sender: nil,                 // ✅ add
             chatRoomId: roomId,
             randomChatRoomId: nil,
             createdAt: nil,
             isAutoReply: nil
         )
-
+        
         messages.append(optimistic)
 
         do {

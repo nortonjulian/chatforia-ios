@@ -72,7 +72,7 @@ struct ChatThreadView: View {
                             ForEach(vm.messages) { msg in
                                 MessageBubbleView(
                                     msg: msg,
-                                    isMe: msg.senderId == currentUserId
+                                    isMe: (msg.sender?.id ?? msg.senderId) == currentUserId
                                 )
                                 .id(msg.id)
                             }
@@ -217,14 +217,18 @@ private struct MessageBubbleView: View {
 
     private var displayText: String {
         if (msg.deletedForAll ?? false) { return "This message was deleted" }
+
+        // ✅ NEW: your server sends this for the current viewer
+        if let t = msg.translatedForMe, !t.isEmpty { return t }
+
+        // legacy fallback
         if let t = msg.translatedContent, !t.isEmpty { return t }
+
+        // only present for sender/admin (server strips it for others)
         if let r = msg.rawContent, !r.isEmpty { return r }
 
-        // ✅ Fix your compile error: contentCiphertext may be JSONValue (not String)
-        if let c = msg.contentCiphertext {
-            let s = JSONValueStringify.asString(c)
-            if !s.isEmpty { return "🔒 Encrypted message" }
-        }
+        // if ciphertext exists, show encrypted placeholder
+        if msg.contentCiphertext != nil { return "🔒 Encrypted message" }
 
         return "—"
     }

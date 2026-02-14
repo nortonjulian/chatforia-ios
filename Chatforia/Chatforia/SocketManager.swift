@@ -26,6 +26,9 @@ final class SocketManager: ObservableObject {
     private var didBindCoreHandlers = false
     private var currentToken: String?
 
+    // ✅ Track joined rooms so we can re-join on reconnect and avoid redundant emits
+    private var joinedRoomIds = Set<Int>()
+
     private init() {}
 
     // MARK: - Connection
@@ -45,6 +48,7 @@ final class SocketManager: ObservableObject {
     func disconnect() {
         socket?.disconnect()
         isConnected = false
+        joinedRoomIds.removeAll()
     }
 
     private func rebuild(token: String?) {
@@ -52,8 +56,9 @@ final class SocketManager: ObservableObject {
         socket = nil
         manager = nil
         didBindCoreHandlers = false
+        joinedRoomIds.removeAll()
 
-        // ✅ Build URL with token query param
+        // ✅ Build URL with token query param (your server reads handshake.query.token)
         var finalURL = url
         if let token, !token.isEmpty {
             var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
@@ -82,7 +87,6 @@ final class SocketManager: ObservableObject {
         bindCoreHandlersIfNeeded()
     }
 
-
     // MARK: - Public helpers
 
     @discardableResult
@@ -99,7 +103,6 @@ final class SocketManager: ObservableObject {
     }
 
     func emit(_ event: String, _ payload: [String: Any]) {
-        // This Socket.IO client expects "items" without labels, and dictionary is fine
         socket?.emit(event, payload)
     }
 
@@ -107,13 +110,50 @@ final class SocketManager: ObservableObject {
         socket?.emit(event)
     }
 
-    // Optional: room helpers (matches your JS semantics)
+    // MARK: - Rooms
+
+    /// Join a single room (back-compat, matches server 'join_room')
     func joinRoom(roomId: Int) {
-        emit("room:join", ["roomId": roomId])
+        guard roomId > 0 else { return }
+        joinedRoomIds.insert(roomId)
+        socket?.emit("join_room", roomId)
     }
 
+    /// Leave a single room (matches server 'leave_room')
     func leaveRoom(roomId: Int) {
-        emit("room:leave", ["roomId": roomId])
+        guard roomId > 0 else { return }
+        joinedRoomIds.remove(roomId)
+        socket?.emit("leave_room", roomId)
+    }
+
+    /// ✅ Preferred: join many rooms at once (matches server 'join:rooms')
+    /// - Sends `[Int]` (array) which your server expects.
+    /// - Updates local joinedRoomIds so we can rejoin after reconnect.
+    func joinRooms(_ roomIds: [Int]) {
+        let ids = Array(Set(roomIds.filter { $0 > 0 }))
+        guard !ids.isEmpty else { return }
+
+        for id in ids { joinedRoomIds.insert(id) }
+        socket?.emit("join:rooms", ids)
+    }
+
+    /// Convenience: replace currently-joined set with a new set (diff join/leave).
+    /// Uses bulk join for additions and per-room leave for removals (since server has only leave_room).
+    func setActiveRooms(_ roomIds: [Int]) {
+        let desired = Set(roomIds.filter { $0 > 0 })
+
+        let toLeave = joinedRoomIds.subtracting(desired)
+        let toJoin = desired.subtracting(joinedRoomIds)
+
+        for rid in toLeave {
+            socket?.emit("leave_room", rid)
+        }
+
+        if !toJoin.isEmpty {
+            socket?.emit("join:rooms", Array(toJoin))
+        }
+
+        joinedRoomIds = desired
     }
 
     // MARK: - Core handlers
@@ -124,8 +164,15 @@ final class SocketManager: ObservableObject {
 
         socket.on(clientEvent: .connect) { [weak self] _, _ in
             Task { @MainActor in
-                self?.isConnected = true
+                guard let self else { return }
+                self.isConnected = true
                 print("✅ socket connected")
+
+                // ✅ Re-join rooms after reconnect/connect (important with auto-reconnect)
+                let rooms = Array(self.joinedRoomIds)
+                if !rooms.isEmpty {
+                    self.socket?.emit("join:rooms", rooms)
+                }
             }
         }
 
