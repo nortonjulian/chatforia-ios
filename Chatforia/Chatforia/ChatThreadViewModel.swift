@@ -19,6 +19,7 @@ final class ChatThreadViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var errorText: String?
 
+    // Typing banner data (render these in UI)
     @Published var typingUsernames: [String] = []
 
     private var typingStopTask: Task<Void, Never>?
@@ -27,8 +28,21 @@ final class ChatThreadViewModel: ObservableObject {
     private var socketListenerIDs: [UUID] = []
     private var activeRoomId: Int?
 
+    // ✅ Typing auto-expire (never stuck)
+    private var typingLastSeen: [String: Date] = [:]
+    private var typingPruneTask: Task<Void, Never>?
+    private let typingTTL: TimeInterval = 4.0
+
     // ✅ keep base route consistent with ChatsViewModel
     private let basePath = ChatsViewModel.chatroomsBasePath
+
+    // MARK: - Private helpers (formatters)
+
+    private let isoFormatter: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
 
     // MARK: - Networking
 
@@ -45,7 +59,15 @@ final class ChatThreadViewModel: ObservableObject {
                 APIRequest(path: path, method: .GET, requiresAuth: true),
                 token: token
             )
-            self.messages = page.items
+
+            // ✅ Normalize server’s newest-first into oldest-first for UI
+            self.messages = page.items.sorted { a, b in
+                let ad = parseISO(a.createdAt)
+                let bd = parseISO(b.createdAt)
+                if let ad, let bd, ad != bd { return ad < bd }
+                return a.id < b.id
+            }
+
             if self.messages.isEmpty {
                 self.errorText = "Loaded 0 messages for room \(roomId)."
             }
@@ -75,7 +97,7 @@ final class ChatThreadViewModel: ObservableObject {
             translatedFrom: nil,
             translatedContent: nil,
             translatedTo: nil,
-            translatedForMe: nil,        // ✅ add
+            translatedForMe: nil,
             isExplicit: nil,
             imageUrl: nil,
             audioUrl: nil,
@@ -86,14 +108,14 @@ final class ChatThreadViewModel: ObservableObject {
             deletedForAll: nil,
             deletedById: nil,
             senderId: nil,
-            sender: nil,                 // ✅ add
+            sender: nil,
             chatRoomId: roomId,
             randomChatRoomId: nil,
-            createdAt: nil,
+            createdAt: isoFormatter.string(from: Date()), // ✅ optimistic timestamp (helps ordering + fallback)
             isAutoReply: nil
         )
-        
-        messages.append(optimistic)
+
+        insertOrReplace(optimistic)
 
         do {
             let body = try JSONEncoder().encode(
@@ -106,8 +128,8 @@ final class ChatThreadViewModel: ObservableObject {
             )
 
             insertOrReplace(saved)
-
         } catch {
+            // Minimal: remove optimistic bubble on failure (fine for now)
             messages.removeAll { $0.clientMessageId == clientId }
             errorText = error.localizedDescription
         }
@@ -126,7 +148,9 @@ final class ChatThreadViewModel: ObservableObject {
             SocketManager.shared.connect(token: token)
         }
 
+        // ✅ Start typing auto-expire loop for this room
         SocketManager.shared.joinRoom(roomId: roomId)
+        startTypingPruneLoop()
 
         // message:new
         if let id = SocketManager.shared.on("message:new", callback: { [weak self] data, _ in
@@ -166,6 +190,14 @@ final class ChatThreadViewModel: ObservableObject {
         }
         socketListenerIDs.removeAll()
         activeRoomId = nil
+
+        // ✅ Stop typing loop + clear state so nothing “sticks” across rooms
+        stopTypingPruneLoop()
+        typingUsernames.removeAll()
+        typingLastSeen.removeAll()
+        hasSentTypingStart = false
+        typingStopTask?.cancel()
+        typingStopTask = nil
     }
 
     // MARK: - Typing emits
@@ -195,33 +227,108 @@ final class ChatThreadViewModel: ObservableObject {
         }
     }
 
+    // ✅ Never-stuck typing: updates refresh last-seen; pruning removes stale names
     func applyTypingUpdate(username: String, isTyping: Bool) {
         let name = username.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return }
 
         if isTyping {
+            typingLastSeen[name] = Date()
             if !typingUsernames.contains(name) { typingUsernames.append(name) }
         } else {
+            typingLastSeen.removeValue(forKey: name)
             typingUsernames.removeAll { $0 == name }
         }
     }
+    
+    // MARK: - Private helpers (typing auto-expire)
 
-    // MARK: - Private helpers
+    private func startTypingPruneLoop() {
+        typingPruneTask?.cancel()
+        typingPruneTask = Task { [weak self] in
+            guard let self else { return }
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 700_000_000)
+                self.pruneTyping()
+            }
+        }
+    }
+    
+
+    private func stopTypingPruneLoop() {
+        typingPruneTask?.cancel()
+        typingPruneTask = nil
+    }
+
+    private func pruneTyping() {
+        let now = Date()
+        typingLastSeen = typingLastSeen.filter { now.timeIntervalSince($0.value) < typingTTL }
+        typingUsernames = Array(typingLastSeen.keys).sorted()
+    }
+    
+    // MARK: - Private helpers (messages reconciliation)
 
     private func insertOrReplace(_ incoming: MessageDTO) {
-        if let idx = messages.firstIndex(where: { $0.id == incoming.id }) {
-            messages[idx] = incoming
-            return
-        }
-
+        // 1) Prefer clientMessageId (optimistic -> real)
         if let cmid = incoming.clientMessageId,
            let idx = messages.firstIndex(where: { $0.clientMessageId == cmid }) {
             messages[idx] = incoming
+            sortMessagesInPlace()
             return
         }
 
+        // 2) Replace by server id
+        if let idx = messages.firstIndex(where: { $0.id == incoming.id }) {
+            messages[idx] = incoming
+            sortMessagesInPlace()
+            return
+        }
+
+        // 3) Fallback: if server/socket didn’t include clientMessageId, try reconcile
+        // Look for the newest optimistic message in this room that matches content
+        if incoming.clientMessageId == nil,
+           let incomingText = incoming.rawContent?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !incomingText.isEmpty {
+
+            if let idx = messages.lastIndex(where: { m in
+                m.chatRoomId == incoming.chatRoomId &&
+                (m.id < 0) && // optimistic local ids are negative
+                (m.rawContent?.trimmingCharacters(in: .whitespacesAndNewlines) == incomingText)
+            }) {
+                messages[idx] = incoming
+                sortMessagesInPlace()
+                return
+            }
+        }
+
+        // 4) Otherwise insert
         messages.append(incoming)
+        sortMessagesInPlace()
     }
+
+    private func sortMessagesInPlace() {
+        // UI expects oldest -> newest.
+        // Prefer createdAt if present, else id.
+        messages.sort { a, b in
+            let ad = parseISO(a.createdAt)
+            let bd = parseISO(b.createdAt)
+
+            if let ad, let bd, ad != bd { return ad < bd }
+            return a.id < b.id
+        }
+    }
+
+    private func parseISO(_ s: String?) -> Date? {
+        guard let s else { return nil }
+        // Try fractional seconds first, then fallback
+        if let d = isoFormatter.date(from: s) { return d }
+
+        let f2 = ISO8601DateFormatter()
+        f2.formatOptions = [.withInternetDateTime]
+        return f2.date(from: s)
+    }
+
+    // MARK: - Private helpers (socket decoding)
 
     private func handleIncomingMessageEvent(data: [Any], roomId: Int) {
         // SocketIO gives [Any]. We want the first object.

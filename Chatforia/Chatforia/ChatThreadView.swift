@@ -7,10 +7,15 @@ struct ChatThreadView: View {
     @StateObject private var vm = ChatThreadViewModel()
     @State private var draft = ""
 
+    @SwiftUI.Environment(\.scenePhase) private var scenePhase
+
     var body: some View {
         VStack(spacing: 0) {
             errorBanner
+
             messagesSection
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
             typingBanner
             Divider()
             composer
@@ -20,8 +25,6 @@ struct ChatThreadView: View {
         .toolbar { toolbarContent }
         .task(id: room.id) {
             await reload()
-
-            // ✅ bind socket room + listeners
             vm.startSocket(
                 roomId: room.id,
                 token: TokenStore().read(),
@@ -32,8 +35,13 @@ struct ChatThreadView: View {
             vm.stopTypingNow(roomId: room.id)
             vm.stopSocket()
         }
+        .onChange(of: scenePhase) {
+            if scenePhase != .active {
+                vm.stopTypingNow(roomId: room.id)
+            }
+        }
     }
-
+    
     // MARK: - Subviews
 
     private var errorBanner: some View {
@@ -52,12 +60,14 @@ struct ChatThreadView: View {
         Group {
             if vm.isLoading && vm.messages.isEmpty {
                 VStack(spacing: 12) {
+                    Spacer()
                     ProgressView()
                     Text("Loading messages…")
                         .foregroundStyle(.secondary)
+                    Spacer()
                 }
                 .padding()
-                Spacer()
+
             } else if vm.messages.isEmpty {
                 VStack(spacing: 10) {
                     Spacer()
@@ -65,24 +75,35 @@ struct ChatThreadView: View {
                         .foregroundStyle(.secondary)
                     Spacer()
                 }
+
             } else {
+                // ✅ Always render sorted oldest -> newest
+                let sortedMessages = vm.messages.sorted(by: { $0.id < $1.id })
+
                 ScrollViewReader { proxy in
                     ScrollView {
-                        VStack(alignment: .leading, spacing: 10) {
-                            ForEach(vm.messages) { msg in
+                        LazyVStack(alignment: .leading, spacing: 10) {
+                            ForEach(sortedMessages) { msg in
                                 MessageBubbleView(
                                     msg: msg,
                                     isMe: (msg.sender?.id ?? msg.senderId) == currentUserId
                                 )
                                 .id(msg.id)
                             }
+
+                            // ✅ stable bottom anchor
+                            Color.clear
+                                .frame(height: 1)
+                                .id("BOTTOM")
                         }
-                        .padding()
-                    }
-                    .onChange(of: vm.messages.count) { _, _ in
-                        scrollToBottom(proxy)
+                        .padding(.horizontal)
+                        .padding(.top, 8)
+                        .padding(.bottom, 8)
                     }
                     .onAppear {
+                        scrollToBottom(proxy)
+                    }
+                    .onChange(of: vm.messages.count) {
                         scrollToBottom(proxy)
                     }
                 }
@@ -108,7 +129,7 @@ struct ChatThreadView: View {
             TextField("Message…", text: $draft, axis: .vertical)
                 .textFieldStyle(.roundedBorder)
                 .lineLimit(1...4)
-                .onChange(of: draft) { _, _ in
+                .onChange(of: draft) {
                     vm.handleInputChanged(roomId: room.id)
                 }
 
@@ -168,9 +189,9 @@ struct ChatThreadView: View {
     }
 
     private func scrollToBottom(_ proxy: ScrollViewProxy) {
-        guard let last = vm.messages.last else { return }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-            proxy.scrollTo(last.id, anchor: .bottom)
+        // ✅ scroll after layout pass
+        DispatchQueue.main.async {
+            proxy.scrollTo("BOTTOM", anchor: .bottom)
         }
     }
 
@@ -218,31 +239,12 @@ private struct MessageBubbleView: View {
     private var displayText: String {
         if (msg.deletedForAll ?? false) { return "This message was deleted" }
 
-        // ✅ NEW: your server sends this for the current viewer
-        if let t = msg.translatedForMe, !t.isEmpty { return t }
+        if let t = msg.translatedForMe, !t.isEmpty { return t }      // ✅ preferred
+        if let t = msg.translatedContent, !t.isEmpty { return t }    // legacy
+        if let r = msg.rawContent, !r.isEmpty { return r }           // sender/admin only
 
-        // legacy fallback
-        if let t = msg.translatedContent, !t.isEmpty { return t }
-
-        // only present for sender/admin (server strips it for others)
-        if let r = msg.rawContent, !r.isEmpty { return r }
-
-        // if ciphertext exists, show encrypted placeholder
         if msg.contentCiphertext != nil { return "🔒 Encrypted message" }
 
         return "—"
-    }
-}
-
-// MARK: - JSONValue helper (fixes “no member isEmpty” / nil-coalescing warnings)
-
-private enum JSONValueStringify {
-    static func asString(_ v: Any) -> String {
-        // If your MessageDTO uses a custom JSONValue type, it will still come through here.
-        // We just need a safe, non-crashy string representation.
-        if let s = v as? String { return s }
-        if let n = v as? NSNumber { return n.stringValue }
-        if let b = v as? Bool { return b ? "true" : "false" }
-        return String(describing: v)
     }
 }
