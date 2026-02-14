@@ -61,11 +61,10 @@ final class ChatThreadViewModel: ObservableObject {
             )
 
             // ✅ Normalize server’s newest-first into oldest-first for UI
-            self.messages = page.items.sorted { a, b in
-                let ad = parseISO(a.createdAt)
-                let bd = parseISO(b.createdAt)
-                if let ad, let bd, ad != bd { return ad < bd }
-                return a.id < b.id
+            self.messages = []
+
+            for m in page.items {
+                insertOrReplace(m)
             }
 
             if self.messages.isEmpty {
@@ -111,7 +110,7 @@ final class ChatThreadViewModel: ObservableObject {
             sender: nil,
             chatRoomId: roomId,
             randomChatRoomId: nil,
-            createdAt: isoFormatter.string(from: Date()), // ✅ optimistic timestamp (helps ordering + fallback)
+            createdAt: isoFormatter.string(from: Date()), // ✅ optimistic timestamp
             isAutoReply: nil
         )
 
@@ -122,6 +121,7 @@ final class ChatThreadViewModel: ObservableObject {
                 SendMessageRequest(chatRoomId: roomId, content: trimmed, clientMessageId: clientId)
             )
 
+            // NOTE: if server returns { item }, change to a wrapper decode and use wrapper.item here
             let saved: MessageDTO = try await APIClient.shared.send(
                 APIRequest(path: "messages", method: .POST, body: body, requiresAuth: true),
                 token: token
@@ -129,7 +129,7 @@ final class ChatThreadViewModel: ObservableObject {
 
             insertOrReplace(saved)
         } catch {
-            // Minimal: remove optimistic bubble on failure (fine for now)
+            // Minimal: remove optimistic bubble on failure
             messages.removeAll { $0.clientMessageId == clientId }
             errorText = error.localizedDescription
         }
@@ -240,7 +240,7 @@ final class ChatThreadViewModel: ObservableObject {
             typingUsernames.removeAll { $0 == name }
         }
     }
-    
+
     // MARK: - Private helpers (typing auto-expire)
 
     private func startTypingPruneLoop() {
@@ -253,7 +253,6 @@ final class ChatThreadViewModel: ObservableObject {
             }
         }
     }
-    
 
     private func stopTypingPruneLoop() {
         typingPruneTask?.cancel()
@@ -265,27 +264,81 @@ final class ChatThreadViewModel: ObservableObject {
         typingLastSeen = typingLastSeen.filter { now.timeIntervalSince($0.value) < typingTTL }
         typingUsernames = Array(typingLastSeen.keys).sorted()
     }
-    
+
     // MARK: - Private helpers (messages reconciliation)
 
+    private func isBlank(_ s: String?) -> Bool {
+        (s ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// Prefer incoming if it’s non-blank; otherwise keep existing.
+    private func preferNonBlank(_ incoming: String?, _ existing: String?) -> String? {
+        if !isBlank(incoming) { return incoming }
+        return existing
+    }
+
+    /// Day 2 merge rules:
+    /// - server fields win
+    /// - never overwrite translated/derived fields with blank
+    /// - only accept server ids (>0) over optimistic ids (<0)
+    private func mergeMessage(existing: MessageDTO, incoming: MessageDTO) -> MessageDTO {
+        MessageDTO(
+            id: (incoming.id > 0 ? incoming.id : existing.id),
+            clientMessageId: incoming.clientMessageId ?? existing.clientMessageId,
+            contentCiphertext: incoming.contentCiphertext ?? existing.contentCiphertext,
+            rawContent: preferNonBlank(incoming.rawContent, existing.rawContent),
+
+            translations: incoming.translations ?? existing.translations,
+            translatedFrom: incoming.translatedFrom ?? existing.translatedFrom,
+            translatedContent: preferNonBlank(incoming.translatedContent, existing.translatedContent),
+            translatedTo: incoming.translatedTo ?? existing.translatedTo,
+            translatedForMe: preferNonBlank(incoming.translatedForMe, existing.translatedForMe),
+
+            isExplicit: incoming.isExplicit ?? existing.isExplicit,
+
+            imageUrl: incoming.imageUrl ?? existing.imageUrl,
+            audioUrl: incoming.audioUrl ?? existing.audioUrl,
+            audioDurationSec: incoming.audioDurationSec ?? existing.audioDurationSec,
+
+            expiresAt: incoming.expiresAt ?? existing.expiresAt,
+
+            deletedBySender: incoming.deletedBySender ?? existing.deletedBySender,
+            deletedAt: incoming.deletedAt ?? existing.deletedAt,
+            deletedForAll: incoming.deletedForAll ?? existing.deletedForAll,
+            deletedById: incoming.deletedById ?? existing.deletedById,
+
+            senderId: incoming.senderId ?? existing.senderId,
+            sender: incoming.sender ?? existing.sender,
+
+            chatRoomId: incoming.chatRoomId ?? existing.chatRoomId, 
+            randomChatRoomId: incoming.randomChatRoomId ?? existing.randomChatRoomId,
+
+            createdAt: incoming.createdAt ?? existing.createdAt,
+            isAutoReply: incoming.isAutoReply ?? existing.isAutoReply
+        )
+    }
+
+    /// Canonical upsert:
+    /// 1) match by id (server) first
+    /// 2) else match by clientMessageId
+    /// 3) else optional fallback by content for legacy payloads
     private func insertOrReplace(_ incoming: MessageDTO) {
-        // 1) Prefer clientMessageId (optimistic -> real)
+        // 1) Match by id first
+        if let idx = messages.firstIndex(where: { $0.id == incoming.id }) {
+            messages[idx] = mergeMessage(existing: messages[idx], incoming: incoming)
+            sortMessagesInPlace()
+            return
+        }
+
+        // 2) Else match by clientMessageId
         if let cmid = incoming.clientMessageId,
            let idx = messages.firstIndex(where: { $0.clientMessageId == cmid }) {
-            messages[idx] = incoming
+            messages[idx] = mergeMessage(existing: messages[idx], incoming: incoming)
             sortMessagesInPlace()
             return
         }
 
-        // 2) Replace by server id
-        if let idx = messages.firstIndex(where: { $0.id == incoming.id }) {
-            messages[idx] = incoming
-            sortMessagesInPlace()
-            return
-        }
-
-        // 3) Fallback: if server/socket didn’t include clientMessageId, try reconcile
-        // Look for the newest optimistic message in this room that matches content
+        // 3) Fallback reconcile-by-content (optional but ok)
         if incoming.clientMessageId == nil,
            let incomingText = incoming.rawContent?.trimmingCharacters(in: .whitespacesAndNewlines),
            !incomingText.isEmpty {
@@ -295,13 +348,13 @@ final class ChatThreadViewModel: ObservableObject {
                 (m.id < 0) && // optimistic local ids are negative
                 (m.rawContent?.trimmingCharacters(in: .whitespacesAndNewlines) == incomingText)
             }) {
-                messages[idx] = incoming
+                messages[idx] = mergeMessage(existing: messages[idx], incoming: incoming)
                 sortMessagesInPlace()
                 return
             }
         }
 
-        // 4) Otherwise insert
+        // 4) Insert
         messages.append(incoming)
         sortMessagesInPlace()
     }
