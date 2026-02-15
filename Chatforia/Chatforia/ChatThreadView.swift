@@ -108,7 +108,7 @@ struct ChatThreadView: View {
                     .onAppear {
                         scrollToBottom(proxy)
                     }
-                    .onChange(of: vm.messages.count) { _ in
+                    .onChange(of: vm.messages.count) { _, _ in
                         scrollToBottom(proxy)
                     }
                 }
@@ -134,7 +134,7 @@ struct ChatThreadView: View {
             // single-line TextField for broad compatibility
             TextField("Message…", text: $draft)
                 .textFieldStyle(.roundedBorder)
-                .onChange(of: draft) { _ in
+                .onChange(of: draft) { _, _ in
                     vm.handleInputChanged(roomId: room.id)
                 }
 
