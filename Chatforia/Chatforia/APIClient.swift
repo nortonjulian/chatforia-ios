@@ -24,6 +24,7 @@ struct APIRequest {
 }
 
 enum APIError: Error, LocalizedError {
+    case invalidURL
     case unauthorized
     case server(status: Int, message: String?)
     case decoding
@@ -31,6 +32,7 @@ enum APIError: Error, LocalizedError {
 
     var errorDescription: String? {
         switch self {
+        case .invalidURL: return "Invalid URL."
         case .unauthorized: return "Not authorized."
         case .server(let status, let message): return "Server error (\(status)): \(message ?? "Unknown")"
         case .decoding: return "Failed to decode response."
@@ -43,12 +45,58 @@ final class APIClient {
     static let shared = APIClient()
     private init() {}
 
+    /// Build a URL from AppEnvironment.apiBaseURL and the request.path while preserving any query string in `request.path`.
+    /// This avoids percent-encoding the `?` and query portion when appending the path.
+    private func buildURL(from request: APIRequest) throws -> URL {
+        let pathAndQuery = request.path
+        guard var baseComponents = URLComponents(url: AppEnvironment.apiBaseURL, resolvingAgainstBaseURL: false) else {
+            throw APIError.invalidURL
+        }
+
+        if pathAndQuery.contains("?") {
+            let parts = pathAndQuery.split(separator: "?", maxSplits: 1, omittingEmptySubsequences: false)
+            let pathPart = String(parts[0])
+            let queryPart = parts.count > 1 ? String(parts[1]) : nil
+
+            // Ensure path combines correctly with base path
+            if baseComponents.path.hasSuffix("/") && pathPart.hasPrefix("/") {
+                baseComponents.path += String(pathPart.dropFirst())
+            } else {
+                // strip excessive slashes and append
+                let trimmed = pathPart.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                baseComponents.path += "/" + trimmed
+            }
+
+            // set percentEncodedQuery to avoid double-encoding the query string
+            baseComponents.percentEncodedQuery = queryPart
+        } else {
+            // no query in path
+            if baseComponents.path.hasSuffix("/") && pathAndQuery.hasPrefix("/") {
+                baseComponents.path += String(pathAndQuery.dropFirst())
+            } else {
+                let trimmed = pathAndQuery.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                baseComponents.path += "/" + trimmed
+            }
+        }
+
+        guard let url = baseComponents.url else {
+            throw APIError.invalidURL
+        }
+        return url
+    }
+
     func send<T: Decodable>(_ request: APIRequest, token: String?) async throws -> T {
-        let url = Environment.apiBaseURL.appendingPathComponent(request.path)
+        // build URL safely (preserve query)
+        let url: URL
+        do {
+            url = try buildURL(from: request)
+        } catch {
+            throw APIError.invalidURL
+        }
 
         var req = URLRequest(url: url)
         req.httpMethod = request.method.rawValue
-        req.timeoutInterval = Environment.requestTimeout
+        req.timeoutInterval = AppEnvironment.requestTimeout
         req.setValue("application/json", forHTTPHeaderField: "Accept")
 
         if let body = request.body {
@@ -99,4 +147,3 @@ final class APIClient {
         }
     }
 }
-

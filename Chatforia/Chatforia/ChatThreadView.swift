@@ -8,7 +8,7 @@ struct ChatThreadView: View {
     @StateObject private var vm = ChatThreadViewModel()
     @State private var draft = ""
 
-    @Environment(\.scenePhase) private var scenePhase
+    @SwiftUI.Environment(\.scenePhase) private var scenePhase: ScenePhase
 
     var body: some View {
         VStack(spacing: 0) {
@@ -34,8 +34,8 @@ struct ChatThreadView: View {
             vm.stopSocket()
             vm.stopExpiryLoop()
         }
-        .onChange(of: scenePhase) { phase in
-            if phase == .active {
+        .onChange(of: scenePhase) { oldPhase, newPhase in
+            if newPhase == .active {
                 Task { await vm.resyncIfNeeded(token: TokenStore().read()) }
                 vm.startExpiryLoop()
             } else {
@@ -89,7 +89,7 @@ struct ChatThreadView: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 10) {
-                            ForEach(sortedMessages) { msg in
+                            ForEach(sortedMessages, id: \.id) { msg in
                                 MessageBubbleView(
                                     msg: msg,
                                     isMe: (msg.sender?.id ?? msg.senderId) == currentUserId

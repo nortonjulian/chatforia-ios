@@ -84,11 +84,20 @@ final class ChatThreadViewModel: ObservableObject {
 
     // MARK: - Networking
     func loadMessages(roomId: Int, token: String?) async {
-        guard let token else {
-            errorText = "Missing auth token."
+        // Defensive: ensure we have a valid numeric roomId
+        guard roomId > 0 else {
+            errorText = "Invalid roomId (client)."
+            print("❌ loadMessages called with invalid roomId:", roomId, "urlPath:", "messages/\(roomId)")
             return
         }
 
+        guard let token else {
+            errorText = "Missing auth token."
+            print("❌ loadMessages missing token for roomId:", roomId)
+            return
+        }
+
+        print("➡️ loadMessages: roomId=\(roomId) tokenPresent=\(token.count > 0)")
         isLoading = true
         errorText = nil
         defer { isLoading = false }
@@ -106,9 +115,13 @@ final class ChatThreadViewModel: ObservableObject {
 
             if self.messages.isEmpty {
                 self.errorText = "Loaded 0 messages for room \(roomId)."
+                print("⚠️ loadMessages: 0 messages for roomId:", roomId)
+            } else {
+                print("✅ loadMessages: loaded \(self.messages.count) messages for roomId:", roomId)
             }
         } catch {
             errorText = error.localizedDescription
+            print("❌ loadMessages error for roomId \(roomId):", error)
         }
     }
 
@@ -148,7 +161,8 @@ final class ChatThreadViewModel: ObservableObject {
             chatRoomId: roomId,
             randomChatRoomId: nil,
             createdAt: isoFormatter.string(from: Date()),
-            isAutoReply: nil
+            isAutoReply: nil,
+            revision: 1 // <-- add this
         )
 
         insertOrReplace(optimistic)
@@ -172,6 +186,13 @@ final class ChatThreadViewModel: ObservableObject {
 
     // MARK: - Socket wiring
     func startSocket(roomId: Int, token: String?, myUsername: String?) {
+        // Defensive: ensure we have a valid numeric roomId
+        guard roomId > 0 else {
+            print("❌ startSocket called with invalid roomId:", roomId)
+            return
+        }
+
+        // If already connected to this room, nothing to do
         guard activeRoomId != roomId else { return }
 
         configureRoom(roomId: roomId)
@@ -185,8 +206,18 @@ final class ChatThreadViewModel: ObservableObject {
         startTypingPruneLoop()
         startExpiryLoop()
 
-        // message:new
-        if let id = SocketManager.shared.on("message:new", callback: { [weak self] data, _ in
+        // message:upsert (canonical server upsert event)
+        if let id = SocketManager.shared.on("message:upsert", callback: { [weak self] data, _ in
+            guard let self = self else { return }
+            Task { @MainActor in
+                self.handleIncomingMessageEvent(data: data, roomId: roomId)
+            }
+        }) {
+            socketListenerIDs.append(id)
+        }
+
+        // message:expired — optional but recommended (server may emit tombstones here)
+        if let id = SocketManager.shared.on("message:expired", callback: { [weak self] data, _ in
             guard let self = self else { return }
             Task { @MainActor in
                 self.handleIncomingMessageEvent(data: data, roomId: roomId)
@@ -234,6 +265,7 @@ final class ChatThreadViewModel: ObservableObject {
     private func handleIncomingMessageEvent(data: [Any], roomId: Int) {
         guard let first = data.first else { return }
 
+        // server emits: { roomId: N, item: { ...messageRow... } } OR messageRow directly
         if let dict = first as? [String: Any] {
             let msgDict = (dict["item"] as? [String: Any]) ?? dict
             if let msg: MessageDTO = decodeFromDictionary(msgDict) {
@@ -276,12 +308,14 @@ final class ChatThreadViewModel: ObservableObject {
 
         do {
             let path = "messages/\(roomId)?sinceId=\(lastServerMessageId)"
-            let delta: [MessageDTO] = try await APIClient.shared.send(
+            let page: MessagesPageResponse = try await APIClient.shared.send(
                 APIRequest(path: path, method: .GET, requiresAuth: true),
                 token: token
             )
 
-            for msg in delta { insertOrReplace(msg) }
+            for msg in page.items {
+                insertOrReplace(msg)
+            }
         } catch {
             errorText = error.localizedDescription
         }
@@ -289,22 +323,38 @@ final class ChatThreadViewModel: ObservableObject {
 
     // MARK: - Insert / merge / helpers
     private func insertOrReplace(_ incoming: MessageDTO) {
+        // Helper to get revision with default 1
+        func rev(_ m: MessageDTO) -> Int { (m.revision ?? 1) }
+
+        // 1) Try exact id match (server id or local negative optimistic id)
         if let idx = messages.firstIndex(where: { $0.id == incoming.id }) {
-            messages[idx] = mergeMessage(existing: messages[idx], incoming: incoming)
-            bumpLastServerIdIfNeeded(messages[idx])
-            sortMessagesInPlace()
+            let existing = messages[idx]
+            // If incoming is newer, replace entire message with authoritative incoming
+            if rev(incoming) > rev(existing) {
+                messages[idx] = incoming
+                bumpLastServerIdIfNeeded(messages[idx])
+                sortMessagesInPlace()
+            }
             return
         }
 
+        // 2) Match by clientMessageId (optimistic send reconciliation)
         if let cmid = incoming.clientMessageId,
            let idx = messages.firstIndex(where: { $0.clientMessageId == cmid }) {
-            messages[idx] = mergeMessage(existing: messages[idx], incoming: incoming)
-            bumpLastServerIdIfNeeded(messages[idx])
-            sortMessagesInPlace()
+            let existing = messages[idx]
+            // Usually server row (positive id + higher revision) should replace optimistic
+            if rev(incoming) >= rev(existing) {
+                // prefer authoritative incoming (server), but preserve local.createdAt if missing
+                var replaced = incoming
+                if (replaced.createdAt ?? "").isEmpty { replaced.createdAt = existing.createdAt }
+                messages[idx] = replaced
+                bumpLastServerIdIfNeeded(messages[idx])
+                sortMessagesInPlace()
+            }
             return
         }
 
-        // fallback reconcile-by-content (optional)
+        // 3) Fallback fuzzy reconcile: match recent negative-id local messages by content (existing behavior)
         if incoming.clientMessageId == nil,
            let incomingText = incoming.rawContent?.trimmingCharacters(in: .whitespacesAndNewlines),
            !incomingText.isEmpty {
@@ -313,62 +363,22 @@ final class ChatThreadViewModel: ObservableObject {
                 (m.id < 0) &&
                 (m.rawContent?.trimmingCharacters(in: .whitespacesAndNewlines) == incomingText)
             }) {
-                messages[idx] = mergeMessage(existing: messages[idx], incoming: incoming)
-                bumpLastServerIdIfNeeded(messages[idx])
-                sortMessagesInPlace()
+                let existing = messages[idx]
+                if rev(incoming) >= rev(existing) {
+                    messages[idx] = incoming
+                    bumpLastServerIdIfNeeded(messages[idx])
+                    sortMessagesInPlace()
+                }
                 return
             }
         }
 
+        // 4) No match found — insert new authoritative row
         messages.append(incoming)
         bumpLastServerIdIfNeeded(incoming)
         sortMessagesInPlace()
     }
-
-    private func mergeMessage(existing: MessageDTO, incoming: MessageDTO) -> MessageDTO {
-        func isBlank(_ s: String?) -> Bool { (s ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-
-        func preferNonBlank(_ incoming: String?, _ existing: String?) -> String? {
-            if !isBlank(incoming) { return incoming }
-            return existing
-        }
-
-        return MessageDTO(
-            id: (incoming.id > 0 ? incoming.id : existing.id),
-            clientMessageId: incoming.clientMessageId ?? existing.clientMessageId,
-            contentCiphertext: incoming.contentCiphertext ?? existing.contentCiphertext,
-            rawContent: preferNonBlank(incoming.rawContent, existing.rawContent),
-
-            translations: incoming.translations ?? existing.translations,
-            translatedFrom: incoming.translatedFrom ?? existing.translatedFrom,
-            translatedContent: preferNonBlank(incoming.translatedContent, existing.translatedContent),
-            translatedTo: incoming.translatedTo ?? existing.translatedTo,
-            translatedForMe: preferNonBlank(incoming.translatedForMe, existing.translatedForMe),
-
-            isExplicit: incoming.isExplicit ?? existing.isExplicit,
-
-            imageUrl: incoming.imageUrl ?? existing.imageUrl,
-            audioUrl: incoming.audioUrl ?? existing.audioUrl,
-            audioDurationSec: incoming.audioDurationSec ?? existing.audioDurationSec,
-
-            expiresAt: incoming.expiresAt ?? existing.expiresAt,
-
-            deletedBySender: incoming.deletedBySender ?? existing.deletedBySender,
-            deletedAt: incoming.deletedAt ?? existing.deletedAt,
-            deletedForAll: incoming.deletedForAll ?? existing.deletedForAll,
-            deletedById: incoming.deletedById ?? existing.deletedById,
-
-            senderId: incoming.senderId ?? existing.senderId,
-            sender: incoming.sender ?? existing.sender,
-
-            chatRoomId: incoming.chatRoomId ?? existing.chatRoomId,
-            randomChatRoomId: incoming.randomChatRoomId ?? existing.randomChatRoomId,
-
-            createdAt: incoming.createdAt ?? existing.createdAt,
-            isAutoReply: incoming.isAutoReply ?? existing.isAutoReply
-        )
-    }
-
+    
     private func sortMessagesInPlace() {
         messages.sort { a, b in
             let ad = parseISO(a.createdAt)

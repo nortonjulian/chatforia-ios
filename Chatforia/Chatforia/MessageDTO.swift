@@ -14,39 +14,36 @@ struct MessageSenderDTO: Codable {
     let avatarUrl: String?
 }
 
-struct MessageDTO: Codable, Identifiable {
-    let id: Int
-    let clientMessageId: String?
-
-    let contentCiphertext: JSONValue?
-    let rawContent: String?
-
-    let translations: [String: String]?
-    let translatedFrom: String?
-    let translatedContent: String?
-    let translatedTo: String?
-
-    let translatedForMe: String?      // ✅ MUST be optional
-
-    let isExplicit: Bool?
-    let imageUrl: String?
-    let audioUrl: String?
-    let audioDurationSec: Double?
-    let expiresAt: String?
-
-    let deletedBySender: Bool?
-    let deletedAt: String?
-    let deletedForAll: Bool?
-    let deletedById: Int?
-
-    let senderId: Int?
-    let sender: MessageSenderDTO?     // ✅ MUST be optional
-
-    let chatRoomId: Int?
-    let randomChatRoomId: Int?
-
-    let createdAt: String?
-    let isAutoReply: Bool?
+// Example — adjust to match your actual MessageDTO file
+struct MessageDTO: Codable {
+    var id: Int
+    var clientMessageId: String?
+    var contentCiphertext: String?
+    var rawContent: String?
+    var translations: String?            // or whatever type
+    var translatedFrom: String?
+    var translatedContent: String?
+    var translatedTo: String?
+    var translatedForMe: String?
+    var isExplicit: Bool?
+    var imageUrl: String?
+    var audioUrl: String?
+    var audioDurationSec: Int?
+    var expiresAt: String?
+    var deletedBySender: Bool?
+    var deletedAt: String?
+    var deletedForAll: Bool?
+    var deletedById: Int?
+    var senderId: Int?
+    var sender: UserDTO?                 // example
+    var chatRoomId: Int
+    var randomChatRoomId: Int?
+    var createdAt: String?               // made var above
+    var isAutoReply: Bool?
+    // Add revision as optional so old rows decode and optimistic ones can set it.
+    var revision: Int?
+    
+    // CodingKeys / init if you already have them — just ensure createdAt and revision map correctly.
 }
 
 extension MessageDTO {

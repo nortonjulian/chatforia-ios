@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum Environment {
+enum AppEnvironment {
 
     static var apiBaseURL: URL {
         #if DEBUG

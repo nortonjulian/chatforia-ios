@@ -12,13 +12,20 @@ import Foundation
 import Combine
 import SocketIO
 
+// MARK: - Notification helpers
+extension Notification.Name {
+    /// Posted when a message expires via socket event.
+    /// userInfo["payload"] => [String: Any] (raw server payload)
+    static let socketMessageExpired = Notification.Name("socketMessageExpired")
+}
+
 @MainActor
 final class SocketManager: ObservableObject {
     static let shared = SocketManager()
 
     @Published private(set) var isConnected: Bool = false
 
-    private let url: URL = Environment.apiBaseURL   // MUST be host root (no /api)
+    private let url: URL = AppEnvironment.apiBaseURL   // MUST be host root (no /api)
 
     private var manager: SocketIO.SocketManager?
     private var socket: SocketIOClient?
@@ -89,15 +96,22 @@ final class SocketManager: ObservableObject {
 
     // MARK: - Public helpers
 
+    /// Register an event handler. Returns the UUID handler id from Socket.IO if available.
     @discardableResult
     func on(_ event: String, callback: @escaping NormalCallback) -> UUID? {
-        return socket?.on(event, callback: callback)
+        if let id = socket?.on(event, callback: callback) {
+            return id
+        }
+        return nil
     }
 
+    /// Remove a handler by UUID
     func off(_ id: UUID) {
+        // Socket.IO-Client-Swift expects the label 'id:' for this API
         socket?.off(id: id)
     }
 
+    /// Remove all handlers for an event name
     func off(_ event: String) {
         socket?.off(event)
     }
@@ -190,5 +204,27 @@ final class SocketManager: ObservableObject {
         socket.on(clientEvent: .reconnect) { data, _ in
             print("🔄 socket reconnect:", data)
         }
+
+        // ---------------------------------------------------------------------
+        // Application-level socket events
+        // ---------------------------------------------------------------------
+
+        // Handle message expired events from server
+        // Posts the raw payload dictionary to NotificationCenter so view-models can decode/update.
+        socket.on("message:expired") { data, ack in
+            guard let payload = data.first as? [String: Any] else { return }
+
+            Task { @MainActor in
+                NotificationCenter.default.post(
+                    name: .socketMessageExpired,
+                    object: nil,
+                    userInfo: ["payload": payload]
+                )
+            }
+        }
+
+        // Add any other app-level handlers (message:new, message:updated, typing:update, etc.)
+        // Example:
+        // socket.on("message:new") { data, ack in ... }
     }
 }
