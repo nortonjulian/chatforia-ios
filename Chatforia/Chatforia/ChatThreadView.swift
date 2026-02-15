@@ -1,3 +1,4 @@
+// ChatThreadView.swift
 import SwiftUI
 
 struct ChatThreadView: View {
@@ -7,15 +8,13 @@ struct ChatThreadView: View {
     @StateObject private var vm = ChatThreadViewModel()
     @State private var draft = ""
 
-    @SwiftUI.Environment(\.scenePhase) private var scenePhase
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         VStack(spacing: 0) {
             errorBanner
-
             messagesSection
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-
             typingBanner
             Divider()
             composer
@@ -24,31 +23,39 @@ struct ChatThreadView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { toolbarContent }
         .task(id: room.id) {
+            vm.configureRoom(roomId: room.id)
             await reload()
-            vm.startSocket(
-                roomId: room.id,
-                token: TokenStore().read(),
-                myUsername: currentUsername
-            )
+            await vm.resyncIfNeeded(token: TokenStore().read())
+            vm.startSocket(roomId: room.id, token: TokenStore().read(), myUsername: currentUsername)
+            vm.startExpiryLoop()
         }
         .onDisappear {
             vm.stopTypingNow(roomId: room.id)
             vm.stopSocket()
+            vm.stopExpiryLoop()
         }
-        .onChange(of: scenePhase) {
-            if scenePhase != .active {
+        .onChange(of: scenePhase) { phase in
+            if phase == .active {
+                Task { await vm.resyncIfNeeded(token: TokenStore().read()) }
+                vm.startExpiryLoop()
+            } else {
                 vm.stopTypingNow(roomId: room.id)
+                vm.stopExpiryLoop()
             }
         }
+        .onReceive(SocketManager.shared.$isConnected) { connected in
+            guard connected else { return }
+            Task { await vm.resyncIfNeeded(token: TokenStore().read()) }
+        }
     }
-    
-    // MARK: - Subviews
+
+    // MARK: - Subviews / helpers
 
     private var errorBanner: some View {
         Group {
             if let err = vm.errorText, !err.isEmpty {
                 Text(err)
-                    .foregroundStyle(.red)
+                    .foregroundColor(.red)
                     .font(.footnote)
                     .padding(.horizontal)
                     .padding(.top, 8)
@@ -63,7 +70,7 @@ struct ChatThreadView: View {
                     Spacer()
                     ProgressView()
                     Text("Loading messages…")
-                        .foregroundStyle(.secondary)
+                        .foregroundColor(.secondary)
                     Spacer()
                 }
                 .padding()
@@ -72,12 +79,11 @@ struct ChatThreadView: View {
                 VStack(spacing: 10) {
                     Spacer()
                     Text("No messages yet")
-                        .foregroundStyle(.secondary)
+                        .foregroundColor(.secondary)
                     Spacer()
                 }
 
             } else {
-                // ✅ Always render sorted oldest -> newest
                 let sortedMessages = vm.messages.sorted(by: { $0.id < $1.id })
 
                 ScrollViewReader { proxy in
@@ -91,7 +97,6 @@ struct ChatThreadView: View {
                                 .id(msg.id)
                             }
 
-                            // ✅ stable bottom anchor
                             Color.clear
                                 .frame(height: 1)
                                 .id("BOTTOM")
@@ -103,7 +108,7 @@ struct ChatThreadView: View {
                     .onAppear {
                         scrollToBottom(proxy)
                     }
-                    .onChange(of: vm.messages.count) {
+                    .onChange(of: vm.messages.count) { _ in
                         scrollToBottom(proxy)
                     }
                 }
@@ -116,7 +121,7 @@ struct ChatThreadView: View {
             if !vm.typingUsernames.isEmpty {
                 Text(typingIndicatorText(vm.typingUsernames))
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundColor(.secondary)
                     .padding(.horizontal)
                     .padding(.vertical, 6)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -126,10 +131,10 @@ struct ChatThreadView: View {
 
     private var composer: some View {
         HStack(spacing: 10) {
-            TextField("Message…", text: $draft, axis: .vertical)
+            // single-line TextField for broad compatibility
+            TextField("Message…", text: $draft)
                 .textFieldStyle(.roundedBorder)
-                .lineLimit(1...4)
-                .onChange(of: draft) {
+                .onChange(of: draft) { _ in
                     vm.handleInputChanged(roomId: room.id)
                 }
 
@@ -142,12 +147,12 @@ struct ChatThreadView: View {
             .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
         .padding()
-        .background(.ultraThinMaterial)
+        .background(.thinMaterial)
     }
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .topBarTrailing) {
+        ToolbarItem(placement: .navigationBarTrailing) {
             Button {
                 Task { await reload() }
             } label: {
@@ -156,7 +161,7 @@ struct ChatThreadView: View {
         }
     }
 
-    // MARK: - Helpers
+    // MARK: - Helpers used by the view
 
     private var currentUserId: Int? {
         if case .loggedIn(let user) = auth.state { return user.id }
@@ -189,7 +194,6 @@ struct ChatThreadView: View {
     }
 
     private func scrollToBottom(_ proxy: ScrollViewProxy) {
-        // ✅ scroll after layout pass
         DispatchQueue.main.async {
             proxy.scrollTo("BOTTOM", anchor: .bottom)
         }
@@ -202,7 +206,7 @@ struct ChatThreadView: View {
     }
 }
 
-// MARK: - Bubble UI (simple Phase-1)
+// MARK: - Message Bubble
 
 private struct MessageBubbleView: View {
     let msg: MessageDTO
@@ -216,7 +220,7 @@ private struct MessageBubbleView: View {
                 if let sid = msg.senderId {
                     Text("User \(sid)")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundColor(.secondary)
                 }
 
                 Text(displayText)
@@ -225,7 +229,7 @@ private struct MessageBubbleView: View {
                 if let createdAt = msg.createdAt, !createdAt.isEmpty {
                     Text(createdAt)
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundColor(.secondary)
                 }
             }
             .padding(10)
@@ -239,12 +243,10 @@ private struct MessageBubbleView: View {
     private var displayText: String {
         if (msg.deletedForAll ?? false) { return "This message was deleted" }
 
-        if let t = msg.translatedForMe, !t.isEmpty { return t }      // ✅ preferred
-        if let t = msg.translatedContent, !t.isEmpty { return t }    // legacy
-        if let r = msg.rawContent, !r.isEmpty { return r }           // sender/admin only
-
+        if let t = msg.translatedForMe, !t.isEmpty { return t }
+        if let t = msg.translatedContent, !t.isEmpty { return t }
+        if let r = msg.rawContent, !r.isEmpty { return r }
         if msg.contentCiphertext != nil { return "🔒 Encrypted message" }
-
         return "—"
     }
 }
