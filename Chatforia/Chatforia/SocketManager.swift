@@ -40,15 +40,106 @@ final class SocketManager: ObservableObject {
 
     // MARK: - Connection
 
+    /// Backwards-compatible synchronous connect. This triggers rebuild(token:) then begins handshake.
     func connect(token: String) {
         currentToken = token
-
-        // Rebuild manager/socket so token is always in connectParams (including reconnects)
+        print("SocketManager.connect invoked tokenPresent=\(!token.isEmpty) tokenPreview=\(token.prefix(8))")
         rebuild(token: token)
 
-        guard let socket else { return }
+        guard let socket = self.socket else { return }
         if socket.status != .connected && socket.status != .connecting {
             socket.connect()
+        }
+    }
+
+    /// Async connect that suspends until `.connect` event or timeout.
+    /// Usage: `try await SocketManager.shared.connectAsync(token: token, timeoutSecs: 8)`
+    func connectAsync(token: String?, timeoutSecs: TimeInterval = 8) async throws {
+        currentToken = token
+        rebuild(token: token)
+
+        guard let socket = self.socket else {
+            throw NSError(domain: "SocketManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Socket not initialized"])
+        }
+
+        // If already connected, update state and return
+        if socket.status == .connected {
+            await MainActor.run { self.isConnected = true }
+            return
+        }
+
+        // Start connection if necessary
+        if socket.status != .connected && socket.status != .connecting {
+            socket.connect()
+        }
+
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            var didResume = false
+            var handlerId: UUID? = nil
+
+            // One-off connect handler
+            let connectHandler: NormalCallback = { [weak self] _, _ in
+                Task { @MainActor in
+                    guard !didResume else { return }
+                    didResume = true
+                    self?.isConnected = true
+
+                    // Unwrap captured handlerId and call off if present with the correct label
+                    if let idToRemove = handlerId {
+                        self?.socket?.off(id: idToRemove)
+                    }
+
+                    continuation.resume(returning: ())
+                }
+            }
+
+            // Register handler and keep id so we can remove it after resume
+            let id = socket.on(clientEvent: .connect, callback: connectHandler)
+            handlerId = id
+
+            // Timeout fallback task
+            Task {
+                try? await Task.sleep(nanoseconds: UInt64(timeoutSecs * 1_000_000_000))
+                if !didResume {
+                    didResume = true
+                    if let idToRemove = handlerId {
+                        socket.off(id: idToRemove)
+                    }
+                    continuation.resume(throwing: NSError(domain: "SocketManager", code: 2, userInfo: [NSLocalizedDescriptionKey: "Socket connect timeout"]))
+                }
+            }
+        }
+    }
+
+    /// Call the handler *once* when the socket next becomes connected (or immediately if already connected).
+    /// Useful if you prefer a closure API instead of async/await.
+    func onConnectedOnce(_ handler: @escaping () -> Void) {
+        // If already connected, call immediately on main actor
+        if let s = socket, s.status == .connected {
+            Task { @MainActor in handler() }
+            return
+        }
+
+        // Otherwise register a temporary connect handler and remove it after firing
+        let callback: NormalCallback = { _, _ in
+            Task { @MainActor in
+                handler()
+            }
+        }
+
+        // Use optional registration so we get an Optional<UUID>
+        if let id = socket?.on(clientEvent: .connect, callback: callback) {
+            // Remove the handler once it runs; schedule a small delay to allow callback to execute
+            Task {
+                try? await Task.sleep(nanoseconds: 100_000) // tiny delay
+                self.socket?.off(id: id)
+            }
+        } else {
+            // If we couldn't get an id, schedule a fallback call
+            Task {
+                try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+                handler()
+            }
         }
     }
 
@@ -63,21 +154,11 @@ final class SocketManager: ObservableObject {
         socket = nil
         manager = nil
         didBindCoreHandlers = false
-        joinedRoomIds.removeAll()
+        // IMPORTANT: Do NOT clear joinedRoomIds here. Keep the desired rooms so we can re-join after reconnect.
+        // joinedRoomIds.removeAll()
 
-        // ✅ Build URL with token query param (your server reads handshake.query.token)
-        var finalURL = url
-        if let token, !token.isEmpty {
-            var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-            components?.queryItems = [
-                URLQueryItem(name: "token", value: token)
-            ]
-            if let newURL = components?.url {
-                finalURL = newURL
-            }
-        }
-
-        let config: SocketIOClientConfiguration = [
+        // Base config (unchanged)
+        let baseConfig: SocketIOClientConfiguration = [
             .log(false),
             .compress,
             .path("/socket.io"),
@@ -87,9 +168,33 @@ final class SocketManager: ObservableObject {
             .forceWebsockets(true)
         ]
 
-        let mgr = SocketIO.SocketManager(socketURL: finalURL, config: config)
+        // Build final config — *do not* rely on +/append/insert to avoid compiler overload issues.
+        let config: SocketIOClientConfiguration
+        if let t = token, !t.isEmpty {
+            // Put connectParams first so the handshake gets the token
+            config = [
+                .connectParams(["token": t]),
+                .log(false),
+                .compress,
+                .path("/socket.io"),
+                .reconnects(true),
+                .reconnectAttempts(-1),
+                .reconnectWait(1),
+                .forceWebsockets(true)
+            ]
+            let preview = String(t.prefix(8))
+            print("SocketManager.rebuild: tokenPreview=\(preview)…")
+        } else {
+            config = baseConfig
+        }
+
+        // Create manager using the base URL (no token in the URL)
+        let mgr = SocketIO.SocketManager(socketURL: url, config: config)
         self.manager = mgr
         self.socket = mgr.defaultSocket
+
+        // Log visible manager URL (this will not show the token — token printed separately)
+        print("SocketManager.rebuild: manager socketURL=\(String(describing: mgr.socketURL))")
 
         bindCoreHandlersIfNeeded()
     }
@@ -107,7 +212,7 @@ final class SocketManager: ObservableObject {
 
     /// Remove a handler by UUID
     func off(_ id: UUID) {
-        // Socket.IO-Client-Swift expects the label 'id:' for this API
+        // Call the underlying Socket.IO API with the labeled parameter 'id:'
         socket?.off(id: id)
     }
 
@@ -117,11 +222,19 @@ final class SocketManager: ObservableObject {
     }
 
     func emit(_ event: String, _ payload: [String: Any]) {
-        socket?.emit(event, payload)
+        guard let socket = socket, socket.status == .connected else {
+            print("⚠️ socket emit skipped (not connected) event=\(event) payloadPreview=\(payload.keys)")
+            return
+        }
+        socket.emit(event, payload)
     }
 
     func emit(_ event: String) {
-        socket?.emit(event)
+        guard let socket = socket, socket.status == .connected else {
+            print("⚠️ socket emit skipped (not connected) event=\(event)")
+            return
+        }
+        socket.emit(event)
     }
 
     // MARK: - Rooms
@@ -130,14 +243,22 @@ final class SocketManager: ObservableObject {
     func joinRoom(roomId: Int) {
         guard roomId > 0 else { return }
         joinedRoomIds.insert(roomId)
-        socket?.emit("join_room", roomId)
+        guard let socket = socket, socket.status == .connected else {
+            print("ℹ️ joinRoom queued (not connected) roomId=\(roomId)")
+            return
+        }
+        socket.emit("join_room", roomId)
     }
 
     /// Leave a single room (matches server 'leave_room')
     func leaveRoom(roomId: Int) {
         guard roomId > 0 else { return }
         joinedRoomIds.remove(roomId)
-        socket?.emit("leave_room", roomId)
+        guard let socket = socket, socket.status == .connected else {
+            print("ℹ️ leaveRoom queued (not connected) roomId=\(roomId)")
+            return
+        }
+        socket.emit("leave_room", roomId)
     }
 
     /// ✅ Preferred: join many rooms at once (matches server 'join:rooms')
@@ -148,7 +269,11 @@ final class SocketManager: ObservableObject {
         guard !ids.isEmpty else { return }
 
         for id in ids { joinedRoomIds.insert(id) }
-        socket?.emit("join:rooms", ids)
+        guard let socket = socket, socket.status == .connected else {
+            print("ℹ️ joinRooms queued (not connected) ids=\(ids)")
+            return
+        }
+        socket.emit("join:rooms", ids)
     }
 
     /// Convenience: replace currently-joined set with a new set (diff join/leave).
@@ -160,32 +285,39 @@ final class SocketManager: ObservableObject {
         let toJoin = desired.subtracting(joinedRoomIds)
 
         for rid in toLeave {
-            socket?.emit("leave_room", rid)
+            guard let socket = socket, socket.status == .connected else {
+                print("ℹ️ leave_room queued (not connected) rid=\(rid)")
+                continue
+            }
+            socket.emit("leave_room", rid)
         }
 
         if !toJoin.isEmpty {
-            socket?.emit("join:rooms", Array(toJoin))
+            if let s = socket, s.status == .connected {
+                s.emit("join:rooms", Array(toJoin))
+            } else {
+                print("⚠️ join:rooms queued (not connected) ids=\(Array(toJoin))")
+            }
         }
-
         joinedRoomIds = desired
     }
 
     // MARK: - Core handlers
 
     private func bindCoreHandlersIfNeeded() {
-        guard !didBindCoreHandlers, let socket else { return }
+        guard !didBindCoreHandlers, let socket = self.socket else { return }
         didBindCoreHandlers = true
 
         socket.on(clientEvent: .connect) { [weak self] _, _ in
             Task { @MainActor in
-                guard let self else { return }
-                self.isConnected = true
+                guard let strongSelf = self else { return }
+                strongSelf.isConnected = true
                 print("✅ socket connected")
 
                 // ✅ Re-join rooms after reconnect/connect (important with auto-reconnect)
-                let rooms = Array(self.joinedRoomIds)
+                let rooms = Array(strongSelf.joinedRoomIds)
                 if !rooms.isEmpty {
-                    self.socket?.emit("join:rooms", rooms)
+                    strongSelf.socket?.emit("join:rooms", rooms)
                 }
             }
         }
@@ -222,9 +354,5 @@ final class SocketManager: ObservableObject {
                 )
             }
         }
-
-        // Add any other app-level handlers (message:new, message:updated, typing:update, etc.)
-        // Example:
-        // socket.on("message:new") { data, ack in ... }
     }
 }

@@ -1,3 +1,11 @@
+//
+//  ChatThreadViewModel.swift
+//  Chatforia
+//
+//  Created by Julian Norton on 2/9/26.
+//  Updated to match server-authoritative MessageDTO (Date timestamps, clientMessageId, optimistic factory).
+//
+
 import Foundation
 import Combine
 
@@ -12,6 +20,10 @@ struct SendMessageRequest: Encodable {
     let chatRoomId: Int
     let content: String
     let clientMessageId: String
+}
+
+struct MessageEnvelope: Decodable {
+    let item: MessageDTO
 }
 
 // MARK: - ViewModel
@@ -52,7 +64,7 @@ final class ChatThreadViewModel: ObservableObject {
     }
     private var isResyncing: Bool = false
 
-    // Formatter
+    // NOTE: isoFormatter kept for any parsing we might need elsewhere (but MessageDTO uses Date types now)
     private let isoFormatter: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -77,9 +89,8 @@ final class ChatThreadViewModel: ObservableObject {
     }
 
     func isExpired(_ msg: MessageDTO, now: Date = Date()) -> Bool {
-        guard let s = msg.expiresAt else { return false }
-        if let d = parseISO(s) { return d <= now }
-        return false
+        guard let expires = msg.expiresAt else { return false }
+        return expires <= now
     }
 
     // MARK: - Networking
@@ -134,56 +145,70 @@ final class ChatThreadViewModel: ObservableObject {
         errorText = nil
         stopTypingNow(roomId: roomId)
 
-        let clientId = UUID().uuidString
-        let localId = -abs(clientId.hashValue)
+        // stable client id and negative localId strategy
+        let clientMessageId = UUID().uuidString
+        let localId = -abs(clientMessageId.hashValue)
 
-        let optimistic = MessageDTO(
-            id: localId,
-            clientMessageId: clientId,
-            contentCiphertext: nil,
-            rawContent: trimmed,
-            translations: nil,
-            translatedFrom: nil,
-            translatedContent: nil,
-            translatedTo: nil,
-            translatedForMe: nil,
-            isExplicit: nil,
-            imageUrl: nil,
-            audioUrl: nil,
-            audioDurationSec: nil,
-            expiresAt: nil,
-            deletedBySender: nil,
-            deletedAt: nil,
-            deletedForAll: nil,
-            deletedById: nil,
-            senderId: nil,
-            sender: nil,
-            chatRoomId: roomId,
-            randomChatRoomId: nil,
-            createdAt: isoFormatter.string(from: Date()),
-            isAutoReply: nil,
-            revision: 1 // <-- add this
+        // Build optimistic DTO using the factory on MessageDTO
+        let sender = currentUserSenderDTO // computed property below (fallback safe)
+
+        let optimistic = MessageDTO.optimistic(
+            roomId: roomId,
+            clientMessageId: clientMessageId,
+            localId: localId,
+            text: trimmed,
+            senderId: sender.id,
+            senderUsername: sender.username,
+            senderPublicKey: sender.publicKey
         )
 
         insertOrReplace(optimistic)
 
+        // Prepare encoded request body
+        let bodyData: Data
         do {
-            let body = try JSONEncoder().encode(
-                SendMessageRequest(chatRoomId: roomId, content: trimmed, clientMessageId: clientId)
+            bodyData = try JSONEncoder().encode(
+                SendMessageRequest(chatRoomId: roomId, content: trimmed, clientMessageId: clientMessageId)
             )
-
-            let saved: MessageDTO = try await APIClient.shared.send(
-                APIRequest(path: "messages", method: .POST, body: body, requiresAuth: true),
-                token: token
-            )
-
-            insertOrReplace(saved)
         } catch {
-            messages.removeAll { $0.clientMessageId == clientId }
+            // remove optimistic by clientMessageId
+            messages.removeAll { $0.clientMessageId == clientMessageId }
+            errorText = "Failed to encode send body: \(error.localizedDescription)"
+            return
+        }
+
+        let apiReq = APIRequest(path: "messages", method: .POST, body: bodyData, requiresAuth: true)
+
+        do {
+            let (data, _) = try await APIClient.shared.sendRaw(apiReq, token: token)
+
+            let decoder = JSONDecoder.tolerantISO8601Decoder()
+
+            // 1) try direct MessageDTO
+            if let direct = try? decoder.decode(MessageDTO.self, from: data) {
+                insertOrReplace(direct)
+                return
+            }
+
+            // 2) try envelope { item: MessageDTO }
+            struct Envelope: Decodable { let item: MessageDTO }
+            if let env = try? decoder.decode(Envelope.self, from: data) {
+                insertOrReplace(env.item)
+                return
+            }
+
+            // 3) unknown shape -> show helpful raw preview
+            let rawPreview = String(data: data.prefix(4000), encoding: .utf8) ?? "<non-utf8 data>"
+            throw NSError(domain: "ChatThreadViewModel", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to decode message response. RAW: \(rawPreview)"])
+        } catch {
+            // remove optimistic by clientMessageId
+            messages.removeAll { $0.clientMessageId == clientMessageId }
             errorText = error.localizedDescription
+            print("❌ sendMessage POST error:", error)
         }
     }
 
+        
     // MARK: - Socket wiring
     func startSocket(roomId: Int, token: String?, myUsername: String?) {
         // Defensive: ensure we have a valid numeric roomId
@@ -200,12 +225,19 @@ final class ChatThreadViewModel: ObservableObject {
 
         activeRoomId = roomId
 
-        if let token { SocketManager.shared.connect(token: token) }
+        // Debug: show whether we have a token before connecting
+        if let token {
+            print("➡️ startSocket: connecting room=\(roomId) tokenPresent=\(!token.isEmpty) tokenPreview=\(token.prefix(8))")
+            SocketManager.shared.connect(token: token)
+        } else {
+            print("❌ startSocket: token missing — skipping connect")
+        }
+
+        // Request join (SocketManager will queue join if socket isn't connected)
         SocketManager.shared.joinRoom(roomId: roomId)
 
         startTypingPruneLoop()
         startExpiryLoop()
-
         // message:upsert (canonical server upsert event)
         if let id = SocketManager.shared.on("message:upsert", callback: { [weak self] data, _ in
             guard let self = self else { return }
@@ -344,10 +376,8 @@ final class ChatThreadViewModel: ObservableObject {
             let existing = messages[idx]
             // Usually server row (positive id + higher revision) should replace optimistic
             if rev(incoming) >= rev(existing) {
-                // prefer authoritative incoming (server), but preserve local.createdAt if missing
-                var replaced = incoming
-                if (replaced.createdAt ?? "").isEmpty { replaced.createdAt = existing.createdAt }
-                messages[idx] = replaced
+                // prefer authoritative incoming
+                messages[idx] = incoming
                 bumpLastServerIdIfNeeded(messages[idx])
                 sortMessagesInPlace()
             }
@@ -378,21 +408,12 @@ final class ChatThreadViewModel: ObservableObject {
         bumpLastServerIdIfNeeded(incoming)
         sortMessagesInPlace()
     }
-    
+
     private func sortMessagesInPlace() {
         messages.sort { a, b in
-            let ad = parseISO(a.createdAt)
-            let bd = parseISO(b.createdAt)
-            if let ad, let bd, ad != bd { return ad < bd }
+            if a.createdAt != b.createdAt { return a.createdAt < b.createdAt }
             return a.id < b.id
         }
-    }
-
-    private func parseISO(_ s: String?) -> Date? {
-        guard let s else { return nil }
-        if let d = isoFormatter.date(from: s) { return d }
-        let f2 = ISO8601DateFormatter(); f2.formatOptions = [.withInternetDateTime]
-        return f2.date(from: s)
     }
 
     private func bumpLastServerIdIfNeeded(_ msg: MessageDTO) {
@@ -405,6 +426,20 @@ final class ChatThreadViewModel: ObservableObject {
 
     // MARK: - Typing helpers
     func handleInputChanged(roomId: Int) {
+        // guard connected
+        guard SocketManager.shared.isConnected else {
+            print("⚠️ skipped typing:start (socket not connected)")
+            hasSentTypingStart = false
+            // still schedule a stop in case UI depends on it being set
+            typingStopTask?.cancel()
+            typingStopTask = Task { [weak self] in
+                try? await Task.sleep(nanoseconds: 1_500_000_000)
+                guard let self = self else { return }
+                self.hasSentTypingStart = false
+            }
+            return
+        }
+
         if !hasSentTypingStart {
             hasSentTypingStart = true
             SocketManager.shared.emit("typing:start", ["roomId": roomId])
@@ -415,7 +450,9 @@ final class ChatThreadViewModel: ObservableObject {
             try? await Task.sleep(nanoseconds: 1_500_000_000)
             guard let self = self else { return }
             self.hasSentTypingStart = false
-            SocketManager.shared.emit("typing:stop", ["roomId": roomId])
+            if SocketManager.shared.isConnected {
+                SocketManager.shared.emit("typing:stop", ["roomId": roomId])
+            }
         }
     }
 
@@ -425,7 +462,11 @@ final class ChatThreadViewModel: ObservableObject {
 
         if hasSentTypingStart {
             hasSentTypingStart = false
-            SocketManager.shared.emit("typing:stop", ["roomId": roomId])
+            if SocketManager.shared.isConnected {
+                SocketManager.shared.emit("typing:stop", ["roomId": roomId])
+            } else {
+                print("⚠️ skipped typing:stop (socket not connected)")
+            }
         }
     }
 
@@ -467,11 +508,21 @@ final class ChatThreadViewModel: ObservableObject {
     private func decodeFromDictionary<T: Decodable>(_ dict: [String: Any]) -> T? {
         guard JSONSerialization.isValidJSONObject(dict),
               let data = try? JSONSerialization.data(withJSONObject: dict, options: []) else { return nil }
-        return try? JSONDecoder().decode(T.self, from: data)
+        let decoder = JSONDecoder.tolerantISO8601Decoder()
+        return try? decoder.decode(T.self, from: data)
     }
 
     private func decodeFromJSONString<T: Decodable>(_ json: String) -> T? {
         guard let data = json.data(using: .utf8) else { return nil }
-        return try? JSONDecoder().decode(T.self, from: data)
+        let decoder = JSONDecoder.tolerantISO8601Decoder()
+        return try? decoder.decode(T.self, from: data)
+    }
+
+    // MARK: - Helpers / small adapters
+
+    /// A placeholder accessor for the current user info used when building optimistic messages.
+    /// Replace `CurrentSession.currentUser` with your real session manager.
+    private var currentUserSenderDTO: SenderDTO {
+        return SenderDTO(id: 0, username: "Me", publicKey: nil)
     }
 }

@@ -84,6 +84,7 @@ struct ChatThreadView: View {
                 }
 
             } else {
+                // keep messages immutable for the ForEach
                 let sortedMessages = vm.messages.sorted(by: { $0.id < $1.id })
 
                 ScrollViewReader { proxy in
@@ -92,7 +93,7 @@ struct ChatThreadView: View {
                             ForEach(sortedMessages, id: \.id) { msg in
                                 MessageBubbleView(
                                     msg: msg,
-                                    isMe: (msg.sender?.id ?? msg.senderId) == currentUserId
+                                    isMe: (msg.sender.id == (currentUserId ?? -1))
                                 )
                                 .id(msg.id)
                             }
@@ -212,13 +213,26 @@ private struct MessageBubbleView: View {
     let msg: MessageDTO
     let isMe: Bool
 
+    // Reusable formatter for createdAt
+    private static let shortDateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateStyle = .short
+        f.timeStyle = .short
+        return f
+    }()
+
     var body: some View {
         HStack {
             if isMe { Spacer(minLength: 40) }
 
             VStack(alignment: .leading, spacing: 4) {
-                if let sid = msg.senderId {
-                    Text("User \(sid)")
+                // Prefer showing sender username if available
+                if let username = msg.sender.username, !username.isEmpty {
+                    Text(username)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                } else {
+                    Text("User \(msg.sender.id)")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -226,11 +240,11 @@ private struct MessageBubbleView: View {
                 Text(displayText)
                     .font(.body)
 
-                if let createdAt = msg.createdAt, !createdAt.isEmpty {
-                    Text(createdAt)
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
+                // createdAt is a Date in the new DTO — format for display
+                let createdAtText = Self.shortDateFormatter.string(from: msg.createdAt)
+                Text(createdAtText)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
             }
             .padding(10)
             .background(.thinMaterial)
@@ -244,7 +258,6 @@ private struct MessageBubbleView: View {
         if (msg.deletedForAll ?? false) { return "This message was deleted" }
 
         if let t = msg.translatedForMe, !t.isEmpty { return t }
-        if let t = msg.translatedContent, !t.isEmpty { return t }
         if let r = msg.rawContent, !r.isEmpty { return r }
         if msg.contentCiphertext != nil { return "🔒 Encrypted message" }
         return "—"
