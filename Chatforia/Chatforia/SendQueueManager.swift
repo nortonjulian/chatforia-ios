@@ -303,4 +303,8 @@ public struct ServerMessage: Codable {
 //  Created by Julian Norton on 2/21/26.
 //
 
+extension SendQueueManager {
+    static var isConfiguredForHandlers: Bool = false
+}
+
 import Foundation

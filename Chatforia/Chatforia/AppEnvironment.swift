@@ -25,6 +25,7 @@ enum AppEnvironment {
         SendQueueManager.isConfiguredForHandlers = true
         
         SendQueueManager.shared.sendJobHandler = { job, completion in
+            
             let request = APIRequest(
                 path: "messages",
                 method: .POST,
@@ -32,16 +33,23 @@ enum AppEnvironment {
                 requiresAuth: true
             )
             
-            let token = TokenStore().read()   // or TokenStore.shared.read() after you add shared
-            
-            APIClient.shared.sendRaw(request, token) { result in
+            // 🔴 TOKEN NO LONGER NEEDED — APIClient attaches it automatically
+            APIClient.shared.sendRaw(request) { result in
                 switch result {
                 case .success(let (data, _)):
-                    handleSuccessfulResponse(data: data, completion: completion)
+                    let decoder = JSONDecoder()
+                    
+                    if let dto = try? decoder.decode(MessageDTO.self, from: data) {
+                        completion(.success(serverMessage: nil)) // placeholder for now
+                    } else {
+                        completion(.temporaryFailure)
+                    }
                     
                 case .failure(let error):
-                    let isRetryable = (error as? APIClientError)?.isRetryable == true ||
-                                      error.isRetryableServerError
+                    let isRetryable =
+                        (error as? APIClientError)?.isRetryable == true ||
+                        ((error as NSError).code >= 500 && (error as NSError).code < 600)
+                    
                     completion(isRetryable ? .temporaryFailure : .permanentFailure)
                 }
             }
@@ -61,44 +69,5 @@ enum AppEnvironment {
                 )
             }
         }
-    }
-    
-    // ────────────────────────────────────────────────
-    // Put this OUTSIDE the closure — at enum level
-    // ────────────────────────────────────────────────
-    private static func handleSuccessfulResponse(
-        data: Data,
-        completion: @escaping (SendAttemptResult) -> Void
-    ) {
-        let decoder = JSONDecoder.tolerantISO8601Decoder()
-        
-        // Option 1: direct MessageDTO at root
-        if let dto = try? decoder.decode(MessageDTO.self, from: data) {
-            // ← Replace next line with YOUR REAL conversion method
-            // Examples of what it might be named in your code:
-            //   let serverMsg = dto.toServerMessage()
-            //   let serverMsg = dto.serverMessage
-            //   let serverMsg = ServerMessage(from: dto)
-            //   let serverMsg = dto.asServerMessage()
-            
-            if let serverMsg = dto.asServerMessageIfAvailable() {   // ← CHANGE THIS LINE
-                completion(.success(serverMessage: serverMsg))
-                return
-            }
-        }
-        
-        // Option 2: wrapped in { "item": MessageDTO }
-        struct MessageEnvelope: Decodable {
-            let item: MessageDTO
-        }
-        
-        if let envelope = try? decoder.decode(MessageEnvelope.self, from: data),
-           let serverMsg = envelope.item.asServerMessageIfAvailable() {   // ← CHANGE THIS TOO
-            completion(.success(serverMessage: serverMsg))
-            return
-        }
-        
-        // If neither format matches → treat as server-side temporary issue
-        completion(.temporaryFailure)
     }
 }
