@@ -8,6 +8,9 @@ struct ChatThreadView: View {
     @StateObject private var vm = ChatThreadViewModel()
     @State private var draft = ""
 
+    // Track newest message id so we only auto-scroll when newest changes
+    @State private var lastMessageId: Int? = nil
+
     @SwiftUI.Environment(\.scenePhase) private var scenePhase: ScenePhase
 
     var body: some View {
@@ -28,6 +31,10 @@ struct ChatThreadView: View {
             await vm.resyncIfNeeded(token: TokenStore().read())
             vm.startSocket(roomId: room.id, token: TokenStore().read(), myUsername: currentUsername)
             vm.startExpiryLoop()
+            // initialize lastMessageId after initial load attempt (vm.loadMessages will fill vm.messages)
+            DispatchQueue.main.async {
+                self.lastMessageId = vm.messages.sorted(by: { $0.id < $1.id }).last?.id
+            }
         }
         .onDisappear {
             vm.stopTypingNow(roomId: room.id)
@@ -86,6 +93,8 @@ struct ChatThreadView: View {
             } else {
                 // keep messages immutable for the ForEach
                 let sortedMessages = vm.messages.sorted(by: { $0.id < $1.id })
+                // compute the current newest id for change detection
+                let newestId = sortedMessages.last?.id
 
                 ScrollViewReader { proxy in
                     ScrollView {
@@ -96,6 +105,14 @@ struct ChatThreadView: View {
                                     isMe: (msg.sender.id == (currentUserId ?? -1))
                                 )
                                 .id(msg.id)
+                                // If this is the oldest visible message, ask the VM to load older items.
+                                .onAppear {
+                                    if msg.id == sortedMessages.first?.id {
+                                        Task {
+                                            await vm.loadOlderMessagesIfNeeded()
+                                        }
+                                    }
+                                }
                             }
 
                             Color.clear
@@ -107,10 +124,19 @@ struct ChatThreadView: View {
                         .padding(.bottom, 8)
                     }
                     .onAppear {
+                        // initial scroll to bottom on first appear
                         scrollToBottom(proxy)
                     }
+                    // Only auto-scroll when the newest message id changed (i.e., new message appended).
                     .onChange(of: vm.messages.count) { _, _ in
-                        scrollToBottom(proxy)
+                        let newNewest = newestId
+                        if newNewest != lastMessageId {
+                            // there's a newer message — scroll
+                            scrollToBottom(proxy)
+                            lastMessageId = newNewest
+                        } else {
+                            // count changed but newest didn't — likely older messages loaded; don't jump
+                        }
                     }
                 }
             }
@@ -185,6 +211,10 @@ struct ChatThreadView: View {
     private func reload() async {
         let token = TokenStore().read()
         await vm.loadMessages(roomId: room.id, token: token)
+        // after reload, update lastMessageId so future arrivals trigger scrolling
+        DispatchQueue.main.async {
+            self.lastMessageId = vm.messages.sorted(by: { $0.id < $1.id }).last?.id
+        }
     }
 
     private func send() async {
@@ -207,13 +237,11 @@ struct ChatThreadView: View {
     }
 }
 
-// MARK: - Message Bubble
-
+// MARK: - Message Bubble (unchanged)
 private struct MessageBubbleView: View {
     let msg: MessageDTO
     let isMe: Bool
 
-    // Reusable formatter for createdAt
     private static let shortDateFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateStyle = .short
@@ -226,7 +254,6 @@ private struct MessageBubbleView: View {
             if isMe { Spacer(minLength: 40) }
 
             VStack(alignment: .leading, spacing: 4) {
-                // Prefer showing sender username if available
                 if let username = msg.sender.username, !username.isEmpty {
                     Text(username)
                         .font(.caption)
@@ -240,7 +267,6 @@ private struct MessageBubbleView: View {
                 Text(displayText)
                     .font(.body)
 
-                // createdAt is a Date in the new DTO — format for display
                 let createdAtText = Self.shortDateFormatter.string(from: msg.createdAt)
                 Text(createdAtText)
                     .font(.caption2)
@@ -256,7 +282,6 @@ private struct MessageBubbleView: View {
 
     private var displayText: String {
         if (msg.deletedForAll ?? false) { return "This message was deleted" }
-
         if let t = msg.translatedForMe, !t.isEmpty { return t }
         if let r = msg.rawContent, !r.isEmpty { return r }
         if msg.contentCiphertext != nil { return "🔒 Encrypted message" }

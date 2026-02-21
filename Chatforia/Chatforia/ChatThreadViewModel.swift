@@ -33,6 +33,8 @@ final class ChatThreadViewModel: ObservableObject {
     @Published var messages: [MessageDTO] = []
     @Published var isLoading: Bool = false
     @Published var errorText: String?
+    
+    @Published var isLoadingOlder: Bool = false
 
     // Typing banner state
     @Published var typingUsernames: [String] = []
@@ -53,6 +55,9 @@ final class ChatThreadViewModel: ObservableObject {
     private var typingLastSeen: [String: Date] = [:]
     private var typingPruneTask: Task<Void, Never>?
     private let typingTTL: TimeInterval = 4.0
+
+    // Debouncer scoped to this VM (per-room)
+    private let batchSortDebouncer = BatchSortDebouncer(debounceInterval: 0.03)
 
     // deterministic resync
     private var roomId: Int? = nil
@@ -124,6 +129,9 @@ final class ChatThreadViewModel: ObservableObject {
             self.messages = []
             for m in page.items { insertOrReplace(m) }
 
+            // Ensure deterministic ordering after bulk load
+            batchSortDebouncer.flush()
+
             if self.messages.isEmpty {
                 self.errorText = "Loaded 0 messages for room \(roomId)."
                 print("⚠️ loadMessages: 0 messages for roomId:", roomId)
@@ -135,6 +143,58 @@ final class ChatThreadViewModel: ObservableObject {
             print("❌ loadMessages error for roomId \(roomId):", error)
         }
     }
+    
+    func loadOlderMessagesIfNeeded(limit: Int = 50) async {
+            // guard: must have a room configured
+            guard let roomId = self.roomId, roomId > 0 else { return }
+            // if we are already loading older pages, skip
+            guard !isLoadingOlder else { return }
+
+            // Determine beforeId from the oldest in-memory message
+            guard let beforeId = messages.first?.id else {
+                // no messages in memory — caller should call loadMessages initially instead
+                print("⚠️ loadOlderMessagesIfNeeded: no oldest message in memory to page before.")
+                return
+            }
+
+            isLoadingOlder = true
+            defer { isLoadingOlder = false }
+
+            print("➡️ loadOlderMessagesIfNeeded: roomId=\(roomId) beforeId=\(beforeId) limit=\(limit)")
+
+            guard let token = TokenStore().read() as String? else {
+                print("❌ loadOlderMessagesIfNeeded: missing token")
+                return
+            }
+
+            do {
+                let path = "messages/\(roomId)?beforeId=\(beforeId)&limit=\(limit)"
+                let page: MessagesPageResponse = try await APIClient.shared.send(
+                    APIRequest(path: path, method: .GET, requiresAuth: true),
+                    token: token
+                )
+
+                // If server returns 0 items, nothing to do
+                guard !page.items.isEmpty else {
+                    print("➡️ loadOlderMessagesIfNeeded: server returned 0 older items")
+                    return
+                }
+
+                // Insert each incoming DTO with your existing merging logic
+                for m in page.items {
+                    insertOrReplace(m)
+                }
+
+                // Ensure deterministic ordering after bulk insert
+                batchSortDebouncer.flush()
+
+                print("✅ loadOlderMessagesIfNeeded: inserted \(page.items.count) older messages")
+            } catch {
+                print("❌ loadOlderMessagesIfNeeded error:", error)
+                // optionally set errorText if you want the UI to display it
+                self.errorText = error.localizedDescription
+            }
+        }
 
     func sendMessage(roomId: Int, token: String?, text: String) async {
         guard let token else { errorText = "Missing auth token."; return }
@@ -164,6 +224,9 @@ final class ChatThreadViewModel: ObservableObject {
 
         insertOrReplace(optimistic)
 
+        // mark optimistic as sending so UI can show spinner
+        MessageStore.shared.setDeliveryState(clientMessageId: clientMessageId, state: .sending)
+
         // Prepare encoded request body
         let bodyData: Data
         do {
@@ -187,6 +250,10 @@ final class ChatThreadViewModel: ObservableObject {
             // 1) try direct MessageDTO
             if let direct = try? decoder.decode(MessageDTO.self, from: data) {
                 insertOrReplace(direct)
+                // mark sent if server returned same clientMessageId
+                if let cid = direct.clientMessageId, !cid.isEmpty {
+                    MessageStore.shared.setDeliveryState(clientMessageId: cid, state: .sent)
+                }
                 return
             }
 
@@ -194,6 +261,9 @@ final class ChatThreadViewModel: ObservableObject {
             struct Envelope: Decodable { let item: MessageDTO }
             if let env = try? decoder.decode(Envelope.self, from: data) {
                 insertOrReplace(env.item)
+                if let cid = env.item.clientMessageId, !cid.isEmpty {
+                    MessageStore.shared.setDeliveryState(clientMessageId: cid, state: .sent)
+                }
                 return
             }
 
@@ -201,14 +271,14 @@ final class ChatThreadViewModel: ObservableObject {
             let rawPreview = String(data: data.prefix(4000), encoding: .utf8) ?? "<non-utf8 data>"
             throw NSError(domain: "ChatThreadViewModel", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to decode message response. RAW: \(rawPreview)"])
         } catch {
-            // remove optimistic by clientMessageId
-            messages.removeAll { $0.clientMessageId == clientMessageId }
+            // keep optimistic (so user can retry); mark it failed for UI
+            MessageStore.shared.markDeliveryState(clientMessageId: clientMessageId, state: .failed)
             errorText = error.localizedDescription
             print("❌ sendMessage POST error:", error)
         }
     }
 
-        
+
     // MARK: - Socket wiring
     func startSocket(roomId: Int, token: String?, myUsername: String?) {
         // Defensive: ensure we have a valid numeric roomId
@@ -283,6 +353,9 @@ final class ChatThreadViewModel: ObservableObject {
         socketListenerIDs.removeAll()
         activeRoomId = nil
 
+        // ensure any pending sort runs before we tear down
+        batchSortDebouncer.flush()
+
         stopTypingPruneLoop()
         stopExpiryLoop()
 
@@ -348,6 +421,9 @@ final class ChatThreadViewModel: ObservableObject {
             for msg in page.items {
                 insertOrReplace(msg)
             }
+
+            // Ensure deterministic ordering after resync bulk insert
+            batchSortDebouncer.flush()
         } catch {
             errorText = error.localizedDescription
         }
@@ -364,8 +440,18 @@ final class ChatThreadViewModel: ObservableObject {
             // If incoming is newer, replace entire message with authoritative incoming
             if rev(incoming) > rev(existing) {
                 messages[idx] = incoming
+                // if this incoming row has a clientMessageId, mark it sent in the delivery map
+                if let cid = incoming.clientMessageId, !cid.isEmpty {
+                    MessageStore.shared.setDeliveryState(clientMessageId: cid, state: .sent)
+                }
                 bumpLastServerIdIfNeeded(messages[idx])
-                sortMessagesInPlace()
+                batchSortDebouncer.scheduleSort { [weak self] in
+                    // sorting touches `messages` which is @Published and MainActor-owned.
+                    // Ensure sorting happens on main queue.
+                    DispatchQueue.main.async {
+                        self?.sortMessagesInPlace()
+                    }
+                }
             }
             return
         }
@@ -378,8 +464,18 @@ final class ChatThreadViewModel: ObservableObject {
             if rev(incoming) >= rev(existing) {
                 // prefer authoritative incoming
                 messages[idx] = incoming
+                // if this incoming row has a clientMessageId, mark it sent in the delivery map
+                if let cid = incoming.clientMessageId, !cid.isEmpty {
+                    MessageStore.shared.setDeliveryState(clientMessageId: cid, state: .sent)
+                }
                 bumpLastServerIdIfNeeded(messages[idx])
-                sortMessagesInPlace()
+                batchSortDebouncer.scheduleSort { [weak self] in
+                    // sorting touches `messages` which is @Published and MainActor-owned.
+                    // Ensure sorting happens on main queue.
+                    DispatchQueue.main.async {
+                        self?.sortMessagesInPlace()
+                    }
+                }
             }
             return
         }
@@ -396,8 +492,18 @@ final class ChatThreadViewModel: ObservableObject {
                 let existing = messages[idx]
                 if rev(incoming) >= rev(existing) {
                     messages[idx] = incoming
+                    // if this incoming row has a clientMessageId, mark it sent in the delivery map
+                    if let cid = incoming.clientMessageId, !cid.isEmpty {
+                        MessageStore.shared.setDeliveryState(clientMessageId: cid, state: .sent)
+                    }
                     bumpLastServerIdIfNeeded(messages[idx])
-                    sortMessagesInPlace()
+                    batchSortDebouncer.scheduleSort { [weak self] in
+                        // sorting touches `messages` which is @Published and MainActor-owned.
+                        // Ensure sorting happens on main queue.
+                        DispatchQueue.main.async {
+                            self?.sortMessagesInPlace()
+                        }
+                    }
                 }
                 return
             }
@@ -406,7 +512,17 @@ final class ChatThreadViewModel: ObservableObject {
         // 4) No match found — insert new authoritative row
         messages.append(incoming)
         bumpLastServerIdIfNeeded(incoming)
-        sortMessagesInPlace()
+        batchSortDebouncer.scheduleSort { [weak self] in
+            // sorting touches `messages` which is @Published and MainActor-owned.
+            // Ensure sorting happens on main queue.
+            DispatchQueue.main.async {
+                self?.sortMessagesInPlace()
+            }
+        }
+
+        if let cid = incoming.clientMessageId, !cid.isEmpty {
+            MessageStore.shared.setDeliveryState(clientMessageId: cid, state: .sent)
+        }
     }
 
     private func sortMessagesInPlace() {
