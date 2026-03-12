@@ -1,8 +1,8 @@
 import Foundation
 import os
 
-public final class SendQueueManager {
-    public static let shared = SendQueueManager()
+final class SendQueueManager {
+    static let shared = SendQueueManager()
 
     private let queueFileURL: URL
     private var jobs: [SendJob] = []
@@ -27,7 +27,7 @@ public final class SendQueueManager {
     // MARK: - API
 
     /// Enqueue a send job. Call this *before* attempting network send.
-    public func enqueue(_ job: SendJob) {
+    func enqueue(_ job: SendJob) {
         fileQueue.async {
             if let idx = self.jobs.firstIndex(where: { $0.clientMessageId == job.clientMessageId }) {
                 // existing job: update
@@ -41,7 +41,7 @@ public final class SendQueueManager {
         }
     }
 
-    public func startIfNeeded() {
+    func startIfNeeded() {
         fileQueue.async {
             guard !self.isRunning else { return }
             self.isRunning = true
@@ -49,14 +49,14 @@ public final class SendQueueManager {
         }
     }
 
-    public func start() {
+    func start() {
         fileQueue.async {
             self.isRunning = true
             self.processLoop()
         }
     }
 
-    public func stop() {
+    func stop() {
         fileQueue.async {
             self.isRunning = false
             self.currentBackoffTask?.cancel()
@@ -65,12 +65,12 @@ public final class SendQueueManager {
     }
 
     /// Replay jobs (call on socket connect or app foreground)
-    public func replayQueuedJobs() {
+    func replayQueuedJobs() {
         startIfNeeded()
     }
 
     // Called by network layer when a server message arrives for a clientMessageId
-    public func markJobSucceeded(clientMessageId: String, serverMessage: ServerMessage?) {
+    func markJobSucceeded(clientMessageId: String, serverMessage: MessageDTO?) {
         fileQueue.async {
             self.jobs.removeAll { $0.clientMessageId == clientMessageId }
             self.saveToDisk()
@@ -79,7 +79,7 @@ public final class SendQueueManager {
     }
 
     // Mark job as permanently failed (exposed for UI to mark message failed)
-    public func markJobFailed(clientMessageId: String) {
+    func markJobFailed(clientMessageId: String) {
         fileQueue.async {
             if let i = self.jobs.firstIndex(where: { $0.clientMessageId == clientMessageId }) {
                 self.jobs[i].state = .failed
@@ -238,18 +238,18 @@ public final class SendQueueManager {
     // MARK: - Callbacks / Handlers the app must set
 
     /// Called by worker to perform network send; return via completion with SendAttemptResult.
-    public var sendJobHandler: ((SendJob, @escaping (SendAttemptResult) -> Void) -> Void)?
+    var sendJobHandler: ((SendJob, @escaping (SendAttemptResult) -> Void) -> Void)?
 
     /// Called on success (app should insertOrReplace serverMessage into DB/UI)
-    public var sendSuccessCallback: ((String, ServerMessage?) -> Void)?
+    var sendSuccessCallback: ((String, MessageDTO?) -> Void)?
 
     /// Called on permanent failure (app should mark message failed in UI)
-    public var sendFailedCallback: ((String) -> Void)?
+    var sendFailedCallback: ((String) -> Void)?
 }
 
 // MARK: - Supporting types
 
-public struct SendJob: Codable, Equatable {
+struct SendJob: Codable, Equatable {
     public var clientMessageId: String
     public var localId: String? // local DB id if any
     public var createdAt: Date
@@ -259,7 +259,7 @@ public struct SendJob: Codable, Equatable {
     public var attachmentsMeta: [AttachmentMeta]?
     public var state: JobState
 
-    public init(clientMessageId: String, localId: String?, bodyJSON: Data, attachmentsMeta: [AttachmentMeta]?) {
+    init(clientMessageId: String, localId: String?, bodyJSON: Data, attachmentsMeta: [AttachmentMeta]?) {
         self.clientMessageId = clientMessageId
         self.localId = localId
         self.createdAt = Date()
@@ -271,40 +271,29 @@ public struct SendJob: Codable, Equatable {
     }
 }
 
-public enum JobState: String, Codable {
+enum JobState: String, Codable {
     case pending
     case sending
     case retrying
     case failed
 }
 
-public struct AttachmentMeta: Codable, Equatable {
+struct AttachmentMeta: Codable, Equatable {
     public var filename: String
     public var size: Int
     public var mimeType: String
 }
 
 // Result of attempt
-public enum SendAttemptResult {
-    case success(serverMessage: ServerMessage?)
+enum SendAttemptResult {
+    case success(serverMessage: MessageDTO?)
     case temporaryFailure
     case permanentFailure
 }
 
-// Minimal server message placeholder (your app has its own model)
-public struct ServerMessage: Codable {
-    public var id: Int?
-    public var clientMessageId: String?
-    // Add other fields as needed
-}//
-//  SendQueueManager.swift
-//  Chatforia
-//
-//  Created by Julian Norton on 2/21/26.
-//
 
 extension SendQueueManager {
     static var isConfiguredForHandlers: Bool = false
 }
 
-import Foundation
+

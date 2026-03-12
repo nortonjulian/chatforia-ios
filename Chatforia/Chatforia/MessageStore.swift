@@ -11,7 +11,7 @@ final class MessageStore {
 
     // Optional mapper hook — if your codebase knows how to convert ServerMessage -> MessageDTO,
     // set this closure (e.g., in your DTO file or app startup). If not set, insertOrReplace(ServerMessage) is a no-op.
-    public static var serverToDTOMapper: ((ServerMessage) -> MessageDTO)?
+    static var serverToDTOMapper: ((MessageDTO) -> MessageDTO)? = nil
 
     private var deliveryStates: [String: DeliveryState] = [:]
     private var messages: [MessageDTO] = []
@@ -92,23 +92,15 @@ final class MessageStore {
 
     /// Convert ServerMessage -> MessageDTO then batch upsert.
     /// Uses `MessageStore.serverToDTOMapper` if provided; otherwise does nothing.
-    func insertOrReplace(_ serverMessage: ServerMessage?) {
+    func insertOrReplace(_ serverMessage: MessageDTO?) {
         guard let msg = serverMessage else { return }
 
-        // prefer explicit mapper supplied by DTO code
-        if let mapper = MessageStore.serverToDTOMapper {
-            let dto = mapper(msg)
-            insertOrReplace([dto])
-        } else {
-            // No mapper available: we cannot synthesize MessageDTO safely here.
-            // Optionally: log and return. The SendQueue will still dequeue; insertion may come from socket/db polling.
-            return
-        }
+        insertOrReplace([msg])
 
         if let clientId = msg.clientMessageId, !clientId.isEmpty {
             setDeliveryState(clientMessageId: clientId, state: .sent)
-        } else if let id = msg.id {
-            let serverKey = "server:\(id)"
+        } else {
+            let serverKey = "server:\(msg.id)"
             setDeliveryState(clientMessageId: serverKey, state: .sent)
         }
     }

@@ -1,15 +1,14 @@
-//
-//  ChatforiaApp.swift
-//  Chatforia
-//
-//  Created by Julian Norton on 2/9/26.
-//
-
 import SwiftUI
 
 @main
 struct ChatforiaApp: App {
     @StateObject private var auth = AuthStore()
+    @Environment(\.scenePhase) private var scenePhase
+
+    init() {
+        AppEnvironment.configureSendQueueHandlersIfNeeded()
+        SendQueueManager.shared.startIfNeeded()
+    }
 
     var body: some Scene {
         WindowGroup {
@@ -17,7 +16,15 @@ struct ChatforiaApp: App {
                 .environmentObject(auth)
                 .task {
                     await auth.bootstrap()
+                    AppEnvironment.configureSendQueueHandlersIfNeeded()
+                    SendQueueManager.shared.replayQueuedJobs()
                 }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                AppEnvironment.configureSendQueueHandlersIfNeeded()
+                SendQueueManager.shared.replayQueuedJobs()
+            }
         }
     }
 }

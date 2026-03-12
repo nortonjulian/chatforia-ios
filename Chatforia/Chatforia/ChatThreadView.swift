@@ -3,16 +3,16 @@ import SwiftUI
 
 struct ChatThreadView: View {
     let room: ChatRoomDTO
-
+    
     @EnvironmentObject var auth: AuthStore
     @StateObject private var vm = ChatThreadViewModel()
     @State private var draft = ""
-
+    
     // Track newest message id so we only auto-scroll when newest changes
     @State private var lastMessageId: Int? = nil
-
+    
     @SwiftUI.Environment(\.scenePhase) private var scenePhase: ScenePhase
-
+    
     var body: some View {
         VStack(spacing: 0) {
             errorBanner
@@ -55,9 +55,9 @@ struct ChatThreadView: View {
             Task { await vm.resyncIfNeeded(token: TokenStore().read()) }
         }
     }
-
+    
     // MARK: - Subviews / helpers
-
+    
     private var errorBanner: some View {
         Group {
             if let err = vm.errorText, !err.isEmpty {
@@ -69,7 +69,7 @@ struct ChatThreadView: View {
             }
         }
     }
-
+    
     private var messagesSection: some View {
         Group {
             if vm.isLoading && vm.messages.isEmpty {
@@ -81,7 +81,7 @@ struct ChatThreadView: View {
                     Spacer()
                 }
                 .padding()
-
+                
             } else if vm.messages.isEmpty {
                 VStack(spacing: 10) {
                     Spacer()
@@ -89,20 +89,21 @@ struct ChatThreadView: View {
                         .foregroundColor(.secondary)
                     Spacer()
                 }
-
+                
             } else {
                 // keep messages immutable for the ForEach
                 let sortedMessages = vm.messages.sorted(by: { $0.id < $1.id })
                 // compute the current newest id for change detection
                 let newestId = sortedMessages.last?.id
-
+                
                 ScrollViewReader { proxy in
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 10) {
                             ForEach(sortedMessages, id: \.id) { msg in
                                 MessageBubbleView(
                                     msg: msg,
-                                    isMe: (msg.sender.id == (currentUserId ?? -1))
+                                    isMe: (msg.sender.id == (currentUserId ?? -1)),
+                                    deliveryState: deliveryState(for: msg)
                                 )
                                 .id(msg.id)
                                 // If this is the oldest visible message, ask the VM to load older items.
@@ -114,7 +115,7 @@ struct ChatThreadView: View {
                                     }
                                 }
                             }
-
+                            
                             Color.clear
                                 .frame(height: 1)
                                 .id("BOTTOM")
@@ -142,7 +143,7 @@ struct ChatThreadView: View {
             }
         }
     }
-
+    
     private var typingBanner: some View {
         Group {
             if !vm.typingUsernames.isEmpty {
@@ -155,7 +156,7 @@ struct ChatThreadView: View {
             }
         }
     }
-
+    
     private var composer: some View {
         HStack(spacing: 10) {
             // single-line TextField for broad compatibility
@@ -164,7 +165,7 @@ struct ChatThreadView: View {
                 .onChange(of: draft) { _, _ in
                     vm.handleInputChanged(roomId: room.id)
                 }
-
+            
             Button {
                 Task { await send() }
             } label: {
@@ -176,7 +177,7 @@ struct ChatThreadView: View {
         .padding()
         .background(.thinMaterial)
     }
-
+    
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .navigationBarTrailing) {
@@ -187,19 +188,19 @@ struct ChatThreadView: View {
             }
         }
     }
-
+    
     // MARK: - Helpers used by the view
-
+    
     private var currentUserId: Int? {
         if case .loggedIn(let user) = auth.state { return user.id }
         return nil
     }
-
+    
     private var currentUsername: String? {
         if case .loggedIn(let user) = auth.state { return user.username }
         return nil
     }
-
+    
     private var roomDisplayTitle: String {
         if let n = room.name?.trimmingCharacters(in: .whitespacesAndNewlines),
            !n.isEmpty {
@@ -207,7 +208,7 @@ struct ChatThreadView: View {
         }
         return "Chat"
     }
-
+    
     private func reload() async {
         let token = TokenStore().read()
         await vm.loadMessages(roomId: room.id, token: token)
@@ -216,75 +217,127 @@ struct ChatThreadView: View {
             self.lastMessageId = vm.messages.sorted(by: { $0.id < $1.id }).last?.id
         }
     }
-
+    
     private func send() async {
         let token = TokenStore().read()
         let text = draft
         draft = ""
         await vm.sendMessage(roomId: room.id, token: token, text: text)
     }
-
+    
     private func scrollToBottom(_ proxy: ScrollViewProxy) {
         DispatchQueue.main.async {
             proxy.scrollTo("BOTTOM", anchor: .bottom)
         }
     }
-
+    
     private func typingIndicatorText(_ names: [String]) -> String {
         if names.count == 1 { return "\(names[0]) is typing…" }
         if names.count == 2 { return "\(names[0]) and \(names[1]) are typing…" }
         return "\(names.count) people are typing…"
     }
-}
-
-// MARK: - Message Bubble (unchanged)
-private struct MessageBubbleView: View {
-    let msg: MessageDTO
-    let isMe: Bool
-
-    private static let shortDateFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateStyle = .short
-        f.timeStyle = .short
-        return f
-    }()
-
-    var body: some View {
-        HStack {
-            if isMe { Spacer(minLength: 40) }
-
-            VStack(alignment: .leading, spacing: 4) {
-                if let username = msg.sender.username, !username.isEmpty {
-                    Text(username)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                } else {
-                    Text("User \(msg.sender.id)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+    
+    private func deliveryState(for msg: MessageDTO) -> DeliveryState? {
+        guard let clientMessageId = msg.clientMessageId, !clientMessageId.isEmpty else {
+            return nil
+        }
+        return MessageStore.shared.getDeliveryState(clientMessageId: clientMessageId)
+    }
+    
+    // MARK: - Message Bubble (unchanged)
+    private struct MessageBubbleView: View {
+        let msg: MessageDTO
+        let isMe: Bool
+        let deliveryState: DeliveryState?
+        
+        private static let shortDateFormatter: DateFormatter = {
+            let f = DateFormatter()
+            f.dateStyle = .short
+            f.timeStyle = .short
+            return f
+        }()
+        
+        var body: some View {
+            HStack {
+                if isMe { Spacer(minLength: 40) }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    if let username = msg.sender.username, !username.isEmpty {
+                        Text(username)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    } else {
+                        Text("User \(msg.sender.id)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Text(displayText)
+                        .font(.body)
+                    
+                    HStack(spacing: 6) {
+                        let createdAtText = Self.shortDateFormatter.string(from: msg.createdAt)
+                        Text(createdAtText)
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                        
+                        if isMe, let deliveryStateText {
+                            Text("•")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                            
+                            Text(deliveryStateText)
+                                .font(.caption2)
+                                .foregroundColor(deliveryStateColor)
+                        }
+                    }
                 }
-
-                Text(displayText)
-                    .font(.body)
-
-                let createdAtText = Self.shortDateFormatter.string(from: msg.createdAt)
-                Text(createdAtText)
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
+                .padding(10)
+                .background(.thinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .onTapGesture {
+                    guard isMe, deliveryState == .failed else { return }
+                    NotificationCenter.default.post(
+                        name: Notification.Name("ChatforiaRetrySend"),
+                        object: msg.clientMessageId
+                    )
+                }
+                
+                if !isMe { Spacer(minLength: 40) }
             }
-            .padding(10)
-            .background(.thinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 14))
-
-            if !isMe { Spacer(minLength: 40) }
+        }
+        
+        private var displayText: String {
+            if (msg.deletedForAll ?? false) { return "This message was deleted" }
+            if let t = msg.translatedForMe, !t.isEmpty { return t }
+            if let r = msg.rawContent, !r.isEmpty { return r }
+            if msg.contentCiphertext != nil { return "🔒 Encrypted message" }
+            return "—"
+        }
+        
+        private var deliveryStateText: String? {
+            switch deliveryState {
+            case .pending:
+                return "Pending"
+            case .sending:
+                return "Sending…"
+            case .sent:
+                return "Sent"
+            case .failed:
+                return "Failed"
+            case .none:
+                return nil
+            }
+        }
+        
+        private var deliveryStateColor: Color {
+            switch deliveryState {
+            case .failed:
+                return .red
+            case .pending, .sending, .sent, .none:
+                return .secondary
+            }
         }
     }
-
-    private var displayText: String {
-        if (msg.deletedForAll ?? false) { return "This message was deleted" }
-        if let t = msg.translatedForMe, !t.isEmpty { return t }
-        if let r = msg.rawContent, !r.isEmpty { return r }
-        if msg.contentCiphertext != nil { return "🔒 Encrypted message" }
-        return "—"
-    }
+    
 }

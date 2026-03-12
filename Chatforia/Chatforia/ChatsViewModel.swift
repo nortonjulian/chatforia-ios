@@ -7,7 +7,6 @@ final class ChatsViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var errorText: String?
 
-    /// ✅ Single source of truth for chatrooms base route
     static let chatroomsBasePath = "chatrooms"
 
     func loadRooms(token: String?) async {
@@ -20,49 +19,19 @@ final class ChatsViewModel: ObservableObject {
         errorText = nil
         defer { isLoading = false }
 
-        let listPath = Self.chatroomsBasePath
-
         do {
-            // Try decoding as an array first: [ChatRoomDTO]
-            do {
-                let arr: [ChatRoomDTO] = try await APIClient.shared.send(
-                    APIRequest(path: listPath, method: .GET, requiresAuth: true),
-                    token: token
-                )
-                self.rooms = arr
-                return
-            } catch {
-                // If it wasn't an array, try wrapped response shapes
-            }
-
-            // Wrapped shape #1: { rooms: [...] }
-            do {
-                let wrapped: ChatRoomsResponse = try await APIClient.shared.send(
-                    APIRequest(path: listPath, method: .GET, requiresAuth: true),
-                    token: token
-                )
-                self.rooms = wrapped.rooms
-                return
-            } catch {
-                // Wrapped shape #2: { chatRooms: [...] }
-            }
-
-            let wrapped2: ChatRoomsAltResponse = try await APIClient.shared.send(
-                APIRequest(path: listPath, method: .GET, requiresAuth: true),
+            let response: ChatRoomsResponse = try await APIClient.shared.send(
+                APIRequest(path: Self.chatroomsBasePath, method: .GET, requiresAuth: true),
                 token: token
             )
-            self.rooms = wrapped2.chatRooms
-
+            self.rooms = response.rooms
         } catch {
             errorText = error.localizedDescription
+            print("❌ loadRooms error:", error)
         }
     }
 }
 
 private struct ChatRoomsResponse: Decodable {
     let rooms: [ChatRoomDTO]
-}
-
-private struct ChatRoomsAltResponse: Decodable {
-    let chatRooms: [ChatRoomDTO]
 }
