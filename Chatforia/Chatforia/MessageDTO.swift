@@ -11,8 +11,32 @@ import Foundation
 // MARK: - MessagesEnvelope / Page
 struct MessagesEnvelope: Codable {
     let items: [MessageDTO]
-    let nextCursor: Int?
+    let nextCursor: String?
+    let nextCursorId: Int?
     let count: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case items
+        case nextCursor
+        case nextCursorId
+        case count
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        items = try container.decode([MessageDTO].self, forKey: .items)
+        count = try? container.decode(Int.self, forKey: .count)
+        nextCursorId = try? container.decode(Int.self, forKey: .nextCursorId)
+
+        if let str = try? container.decode(String.self, forKey: .nextCursor) {
+            nextCursor = str
+        } else if let int = try? container.decode(Int.self, forKey: .nextCursor) {
+            nextCursor = String(int)
+        } else {
+            nextCursor = nil
+        }
+    }
 }
 
 // MARK: - MessageDTO (server-authoritative shape)

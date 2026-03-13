@@ -1,4 +1,3 @@
-// MessageStore.swift
 import Foundation
 
 extension Notification.Name {
@@ -30,11 +29,44 @@ final class MessageStore {
 
     private let inMemoryMax = 500
 
+    private let deliveryStatesFileURL: URL = {
+        let doc = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        return doc.appendingPathComponent("message_delivery_states.json")
+    }()
+
+    private let messagesFileURL: URL = {
+        let doc = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        return doc.appendingPathComponent("message_window.json")
+    }()
+
     private init() {
         if UserDefaults.standard.object(forKey: tombstoneKey) != nil {
             self.oldestRemovedMessageId = UserDefaults.standard.integer(forKey: tombstoneKey)
         } else {
             self.oldestRemovedMessageId = nil
+        }
+
+        loadPersistedState()
+    }
+
+    private func loadPersistedState() {
+        lock.async(flags: .barrier) {
+            do {
+                let deliveryData = try Data(contentsOf: self.deliveryStatesFileURL)
+                self.deliveryStates = try JSONDecoder().decode([String: DeliveryState].self, from: deliveryData)
+            } catch {
+                self.deliveryStates = [:]
+            }
+
+            do {
+                let messageData = try Data(contentsOf: self.messagesFileURL)
+                self.messages = try JSONDecoder().decode([MessageDTO].self, from: messageData)
+                self.sortMessagesLocked()
+                self.messages = self.dedupeMessages(self.messages)
+                self.capInMemoryMessagesLocked(max: self.inMemoryMax)
+            } catch {
+                self.messages = []
+            }
         }
     }
 
@@ -197,6 +229,23 @@ final class MessageStore {
         }
     }
 
+    private func persistStateLocked() {
+        do {
+            let deliveryData = try JSONEncoder().encode(self.deliveryStates)
+            try deliveryData.write(to: self.deliveryStatesFileURL, options: Data.WritingOptions.atomic)
+        } catch {
+            print("❌ Failed to persist delivery states:", error)
+        }
+
+        do {
+            let recentMessages = Array(self.messages.suffix(200))
+            let messageData = try JSONEncoder().encode(recentMessages)
+            try messageData.write(to: self.messagesFileURL, options: Data.WritingOptions.atomic)
+        } catch {
+            print("❌ Failed to persist message window:", error)
+        }
+    }
+
     // MARK: - Delivery state
 
     func setDeliveryState(clientMessageId: String, state: DeliveryState) {
@@ -204,6 +253,8 @@ final class MessageStore {
 
         lock.async(flags: .barrier) {
             self.deliveryStates[clientMessageId] = state
+            self.persistStateLocked()
+
             DispatchQueue.main.async {
                 NotificationCenter.default.post(
                     name: .DeliveryStateChanged,
@@ -308,6 +359,7 @@ final class MessageStore {
             self.sortMessagesLocked()
             self.messages = self.dedupeMessages(self.messages)
             self.capInMemoryMessagesLocked(max: self.inMemoryMax)
+            self.persistStateLocked()
             self.notifyMessagesChanged()
         }
     }
@@ -319,6 +371,7 @@ final class MessageStore {
 
         lock.async(flags: .barrier) {
             self.capInMemoryMessagesLocked(max: max)
+            self.persistStateLocked()
             self.notifyMessagesChanged()
         }
     }
@@ -370,6 +423,7 @@ final class MessageStore {
             self.sortMessagesLocked()
             self.messages = self.dedupeMessages(self.messages)
             self.capInMemoryMessagesLocked(max: self.inMemoryMax)
+            self.persistStateLocked()
             self.notifyMessagesChanged()
         }
 

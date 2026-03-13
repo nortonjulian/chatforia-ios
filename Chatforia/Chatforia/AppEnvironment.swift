@@ -4,7 +4,7 @@ enum AppEnvironment {
 
     static let apiBaseURL: URL = {
         #if DEBUG
-        URL(string: "http://localhost:5002")!
+        return URL(string: "http://10.0.0.57:5002")!
         #elseif STAGING
         URL(string: "https://staging-api.chatforia.com")!
         #else

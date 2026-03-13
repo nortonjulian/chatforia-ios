@@ -43,6 +43,9 @@ final class SendQueueManager {
             } else {
                 self.jobs.append(job)
             }
+            
+            print("🧾 ENQUEUE job:", job.clientMessageId)
+            print("🧾 queue count after enqueue:", self.jobs.count)
 
             self.saveToDiskLocked()
             self.logger.debug("Enqueued job \(job.clientMessageId, privacy: .public)")
@@ -71,15 +74,13 @@ final class SendQueueManager {
         }
     }
 
+
     func startIfNeeded() {
         stateQueue.async {
+            print("▶️ startIfNeeded called. isRunning=\(self.isRunning) isProcessing=\(self.isProcessing)")
             self.ensureLoadedLocked()
             self.startProcessingLockedIfNeeded()
         }
-    }
-
-    func start() {
-        startIfNeeded()
     }
 
     func stop() {
@@ -91,7 +92,10 @@ final class SendQueueManager {
     }
 
     func replayQueuedJobs() {
-        startIfNeeded()
+        stateQueue.async {
+            print("🔁 replayQueuedJobs called. queued jobs=\(self.jobs.count)")
+            self.startProcessingLockedIfNeeded()
+        }
     }
 
     func markJobSucceeded(clientMessageId: String, serverMessage: MessageDTO?) {
@@ -167,7 +171,8 @@ final class SendQueueManager {
             isProcessing = false
             return
         }
-
+        
+        print("⚙️ ABOUT TO PROCESS next job. queued jobs=\(jobs.count)")
         guard let job = nextRunnableJobLocked() else {
             isProcessing = false
             logger.debug("No pending jobs or stopped.")
@@ -192,33 +197,13 @@ final class SendQueueManager {
 
         let jobForSend = job
 
-        stateQueue.async {
-            let semaphore = DispatchSemaphore(value: 0)
-            var attemptResult: SendAttemptResult?
-            var didReceiveCompletion = false
-
-            handler(jobForSend) { result in
-                self.stateQueue.async {
-                    didReceiveCompletion = true
-                    attemptResult = result
-                    semaphore.signal()
-                }
-            }
-
-            let waitResult = semaphore.wait(timeout: .now() + 60)
-
+        logger.debug("Calling sendJobHandler for \(jobForSend.clientMessageId, privacy: .public)")
+        
+        
+        print("📤 CALLING sendJobHandler for:", jobForSend.clientMessageId)
+        handler(jobForSend) { result in
             self.stateQueue.async {
-                if waitResult == .timedOut || !didReceiveCompletion {
-                    self.logger.error("Send attempt timed out for job \(jobForSend.clientMessageId, privacy: .public)")
-                    self.handleTemporaryFailureLocked(for: jobForSend, reason: "timeout")
-                    return
-                }
-
-                guard let result = attemptResult else {
-                    self.handleTemporaryFailureLocked(for: jobForSend, reason: "missing attempt result")
-                    return
-                }
-
+                print("✅/❌ sendJobHandler completion for \(jobForSend.clientMessageId): \(result)")
                 switch result {
                 case .success(let serverMessage):
                     self.handleSuccessLocked(for: jobForSend, serverMessage: serverMessage)

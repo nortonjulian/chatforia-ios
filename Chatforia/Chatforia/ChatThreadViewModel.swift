@@ -12,8 +12,32 @@ import Combine
 // MARK: - API Models (keep here or move to shared models file)
 struct MessagesPageResponse: Decodable {
     let items: [MessageDTO]
-    let nextCursor: Int?
+    let nextCursor: String?
+    let nextCursorId: Int?
     let count: Int
+
+    enum CodingKeys: String, CodingKey {
+        case items
+        case nextCursor
+        case nextCursorId
+        case count
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        items = try container.decode([MessageDTO].self, forKey: .items)
+        count = try container.decode(Int.self, forKey: .count)
+        nextCursorId = try? container.decode(Int.self, forKey: .nextCursorId)
+
+        if let str = try? container.decode(String.self, forKey: .nextCursor) {
+            nextCursor = str
+        } else if let int = try? container.decode(Int.self, forKey: .nextCursor) {
+            nextCursor = String(int)
+        } else {
+            nextCursor = nil
+        }
+    }
 }
 
 struct SendMessageRequest: Encodable {
@@ -188,7 +212,7 @@ final class ChatThreadViewModel: ObservableObject {
                 print("✅ loadMessages: loaded \(self.messages.count) messages for roomId:", roomId)
             }
         } catch {
-            errorText = error.localizedDescription
+            errorText = "loadMessages: \(error.localizedDescription)"
             print("❌ loadMessages error for roomId \(roomId):", error)
         }
     }
@@ -196,6 +220,8 @@ final class ChatThreadViewModel: ObservableObject {
     func loadOlderMessagesIfNeeded(limit: Int = 50) async {
         guard let roomId = self.roomId, roomId > 0 else { return }
         guard !isLoadingOlder else { return }
+        
+        errorText = nil
 
         guard let beforeId = MessageStore.shared.serverBeforeIdForPaging() else {
             print("⚠️ loadOlderMessagesIfNeeded: no oldest message in memory to page before.")
@@ -227,11 +253,13 @@ final class ChatThreadViewModel: ObservableObject {
             applyToStore(page.items)
             batchSortDebouncer.flush()
             refreshFromMessageStore()
+            
+            errorText = nil
 
             print("✅ loadOlderMessagesIfNeeded: inserted \(page.items.count) older messages")
         } catch {
             print("❌ loadOlderMessagesIfNeeded error:", error)
-            self.errorText = error.localizedDescription
+            self.errorText = "loadOlderMessagesIfNeeded: \(error.localizedDescription)"
         }
     }
 
@@ -411,6 +439,8 @@ final class ChatThreadViewModel: ObservableObject {
     }
 
     func resyncIfNeeded(token: String?) async {
+        errorText = nil
+
         guard let token else {
             self.errorText = "Missing auth token."
             return
@@ -425,10 +455,16 @@ final class ChatThreadViewModel: ObservableObject {
 
         do {
             let path = "messages/\(roomId)?sinceId=\(lastServerMessageId)"
+            print("➡️ resyncIfNeeded path: messages/\(roomId)?sinceId=\(lastServerMessageId)")
+            
             let page: MessagesPageResponse = try await APIClient.shared.send(
                 APIRequest(path: path, method: .GET, requiresAuth: true),
                 token: token
             )
+            
+            print("✅ resyncIfNeeded success: items=\(page.items.count), nextCursor=\(page.nextCursor ?? "nil"), nextCursorId=\(page.nextCursorId.map(String.init) ?? "nil")")
+            
+            errorText = nil
 
             for msg in page.items {
                 bumpLastServerIdIfNeeded(msg)
@@ -437,7 +473,8 @@ final class ChatThreadViewModel: ObservableObject {
             batchSortDebouncer.flush()
             refreshFromMessageStore()
         } catch {
-            errorText = error.localizedDescription
+            errorText = "resyncIfNeeded: \(error.localizedDescription)"
+            print("❌ resyncIfNeeded error for roomId \(roomId):", error)
         }
     }
 

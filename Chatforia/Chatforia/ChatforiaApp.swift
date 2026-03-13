@@ -20,8 +20,8 @@ struct ChatforiaApp: App {
                     SendQueueManager.shared.replayQueuedJobs()
                 }
         }
-        .onChange(of: scenePhase) { _, newPhase in
-            if newPhase == .active {
+        .onChange(of: scenePhase) {
+            if scenePhase == .active {
                 AppEnvironment.configureSendQueueHandlersIfNeeded()
                 SendQueueManager.shared.replayQueuedJobs()
             }

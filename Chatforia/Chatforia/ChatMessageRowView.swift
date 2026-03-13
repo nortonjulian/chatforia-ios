@@ -24,7 +24,13 @@ struct ChatMessageRowView: View {
     @State private var didAppear = false
 
     var body: some View {
-        HStack(alignment: .bottom, spacing: 8) {
+        let canEdit = isEditable
+        let canRetry = isMe && deliveryState == .failed
+        let retryAction = onRetryTap
+        let editAction = onEdit
+        let deleteAction = onDelete
+
+        return HStack(alignment: .bottom, spacing: 8) {
             if !isMe {
                 avatarSlot
             }
@@ -55,21 +61,21 @@ struct ChatMessageRowView: View {
                 .frame(maxWidth: bubbleMaxWidth, alignment: isMe ? .trailing : .leading)
                 .contentShape(Rectangle())
                 .contextMenu {
-                    if isEditable {
+                    if canEdit {
                         Button("Edit", systemImage: "pencil") {
-                            onEdit?()
+                            editAction?()
                         }
 
                         Button(role: .destructive) {
-                            onDelete?()
+                            deleteAction?()
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
                     }
 
-                    if isMe, deliveryState == .failed {
+                    if canRetry {
                         Button("Retry", systemImage: "arrow.clockwise") {
-                            onRetryTap?()
+                            retryAction?()
                         }
                     }
                 }
