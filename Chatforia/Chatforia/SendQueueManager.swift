@@ -6,13 +6,14 @@ final class SendQueueManager {
 
     private let queueFileURL: URL
     private var jobs: [SendJob] = []
-    private let fileQueue = DispatchQueue(label: "com.chatforia.sendqueue.file", qos: .utility)
-    private let workerQueue = DispatchQueue(label: "com.chatforia.sendqueue.worker", qos: .userInitiated)
+
+    // Single state queue owns all mutable state
+    private let stateQueue = DispatchQueue(label: "com.chatforia.sendqueue.state", qos: .userInitiated)
+
+    private var isLoaded = false
     private var isRunning = false
     private var isProcessing = false
-
-    // Simple semaphore to cancel waiting backoffs
-    private var currentBackoffTask: DispatchWorkItem?
+    private var currentBackoffWorkItem: DispatchWorkItem?
 
     private let maxRetryCount = 10
     private let logger = Logger(subsystem: "com.chatforia", category: "SendQueue")
@@ -21,109 +22,120 @@ final class SendQueueManager {
         let fm = FileManager.default
         let doc = fm.urls(for: .documentDirectory, in: .userDomainMask).first!
         self.queueFileURL = doc.appendingPathComponent("send_queue.json")
-        loadFromDisk()
+
+        // Deterministic initial load
+        self.loadFromDiskSync()
     }
 
     // MARK: - API
+
+    func enqueue(_ job: SendJob) {
+        stateQueue.async {
+            self.ensureLoadedLocked()
+
+            if let idx = self.jobs.firstIndex(where: { $0.clientMessageId == job.clientMessageId }) {
+                var merged = self.jobs[idx]
+                merged.bodyJSON = job.bodyJSON
+                merged.attachmentsMeta = job.attachmentsMeta
+                merged.localId = job.localId
+                merged.state = .pending
+                self.jobs[idx] = merged
+            } else {
+                self.jobs.append(job)
+            }
+
+            self.saveToDiskLocked()
+            self.logger.debug("Enqueued job \(job.clientMessageId, privacy: .public)")
+            self.startProcessingLockedIfNeeded()
+        }
+    }
+
     func retryJob(clientMessageId: String) {
-        fileQueue.async {
-            guard let i = self.jobs.firstIndex(where: { $0.clientMessageId == clientMessageId }) else {
+        stateQueue.async {
+            self.ensureLoadedLocked()
+
+            guard let idx = self.jobs.firstIndex(where: { $0.clientMessageId == clientMessageId }) else {
                 return
             }
 
-            self.jobs[i].state = .pending
-            self.jobs[i].lastAttemptAt = Date()
-            self.saveToDisk()
+            self.jobs[idx].state = .pending
+            self.jobs[idx].lastAttemptAt = Date()
+            self.saveToDiskLocked()
 
             DispatchQueue.main.async {
                 MessageStore.shared.setDeliveryState(clientMessageId: clientMessageId, state: .sending)
             }
 
             self.logger.debug("Retry requested for job \(clientMessageId, privacy: .public)")
-            self.startIfNeeded()
-        }
-    }
-
-    /// Enqueue a send job. Call this *before* attempting network send.
-    func enqueue(_ job: SendJob) {
-        fileQueue.async {
-            if let idx = self.jobs.firstIndex(where: { $0.clientMessageId == job.clientMessageId }) {
-                var updated = job
-                updated.state = .pending
-                self.jobs[idx] = updated
-            } else {
-                self.jobs.append(job)
-            }
-            self.saveToDisk()
-            self.logger.debug("Enqueued job \(job.clientMessageId, privacy: .public)")
-            self.startIfNeeded()
+            self.startProcessingLockedIfNeeded()
         }
     }
 
     func startIfNeeded() {
-        fileQueue.async {
-            guard !self.isRunning else { return }
-            self.isRunning = true
-            self.processLoop()
+        stateQueue.async {
+            self.ensureLoadedLocked()
+            self.startProcessingLockedIfNeeded()
         }
     }
 
     func start() {
-        fileQueue.async {
-            self.isRunning = true
-            self.processLoop()
-        }
+        startIfNeeded()
     }
 
     func stop() {
-        fileQueue.async {
+        stateQueue.async {
             self.isRunning = false
-            self.currentBackoffTask?.cancel()
-            self.currentBackoffTask = nil
+            self.currentBackoffWorkItem?.cancel()
+            self.currentBackoffWorkItem = nil
         }
     }
 
-    /// Replay jobs (call on socket connect or app foreground)
     func replayQueuedJobs() {
         startIfNeeded()
     }
 
-    // Called by network layer when a server message arrives for a clientMessageId
     func markJobSucceeded(clientMessageId: String, serverMessage: MessageDTO?) {
-        fileQueue.async {
+        stateQueue.async {
+            self.ensureLoadedLocked()
             self.jobs.removeAll { $0.clientMessageId == clientMessageId }
-            self.saveToDisk()
+            self.saveToDiskLocked()
             self.logger.debug("Job succeeded and dequeued \(clientMessageId, privacy: .public)")
         }
     }
 
-    // Mark job as permanently failed (exposed for UI to mark message failed)
     func markJobFailed(clientMessageId: String) {
-        fileQueue.async {
-            if let i = self.jobs.firstIndex(where: { $0.clientMessageId == clientMessageId }) {
-                self.jobs[i].state = .failed
-                self.saveToDisk()
-            }
+        stateQueue.async {
+            self.ensureLoadedLocked()
+            guard let idx = self.jobs.firstIndex(where: { $0.clientMessageId == clientMessageId }) else { return }
+            self.jobs[idx].state = .failed
+            self.saveToDiskLocked()
         }
     }
 
     // MARK: - Persistence
 
-    private func loadFromDisk() {
-        fileQueue.async {
-            do {
-                let data = try Data(contentsOf: self.queueFileURL)
-                let decoder = JSONDecoder()
-                self.jobs = try decoder.decode([SendJob].self, from: data)
-                self.logger.debug("Loaded \(self.jobs.count) jobs from disk.")
-            } catch {
-                self.jobs = []
-                self.logger.debug("No send queue on disk or failed to load: \(error.localizedDescription, privacy: .public)")
-            }
+    private func loadFromDiskSync() {
+        stateQueue.sync {
+            self.ensureLoadedLocked()
         }
     }
 
-    private func saveToDisk() {
+    private func ensureLoadedLocked() {
+        guard !isLoaded else { return }
+
+        do {
+            let data = try Data(contentsOf: self.queueFileURL)
+            self.jobs = try JSONDecoder().decode([SendJob].self, from: data)
+            self.logger.debug("Loaded \(self.jobs.count) jobs from disk.")
+        } catch {
+            self.jobs = []
+            self.logger.debug("No send queue on disk or failed to load: \(error.localizedDescription, privacy: .public)")
+        }
+
+        self.isLoaded = true
+    }
+
+    private func saveToDiskLocked() {
         do {
             let encoder = JSONEncoder()
             encoder.outputFormatting = .prettyPrinted
@@ -134,153 +146,194 @@ final class SendQueueManager {
         }
     }
 
-    // MARK: - Worker loop (serializes jobs, respects backoff)
+    // MARK: - Worker
 
-    private func processLoop() {
-        workerQueue.async { [weak self] in
-            guard let self = self else { return }
-            self.logger.debug("Starting worker loop")
-            self.isProcessing = true
+    private func startProcessingLockedIfNeeded() {
+        guard !isProcessing else {
+            isRunning = true
+            return
+        }
 
-            while true {
-                // stop condition
-                var nextJob: SendJob?
-                self.fileQueue.sync {
-                    nextJob = self.jobs
-                        .filter { $0.state == .pending || $0.state == .retrying }
-                        .sorted { $0.createdAt < $1.createdAt }
-                        .first
+        isRunning = true
+        isProcessing = true
+
+        stateQueue.async {
+            self.processNextLocked()
+        }
+    }
+
+    private func processNextLocked() {
+        guard isRunning else {
+            isProcessing = false
+            return
+        }
+
+        guard let job = nextRunnableJobLocked() else {
+            isProcessing = false
+            logger.debug("No pending jobs or stopped.")
+            return
+        }
+
+        if let idx = jobs.firstIndex(where: { $0.clientMessageId == job.clientMessageId }) {
+            jobs[idx].state = .sending
+            jobs[idx].lastAttemptAt = Date()
+            saveToDiskLocked()
+        }
+
+        DispatchQueue.main.async {
+            MessageStore.shared.setDeliveryState(clientMessageId: job.clientMessageId, state: .sending)
+        }
+
+        guard let handler = self.sendJobHandler else {
+            logger.error("No sendJobHandler defined. Cannot send jobs.")
+            handleTemporaryFailureLocked(for: job, reason: "missing sendJobHandler")
+            return
+        }
+
+        let jobForSend = job
+
+        stateQueue.async {
+            let semaphore = DispatchSemaphore(value: 0)
+            var attemptResult: SendAttemptResult?
+            var didReceiveCompletion = false
+
+            handler(jobForSend) { result in
+                self.stateQueue.async {
+                    didReceiveCompletion = true
+                    attemptResult = result
+                    semaphore.signal()
                 }
+            }
 
-                guard self.isRunning, let job = nextJob else {
-                    self.logger.debug("No pending jobs or stopped.")
-                    self.isProcessing = false
+            let waitResult = semaphore.wait(timeout: .now() + 60)
+
+            self.stateQueue.async {
+                if waitResult == .timedOut || !didReceiveCompletion {
+                    self.logger.error("Send attempt timed out for job \(jobForSend.clientMessageId, privacy: .public)")
+                    self.handleTemporaryFailureLocked(for: jobForSend, reason: "timeout")
                     return
                 }
 
-                // attempt to send (delegate to app's NetworkClient)
-                let semaphore = DispatchSemaphore(value: 0)
-                var attemptResult: SendAttemptResult = .temporaryFailure // default
-
-                // Before sending: mark as 'sending' and save
-                self.fileQueue.sync {
-                    if let i = self.jobs.firstIndex(where: { $0.clientMessageId == job.clientMessageId }) {
-                        self.jobs[i].state = .sending
-                        self.jobs[i].lastAttemptAt = Date()
-                        self.saveToDisk()
-                    }
-                    
-                    DispatchQueue.main.async {
-                        MessageStore.shared.setDeliveryState(clientMessageId: job.clientMessageId, state: .sending)
-                    }
+                guard let result = attemptResult else {
+                    self.handleTemporaryFailureLocked(for: jobForSend, reason: "missing attempt result")
+                    return
                 }
 
-                // This expects your app to set `SendQueueManager.shared.sendJobHandler` to call network.
-                if let handler = SendQueueManager.shared.sendJobHandler {
-                    handler(job) { result in
-                        attemptResult = result
-                        semaphore.signal()
-                    }
-                    // wait for network callback
-                    _ = semaphore.wait(timeout: .now() + 60) // network timeout safety
-                } else {
-                    self.logger.error("No sendJobHandler defined. Cannot send jobs.")
-                    attemptResult = .temporaryFailure
-                    semaphore.signal()
-                }
-
-                switch attemptResult {
+                switch result {
                 case .success(let serverMessage):
-                    // dequeue and call insertion callback
-                    self.fileQueue.sync {
-                        self.jobs.removeAll { $0.clientMessageId == job.clientMessageId }
-                        self.saveToDisk()
-                    }
-                    // notify app to insert authoritative message (insertOrReplace)
-                    DispatchQueue.main.async {
-                        MessageStore.shared.setDeliveryState(clientMessageId: job.clientMessageId, state: .sent)
-                        self.sendSuccessCallback?(job.clientMessageId, serverMessage)
-                    }
-                    continue // process next job immediately
+                    self.handleSuccessLocked(for: jobForSend, serverMessage: serverMessage)
 
                 case .permanentFailure:
-                    // mark as failed; leave job so UI can show retry
-                    self.fileQueue.sync {
-                        if let i = self.jobs.firstIndex(where: { $0.clientMessageId == job.clientMessageId }) {
-                            self.jobs[i].state = .failed
-                            self.jobs[i].retryCount += 1
-                            self.saveToDisk()
-                        }
-                    }
-                    DispatchQueue.main.async {
-                        MessageStore.shared.setDeliveryState(clientMessageId: job.clientMessageId, state: .failed)
-                        self.sendFailedCallback?(job.clientMessageId)
-                    }
-                    continue
+                    self.handlePermanentFailureLocked(for: jobForSend)
 
                 case .temporaryFailure:
-                    // backoff and retry later
-                    self.fileQueue.sync {
-                        if let i = self.jobs.firstIndex(where: { $0.clientMessageId == job.clientMessageId }) {
-                            self.jobs[i].retryCount += 1
-                            self.jobs[i].state = .retrying
-                            self.saveToDisk()
-                        }
-                    }
-
-                    let retryCount = job.retryCount + 1
-                    if retryCount > self.maxRetryCount {
-                        // treat as permanent failure
-                        self.fileQueue.sync {
-                            if let i = self.jobs.firstIndex(where: { $0.clientMessageId == job.clientMessageId }) {
-                                self.jobs[i].state = .failed
-                                self.saveToDisk()
-                            }
-                        }
-                        DispatchQueue.main.async {
-                            self.sendFailedCallback?(job.clientMessageId)
-                        }
-                        continue
-                    }
-
-                    let backoffSeconds = min(Double(2 << retryCount), 60.0) // exponential, cap at 60s
-                    let waitTask = DispatchWorkItem { }
-                    self.currentBackoffTask = waitTask
-                    self.logger.debug("Temporary failure; backing off \(backoffSeconds)s for job \(job.clientMessageId, privacy: .public).")
-                    let group = DispatchGroup()
-                    group.enter()
-                    self.workerQueue.asyncAfter(deadline: .now() + backoffSeconds) {
-                        group.leave()
-                    }
-                    group.wait()
-                    // loop continues to pick up that job again
-                    continue
+                    self.handleTemporaryFailureLocked(for: jobForSend, reason: "temporary failure")
                 }
             }
         }
     }
 
-    // MARK: - Callbacks / Handlers the app must set
+    private func nextRunnableJobLocked() -> SendJob? {
+        jobs
+            .filter { $0.state == .pending || $0.state == .retrying }
+            .sorted { $0.createdAt < $1.createdAt }
+            .first
+    }
 
-    /// Called by worker to perform network send; return via completion with SendAttemptResult.
+    private func handleSuccessLocked(for job: SendJob, serverMessage: MessageDTO?) {
+        jobs.removeAll { $0.clientMessageId == job.clientMessageId }
+        saveToDiskLocked()
+
+        DispatchQueue.main.async {
+            MessageStore.shared.setDeliveryState(clientMessageId: job.clientMessageId, state: .sent)
+            self.sendSuccessCallback?(job.clientMessageId, serverMessage)
+        }
+
+        processNextLocked()
+    }
+
+    private func handlePermanentFailureLocked(for job: SendJob) {
+        if let idx = jobs.firstIndex(where: { $0.clientMessageId == job.clientMessageId }) {
+            jobs[idx].state = .failed
+            jobs[idx].retryCount += 1
+            saveToDiskLocked()
+        }
+
+        DispatchQueue.main.async {
+            MessageStore.shared.setDeliveryState(clientMessageId: job.clientMessageId, state: .failed)
+            self.sendFailedCallback?(job.clientMessageId)
+        }
+
+        processNextLocked()
+    }
+
+    private func handleTemporaryFailureLocked(for job: SendJob, reason: String) {
+        guard let idx = jobs.firstIndex(where: { $0.clientMessageId == job.clientMessageId }) else {
+            processNextLocked()
+            return
+        }
+
+        jobs[idx].retryCount += 1
+
+        if jobs[idx].retryCount > maxRetryCount {
+            jobs[idx].state = .failed
+            saveToDiskLocked()
+
+            DispatchQueue.main.async {
+                MessageStore.shared.setDeliveryState(clientMessageId: job.clientMessageId, state: .failed)
+                self.sendFailedCallback?(job.clientMessageId)
+            }
+
+            processNextLocked()
+            return
+        }
+
+        jobs[idx].state = .retrying
+        saveToDiskLocked()
+
+        let retryCount = jobs[idx].retryCount
+        let backoffSeconds = min(pow(2.0, Double(retryCount)), 60.0)
+
+        logger.debug("Temporary failure (\(reason, privacy: .public)); backing off \(backoffSeconds)s for job \(job.clientMessageId, privacy: .public)")
+
+        currentBackoffWorkItem?.cancel()
+
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self = self else { return }
+
+            self.stateQueue.async {
+                if self.currentBackoffWorkItem?.isCancelled == true {
+                    self.processNextLocked()
+                    return
+                }
+
+                if let idx = self.jobs.firstIndex(where: { $0.clientMessageId == job.clientMessageId }) {
+                    self.jobs[idx].state = .pending
+                    self.saveToDiskLocked()
+                }
+
+                self.processNextLocked()
+            }
+        }
+
+        currentBackoffWorkItem = workItem
+        stateQueue.asyncAfter(deadline: .now() + backoffSeconds, execute: workItem)
+    }
+
+    // MARK: - Callbacks / Handlers
+
     var sendJobHandler: ((SendJob, @escaping (SendAttemptResult) -> Void) -> Void)?
-
-    /// Called on success (app should insertOrReplace serverMessage into DB/UI)
     var sendSuccessCallback: ((String, MessageDTO?) -> Void)?
-
-    /// Called on permanent failure (app should mark message failed in UI)
     var sendFailedCallback: ((String) -> Void)?
 }
 
-// MARK: - Supporting types
-
 struct SendJob: Codable, Equatable {
     public var clientMessageId: String
-    public var localId: String? // local DB id if any
+    public var localId: String?
     public var createdAt: Date
     public var retryCount: Int
     public var lastAttemptAt: Date?
-    public var bodyJSON: Data // encoded payload the server expects
+    public var bodyJSON: Data
     public var attachmentsMeta: [AttachmentMeta]?
     public var state: JobState
 
@@ -309,16 +362,12 @@ struct AttachmentMeta: Codable, Equatable {
     public var mimeType: String
 }
 
-// Result of attempt
 enum SendAttemptResult {
     case success(serverMessage: MessageDTO?)
     case temporaryFailure
     case permanentFailure
 }
 
-
 extension SendQueueManager {
     static var isConfiguredForHandlers: Bool = false
 }
-
-

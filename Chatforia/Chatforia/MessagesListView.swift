@@ -13,6 +13,13 @@ struct MessagesListView: View {
     @Binding var lastMessageId: Int?
     @State private var expandedTimestampMessageId: Int?
 
+    // New: paging guards
+    @State private var lastPagingTriggerOldestId: Int?
+    @State private var isPagingTriggerInFlight = false
+    @State private var lastPagingTriggerAt: Date = .distantPast
+
+    private let pagingThrottleSeconds: TimeInterval = 0.8
+
     private var sortedMessages: [MessageDTO] {
         messages.sorted {
             if $0.createdAt != $1.createdAt { return $0.createdAt < $1.createdAt }
@@ -24,6 +31,10 @@ struct MessagesListView: View {
         sortedMessages.map(\.id)
     }
 
+    private var oldestMessageId: Int? {
+        sortedMessages.first?.id
+    }
+
     var body: some View {
         GeometryReader { geo in
             let bubbleMaxWidth = geo.size.width * 0.72
@@ -31,6 +42,14 @@ struct MessagesListView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 0) {
+                        // Top paging sentinel
+                        Color.clear
+                            .frame(height: 1)
+                            .id("TOP_SENTINEL")
+                            .onAppear {
+                                triggerLoadOlderIfNeeded()
+                            }
+
                         ForEach(sortedMessages.indices, id: \.self) { index in
                             messageRow(at: index, bubbleMaxWidth: bubbleMaxWidth)
                         }
@@ -55,6 +74,10 @@ struct MessagesListView: View {
                     if let expanded = expandedTimestampMessageId, !ids.contains(expanded) {
                         expandedTimestampMessageId = nil
                     }
+                }
+                .onChange(of: oldestMessageId) { _, _ in
+                    // Reset in-flight once the oldest id changes after a successful page insert
+                    isPagingTriggerInFlight = false
                 }
             }
         }
@@ -110,9 +133,26 @@ struct MessagesListView: View {
                 removal: .opacity
             )
         )
-        .onAppear {
-            if index == 0 {
-                Task { await onLoadOlder() }
+    }
+
+    private func triggerLoadOlderIfNeeded() {
+        guard let oldestId = oldestMessageId else { return }
+        guard !isPagingTriggerInFlight else { return }
+
+        let now = Date()
+        guard now.timeIntervalSince(lastPagingTriggerAt) >= pagingThrottleSeconds else { return }
+
+        // Only trigger if the oldest currently visible message is different
+        guard lastPagingTriggerOldestId != oldestId else { return }
+
+        isPagingTriggerInFlight = true
+        lastPagingTriggerOldestId = oldestId
+        lastPagingTriggerAt = now
+
+        Task {
+            await onLoadOlder()
+            await MainActor.run {
+                isPagingTriggerInFlight = false
             }
         }
     }

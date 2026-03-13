@@ -173,9 +173,9 @@ final class ChatThreadViewModel: ObservableObject {
             )
 
             self.messages = []
-            for m in page.items {
-                insertOrReplace(m)
-            }
+            applyToStore(page.items)
+            batchSortDebouncer.flush()
+            refreshFromMessageStore()
 
             MessageStore.shared.insertOrReplace(page.items)
 
@@ -197,7 +197,7 @@ final class ChatThreadViewModel: ObservableObject {
         guard let roomId = self.roomId, roomId > 0 else { return }
         guard !isLoadingOlder else { return }
 
-        guard let beforeId = messages.first?.id else {
+        guard let beforeId = MessageStore.shared.serverBeforeIdForPaging() else {
             print("⚠️ loadOlderMessagesIfNeeded: no oldest message in memory to page before.")
             return
         }
@@ -224,13 +224,9 @@ final class ChatThreadViewModel: ObservableObject {
                 return
             }
 
-            for m in page.items {
-                insertOrReplace(m)
-            }
-
-            MessageStore.shared.insertOrReplace(page.items)
-
+            applyToStore(page.items)
             batchSortDebouncer.flush()
+            refreshFromMessageStore()
 
             print("✅ loadOlderMessagesIfNeeded: inserted \(page.items.count) older messages")
         } catch {
@@ -265,9 +261,9 @@ final class ChatThreadViewModel: ObservableObject {
             senderPublicKey: sender.publicKey
         )
 
-        insertOrReplace(optimistic)
-        MessageStore.shared.insertOrReplace([optimistic])
+        applyToStore(optimistic)
         MessageStore.shared.setDeliveryState(clientMessageId: clientMessageId, state: .sending)
+        refreshFromMessageStore()
 
         let bodyData: Data
         do {
@@ -382,7 +378,11 @@ final class ChatThreadViewModel: ObservableObject {
         if let dict = first as? [String: Any] {
             let msgDict = (dict["item"] as? [String: Any]) ?? dict
             if let msg: MessageDTO = decodeFromDictionary(msgDict) {
-                if msg.chatRoomId == roomId { insertOrReplace(msg) }
+                if msg.chatRoomId == roomId {
+                    applyToStore(msg)
+                    bumpLastServerIdIfNeeded(msg)
+                    refreshFromMessageStore()
+                }
                 return
             }
         }
@@ -431,12 +431,11 @@ final class ChatThreadViewModel: ObservableObject {
             )
 
             for msg in page.items {
-                insertOrReplace(msg)
+                bumpLastServerIdIfNeeded(msg)
             }
-
-            MessageStore.shared.insertOrReplace(page.items)
-
+            applyToStore(page.items)
             batchSortDebouncer.flush()
+            refreshFromMessageStore()
         } catch {
             errorText = error.localizedDescription
         }
@@ -688,6 +687,14 @@ final class ChatThreadViewModel: ObservableObject {
         guard let data = json.data(using: .utf8) else { return nil }
         let decoder = JSONDecoder.tolerantISO8601Decoder()
         return try? decoder.decode(T.self, from: data)
+    }
+    
+    private func applyToStore(_ incoming: [MessageDTO]) {
+        MessageStore.shared.insertOrReplace(incoming)
+    }
+
+    private func applyToStore(_ incoming: MessageDTO) {
+        MessageStore.shared.insertOrReplace([incoming])
     }
 
     private var hasConfiguredCurrentUser: Bool {

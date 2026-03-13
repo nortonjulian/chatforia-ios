@@ -30,11 +30,21 @@ final class MessageStore {
 
     private let inMemoryMax = 500
 
+    private init() {
+        if UserDefaults.standard.object(forKey: tombstoneKey) != nil {
+            self.oldestRemovedMessageId = UserDefaults.standard.integer(forKey: tombstoneKey)
+        } else {
+            self.oldestRemovedMessageId = nil
+        }
+    }
+
+    // MARK: - Scoring / merge helpers
+
     private func completenessScore(_ message: MessageDTO) -> Int {
         var score = 0
 
         if let raw = message.rawContent,
-           !raw.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty {
+           !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             score += 2
         }
 
@@ -50,9 +60,144 @@ final class MessageStore {
             score += 1
         }
 
+        if message.editedAt != nil {
+            score += 1
+        }
+
+        if message.deletedAt != nil || message.deletedForAll == true || message.deletedBySender == true {
+            score += 1
+        }
+
+        if message.imageUrl != nil {
+            score += 1
+        }
+
+        if message.audioUrl != nil {
+            score += 1
+        }
+
         return score
     }
-    
+
+    private func normalizedClientMessageId(_ value: String?) -> String? {
+        guard let value, !value.isEmpty else { return nil }
+        return value
+    }
+
+    private func preferredMessage(existing: MessageDTO, incoming: MessageDTO) -> MessageDTO {
+        let existingRevision = existing.revision ?? 0
+        let incomingRevision = incoming.revision ?? 0
+
+        if incomingRevision > existingRevision {
+            return mergedMessage(preferred: incoming, fallback: existing)
+        }
+
+        if incomingRevision < existingRevision {
+            return mergedMessage(preferred: existing, fallback: incoming)
+        }
+
+        let existingScore = completenessScore(existing)
+        let incomingScore = completenessScore(incoming)
+
+        if incomingScore >= existingScore {
+            return mergedMessage(preferred: incoming, fallback: existing)
+        } else {
+            return mergedMessage(preferred: existing, fallback: incoming)
+        }
+    }
+
+    private func mergedMessage(preferred: MessageDTO, fallback: MessageDTO) -> MessageDTO {
+        MessageDTO(
+            id: preferred.id,
+            contentCiphertext: preferred.contentCiphertext ?? fallback.contentCiphertext,
+            rawContent: preferred.rawContent ?? fallback.rawContent,
+            translations: preferred.translations ?? fallback.translations,
+            translatedFrom: preferred.translatedFrom ?? fallback.translatedFrom,
+            translatedForMe: preferred.translatedForMe ?? fallback.translatedForMe,
+            encryptedKeyForMe: preferred.encryptedKeyForMe ?? fallback.encryptedKeyForMe,
+            imageUrl: preferred.imageUrl ?? fallback.imageUrl,
+            audioUrl: preferred.audioUrl ?? fallback.audioUrl,
+            audioDurationSec: preferred.audioDurationSec ?? fallback.audioDurationSec,
+            isExplicit: preferred.isExplicit ?? fallback.isExplicit,
+            createdAt: preferred.createdAt,
+            expiresAt: preferred.expiresAt ?? fallback.expiresAt,
+            editedAt: preferred.editedAt ?? fallback.editedAt,
+            deletedBySender: preferred.deletedBySender,
+            deletedForAll: preferred.deletedForAll,
+            deletedAt: preferred.deletedAt ?? fallback.deletedAt,
+            deletedById: preferred.deletedById ?? fallback.deletedById,
+            sender: preferred.sender,
+            readBy: !(preferred.readBy?.isEmpty ?? true) ? preferred.readBy : fallback.readBy,
+            chatRoomId: preferred.chatRoomId,
+            reactionSummary: !(preferred.reactionSummary?.isEmpty ?? true) ? preferred.reactionSummary : fallback.reactionSummary,
+            myReactions: !(preferred.myReactions?.isEmpty ?? true) ? preferred.myReactions : fallback.myReactions,
+            revision: max(preferred.revision ?? 0, fallback.revision ?? 0),
+            clientMessageId: preferred.clientMessageId ?? fallback.clientMessageId
+        )
+    }
+
+    private func sortMessagesLocked() {
+        self.messages.sort {
+            if $0.createdAt != $1.createdAt { return $0.createdAt < $1.createdAt }
+            return $0.id < $1.id
+        }
+    }
+
+    /// Canonical dedupe:
+    /// 1. Prefer clientMessageId reconciliation when present.
+    /// 2. Otherwise reconcile by server id.
+    /// 3. Merge collisions instead of blindly replacing.
+    private func dedupeMessages(_ source: [MessageDTO]) -> [MessageDTO] {
+        var result: [MessageDTO] = []
+        var indexByClientId: [String: Int] = [:]
+        var indexByServerId: [Int: Int] = [:]
+
+        for message in source {
+            let incomingClientId = normalizedClientMessageId(message.clientMessageId)
+
+            if let incomingClientId,
+               let existingIndex = indexByClientId[incomingClientId] {
+                let existing = result[existingIndex]
+                let merged = preferredMessage(existing: existing, incoming: message)
+                result[existingIndex] = merged
+
+                indexByServerId[merged.id] = existingIndex
+                if let mergedClientId = normalizedClientMessageId(merged.clientMessageId) {
+                    indexByClientId[mergedClientId] = existingIndex
+                }
+                continue
+            }
+
+            if let existingIndex = indexByServerId[message.id] {
+                let existing = result[existingIndex]
+                let merged = preferredMessage(existing: existing, incoming: message)
+                result[existingIndex] = merged
+
+                indexByServerId[merged.id] = existingIndex
+                if let mergedClientId = normalizedClientMessageId(merged.clientMessageId) {
+                    indexByClientId[mergedClientId] = existingIndex
+                }
+                continue
+            }
+
+            let newIndex = result.count
+            result.append(message)
+            indexByServerId[message.id] = newIndex
+            if let incomingClientId {
+                indexByClientId[incomingClientId] = newIndex
+            }
+        }
+
+        return result
+    }
+
+    private func notifyMessagesChanged() {
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .MessagesChanged, object: nil)
+        }
+    }
+
+    // MARK: - Delivery state
 
     func setDeliveryState(clientMessageId: String, state: DeliveryState) {
         guard !clientMessageId.isEmpty else { return }
@@ -94,13 +239,13 @@ final class MessageStore {
 
     func newestMessageId() -> Int? {
         lock.sync {
-            return messages.last?.id
+            messages.last?.id
         }
     }
 
     func oldestMessageId() -> Int? {
         lock.sync {
-            return messages.first?.id
+            messages.first?.id
         }
     }
 
@@ -129,7 +274,6 @@ final class MessageStore {
         if let clientId = dto.clientMessageId, !clientId.isEmpty {
             setDeliveryState(clientMessageId: clientId, state: .sent)
         } else {
-            // dto.id is non-optional in your DTO; use it directly
             let serverKey = "server:\(dto.id)"
             setDeliveryState(clientMessageId: serverKey, state: .sent)
         }
@@ -140,65 +284,31 @@ final class MessageStore {
         guard !incoming.isEmpty else { return }
 
         lock.async(flags: .barrier) {
-            var existingById: [Int: Int] = [:]
-            var existingByClientId: [String: Int] = [:]
-
-            for (i, m) in self.messages.enumerated() {
-                // m.id is an Int in your DTO; use it directly
-                existingById[m.id] = i
-                if let client = m.clientMessageId, !client.isEmpty { existingByClientId[client] = i }
-            }
-
             for inc in incoming {
-                var replaced = false
+                let incomingClientId = self.normalizedClientMessageId(inc.clientMessageId)
 
-                // inc.id is Int (non-optional); use direct lookup
-                let incId = inc.id
-                if let idx = existingById[incId] {
-                    self.messages[idx] = inc
-                    replaced = true
-                } else if let client = inc.clientMessageId, !client.isEmpty, let idx = existingByClientId[client] {
-                    self.messages[idx] = inc
-                    replaced = true
+                let existingIndex = self.messages.firstIndex { existing in
+                    let existingClientId = self.normalizedClientMessageId(existing.clientMessageId)
+
+                    if let incomingClientId, existingClientId == incomingClientId {
+                        return true
+                    }
+
+                    return existing.id == inc.id
                 }
 
-                if !replaced {
+                if let idx = existingIndex {
+                    let existing = self.messages[idx]
+                    self.messages[idx] = self.preferredMessage(existing: existing, incoming: inc)
+                } else {
                     self.messages.append(inc)
                 }
             }
 
-            // Sort by createdAt then dedupe
-            self.messages.sort {
-                if $0.createdAt != $1.createdAt { return $0.createdAt < $1.createdAt }
-                return $0.id < $1.id
-            }
-
-            var seenServerIds = Set<Int>()
-            var seenClientIds = Set<String>()
-            var deduped: [MessageDTO] = []
-            for m in self.messages {
-                let id = m.id
-                if !seenServerIds.contains(id) {
-                    seenServerIds.insert(id)
-                    deduped.append(m)
-                } else if let client = m.clientMessageId, !client.isEmpty {
-                    if !seenClientIds.contains(client) {
-                        seenClientIds.insert(client)
-                        deduped.append(m)
-                    }
-                } else {
-                    // fallback (shouldn't be reached if id is non-optional)
-                    deduped.append(m)
-                }
-            }
-            self.messages = deduped
-
-            // Trim & tombstone
-            self.capInMemoryMessages(max: self.inMemoryMax)
-
-            DispatchQueue.main.async {
-                NotificationCenter.default.post(name: .MessagesChanged, object: nil)
-            }
+            self.sortMessagesLocked()
+            self.messages = self.dedupeMessages(self.messages)
+            self.capInMemoryMessagesLocked(max: self.inMemoryMax)
+            self.notifyMessagesChanged()
         }
     }
 
@@ -208,21 +318,24 @@ final class MessageStore {
         guard max > 0 else { return }
 
         lock.async(flags: .barrier) {
-            guard self.messages.count > max else { return }
-            let toRemoveCount = self.messages.count - max
-            let removedPrefix = Array(self.messages.prefix(toRemoveCount))
-
-            // removedPrefix.first?.id works even if id is non-optional because .first returns Optional element
-            if let oldestRemovedId = removedPrefix.first?.id {
-                self.oldestRemovedMessageId = oldestRemovedId
-            }
-
-            self.messages.removeFirst(toRemoveCount)
-
-            DispatchQueue.main.async {
-                NotificationCenter.default.post(name: .MessagesChanged, object: nil)
-            }
+            self.capInMemoryMessagesLocked(max: max)
+            self.notifyMessagesChanged()
         }
+    }
+
+    private func capInMemoryMessagesLocked(max: Int) {
+        guard max > 0 else { return }
+        guard self.messages.count > max else { return }
+
+        let toRemoveCount = self.messages.count - max
+        let removedPrefix = Array(self.messages.prefix(toRemoveCount))
+
+        // Keep the newest removed id as the paging tombstone boundary.
+        if let newestRemovedId = removedPrefix.last?.id {
+            self.oldestRemovedMessageId = newestRemovedId
+        }
+
+        self.messages.removeFirst(toRemoveCount)
     }
 
     // MARK: - Paging helpers
@@ -243,28 +356,23 @@ final class MessageStore {
 
     func replaceOptimisticMessage(clientMessageId: String, with serverDTO: MessageDTO) {
         guard !clientMessageId.isEmpty else { return }
+
         lock.async(flags: .barrier) {
-            if let idx = self.messages.firstIndex(where: { $0.clientMessageId == clientMessageId }) {
-                self.messages[idx] = serverDTO
-                self.messages.sort {
-                    if $0.createdAt != $1.createdAt { return $0.createdAt < $1.createdAt }
-                    return $0.id < $1.id
-                }
-                DispatchQueue.main.async {
-                    NotificationCenter.default.post(name: .MessagesChanged, object: nil)
-                }
+            if let idx = self.messages.firstIndex(where: {
+                self.normalizedClientMessageId($0.clientMessageId) == clientMessageId || $0.id == serverDTO.id
+            }) {
+                let existing = self.messages[idx]
+                self.messages[idx] = self.preferredMessage(existing: existing, incoming: serverDTO)
             } else {
                 self.messages.append(serverDTO)
-                self.messages.sort {
-                    if $0.createdAt != $1.createdAt { return $0.createdAt < $1.createdAt }
-                    return $0.id < $1.id
-                }
-                DispatchQueue.main.async {
-                    NotificationCenter.default.post(name: .MessagesChanged, object: nil)
-                }
             }
-            self.setDeliveryState(clientMessageId: clientMessageId, state: .sent)
-            self.capInMemoryMessages(max: self.inMemoryMax)
+
+            self.sortMessagesLocked()
+            self.messages = self.dedupeMessages(self.messages)
+            self.capInMemoryMessagesLocked(max: self.inMemoryMax)
+            self.notifyMessagesChanged()
         }
+
+        setDeliveryState(clientMessageId: clientMessageId, state: .sent)
     }
 }

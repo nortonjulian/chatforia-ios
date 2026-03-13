@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Bucket
+   uuid = "B0213AD5-75F9-4E8C-82EB-305B699883F7"
+   type = "1"
+   version = "2.0">
+   <Breakpoints>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "F33947A9-A3CF-4B02-8A6B-615BBC487D62"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "Chatforia/Chatforia/ChatThreadViewModel.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "453"
+            endingLineNumber = "453"
+            landmarkName = "insertOrReplace(_:)"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "F33947A9-A3CF-4B02-8A6B-615BBC487D62 - 2f144f3815bd2824"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "Chatforia.ChatThreadViewModel.insertOrReplace(Chatforia.MessageDTO) -&gt; ()"
+                  moduleName = "Chatforia.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/juliannorton/Desktop/chatforia-ios/Chatforia/Chatforia/ChatThreadViewModel.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "453"
+                  endingLineNumber = "453">
+               </Location>
+               <Location
+                  uuid = "F33947A9-A3CF-4B02-8A6B-615BBC487D62 - 2f144f3815bd2824"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "Chatforia.ChatThreadViewModel.insertOrReplace(Chatforia.MessageDTO) -&gt; ()"
+                  moduleName = "Chatforia.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/juliannorton/Desktop/chatforia-ios/Chatforia/Chatforia/ChatThreadViewModel.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "453"
+                  endingLineNumber = "453">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+   </Breakpoints>
+</Bucket>
