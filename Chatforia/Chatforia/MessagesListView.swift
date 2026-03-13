@@ -3,6 +3,7 @@ import SwiftUI
 struct MessagesListView: View {
     let messages: [MessageDTO]
     let currentUserId: Int?
+    let isGroupRoom: Bool
     let deliveryStateForMessage: (MessageDTO) -> DeliveryState?
     let onLoadOlder: () async -> Void
     let onRetryTap: (MessageDTO) -> Void
@@ -10,59 +11,118 @@ struct MessagesListView: View {
     let onDelete: (MessageDTO) -> Void
 
     @Binding var lastMessageId: Int?
+    @State private var expandedTimestampMessageId: Int?
+
+    private var sortedMessages: [MessageDTO] {
+        messages.sorted {
+            if $0.createdAt != $1.createdAt { return $0.createdAt < $1.createdAt }
+            return $0.id < $1.id
+        }
+    }
+
+    private var sortedMessageIDs: [Int] {
+        sortedMessages.map(\.id)
+    }
 
     var body: some View {
-        let sortedMessages = messages.sorted { a, b in
-            if a.createdAt != b.createdAt { return a.createdAt < b.createdAt }
-            return a.id < b.id
+        GeometryReader { geo in
+            let bubbleMaxWidth = geo.size.width * 0.72
+
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(sortedMessages.indices, id: \.self) { index in
+                            messageRow(at: index, bubbleMaxWidth: bubbleMaxWidth)
+                        }
+
+                        Color.clear
+                            .frame(height: 1)
+                            .id("BOTTOM")
+                    }
+                    .padding(.vertical, 14)
+                    .animation(.spring(response: 0.28, dampingFraction: 0.88), value: sortedMessageIDs)
+                }
+                .onAppear {
+                    scrollToBottom(proxy)
+                }
+                .onChange(of: sortedMessages.last?.id) { _, newNewest in
+                    if newNewest != lastMessageId {
+                        scrollToBottom(proxy)
+                        lastMessageId = newNewest
+                    }
+                }
+                .onChange(of: sortedMessageIDs) { _, ids in
+                    if let expanded = expandedTimestampMessageId, !ids.contains(expanded) {
+                        expandedTimestampMessageId = nil
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func messageRow(at index: Int, bubbleMaxWidth: CGFloat) -> some View {
+        let msg = sortedMessages[index]
+        let isMe =
+            msg.sender.id == (currentUserId ?? -1) ||
+            (msg.id < 0 && msg.clientMessageId != nil)
+
+        let previous: MessageDTO? = index > 0 ? sortedMessages[index - 1] : nil
+        let next: MessageDTO? = index < sortedMessages.count - 1 ? sortedMessages[index + 1] : nil
+
+        let groupedWithPrevious = shouldGroup(previous: previous, current: msg)
+        let groupedWithNext = shouldGroup(previous: msg, current: next)
+        let groupPosition = makeGroupPosition(
+            groupedWithPrevious: groupedWithPrevious,
+            groupedWithNext: groupedWithNext
+        )
+
+        if shouldShowDateSeparator(previous: previous, current: msg) {
+            DateSeparatorView(date: msg.createdAt)
+                .padding(.top, index == 0 ? 16 : 44)
+                .padding(.bottom, 14)
         }
 
-        let newestId = sortedMessages.last?.id
-
-        ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(sortedMessages.enumerated()), id: \.element.id) { index, msg in
-                        let rowState = rowStateForMessage(at: index, in: sortedMessages)
-
-                        ChatMessageRowView(
-                            msg: msg,
-                            isMe: (msg.sender.id == (currentUserId ?? -1)),
-                            groupPosition: rowState.groupPosition,
-                            showAvatar: rowState.showAvatar,
-                            showSenderName: rowState.showSenderName,
-                            deliveryState: deliveryStateForMessage(msg),
-                            onRetryTap: { onRetryTap(msg) },
-                            onEdit: { onEdit(msg) },
-                            onDelete: { onDelete(msg) }
-                        )
-                        .id(msg.id)
-                        .onAppear {
-                            if msg.id == sortedMessages.first?.id {
-                                Task { await onLoadOlder() }
-                            }
-                        }
-                    }
-
-                    Color.clear
-                        .frame(height: 1)
-                        .id("BOTTOM")
+        ChatMessageRowView(
+            msg: msg,
+            isMe: isMe,
+            groupPosition: groupPosition,
+            showAvatar: !isMe && (groupPosition == .single || groupPosition == .bottom),
+            showSenderName: isGroupRoom && !isMe && (groupPosition == .single || groupPosition == .top),
+            deliveryState: deliveryStateForMessage(msg),
+            onRetryTap: { onRetryTap(msg) },
+            onEdit: { onEdit(msg) },
+            onDelete: { onDelete(msg) },
+            isTimestampVisible: expandedTimestampMessageId == msg.id,
+            onBubbleTap: {
+                withAnimation(.easeInOut(duration: 0.18)) {
+                    expandedTimestampMessageId = (expandedTimestampMessageId == msg.id) ? nil : msg.id
                 }
-                .padding(.horizontal, 12)
-                .padding(.top, 10)
-                .padding(.bottom, 8)
+            },
+            bubbleMaxWidth: bubbleMaxWidth
+        )
+        .id(msg.id)
+        .transition(
+            .asymmetric(
+                insertion: .move(edge: .bottom)
+                    .combined(with: .opacity)
+                    .combined(with: .scale(scale: 0.98)),
+                removal: .opacity
+            )
+        )
+        .onAppear {
+            if index == 0 {
+                Task { await onLoadOlder() }
             }
-            .background(Color(uiColor: .systemBackground))
-            .onAppear {
-                scrollToBottom(proxy)
-            }
-            .onChange(of: messages.count) { _, _ in
-                let newNewest = newestId
-                if newNewest != lastMessageId {
-                    scrollToBottom(proxy)
-                    lastMessageId = newNewest
-                }
-            }
+        }
+    }
+
+    private func makeGroupPosition(groupedWithPrevious: Bool, groupedWithNext: Bool) -> ChatMessageRowView.GroupPosition {
+        switch (groupedWithPrevious, groupedWithNext) {
+        case (false, false): return .single
+        case (false, true): return .top
+        case (true, true): return .middle
+        case (true, false): return .bottom
         }
     }
 
@@ -72,45 +132,16 @@ struct MessagesListView: View {
         }
     }
 
-    private func rowStateForMessage(at index: Int, in messages: [MessageDTO]) -> RowState {
-        let current = messages[index]
-        let previous = index > 0 ? messages[index - 1] : nil
-        let next = index < (messages.count - 1) ? messages[index + 1] : nil
-
-        let groupedWithPrevious = shouldGroup(previous: previous, current: current)
-        let groupedWithNext = shouldGroup(previous: current, current: next)
-
-        let groupPosition: ChatMessageRowView.GroupPosition
-        switch (groupedWithPrevious, groupedWithNext) {
-        case (false, false): groupPosition = .single
-        case (false, true): groupPosition = .top
-        case (true, true): groupPosition = .middle
-        case (true, false): groupPosition = .bottom
-        }
-
-        let isMe = current.sender.id == (currentUserId ?? -1)
-
-        return RowState(
-            groupPosition: groupPosition,
-            showAvatar: !isMe && (groupPosition == .single || groupPosition == .bottom),
-            showSenderName: !isMe && (groupPosition == .single || groupPosition == .top)
-        )
-    }
-
     private func shouldGroup(previous: MessageDTO?, current: MessageDTO?) -> Bool {
         guard let previous, let current else { return false }
         guard previous.sender.id == current.sender.id else { return false }
-        guard previous.deletedForAll != true, current.deletedForAll != true else { return false }
-        guard previous.imageUrl == nil, current.imageUrl == nil else { return false }
-        guard previous.audioUrl == nil, current.audioUrl == nil else { return false }
 
         let delta = current.createdAt.timeIntervalSince(previous.createdAt)
-        return delta >= 0 && delta <= 5 * 60
+        return delta >= 0 && delta <= 45
     }
 
-    private struct RowState {
-        let groupPosition: ChatMessageRowView.GroupPosition
-        let showAvatar: Bool
-        let showSenderName: Bool
+    private func shouldShowDateSeparator(previous: MessageDTO?, current: MessageDTO) -> Bool {
+        guard let previous else { return true }
+        return !Calendar.current.isDate(previous.createdAt, inSameDayAs: current.createdAt)
     }
 }

@@ -25,13 +25,32 @@ final class SendQueueManager {
     }
 
     // MARK: - API
+    func retryJob(clientMessageId: String) {
+        fileQueue.async {
+            guard let i = self.jobs.firstIndex(where: { $0.clientMessageId == clientMessageId }) else {
+                return
+            }
+
+            self.jobs[i].state = .pending
+            self.jobs[i].lastAttemptAt = Date()
+            self.saveToDisk()
+
+            DispatchQueue.main.async {
+                MessageStore.shared.setDeliveryState(clientMessageId: clientMessageId, state: .sending)
+            }
+
+            self.logger.debug("Retry requested for job \(clientMessageId, privacy: .public)")
+            self.startIfNeeded()
+        }
+    }
 
     /// Enqueue a send job. Call this *before* attempting network send.
     func enqueue(_ job: SendJob) {
         fileQueue.async {
             if let idx = self.jobs.firstIndex(where: { $0.clientMessageId == job.clientMessageId }) {
-                // existing job: update
-                self.jobs[idx] = job
+                var updated = job
+                updated.state = .pending
+                self.jobs[idx] = updated
             } else {
                 self.jobs.append(job)
             }
@@ -150,6 +169,10 @@ final class SendQueueManager {
                         self.jobs[i].lastAttemptAt = Date()
                         self.saveToDisk()
                     }
+                    
+                    DispatchQueue.main.async {
+                        MessageStore.shared.setDeliveryState(clientMessageId: job.clientMessageId, state: .sending)
+                    }
                 }
 
                 // This expects your app to set `SendQueueManager.shared.sendJobHandler` to call network.
@@ -175,6 +198,7 @@ final class SendQueueManager {
                     }
                     // notify app to insert authoritative message (insertOrReplace)
                     DispatchQueue.main.async {
+                        MessageStore.shared.setDeliveryState(clientMessageId: job.clientMessageId, state: .sent)
                         self.sendSuccessCallback?(job.clientMessageId, serverMessage)
                     }
                     continue // process next job immediately
@@ -189,6 +213,7 @@ final class SendQueueManager {
                         }
                     }
                     DispatchQueue.main.async {
+                        MessageStore.shared.setDeliveryState(clientMessageId: job.clientMessageId, state: .failed)
                         self.sendFailedCallback?(job.clientMessageId)
                     }
                     continue

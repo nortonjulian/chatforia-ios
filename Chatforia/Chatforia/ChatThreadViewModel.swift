@@ -71,6 +71,21 @@ final class ChatThreadViewModel: ObservableObject {
     }
     private var isResyncing: Bool = false
 
+    // Current logged-in user info for optimistic messages
+    private var currentUserId: Int?
+    private var currentUsername: String?
+    private var currentUserPublicKey: String?
+
+    private var currentUserSenderDTO: SenderDTO? {
+        guard let currentUserId, currentUserId > 0 else { return nil }
+
+        return SenderDTO(
+            id: currentUserId,
+            username: currentUsername,
+            publicKey: currentUserPublicKey
+        )
+    }
+
     // NOTE: isoFormatter kept for any parsing we might need elsewhere (but MessageDTO uses Date types now)
     private let isoFormatter: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
@@ -85,6 +100,12 @@ final class ChatThreadViewModel: ObservableObject {
                 self?.refreshFromMessageStore()
             }
             .store(in: &cancellables)
+    }
+
+    func configureCurrentUser(id: Int?, username: String?, publicKey: String? = nil) {
+        self.currentUserId = id
+        self.currentUsername = username
+        self.currentUserPublicKey = publicKey
     }
 
     private func refreshFromMessageStore() {
@@ -124,7 +145,6 @@ final class ChatThreadViewModel: ObservableObject {
 
     // MARK: - Networking
     func loadMessages(roomId: Int, token: String?) async {
-        // Defensive: ensure we have a valid numeric roomId
         guard roomId > 0 else {
             errorText = "Invalid roomId (client)."
             print("❌ loadMessages called with invalid roomId:", roomId, "urlPath:", "messages/\(roomId)")
@@ -159,7 +179,6 @@ final class ChatThreadViewModel: ObservableObject {
 
             MessageStore.shared.insertOrReplace(page.items)
 
-            // Ensure deterministic ordering after bulk load
             batchSortDebouncer.flush()
 
             if self.messages.isEmpty {
@@ -230,7 +249,11 @@ final class ChatThreadViewModel: ObservableObject {
         let clientMessageId = UUID().uuidString
         let localId = -abs(clientMessageId.hashValue)
 
-        let sender = currentUserSenderDTO
+        guard let sender = currentUserSenderDTO else {
+            errorText = "Missing current user identity for optimistic send."
+            print("❌ sendMessage: current user identity not configured")
+            return
+        }
 
         let optimistic = MessageDTO.optimistic(
             roomId: roomId,
@@ -444,8 +467,37 @@ final class ChatThreadViewModel: ObservableObject {
            let idx = messages.firstIndex(where: { $0.clientMessageId == cmid }) {
             let existing = messages[idx]
             if rev(incoming) >= rev(existing) {
-                messages[idx] = incoming
-                if let cid = incoming.clientMessageId, !cid.isEmpty {
+                let mergedIncoming = MessageDTO(
+                    id: incoming.id,
+                    contentCiphertext: incoming.contentCiphertext,
+                    rawContent: incoming.rawContent,
+                    translations: incoming.translations,
+                    translatedFrom: incoming.translatedFrom,
+                    translatedForMe: incoming.translatedForMe,
+                    encryptedKeyForMe: incoming.encryptedKeyForMe,
+                    imageUrl: incoming.imageUrl,
+                    audioUrl: incoming.audioUrl,
+                    audioDurationSec: incoming.audioDurationSec,
+                    isExplicit: incoming.isExplicit,
+                    createdAt: incoming.createdAt,
+                    expiresAt: incoming.expiresAt,
+                    editedAt: incoming.editedAt,
+                    deletedBySender: incoming.deletedBySender,
+                    deletedForAll: incoming.deletedForAll,
+                    deletedAt: incoming.deletedAt,
+                    deletedById: incoming.deletedById,
+                    sender: incoming.sender,
+                    readBy: incoming.readBy,
+                    chatRoomId: incoming.chatRoomId,
+                    reactionSummary: incoming.reactionSummary,
+                    myReactions: incoming.myReactions,
+                    revision: incoming.revision,
+                    clientMessageId: incoming.clientMessageId ?? existing.clientMessageId
+                )
+
+                messages[idx] = mergedIncoming
+
+                if let cid = messages[idx].clientMessageId, !cid.isEmpty {
                     MessageStore.shared.setDeliveryState(clientMessageId: cid, state: .sent)
                 }
                 bumpLastServerIdIfNeeded(messages[idx])
@@ -463,15 +515,48 @@ final class ChatThreadViewModel: ObservableObject {
            !incomingText.isEmpty {
             if let idx = messages.lastIndex(where: { m in
                 m.chatRoomId == incoming.chatRoomId &&
-                (m.id < 0) &&
-                (m.rawContent?.trimmingCharacters(in: .whitespacesAndNewlines) == incomingText)
+                m.id < 0 &&
+                m.sender.id == incoming.sender.id &&
+                (m.rawContent?.trimmingCharacters(in: .whitespacesAndNewlines) == incomingText) &&
+                abs(m.createdAt.timeIntervalSince(incoming.createdAt)) <= 20
             }) {
                 let existing = messages[idx]
                 if rev(incoming) >= rev(existing) {
-                    messages[idx] = incoming
-                    if let cid = incoming.clientMessageId, !cid.isEmpty {
+                    let existingClientMessageId = existing.clientMessageId
+                    let mergedIncoming = MessageDTO(
+                        id: incoming.id,
+                        contentCiphertext: incoming.contentCiphertext,
+                        rawContent: incoming.rawContent,
+                        translations: incoming.translations,
+                        translatedFrom: incoming.translatedFrom,
+                        translatedForMe: incoming.translatedForMe,
+                        encryptedKeyForMe: incoming.encryptedKeyForMe,
+                        imageUrl: incoming.imageUrl,
+                        audioUrl: incoming.audioUrl,
+                        audioDurationSec: incoming.audioDurationSec,
+                        isExplicit: incoming.isExplicit,
+                        createdAt: incoming.createdAt,
+                        expiresAt: incoming.expiresAt,
+                        editedAt: incoming.editedAt,
+                        deletedBySender: incoming.deletedBySender,
+                        deletedForAll: incoming.deletedForAll,
+                        deletedAt: incoming.deletedAt,
+                        deletedById: incoming.deletedById,
+                        sender: incoming.sender,
+                        readBy: incoming.readBy,
+                        chatRoomId: incoming.chatRoomId,
+                        reactionSummary: incoming.reactionSummary,
+                        myReactions: incoming.myReactions,
+                        revision: incoming.revision,
+                        clientMessageId: incoming.clientMessageId ?? existingClientMessageId
+                    )
+
+                    messages[idx] = mergedIncoming
+
+                    if let cid = messages[idx].clientMessageId, !cid.isEmpty {
                         MessageStore.shared.setDeliveryState(clientMessageId: cid, state: .sent)
                     }
+
                     bumpLastServerIdIfNeeded(messages[idx])
                     batchSortDebouncer.scheduleSort { [weak self] in
                         DispatchQueue.main.async {
@@ -605,8 +690,7 @@ final class ChatThreadViewModel: ObservableObject {
         return try? decoder.decode(T.self, from: data)
     }
 
-    // MARK: - Helpers / small adapters
-    private var currentUserSenderDTO: SenderDTO {
-        return SenderDTO(id: 0, username: "Me", publicKey: nil)
+    private var hasConfiguredCurrentUser: Bool {
+        currentUserSenderDTO != nil
     }
 }

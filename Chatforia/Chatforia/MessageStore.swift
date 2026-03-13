@@ -30,13 +30,29 @@ final class MessageStore {
 
     private let inMemoryMax = 500
 
-    private init() {
-        if let id = UserDefaults.standard.object(forKey: tombstoneKey) as? Int {
-            oldestRemovedMessageId = id
-        }
-    }
+    private func completenessScore(_ message: MessageDTO) -> Int {
+        var score = 0
 
-    // MARK: - Delivery state helpers
+        if let raw = message.rawContent,
+           !raw.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty {
+            score += 2
+        }
+
+        if let readBy = message.readBy, !readBy.isEmpty {
+            score += 1
+        }
+
+        if let reactionSummary = message.reactionSummary, !reactionSummary.isEmpty {
+            score += 1
+        }
+
+        if message.expiresAt != nil {
+            score += 1
+        }
+
+        return score
+    }
+    
 
     func setDeliveryState(clientMessageId: String, state: DeliveryState) {
         guard !clientMessageId.isEmpty else { return }
@@ -152,7 +168,10 @@ final class MessageStore {
             }
 
             // Sort by createdAt then dedupe
-            self.messages.sort(by: { $0.createdAt < $1.createdAt })
+            self.messages.sort {
+                if $0.createdAt != $1.createdAt { return $0.createdAt < $1.createdAt }
+                return $0.id < $1.id
+            }
 
             var seenServerIds = Set<Int>()
             var seenClientIds = Set<String>()
@@ -227,13 +246,19 @@ final class MessageStore {
         lock.async(flags: .barrier) {
             if let idx = self.messages.firstIndex(where: { $0.clientMessageId == clientMessageId }) {
                 self.messages[idx] = serverDTO
-                self.messages.sort(by: { $0.createdAt < $1.createdAt })
+                self.messages.sort {
+                    if $0.createdAt != $1.createdAt { return $0.createdAt < $1.createdAt }
+                    return $0.id < $1.id
+                }
                 DispatchQueue.main.async {
                     NotificationCenter.default.post(name: .MessagesChanged, object: nil)
                 }
             } else {
                 self.messages.append(serverDTO)
-                self.messages.sort(by: { $0.createdAt < $1.createdAt })
+                self.messages.sort {
+                    if $0.createdAt != $1.createdAt { return $0.createdAt < $1.createdAt }
+                    return $0.id < $1.id
+                }
                 DispatchQueue.main.async {
                     NotificationCenter.default.post(name: .MessagesChanged, object: nil)
                 }

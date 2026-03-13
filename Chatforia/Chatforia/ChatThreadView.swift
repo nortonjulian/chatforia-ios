@@ -19,8 +19,6 @@ struct ChatThreadView: View {
 
             typingBanner
 
-            Divider()
-
             composer
         }
         .navigationTitle(roomDisplayTitle)
@@ -28,6 +26,11 @@ struct ChatThreadView: View {
         .toolbar { toolbarContent }
         .task(id: room.id) {
             vm.configureRoom(roomId: room.id)
+            vm.configureCurrentUser(
+                id: currentUserId,
+                username: currentUsername,
+                publicKey: nil
+            )
             await reload()
             await vm.resyncIfNeeded(token: TokenStore().read())
             vm.startSocket(roomId: room.id, token: TokenStore().read(), myUsername: currentUsername)
@@ -41,6 +44,20 @@ struct ChatThreadView: View {
             vm.stopTypingNow(roomId: room.id)
             vm.stopSocket()
             vm.stopExpiryLoop()
+        }
+        .onChange(of: currentUserId) { _, _ in
+            vm.configureCurrentUser(
+                id: currentUserId,
+                username: currentUsername,
+                publicKey: nil
+            )
+        }
+        .onChange(of: currentUsername) { _, _ in
+            vm.configureCurrentUser(
+                id: currentUserId,
+                username: currentUsername,
+                publicKey: nil
+            )
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
@@ -100,6 +117,7 @@ struct ChatThreadView: View {
                 MessagesListView(
                     messages: vm.messages,
                     currentUserId: currentUserId,
+                    isGroupRoom: room.isGroup == true,
                     deliveryStateForMessage: { msg in
                         deliveryState(for: msg)
                     },
@@ -107,11 +125,8 @@ struct ChatThreadView: View {
                         await vm.loadOlderMessagesIfNeeded()
                     },
                     onRetryTap: { msg in
-                        guard let cid = msg.clientMessageId else { return }
-                        NotificationCenter.default.post(
-                            name: Notification.Name("ChatforiaRetrySend"),
-                            object: cid
-                        )
+                        guard let cid = msg.clientMessageId, !cid.isEmpty else { return }
+                        SendQueueManager.shared.retryJob(clientMessageId: cid)
                     },
                     onEdit: { _ in
                         // wire later
@@ -128,15 +143,14 @@ struct ChatThreadView: View {
     private var typingBanner: some View {
         Group {
             if !vm.typingUsernames.isEmpty {
-                Text(typingIndicatorText(vm.typingUsernames))
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 6)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                TypingIndicatorView(text: typingIndicatorText(vm.typingUsernames))
+                    .padding(.horizontal, 8)
+                    .padding(.bottom, 4)
                     .background(Color(uiColor: .systemBackground))
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
+        .animation(.easeInOut(duration: 0.2), value: vm.typingUsernames)
     }
 
     private var composer: some View {
@@ -200,7 +214,7 @@ struct ChatThreadView: View {
         if names.count == 2 { return "\(names[0]) and \(names[1]) are typing…" }
         return "\(names.count) people are typing…"
     }
-
+    
     private func deliveryState(for msg: MessageDTO) -> DeliveryState? {
         guard let clientMessageId = msg.clientMessageId, !clientMessageId.isEmpty else {
             return nil

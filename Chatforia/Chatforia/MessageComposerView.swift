@@ -8,22 +8,22 @@ struct MessageComposerView: View {
     var body: some View {
         HStack(alignment: .bottom, spacing: 10) {
             Button {
-                // placeholder for attachments later
+                // placeholder
             } label: {
                 Image(systemName: "plus")
-                    .font(.system(size: 16, weight: .semibold))
-                    .frame(width: 36, height: 36)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(.blue)
+                    .frame(width: 30, height: 30)
                     .background(Color(uiColor: .secondarySystemBackground))
                     .clipShape(Circle())
             }
             .buttonStyle(.plain)
-            .foregroundColor(.primary)
 
             HStack(alignment: .bottom, spacing: 8) {
                 TextField("Message", text: $draft, axis: .vertical)
                     .textFieldStyle(.plain)
                     .lineLimit(1...5)
-                    .padding(.vertical, 10)
+                    .padding(.vertical, 11)
                     .padding(.leading, 12)
                     .onChange(of: draft) { _, _ in
                         onDraftChanged()
@@ -32,12 +32,14 @@ struct MessageComposerView: View {
                 Button {
                     onSend()
                 } label: {
-                    Image(systemName: "paperplane.fill")
-                        .font(.system(size: 15, weight: .semibold))
+                    Image(systemName: "arrow.up")
+                        .font(.system(size: 14, weight: .bold))
                         .foregroundColor(.white)
-                        .frame(width: 34, height: 34)
-                        .background(canSend ? Color.blue : Color.gray.opacity(0.45))
+                        .frame(width: 32, height: 32)
+                        .background(canSend ? Color.blue : Color.gray.opacity(0.35))
                         .clipShape(Circle())
+                        .scaleEffect(canSend ? 1.0 : 0.96)
+                        .animation(.spring(response: 0.2, dampingFraction: 0.8), value: canSend)
                 }
                 .buttonStyle(.plain)
                 .disabled(!canSend)
@@ -50,9 +52,12 @@ struct MessageComposerView: View {
             )
         }
         .padding(.horizontal, 12)
-        .padding(.top, 10)
+        .padding(.top, 8)
         .padding(.bottom, 10)
         .background(.ultraThinMaterial)
+        .overlay(alignment: .top) {
+            Divider()
+        }
     }
 
     private var canSend: Bool {

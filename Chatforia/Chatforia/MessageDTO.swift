@@ -90,9 +90,9 @@ struct MessageDTO: Codable, Identifiable, Equatable {
         case reactionSummary
         case myReactions
         case revision
-        // intentionally omit clientMessageId
+        case clientMessageId
     }
-
+    
     // Stable initializer (defaults for optional fields)
     init(
         id: Int,
@@ -185,9 +185,7 @@ struct MessageDTO: Codable, Identifiable, Equatable {
         myReactions = try c.decodeIfPresent([String].self, forKey: .myReactions)
 
         revision = try c.decodeIfPresent(Int.self, forKey: .revision)
-
-        // clientMessageId remains nil (client-only)
-        clientMessageId = nil
+        clientMessageId = try c.decodeIfPresent(String.self, forKey: .clientMessageId)
     }
 
     // MARK: Encodable
@@ -227,7 +225,7 @@ struct MessageDTO: Codable, Identifiable, Equatable {
         try c.encodeIfPresent(myReactions, forKey: .myReactions)
 
         try c.encodeIfPresent(revision, forKey: .revision)
-        // intentionally not encoding clientMessageId
+        try c.encodeIfPresent(clientMessageId, forKey: .clientMessageId)
     }
 
     // MARK: Equatable

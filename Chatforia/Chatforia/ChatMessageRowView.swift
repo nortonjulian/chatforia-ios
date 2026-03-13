@@ -17,19 +17,20 @@ struct ChatMessageRowView: View {
     let onRetryTap: (() -> Void)?
     let onEdit: (() -> Void)?
     let onDelete: (() -> Void)?
+    let isTimestampVisible: Bool
+    let onBubbleTap: () -> Void
+    let bubbleMaxWidth: CGFloat
 
-    private static let timeFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "h:mm a"
-        return f
-    }()
+    @State private var didAppear = false
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 8) {
-            if isMe {
-                Spacer(minLength: 44)
-            } else {
+            if !isMe {
                 avatarSlot
+            }
+
+            if isMe {
+                Spacer(minLength: 50)
             }
 
             VStack(alignment: isMe ? .trailing : .leading, spacing: 4) {
@@ -37,7 +38,12 @@ struct ChatMessageRowView: View {
                     Text(senderDisplayName)
                         .font(.caption)
                         .foregroundColor(.secondary)
-                        .padding(.leading, 2)
+                        .padding(.horizontal, 2)
+                }
+
+                if isTimestampVisible {
+                    timestampView
+                        .transition(.opacity.combined(with: .move(edge: .top)))
                 }
 
                 MessageBubbleView(
@@ -46,7 +52,8 @@ struct ChatMessageRowView: View {
                     isGroupedWithPrevious: groupPosition == .middle || groupPosition == .bottom,
                     isGroupedWithNext: groupPosition == .top || groupPosition == .middle
                 )
-                .frame(maxWidth: 300, alignment: isMe ? .trailing : .leading)
+                .frame(maxWidth: bubbleMaxWidth, alignment: isMe ? .trailing : .leading)
+                .contentShape(Rectangle())
                 .contextMenu {
                     if isEditable {
                         Button("Edit", systemImage: "pencil") {
@@ -67,74 +74,56 @@ struct ChatMessageRowView: View {
                     }
                 }
                 .onTapGesture {
-                    if isMe, deliveryState == .failed {
-                        onRetryTap?()
-                    }
+                    onBubbleTap()
                 }
 
                 if hasReactions {
                     reactionsBar
+                        .transition(.opacity)
                 }
 
-                metadataLine
+                if shouldShowMetadataLine {
+                    metadataLine
+                }
             }
-            .frame(maxWidth: .infinity, alignment: isMe ? .trailing : .leading)
+            .frame(maxWidth: bubbleMaxWidth, alignment: isMe ? .trailing : .leading)
 
             if !isMe {
-                Spacer(minLength: 44)
-            } else {
-                Color.clear.frame(width: 28, height: 28)
+                Spacer(minLength: 50)
             }
         }
+        .frame(maxWidth: .infinity, alignment: isMe ? .trailing : .leading)
+        .padding(.horizontal, 12)
         .padding(.top, topPadding)
         .padding(.bottom, bottomPadding)
-        .animation(.easeInOut(duration: 0.15), value: msg.id)
+        .scaleEffect(didAppear ? 1 : 0.985)
+        .opacity(didAppear ? 1 : 0)
+        .offset(y: didAppear ? 0 : 4)
+        .onAppear {
+            guard !didAppear else { return }
+            withAnimation(.easeOut(duration: 0.18)) {
+                didAppear = true
+            }
+        }
     }
 
+    @ViewBuilder
     private var avatarSlot: some View {
-        Group {
-            if showAvatar {
-                avatarView
-            } else {
-                Color.clear.frame(width: 28, height: 28)
-            }
-        }
-    }
-
-    private var avatarView: some View {
-        Group {
-            if let avatarUrl = msg.senderAvatarURL {
-                AsyncImage(url: avatarUrl) { phase in
-                    switch phase {
-                    case .empty:
-                        avatarPlaceholder
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    case .failure:
-                        avatarPlaceholder
-                    @unknown default:
-                        avatarPlaceholder
-                    }
-                }
+        if showAvatar {
+            Circle()
+                .fill(Color(uiColor: .systemGray4))
                 .frame(width: 28, height: 28)
-                .clipShape(Circle())
-            } else {
-                avatarPlaceholder
-            }
+        } else {
+            Color.clear
+                .frame(width: 28, height: 28)
         }
     }
 
-    private var avatarPlaceholder: some View {
-        Circle()
-            .fill(Color.gray.opacity(0.18))
-            .frame(width: 28, height: 28)
-            .overlay(
-                Text(initials)
-                    .font(.caption2.weight(.semibold))
-                    .foregroundColor(.primary)
-            )
+    private var timestampView: some View {
+        Text(timestampText)
+            .font(.caption2)
+            .foregroundColor(.secondary)
+            .padding(.horizontal, 4)
     }
 
     @ViewBuilder
@@ -150,36 +139,27 @@ struct ChatMessageRowView: View {
                 .padding(.vertical, 4)
                 .background(Color(uiColor: .tertiarySystemBackground))
                 .clipShape(Capsule())
-                .overlay(
-                    Capsule()
-                        .strokeBorder(myReactionsContains(pair.key) ? Color.blue.opacity(0.35) : Color.clear, lineWidth: 1)
-                )
             }
         }
+        .padding(.horizontal, 2)
     }
 
     private var metadataLine: some View {
         HStack(spacing: 6) {
-            Text(Self.timeFormatter.string(from: msg.createdAt))
-                .font(.caption2)
-                .foregroundColor(.secondary)
-
             if isMe, let deliveryText = deliveryStateText {
-                Text("•")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-
                 Text(deliveryText)
                     .font(.caption2)
                     .foregroundColor(deliveryStateColor)
             }
 
-            if readReceiptText != nil {
-                Text("•")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
+            if let readReceiptText {
+                if isMe, deliveryStateText != nil {
+                    Text("•")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
 
-                Text(readReceiptText!)
+                Text(readReceiptText)
                     .font(.caption2)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
@@ -188,36 +168,39 @@ struct ChatMessageRowView: View {
         .padding(.horizontal, 4)
     }
 
+    private var shouldShowMetadataLine: Bool {
+        (isMe && deliveryStateText != nil) || readReceiptText != nil
+    }
+
     private var senderDisplayName: String {
         let raw = msg.sender.username?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let raw, !raw.isEmpty { return raw }
         return "User \(msg.sender.id)"
     }
 
-    private var initials: String {
-        let parts = senderDisplayName
-            .split(separator: " ")
-            .prefix(2)
-            .map { String($0.prefix(1)).uppercased() }
-
-        if !parts.isEmpty {
-            return parts.joined()
-        }
-
-        return String(senderDisplayName.prefix(1)).uppercased()
+    private var timestampText: String {
+        msg.createdAt.formatted(
+            .dateTime
+                .hour(.defaultDigits(amPM: .abbreviated))
+                .minute()
+        )
     }
 
     private var topPadding: CGFloat {
         switch groupPosition {
-        case .single, .top: return 10
-        case .middle, .bottom: return 2
+        case .single, .top:
+            return 8
+        case .middle, .bottom:
+            return 2
         }
     }
 
     private var bottomPadding: CGFloat {
         switch groupPosition {
-        case .single, .bottom: return 8
-        case .top, .middle: return 1
+        case .single, .bottom:
+            return 6
+        case .top, .middle:
+            return 0
         }
     }
 
@@ -226,15 +209,10 @@ struct ChatMessageRowView: View {
     }
 
     private var sortedReactionPairs: [(key: String, value: Int)] {
-        (msg.reactionSummary ?? [:])
-            .sorted { lhs, rhs in
-                if lhs.value != rhs.value { return lhs.value > rhs.value }
-                return lhs.key < rhs.key
-            }
-    }
-
-    private func myReactionsContains(_ emoji: String) -> Bool {
-        (msg.myReactions ?? []).contains(emoji)
+        (msg.reactionSummary ?? [:]).sorted { lhs, rhs in
+            if lhs.value != rhs.value { return lhs.value > rhs.value }
+            return lhs.key < rhs.key
+        }
     }
 
     private var isEditable: Bool {
@@ -272,18 +250,8 @@ struct ChatMessageRowView: View {
         switch deliveryState {
         case .failed:
             return .red
-        case .pending, .sending:
-            return .secondary
-        case .sent:
-            return .secondary
-        case .none:
+        case .pending, .sending, .sent, .none:
             return .secondary
         }
-    }
-}
-
-private extension MessageDTO {
-    var senderAvatarURL: URL? {
-        nil
     }
 }
