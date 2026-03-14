@@ -1,10 +1,3 @@
-//
-//  AppShellView.swift
-//  Chatforia
-//
-//  Created by Julian Norton on 2/9/26.
-//
-
 import SwiftUI
 
 struct AppShellView: View {
@@ -14,15 +7,19 @@ struct AppShellView: View {
     var body: some View {
         TabView {
             ChatsRootView()
-                .tabItem { Label("Chats", systemImage: "message") }
+                .tabItem {
+                    Label("Chats", systemImage: "bubble.left.and.bubble.right.fill")
+                }
 
             ContactsRootView()
-                .tabItem { Label("Contacts", systemImage: "person.2") }
+                .tabItem {
+                    Label("Contacts", systemImage: "person.2.fill")
+                }
 
             ProfileRootView(user: user)
-                .tabItem { Label("Profile", systemImage: "person.crop.circle") }
+                .tabItem {
+                    Label("Profile", systemImage: "person.crop.circle.fill")
+                }
         }
     }
 }
-
-

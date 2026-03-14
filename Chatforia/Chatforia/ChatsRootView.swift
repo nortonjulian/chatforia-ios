@@ -8,40 +8,70 @@ struct ChatsRootView: View {
         NavigationStack {
             Group {
                 if vm.isLoading && vm.rooms.isEmpty {
-                    VStack(spacing: 12) {
-                        ProgressView()
-                        Text("Loading chats…")
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding()
+                    LoadingStateView(
+                        title: "Loading chats…",
+                        subtitle: "Pulling in your latest conversations."
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                } else if let err = vm.errorText, !err.isEmpty, vm.rooms.isEmpty {
+                    EmptyStateView(
+                        systemImage: "exclamationmark.bubble",
+                        title: "Couldn’t load chats",
+                        subtitle: err,
+                        buttonTitle: "Try Again",
+                        buttonAction: {
+                            Task { await reload() }
+                        }
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                } else if vm.filteredRooms.isEmpty && !vm.searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    EmptyStateView(
+                        systemImage: "magnifyingglass",
+                        title: "No results",
+                        subtitle: "Try searching for a different name or message."
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                } else if vm.rooms.isEmpty {
+                    EmptyStateView(
+                        systemImage: "bubble.left.and.bubble.right",
+                        title: "No chats yet",
+                        subtitle: "Your conversations will show up here once you start messaging."
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+
                 } else {
                     List {
                         if let err = vm.errorText, !err.isEmpty {
-                            Text(err)
-                                .foregroundStyle(.red)
+                            Section {
+                                Text(err)
+                                    .font(.footnote)
+                                    .foregroundStyle(.red)
+                            }
                         }
 
-                        ForEach(vm.rooms) { room in
+                        ForEach(vm.filteredRooms) { room in
                             NavigationLink {
                                 ChatThreadView(room: room)
                             } label: {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(roomTitle(room))
-                                        .font(.headline)
-
-                                    Text(roomSubtitle(room))
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(1)
-                                }
-                                .padding(.vertical, 4)
+                                ChatListRowView(
+                                    title: roomTitle(room),
+                                    subtitle: roomSubtitle(room),
+                                    timestamp: roomTimestamp(room),
+                                    unreadCount: 0,
+                                    isPinned: false
+                                )
                             }
                         }
                     }
                     .listStyle(.insetGrouped)
+                    .animation(.easeInOut(duration: 0.2), value: vm.filteredRooms.map(\.id))
                 }
             }
             .navigationTitle("Chats")
+            .searchable(text: $vm.searchText, prompt: "Search chats")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -71,13 +101,11 @@ struct ChatsRootView: View {
     }
 
     private func roomTitle(_ room: ChatRoomDTO) -> String {
-        // 1) Named room (true group chats typically)
         if let name = room.name?.trimmingCharacters(in: .whitespacesAndNewlines),
            !name.isEmpty {
             return name
         }
 
-        // 2) Try participant usernames (excluding me)
         let names = (room.participants ?? [])
             .filter { $0.id != currentUserId }
             .compactMap { $0.username?.trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -87,20 +115,29 @@ struct ChatsRootView: View {
             return names.joined(separator: ", ")
         }
 
-        // 3) Deterministic fallback so you can see rooms differ
         return "Chat #\(room.id)"
     }
 
     private func roomSubtitle(_ room: ChatRoomDTO) -> String {
-        if let lm = room.lastMessage {
-            // Most common preview field name in your project so far:
-            if let c = lm.content, !c.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                return c
-            }
+        guard let lm = room.lastMessage else { return "Tap to open" }
 
-            // If backend uses "text" instead, this covers it (won’t compile unless field exists)
-            // if let t = lm.text, !t.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return t }
+        if let content = lm.content?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !content.isEmpty {
+            return content
         }
+
         return "Tap to open"
+    }
+
+    private func roomTimestamp(_ room: ChatRoomDTO) -> String {
+        if let createdAt = room.lastMessage?.createdAt {
+            return TimestampFormatter.chatListTimestamp(from: createdAt)
+        }
+
+        if let updatedAt = room.updatedAt {
+            return TimestampFormatter.chatListTimestamp(from: updatedAt)
+        }
+
+        return ""
     }
 }

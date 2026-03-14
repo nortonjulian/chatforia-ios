@@ -119,12 +119,37 @@ struct ChatMessageRowView: View {
     private var avatarSlot: some View {
         if showAvatar {
             Circle()
-                .fill(Color(uiColor: .systemGray4))
-                .frame(width: 28, height: 28)
+                .fill(avatarBackgroundColor)
+                .frame(width: 30, height: 30)
+                .overlay(
+                    Text(senderInitials)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.primary)
+                )
         } else {
             Color.clear
-                .frame(width: 28, height: 28)
+                .frame(width: 30, height: 30)
         }
+    }
+
+    private var avatarBackgroundColor: Color {
+        Color(uiColor: .systemGray5)
+    }
+
+    private var senderInitials: String {
+        let cleaned = senderDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleaned.isEmpty else { return "U" }
+
+        let parts = cleaned
+            .split(separator: " ")
+            .prefix(2)
+            .map { String($0.prefix(1)).uppercased() }
+
+        if !parts.isEmpty {
+            return parts.joined()
+        }
+
+        return String(cleaned.prefix(1)).uppercased()
     }
 
     private var timestampView: some View {
@@ -270,7 +295,7 @@ struct ChatMessageRowView: View {
         case .delivered:
             return "Delivered"
         case .read:
-            return isGroupRoom ? "Read" : "Read"
+            return "Read"
         case .failed:
             return "Failed · Tap to retry"
         case .none:

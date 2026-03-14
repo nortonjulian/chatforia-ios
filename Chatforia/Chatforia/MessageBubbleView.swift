@@ -9,19 +9,29 @@ struct MessageBubbleView: View {
     var body: some View {
         content
             .font(.body)
-            .foregroundColor(isMe ? .white : .primary)
+            .foregroundStyle(isMe ? .white : .primary)
             .multilineTextAlignment(.leading)
             .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            .padding(.vertical, 9)
             .background(
                 bubbleShape
-                    .fill(isMe ? Color.blue : Color(uiColor: .systemGray5))
+                    .fill(bubbleColor)
             )
-            .overlay(
-                bubbleShape
-                    .stroke(borderColor, lineWidth: isMe ? 0 : 0.5)
+            .overlay {
+                if isMe {
+                    bubbleShape
+                        .stroke(Color(red: 0.03, green: 0.45, blue: 0.90).opacity(0.22), lineWidth: 0.35)
+                } else {
+                    bubbleShape
+                        .stroke(borderColor, lineWidth: 0.5)
+                }
+            }
+            .shadow(
+                color: isMe ? .clear : Color.black.opacity(0.03),
+                radius: isMe ? 0 : 1,
+                x: 0,
+                y: 1
             )
-            .shadow(color: Color.black.opacity(isMe ? 0.0 : 0.04), radius: 1, x: 0, y: 1)
     }
 
     private var bubbleShape: ChatBubbleShape {
@@ -32,8 +42,14 @@ struct MessageBubbleView: View {
         )
     }
 
+    private var bubbleColor: Color {
+        isMe
+            ? Color(red: 0.05, green: 0.52, blue: 0.98)
+            : Color(uiColor: .systemGray6)
+    }
+
     private var borderColor: Color {
-        Color.black.opacity(0.06)
+        Color.black.opacity(0.055)
     }
 
     @ViewBuilder
@@ -41,7 +57,7 @@ struct MessageBubbleView: View {
         if msg.deletedForAll == true {
             Text("This message was deleted")
                 .italic()
-                .foregroundColor(isMe ? .white.opacity(0.78) : .secondary)
+                .foregroundStyle(isMe ? Color.white.opacity(0.82) : .secondary)
         } else if let translated = msg.translatedForMe,
                   !translated.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             Text(translated)

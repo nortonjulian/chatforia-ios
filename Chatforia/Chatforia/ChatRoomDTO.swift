@@ -1,17 +1,3 @@
-//
-//  ChatRoomDTO.swift
-//  Chatforia
-//
-//  Created by Julian Norton on 2/9/26.
-//
-
-//
-//  AuthStore.swift
-//  Chatforia
-//
-//  Created by Julian Norton on 2/9/26.
-//
-
 import Foundation
 
 struct ChatRoomDTO: Codable, Identifiable {

@@ -78,40 +78,37 @@ struct ChatThreadView: View {
         Group {
             if let err = vm.errorText, !err.isEmpty {
                 Text(err)
-                    .foregroundColor(.red)
                     .font(.footnote)
-                    .padding(.horizontal)
+                    .foregroundStyle(.red)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color.red.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .padding(.horizontal, 10)
                     .padding(.top, 8)
+                    .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
+        .animation(.easeInOut(duration: 0.2), value: vm.errorText)
     }
 
     private var messagesSection: some View {
         Group {
             if vm.isLoading && vm.messages.isEmpty {
-                VStack(spacing: 12) {
-                    Spacer()
-                    ProgressView()
-                    Text("Loading messages…")
-                        .foregroundColor(.secondary)
-                    Spacer()
-                }
-                .padding()
+                LoadingStateView(
+                    title: "Loading messages…",
+                    subtitle: "Bringing your conversation up to date."
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             } else if vm.messages.isEmpty {
-                VStack(spacing: 10) {
-                    Spacer()
-                    Image(systemName: "bubble.left.and.bubble.right")
-                        .font(.system(size: 28))
-                        .foregroundColor(.secondary)
-                    Text("No messages yet")
-                        .foregroundColor(.secondary)
-                    Text("Start the conversation.")
-                        .font(.footnote)
-                        .foregroundColor(.secondary)
-                    Spacer()
-                }
-                .padding()
+                EmptyStateView(
+                    systemImage: "bubble.left.and.bubble.right",
+                    title: "No messages yet",
+                    subtitle: "Start the conversation."
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             } else {
                 MessagesListView(
@@ -130,10 +127,8 @@ struct ChatThreadView: View {
                         SendQueueManager.shared.retryJob(clientMessageId: cid)
                     },
                     onEdit: { _ in
-                        // wire later
                     },
                     onDelete: { _ in
-                        // wire later
                     },
                     lastMessageId: $lastMessageId
                 )
@@ -168,7 +163,7 @@ struct ChatThreadView: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .navigationBarTrailing) {
+        ToolbarItemGroup(placement: .navigationBarTrailing) {
             Button {
                 Task { await reload() }
             } label: {
@@ -192,7 +187,17 @@ struct ChatThreadView: View {
            !n.isEmpty {
             return n
         }
-        return "Chat"
+
+        let names = (room.participants ?? [])
+            .filter { $0.id != currentUserId }
+            .compactMap { $0.username?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        if !names.isEmpty {
+            return names.joined(separator: ", ")
+        }
+
+        return "Chat #\(room.id)"
     }
 
     private func reload() async {
@@ -215,7 +220,7 @@ struct ChatThreadView: View {
         if names.count == 2 { return "\(names[0]) and \(names[1]) are typing…" }
         return "\(names.count) people are typing…"
     }
-    
+
     private func deliveryState(for msg: MessageDTO) -> DeliveryState? {
         guard let clientMessageId = msg.clientMessageId, !clientMessageId.isEmpty else {
             return nil

@@ -1,25 +1,24 @@
-//
-//  ContactsRootView.swift
-//  Chatforia
-//
-//  Created by Julian Norton on 2/9/26.
-//
-
 import SwiftUI
 
 struct ContactsRootView: View {
+    @State private var searchText = ""
+
     var body: some View {
         NavigationStack {
-            VStack(spacing: 12) {
-                Text("Contacts")
-                    .font(.title2).bold()
-
-                Text("Next: wire saved contacts + start chat.")
-                    .foregroundStyle(.secondary)
+            Group {
+                EmptyStateView(
+                    systemImage: "person.2",
+                    title: "No contacts yet",
+                    subtitle: "Saved contacts will appear here once you add them.",
+                    buttonTitle: "Start a chat",
+                    buttonAction: {
+                        // wire later
+                    }
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .padding()
             .navigationTitle("Contacts")
+            .searchable(text: $searchText, prompt: "Search contacts")
         }
     }
 }
-
