@@ -84,7 +84,6 @@ final class SocketManager: ObservableObject {
                     didResume = true
                     self?.isConnected = true
 
-                    // Unwrap captured handlerId and call off if present with the correct label
                     if let idToRemove = handlerId {
                         self?.socket?.off(id: idToRemove)
                     }
@@ -127,15 +126,12 @@ final class SocketManager: ObservableObject {
             }
         }
 
-        // Use optional registration so we get an Optional<UUID>
         if let id = socket?.on(clientEvent: .connect, callback: callback) {
-            // Remove the handler once it runs; schedule a small delay to allow callback to execute
             Task {
                 try? await Task.sleep(nanoseconds: 100_000) // tiny delay
                 self.socket?.off(id: id)
             }
         } else {
-            // If we couldn't get an id, schedule a fallback call
             Task {
                 try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
                 handler()
@@ -157,7 +153,6 @@ final class SocketManager: ObservableObject {
         // IMPORTANT: Do NOT clear joinedRoomIds here. Keep the desired rooms so we can re-join after reconnect.
         // joinedRoomIds.removeAll()
 
-        // Base config (unchanged)
         let baseConfig: SocketIOClientConfiguration = [
             .log(false),
             .compress,
@@ -168,10 +163,8 @@ final class SocketManager: ObservableObject {
             .forceWebsockets(true)
         ]
 
-        // Build final config — *do not* rely on +/append/insert to avoid compiler overload issues.
         let config: SocketIOClientConfiguration
         if let t = token, !t.isEmpty {
-            // Put connectParams first so the handshake gets the token
             config = [
                 .connectParams(["token": t]),
                 .log(false),
@@ -188,12 +181,10 @@ final class SocketManager: ObservableObject {
             config = baseConfig
         }
 
-        // Create manager using the base URL (no token in the URL)
         let mgr = SocketIO.SocketManager(socketURL: url, config: config)
         self.manager = mgr
         self.socket = mgr.defaultSocket
 
-        // Log visible manager URL (this will not show the token — token printed separately)
         print("SocketManager.rebuild: manager socketURL=\(String(describing: mgr.socketURL))")
 
         bindCoreHandlersIfNeeded()
@@ -212,7 +203,6 @@ final class SocketManager: ObservableObject {
 
     /// Remove a handler by UUID
     func off(_ id: UUID) {
-        // Call the underlying Socket.IO API with the labeled parameter 'id:'
         socket?.off(id: id)
     }
 
@@ -314,7 +304,7 @@ final class SocketManager: ObservableObject {
                 strongSelf.isConnected = true
                 print("✅ socket connected")
 
-                // ✅ Re-join rooms after reconnect/connect (important with auto-reconnect)
+                // ✅ Re-join rooms after reconnect/connect
                 let rooms = Array(strongSelf.joinedRoomIds)
                 if !rooms.isEmpty {
                     strongSelf.socket?.emit("join:rooms", rooms)
@@ -341,9 +331,32 @@ final class SocketManager: ObservableObject {
         // Application-level socket events
         // ---------------------------------------------------------------------
 
+        socket.on("message:ack") { data, _ in
+            guard let payload = data.first as? [String: Any],
+                  let clientMessageId = payload["clientMessageId"] as? String
+            else { return }
+
+            Task { @MainActor in
+                MessageStore.shared.markDeliveryState(
+                    clientMessageId: clientMessageId,
+                    state: .delivered
+                )
+            }
+        }
+
+        socket.on("message_read") { data, _ in
+            guard let payload = data.first as? [String: Any],
+                  let messageId = payload["messageId"] as? Int
+            else { return }
+
+            Task { @MainActor in
+                MessageStore.shared.markMessageRead(messageId: messageId)
+            }
+        }
+
         // Handle message expired events from server
         // Posts the raw payload dictionary to NotificationCenter so view-models can decode/update.
-        socket.on("message:expired") { data, ack in
+        socket.on("message:expired") { data, _ in
             guard let payload = data.first as? [String: Any] else { return }
 
             Task { @MainActor in

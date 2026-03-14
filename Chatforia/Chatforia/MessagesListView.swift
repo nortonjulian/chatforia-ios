@@ -4,6 +4,7 @@ struct MessagesListView: View {
     let messages: [MessageDTO]
     let currentUserId: Int?
     let isGroupRoom: Bool
+    let isLoadingOlder: Bool
     let deliveryStateForMessage: (MessageDTO) -> DeliveryState?
     let onLoadOlder: () async -> Void
     let onRetryTap: (MessageDTO) -> Void
@@ -12,8 +13,8 @@ struct MessagesListView: View {
 
     @Binding var lastMessageId: Int?
     @State private var expandedTimestampMessageId: Int?
+    @State private var selectedReceiptMessage: MessageDTO?
 
-    // New: paging guards
     @State private var lastPagingTriggerOldestId: Int?
     @State private var isPagingTriggerInFlight = false
     @State private var lastPagingTriggerAt: Date = .distantPast
@@ -42,13 +43,17 @@ struct MessagesListView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 0) {
-                        // Top paging sentinel
                         Color.clear
                             .frame(height: 1)
                             .id("TOP_SENTINEL")
                             .onAppear {
                                 triggerLoadOlderIfNeeded()
                             }
+
+                        if isLoadingOlder {
+                            ProgressView()
+                                .padding(.vertical, 8)
+                        }
 
                         ForEach(sortedMessages.indices, id: \.self) { index in
                             messageRow(at: index, bubbleMaxWidth: bubbleMaxWidth)
@@ -74,10 +79,15 @@ struct MessagesListView: View {
                     if let expanded = expandedTimestampMessageId, !ids.contains(expanded) {
                         expandedTimestampMessageId = nil
                     }
+                    if let selected = selectedReceiptMessage, !ids.contains(selected.id) {
+                        selectedReceiptMessage = nil
+                    }
                 }
                 .onChange(of: oldestMessageId) { _, _ in
-                    // Reset in-flight once the oldest id changes after a successful page insert
                     isPagingTriggerInFlight = false
+                }
+                .sheet(item: $selectedReceiptMessage) { msg in
+                    MessageReceiptSheet(message: msg, isGroupRoom: isGroupRoom)
                 }
             }
         }
@@ -109,11 +119,17 @@ struct MessagesListView: View {
         ChatMessageRowView(
             msg: msg,
             isMe: isMe,
+            isGroupRoom: isGroupRoom,
             groupPosition: groupPosition,
             showAvatar: !isMe && (groupPosition == .single || groupPosition == .bottom),
             showSenderName: isGroupRoom && !isMe && (groupPosition == .single || groupPosition == .top),
             deliveryState: deliveryStateForMessage(msg),
             onRetryTap: { onRetryTap(msg) },
+            onReceiptTap: {
+                guard isMe else { return }
+                guard let readBy = msg.readBy, !readBy.isEmpty else { return }
+                selectedReceiptMessage = msg
+            },
             onEdit: { onEdit(msg) },
             onDelete: { onDelete(msg) },
             isTimestampVisible: expandedTimestampMessageId == msg.id,
@@ -138,11 +154,10 @@ struct MessagesListView: View {
     private func triggerLoadOlderIfNeeded() {
         guard let oldestId = oldestMessageId else { return }
         guard !isPagingTriggerInFlight else { return }
+        guard !isLoadingOlder else { return }
 
         let now = Date()
         guard now.timeIntervalSince(lastPagingTriggerAt) >= pagingThrottleSeconds else { return }
-
-        // Only trigger if the oldest currently visible message is different
         guard lastPagingTriggerOldestId != oldestId else { return }
 
         isPagingTriggerInFlight = true

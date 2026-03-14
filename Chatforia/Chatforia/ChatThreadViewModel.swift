@@ -122,6 +122,7 @@ final class ChatThreadViewModel: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.refreshFromMessageStore()
+                self?.markVisibleMessagesRead()
             }
             .store(in: &cancellables)
     }
@@ -143,6 +144,19 @@ final class ChatThreadViewModel: ObservableObject {
             }
 
         self.messages = snapshot
+    }
+
+    func markVisibleMessagesRead() {
+        guard let currentUserId else { return }
+
+        let unread = messages
+            .filter { $0.sender.id != currentUserId }
+            .filter { !($0.readBy?.contains(where: { $0.id == currentUserId }) ?? false) }
+            .map { $0.id }
+
+        guard !unread.isEmpty else { return }
+
+        APIClient.shared.readMessagesBulk(unread)
     }
 
     // MARK: - Expiry Loop
@@ -200,10 +214,7 @@ final class ChatThreadViewModel: ObservableObject {
             applyToStore(page.items)
             batchSortDebouncer.flush()
             refreshFromMessageStore()
-
-            MessageStore.shared.insertOrReplace(page.items)
-
-            batchSortDebouncer.flush()
+            markVisibleMessagesRead()
 
             if self.messages.isEmpty {
                 self.errorText = "Loaded 0 messages for room \(roomId)."
@@ -220,7 +231,7 @@ final class ChatThreadViewModel: ObservableObject {
     func loadOlderMessagesIfNeeded(limit: Int = 50) async {
         guard let roomId = self.roomId, roomId > 0 else { return }
         guard !isLoadingOlder else { return }
-        
+
         errorText = nil
 
         guard let beforeId = MessageStore.shared.serverBeforeIdForPaging() else {
@@ -253,7 +264,8 @@ final class ChatThreadViewModel: ObservableObject {
             applyToStore(page.items)
             batchSortDebouncer.flush()
             refreshFromMessageStore()
-            
+            markVisibleMessagesRead()
+
             errorText = nil
 
             print("✅ loadOlderMessagesIfNeeded: inserted \(page.items.count) older messages")
@@ -410,13 +422,17 @@ final class ChatThreadViewModel: ObservableObject {
                     applyToStore(msg)
                     bumpLastServerIdIfNeeded(msg)
                     refreshFromMessageStore()
+                    markVisibleMessagesRead()
                 }
                 return
             }
         }
 
         if let str = first as? String, let msg: MessageDTO = decodeFromJSONString(str) {
-            if msg.chatRoomId == roomId { insertOrReplace(msg) }
+            if msg.chatRoomId == roomId {
+                insertOrReplace(msg)
+                markVisibleMessagesRead()
+            }
             return
         }
     }
@@ -436,6 +452,7 @@ final class ChatThreadViewModel: ObservableObject {
         self.roomId = roomId
         self.lastServerMessageId = loadLastServerMessageId(roomId: roomId)
         refreshFromMessageStore()
+        markVisibleMessagesRead()
     }
 
     func resyncIfNeeded(token: String?) async {
@@ -456,14 +473,14 @@ final class ChatThreadViewModel: ObservableObject {
         do {
             let path = "messages/\(roomId)?sinceId=\(lastServerMessageId)"
             print("➡️ resyncIfNeeded path: messages/\(roomId)?sinceId=\(lastServerMessageId)")
-            
+
             let page: MessagesPageResponse = try await APIClient.shared.send(
                 APIRequest(path: path, method: .GET, requiresAuth: true),
                 token: token
             )
-            
+
             print("✅ resyncIfNeeded success: items=\(page.items.count), nextCursor=\(page.nextCursor ?? "nil"), nextCursorId=\(page.nextCursorId.map(String.init) ?? "nil")")
-            
+
             errorText = nil
 
             for msg in page.items {
@@ -472,6 +489,7 @@ final class ChatThreadViewModel: ObservableObject {
             applyToStore(page.items)
             batchSortDebouncer.flush()
             refreshFromMessageStore()
+            markVisibleMessagesRead()
         } catch {
             errorText = "resyncIfNeeded: \(error.localizedDescription)"
             print("❌ resyncIfNeeded error for roomId \(roomId):", error)
@@ -725,7 +743,7 @@ final class ChatThreadViewModel: ObservableObject {
         let decoder = JSONDecoder.tolerantISO8601Decoder()
         return try? decoder.decode(T.self, from: data)
     }
-    
+
     private func applyToStore(_ incoming: [MessageDTO]) {
         MessageStore.shared.insertOrReplace(incoming)
     }

@@ -1,11 +1,3 @@
-//
-//  APIClient.swift
-//  Chatforia
-//
-//  Created by Julian Norton on 2/9/26.
-//  Updated by ChatGPT on 2026-02-15.
-//
-
 import Foundation
 
 enum HTTPMethod: String { case GET, POST }
@@ -28,7 +20,7 @@ enum APIError: Error, LocalizedError {
     case invalidURL
     case unauthorized
     case server(status: Int, message: String?)
-    case decoding(Error)           // carries underlying decoding error
+    case decoding(Error)
     case network(Error)
 
     var errorDescription: String? {
@@ -41,6 +33,8 @@ enum APIError: Error, LocalizedError {
         }
     }
 }
+
+struct EmptyResponse: Decodable {}
 
 // MARK: - APIClient
 
@@ -61,19 +55,15 @@ final class APIClient {
             let pathPart = String(parts[0])
             let queryPart = parts.count > 1 ? String(parts[1]) : nil
 
-            // Ensure path combines correctly with base path
             if baseComponents.path.hasSuffix("/") && pathPart.hasPrefix("/") {
                 baseComponents.path += String(pathPart.dropFirst())
             } else {
-                // strip excessive slashes and append
                 let trimmed = pathPart.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
                 baseComponents.path += "/" + trimmed
             }
 
-            // set percentEncodedQuery to avoid double-encoding the query string
             baseComponents.percentEncodedQuery = queryPart
         } else {
-            // no query in path
             if baseComponents.path.hasSuffix("/") && pathAndQuery.hasPrefix("/") {
                 baseComponents.path += String(pathAndQuery.dropFirst())
             } else {
@@ -90,7 +80,6 @@ final class APIClient {
 
     /// Send a typed API request and decode the response into `T`.
     func send<T: Decodable>(_ request: APIRequest, token: String?) async throws -> T {
-        // build URL safely (preserve query)
         let url: URL
         do {
             url = try buildURL(from: request)
@@ -125,7 +114,6 @@ final class APIClient {
             print("🔎 RAW RESPONSE for \(request.path):")
             print(String(data: data, encoding: .utf8) ?? "<non-utf8 data>")
 
-            // Handle auth + non-success statuses
             if http.statusCode == 401 {
                 let msg = String(data: data, encoding: .utf8) ?? ""
                 if !msg.isEmpty { print("🚫 401 Unauthorized body:", msg) }
@@ -137,7 +125,6 @@ final class APIClient {
                 throw APIError.server(status: http.statusCode, message: msg)
             }
 
-            // Quick guard for empty responses (some endpoints may legitimately be empty)
             if data.isEmpty {
                 let emptyJSON = "{}".data(using: .utf8) ?? Data()
                 do {
@@ -148,12 +135,10 @@ final class APIClient {
                 }
             }
 
-            // Decode using tolerant ISO8601 decoder and log helpful details on failure
             do {
                 let decoder = JSONDecoder.tolerantISO8601Decoder()
                 return try decoder.decode(T.self, from: data)
             } catch {
-                // Helpful logging for debugging decoding issues
                 print("❗️JSON Decode failed for \(request.path):", error)
 
                 if let decodingError = error as? DecodingError {
@@ -182,15 +167,13 @@ final class APIClient {
             }
 
         } catch let apiError as APIError {
-            // Don't re-wrap APIError
             throw apiError
         } catch {
             throw APIError.network(error)
         }
     }
-    
+
     func sendRaw(_ request: APIRequest, token: String?) async throws -> (Data, HTTPURLResponse) {
-        // build URL safely (preserve query)
         let url: URL
         do {
             url = try buildURL(from: request)
@@ -229,7 +212,6 @@ final class APIClient {
                 throw APIError.unauthorized
             }
 
-            // Let caller decide how to handle non-2xx (or throw here to keep parity with send)
             guard (200...299).contains(http.statusCode) else {
                 let msg = String(data: data, encoding: .utf8) ?? nil
                 throw APIError.server(status: http.statusCode, message: msg)
@@ -240,6 +222,41 @@ final class APIClient {
             throw apiError
         } catch {
             throw APIError.network(error)
+        }
+    }
+
+    func readMessagesBulk(_ messageIds: [Int]) {
+        guard !messageIds.isEmpty else { return }
+
+        struct ReadMessagesBulkRequest: Encodable {
+            let messageIds: [Int]
+        }
+
+        Task {
+            do {
+                guard let token = TokenStore().read() else {
+                    print("❌ readMessagesBulk: missing token")
+                    return
+                }
+
+                let body = try JSONEncoder().encode(
+                    ReadMessagesBulkRequest(messageIds: messageIds)
+                )
+
+                let _: EmptyResponse = try await self.send(
+                    APIRequest(
+                        path: "messages/read-bulk",
+                        method: .POST,
+                        body: body,
+                        requiresAuth: true
+                    ),
+                    token: token
+                )
+
+                print("✅ readMessagesBulk success: \(messageIds.count) messages")
+            } catch {
+                print("❌ readMessagesBulk failed:", error)
+            }
         }
     }
 }

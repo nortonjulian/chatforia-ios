@@ -10,11 +10,13 @@ struct ChatMessageRowView: View {
 
     let msg: MessageDTO
     let isMe: Bool
+    let isGroupRoom: Bool
     let groupPosition: GroupPosition
     let showAvatar: Bool
     let showSenderName: Bool
     let deliveryState: DeliveryState?
     let onRetryTap: (() -> Void)?
+    let onReceiptTap: (() -> Void)?
     let onEdit: (() -> Void)?
     let onDelete: (() -> Void)?
     let isTimestampVisible: Bool
@@ -150,32 +152,49 @@ struct ChatMessageRowView: View {
         .padding(.horizontal, 2)
     }
 
+    @ViewBuilder
     private var metadataLine: some View {
-        HStack(spacing: 6) {
-            if isMe, let deliveryText = deliveryStateText {
-                Text(deliveryText)
-                    .font(.caption2)
-                    .foregroundColor(deliveryStateColor)
-            }
-
-            if let readReceiptText {
-                if isMe, deliveryStateText != nil {
-                    Text("•")
+        if let text = resolvedReceiptText {
+            Group {
+                if metadataIsTappable {
+                    Button(action: {
+                        if isMe && deliveryState == .failed {
+                            onRetryTap?()
+                        } else {
+                            onReceiptTap?()
+                        }
+                    }) {
+                        Text(text)
+                            .font(.caption2)
+                            .foregroundColor(resolvedReceiptColor)
+                            .lineLimit(1)
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Text(text)
                         .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(resolvedReceiptColor)
+                        .lineLimit(1)
                 }
-
-                Text(readReceiptText)
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
             }
+            .padding(.horizontal, 4)
         }
-        .padding(.horizontal, 4)
     }
 
     private var shouldShowMetadataLine: Bool {
-        (isMe && deliveryStateText != nil) || readReceiptText != nil
+        resolvedReceiptText != nil
+    }
+
+    private var metadataIsTappable: Bool {
+        if isMe && deliveryState == .failed { return true }
+        if isMe && hasReadableReceiptDetails { return true }
+        return false
+    }
+
+    private var hasReadableReceiptDetails: Bool {
+        guard isMe else { return false }
+        guard let readBy = msg.readBy, !readBy.isEmpty else { return false }
+        return true
     }
 
     private var senderDisplayName: String {
@@ -225,19 +244,22 @@ struct ChatMessageRowView: View {
         isMe && !(msg.deletedForAll ?? false)
     }
 
-    private var readReceiptText: String? {
-        guard isMe else { return nil }
-        guard let readBy = msg.readBy, !readBy.isEmpty else { return nil }
-
-        if readBy.count == 1 {
-            let name = readBy[0].username?.trimmingCharacters(in: .whitespacesAndNewlines)
-            return name?.isEmpty == false ? "Read by \(name!)" : "Read"
-        }
-
-        return "Read by \(readBy.count)"
+    private var otherReaders: [UserSummaryDTO] {
+        guard let readBy = msg.readBy else { return [] }
+        return readBy.filter { $0.id != msg.sender.id }
     }
 
-    private var deliveryStateText: String? {
+    private var resolvedReceiptText: String? {
+        guard isMe else { return nil }
+
+        if deliveryState == .failed {
+            return "Failed · Tap to retry"
+        }
+
+        if let readersText = groupAwareReadText {
+            return readersText
+        }
+
         switch deliveryState {
         case .pending:
             return "Pending"
@@ -245,18 +267,41 @@ struct ChatMessageRowView: View {
             return "Sending…"
         case .sent:
             return "Sent"
+        case .delivered:
+            return "Delivered"
+        case .read:
+            return isGroupRoom ? "Read" : "Read"
         case .failed:
-            return "Failed"
+            return "Failed · Tap to retry"
         case .none:
             return nil
         }
     }
 
-    private var deliveryStateColor: Color {
+    private var groupAwareReadText: String? {
+        let readers = otherReaders
+        guard !readers.isEmpty else { return nil }
+
+        if !isGroupRoom {
+            return "Read"
+        }
+
+        if readers.count == 1 {
+            let raw = readers[0].username?.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let raw, !raw.isEmpty {
+                return "Read by \(raw)"
+            }
+            return "Read"
+        }
+
+        return "Read by \(readers.count)"
+    }
+
+    private var resolvedReceiptColor: Color {
         switch deliveryState {
         case .failed:
             return .red
-        case .pending, .sending, .sent, .none:
+        case .pending, .sending, .sent, .delivered, .read, .none:
             return .secondary
         }
     }

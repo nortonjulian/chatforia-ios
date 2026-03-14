@@ -118,6 +118,7 @@ struct ChatThreadView: View {
                     messages: vm.messages,
                     currentUserId: currentUserId,
                     isGroupRoom: room.isGroup == true,
+                    isLoadingOlder: vm.isLoadingOlder,
                     deliveryStateForMessage: { msg in
                         deliveryState(for: msg)
                     },

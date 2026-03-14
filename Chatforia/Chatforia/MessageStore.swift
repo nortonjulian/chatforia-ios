@@ -116,6 +116,17 @@ final class MessageStore {
         return value
     }
 
+    private func rank(_ s: DeliveryState) -> Int {
+        switch s {
+        case .failed: return -1
+        case .pending: return 0
+        case .sending: return 1
+        case .sent: return 2
+        case .delivered: return 3
+        case .read: return 4
+        }
+    }
+    
     private func preferredMessage(existing: MessageDTO, incoming: MessageDTO) -> MessageDTO {
         let existingRevision = existing.revision ?? 0
         let incomingRevision = incoming.revision ?? 0
@@ -252,6 +263,11 @@ final class MessageStore {
         guard !clientMessageId.isEmpty else { return }
 
         lock.async(flags: .barrier) {
+            if let currentState = self.deliveryStates[clientMessageId],
+               self.rank(state) < self.rank(currentState) {
+                return
+            }
+
             self.deliveryStates[clientMessageId] = state
             self.persistStateLocked()
 
@@ -276,6 +292,13 @@ final class MessageStore {
 
     func markDeliveryState(clientMessageId: String, state: DeliveryState) {
         setDeliveryState(clientMessageId: clientMessageId, state: state)
+    }
+
+    func markMessageRead(messageId: Int) {
+        guard let msg = messages.first(where: { $0.id == messageId }),
+              let cid = msg.clientMessageId else { return }
+
+        markDeliveryState(clientMessageId: cid, state: .read)
     }
 
     // MARK: - In-memory window access
