@@ -2,25 +2,24 @@ import SwiftUI
 
 struct ProfileHeaderView: View {
     let username: String
-    let email: String
+    let email: String?
     let plan: String?
+    let avatarUrl: String?
 
     var body: some View {
         VStack(spacing: 12) {
-            Circle()
-                .fill(Color.accentColor.opacity(0.14))
-                .frame(width: 84, height: 84)
-                .overlay(
-                    Text(initials)
-                        .font(.title.weight(.bold))
-                        .foregroundStyle(Color.accentColor)
-                )
+            UserAvatarView(
+                avatarUrl: avatarUrl,
+                displayName: username,
+                size: 84,
+                fallbackStyle: .profileDefault
+            )
 
             VStack(spacing: 4) {
                 Text(username)
                     .font(.title3.weight(.semibold))
 
-                Text(email)
+                Text(displayEmail)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
@@ -39,16 +38,10 @@ struct ProfileHeaderView: View {
         .padding(.vertical, 12)
     }
 
-    private var initials: String {
-        let parts = username
-            .split(separator: " ")
-            .prefix(2)
-            .map { String($0.prefix(1)).uppercased() }
-
-        if !parts.isEmpty {
-            return parts.joined()
+    private var displayEmail: String {
+        guard let email, !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return "—"
         }
-
-        return String(username.prefix(1)).uppercased()
+        return email
     }
 }

@@ -1,10 +1,3 @@
-//
-//  AuthStore.swift
-//  Chatforia
-//
-//  Created by Julian Norton on 2/9/26.
-//
-
 import Foundation
 import Combine
 
@@ -34,7 +27,7 @@ final class AuthStore: ObservableObject {
                 token: token
             )
             
-            print("AUTH ME:", response.user.id, response.user.email)
+            print("AUTH ME:", response.user.id, response.user.email ?? "nil")
 
             state = .loggedIn(response.user)
             socket.connect(token: token)

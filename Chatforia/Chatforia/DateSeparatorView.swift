@@ -8,15 +8,17 @@ struct DateSeparatorView: View {
             Spacer()
 
             Text(labelText)
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(Color(uiColor: .secondarySystemBackground))
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 9)
+                .padding(.vertical, 4)
+                .background(Color(uiColor: .secondarySystemBackground).opacity(0.9))
                 .clipShape(Capsule())
 
             Spacer()
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(labelText)
     }
 
     private var labelText: String {

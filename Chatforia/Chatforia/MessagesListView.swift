@@ -1,5 +1,13 @@
 import SwiftUI
 
+private struct BottomSentinelMinYKey: PreferenceKey {
+    static var defaultValue: CGFloat = .zero
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
 struct MessagesListView: View {
     let messages: [MessageDTO]
     let currentUserId: Int?
@@ -19,7 +27,14 @@ struct MessagesListView: View {
     @State private var isPagingTriggerInFlight = false
     @State private var lastPagingTriggerAt: Date = .distantPast
 
+    // NEW: scroll behavior state
+    @State private var isNearBottom = true
+    @State private var preservedAnchorMessageId: Int?
+    @State private var isRestoringAfterPrepend = false
+    @State private var viewportHeight: CGFloat = 0
+
     private let pagingThrottleSeconds: TimeInterval = 0.8
+    private let nearBottomThreshold: CGFloat = 140
 
     private var sortedMessages: [MessageDTO] {
         messages.sorted {
@@ -62,18 +77,48 @@ struct MessagesListView: View {
                         Color.clear
                             .frame(height: 1)
                             .id("BOTTOM")
+                            .background(
+                                GeometryReader { bottomGeo in
+                                    Color.clear
+                                        .preference(
+                                            key: BottomSentinelMinYKey.self,
+                                            value: bottomGeo.frame(in: .named("MessagesScroll")).minY
+                                        )
+                                }
+                            )
                     }
                     .padding(.vertical, 14)
                     .animation(.spring(response: 0.28, dampingFraction: 0.88), value: sortedMessageIDs)
                 }
+                .coordinateSpace(name: "MessagesScroll")
+                .background(
+                    GeometryReader { scrollGeo in
+                        Color.clear
+                            .onAppear {
+                                viewportHeight = scrollGeo.size.height
+                            }
+                            .onChange(of: scrollGeo.size.height) { _, newHeight in
+                                viewportHeight = newHeight
+                            }
+                    }
+                )
+                .onPreferenceChange(BottomSentinelMinYKey.self) { bottomMinY in
+                    // If the bottom sentinel is not far below the viewport, treat as "near bottom"
+                    isNearBottom = bottomMinY <= (viewportHeight + nearBottomThreshold)
+                }
                 .onAppear {
-                    scrollToBottom(proxy)
+                    scrollToBottom(proxy, animated: false)
                 }
                 .onChange(of: sortedMessages.last?.id) { _, newNewest in
-                    if newNewest != lastMessageId {
+                    guard newNewest != lastMessageId else { return }
+
+                    // If we're restoring position after paging older history,
+                    // do NOT auto-jump to bottom.
+                    if !isRestoringAfterPrepend && isNearBottom {
                         scrollToBottom(proxy)
-                        lastMessageId = newNewest
                     }
+
+                    lastMessageId = newNewest
                 }
                 .onChange(of: sortedMessageIDs) { _, ids in
                     if let expanded = expandedTimestampMessageId, !ids.contains(expanded) {
@@ -81,6 +126,19 @@ struct MessagesListView: View {
                     }
                     if let selected = selectedReceiptMessage, !ids.contains(selected.id) {
                         selectedReceiptMessage = nil
+                    }
+
+                    // After older messages are prepended, restore the user's reading anchor.
+                    if isRestoringAfterPrepend,
+                       let anchorId = preservedAnchorMessageId,
+                       ids.contains(anchorId) {
+                        DispatchQueue.main.async {
+                            withAnimation(.none) {
+                                proxy.scrollTo(anchorId, anchor: .top)
+                            }
+                            isRestoringAfterPrepend = false
+                            preservedAnchorMessageId = nil
+                        }
                     }
                 }
                 .onChange(of: oldestMessageId) { _, _ in
@@ -112,8 +170,8 @@ struct MessagesListView: View {
 
         if shouldShowDateSeparator(previous: previous, current: msg) {
             DateSeparatorView(date: msg.createdAt)
-                .padding(.top, index == 0 ? 16 : 44)
-                .padding(.bottom, 14)
+                .padding(.top, index == 0 ? 14 : 30)
+                .padding(.bottom, 10)
         }
 
         ChatMessageRowView(
@@ -160,6 +218,10 @@ struct MessagesListView: View {
         guard now.timeIntervalSince(lastPagingTriggerAt) >= pagingThrottleSeconds else { return }
         guard lastPagingTriggerOldestId != oldestId else { return }
 
+        // Preserve the current top anchor before older history is inserted.
+        preservedAnchorMessageId = oldestId
+        isRestoringAfterPrepend = true
+
         isPagingTriggerInFlight = true
         lastPagingTriggerOldestId = oldestId
         lastPagingTriggerAt = now
@@ -181,9 +243,15 @@ struct MessagesListView: View {
         }
     }
 
-    private func scrollToBottom(_ proxy: ScrollViewProxy) {
+    private func scrollToBottom(_ proxy: ScrollViewProxy, animated: Bool = true) {
         DispatchQueue.main.async {
-            proxy.scrollTo("BOTTOM", anchor: .bottom)
+            if animated {
+                withAnimation(.easeOut(duration: 0.22)) {
+                    proxy.scrollTo("BOTTOM", anchor: .bottom)
+                }
+            } else {
+                proxy.scrollTo("BOTTOM", anchor: .bottom)
+            }
         }
     }
 

@@ -106,7 +106,8 @@ final class ChatThreadViewModel: ObservableObject {
         return SenderDTO(
             id: currentUserId,
             username: currentUsername,
-            publicKey: currentUserPublicKey
+            publicKey: currentUserPublicKey,
+            avatarUrl: nil
         )
     }
 

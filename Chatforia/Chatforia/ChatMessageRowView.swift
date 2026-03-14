@@ -41,7 +41,7 @@ struct ChatMessageRowView: View {
                 Spacer(minLength: 50)
             }
 
-            VStack(alignment: isMe ? .trailing : .leading, spacing: 4) {
+            VStack(alignment: isMe ? .trailing : .leading, spacing: 2) {
                 if showSenderName && !isMe {
                     Text(senderDisplayName)
                         .font(.caption)
@@ -118,20 +118,18 @@ struct ChatMessageRowView: View {
     @ViewBuilder
     private var avatarSlot: some View {
         if showAvatar {
-            Circle()
-                .fill(avatarBackgroundColor)
-                .frame(width: 30, height: 30)
-                .overlay(
-                    Text(senderInitials)
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.primary)
-                )
+            UserAvatarView(
+                avatarUrl: msg.sender.avatarUrl,
+                displayName: senderDisplayName,
+                size: 30,
+                fallbackStyle: .initialsPreferred
+            )
         } else {
             Color.clear
                 .frame(width: 30, height: 30)
         }
     }
-
+    
     private var avatarBackgroundColor: Color {
         Color(uiColor: .systemGray5)
     }
@@ -202,14 +200,17 @@ struct ChatMessageRowView: View {
                         .lineLimit(1)
                 }
             }
-            .padding(.horizontal, 4)
+            .padding(.horizontal, 2)
+            .padding(.top, 1)
         }
     }
 
     private var shouldShowMetadataLine: Bool {
-        resolvedReceiptText != nil
+        guard isMe else { return false }
+        guard resolvedReceiptText != nil else { return false }
+        return groupPosition == .single || groupPosition == .bottom
     }
-
+    
     private var metadataIsTappable: Bool {
         if isMe && deliveryState == .failed { return true }
         if isMe && hasReadableReceiptDetails { return true }
@@ -239,16 +240,16 @@ struct ChatMessageRowView: View {
     private var topPadding: CGFloat {
         switch groupPosition {
         case .single, .top:
-            return 8
+            return 7
         case .middle, .bottom:
-            return 2
+            return 1.5
         }
     }
 
     private var bottomPadding: CGFloat {
         switch groupPosition {
         case .single, .bottom:
-            return 6
+            return 5
         case .top, .middle:
             return 0
         }

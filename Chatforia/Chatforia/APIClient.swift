@@ -1,6 +1,6 @@
 import Foundation
 
-enum HTTPMethod: String { case GET, POST }
+enum HTTPMethod: String { case GET, POST, PATCH, DELETE }
 
 struct APIRequest {
     let path: String
@@ -213,11 +213,75 @@ final class APIClient {
             }
 
             guard (200...299).contains(http.statusCode) else {
-                let msg = String(data: data, encoding: .utf8) ?? nil
+                let msg = String(data: data, encoding: .utf8)
                 throw APIError.server(status: http.statusCode, message: msg)
             }
 
             return (data, http)
+        } catch let apiError as APIError {
+            throw apiError
+        } catch {
+            throw APIError.network(error)
+        }
+    }
+
+    func uploadMultipart(
+        path: String,
+        token: String?,
+        fieldName: String,
+        fileData: Data,
+        fileName: String,
+        mimeType: String
+    ) async throws -> Data {
+        let url: URL
+        do {
+            url = try buildURL(from: APIRequest(path: path, method: .POST, body: nil, requiresAuth: true))
+        } catch {
+            throw APIError.invalidURL
+        }
+
+        guard let token else { throw APIError.unauthorized }
+
+        let boundary = "Boundary-\(UUID().uuidString)"
+        var req = URLRequest(url: url)
+        req.httpMethod = HTTPMethod.POST.rawValue
+        req.timeoutInterval = AppEnvironment.requestTimeout
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        var body = Data()
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"\(fieldName)\"; filename=\"\(fileName)\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
+        body.append(fileData)
+        body.append("\r\n".data(using: .utf8)!)
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+
+        req.httpBody = body
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: req)
+
+            guard let http = response as? HTTPURLResponse else {
+                throw APIError.server(status: -1, message: "Non-HTTP response")
+            }
+
+            print("📡 MULTIPART STATUS \(http.statusCode) for \(path)")
+            print("📦 MULTIPART BYTES \(data.count)")
+            print("🔎 MULTIPART RAW RESPONSE for \(path):")
+            print(String(data: data, encoding: .utf8) ?? "<non-utf8 data>")
+
+            if http.statusCode == 401 {
+                throw APIError.unauthorized
+            }
+
+            guard (200...299).contains(http.statusCode) else {
+                let msg = String(data: data, encoding: .utf8)
+                throw APIError.server(status: http.statusCode, message: msg)
+            }
+
+            return data
         } catch let apiError as APIError {
             throw apiError
         } catch {

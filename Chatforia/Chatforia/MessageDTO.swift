@@ -1,11 +1,3 @@
-//
-//  MessageDTO.swift
-//  Chatforia
-//
-//  Created by Julian Norton on 2/9/26.
-//  Updated to match ChatThreadViewModel usage (Date timestamps, optimistic factory).
-//
-
 import Foundation
 
 // MARK: - MessagesEnvelope / Page
@@ -272,7 +264,12 @@ struct MessageDTO: Codable, Identifiable, Equatable {
             id: localId,
             rawContent: text,
             createdAt: now,
-            sender: SenderDTO(id: senderId, username: senderUsername, publicKey: senderPublicKey),
+            sender: SenderDTO(
+                id: senderId,
+                username: senderUsername,
+                publicKey: senderPublicKey,
+                avatarUrl: nil
+            ),
             chatRoomId: roomId,
             revision: 1,
             clientMessageId: clientMessageId
@@ -285,6 +282,7 @@ struct SenderDTO: Codable {
     let id: Int
     let username: String?
     let publicKey: String?
+    let avatarUrl: String?
 }
 
 struct UserSummaryDTO: Codable {
