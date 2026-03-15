@@ -64,6 +64,11 @@ struct MessageBubbleView: View {
         } else if let raw = msg.rawContent,
                   !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             Text(raw)
+        } else if msg.contentCiphertext != nil, msg.encryptedKeyForMe != nil {
+            DecryptMessageTextView(
+                msg: msg,
+                fallbackColor: isMe ? Color.white.opacity(0.82) : .secondary
+            )
         } else if msg.contentCiphertext != nil {
             Text("🔒 Encrypted message")
         } else if let attachments = msg.attachments, !attachments.isEmpty {

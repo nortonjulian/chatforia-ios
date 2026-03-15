@@ -97,8 +97,7 @@ enum AppEnvironment {
         SendQueueManager.shared.sendSuccessCallback = { clientMessageId, serverMessage in
             DispatchQueue.main.async {
                 print("🎉 sendSuccessCallback for \(clientMessageId)")
-                guard let serverMessage else { return }
-                MessageStore.shared.insertOrReplace([serverMessage])
+                guard serverMessage != nil else { return }
                 MessageStore.shared.markDeliveryState(
                     clientMessageId: clientMessageId,
                     state: .sent

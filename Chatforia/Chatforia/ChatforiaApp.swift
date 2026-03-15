@@ -8,6 +8,7 @@ struct ChatforiaApp: App {
     init() {
         AppEnvironment.configureSendQueueHandlersIfNeeded()
         SendQueueManager.shared.startIfNeeded()
+        SendQueueManager.shared.startIfNeeded()
     }
 
     var body: some Scene {

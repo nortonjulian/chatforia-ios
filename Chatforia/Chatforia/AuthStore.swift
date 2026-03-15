@@ -41,7 +41,11 @@ final class AuthStore: ObservableObject {
                     userId: response.user.id,
                     token: token
                 )
-                print("✅ device registered:", device.deviceId)
+                if let deviceId = device.deviceId {
+                    print("✅ device registered: \(deviceId)")
+                } else {
+                    print("✅ device registered, but deviceId was nil")
+                }
             } catch {
                 print("⚠️ device registration failed:", error)
             }

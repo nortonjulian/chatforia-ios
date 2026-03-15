@@ -3,22 +3,24 @@ import Foundation
 struct DeviceDTO: Codable, Identifiable, Equatable {
     let id: String?
     let userId: Int?
-    let deviceId: String
+    let deviceId: String?
     let name: String?
     let platform: String?
-    let publicKey: String
+    let publicKey: String?
     let keyAlgorithm: String?
     let keyVersion: Int?
+    let isPrimary: Bool?
     let lastSeenAt: Date?
     let createdAt: Date?
     let updatedAt: Date?
+    let revokedAt: Date?
 }
 
 struct DeviceRegisterRequest: Encodable {
     let deviceId: String
     let name: String
     let platform: String
-    let publicKey: String
+    let publicKey: String?
     let keyAlgorithm: String
     let keyVersion: Int
 }
@@ -33,4 +35,8 @@ struct DeviceListResponse: Decodable {
 
 struct DeviceHeartbeatRequest: Encodable {
     let deviceId: String
+}
+
+struct DeviceHeartbeatResponse: Decodable {
+    let device: DeviceDTO
 }

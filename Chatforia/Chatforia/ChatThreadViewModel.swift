@@ -31,14 +31,49 @@ struct MessagesPageResponse: Decodable {
     }
 }
 
+struct RoomParticipantsResponse: Decodable {
+    let ownerId: Int?
+    let participants: [RoomParticipantDTO]
+}
+
+struct RoomParticipantDTO: Decodable {
+    let userId: Int
+    let role: String?
+    let user: RoomParticipantUserDTO?
+}
+
+struct RoomParticipantUserDTO: Decodable {
+    let id: Int
+    let username: String?
+}
+
+struct DeviceKeyEnvelopeDTO: Codable {
+    let recipientUserId: Int
+    let recipientDeviceId: String
+    let senderEphemeralPublicKey: String
+    let wrappedMessageKey: String
+    let algorithm: String
+}
+
+struct EncryptedMessagePayload {
+    let ciphertextBase64: String
+    let encryptedKeysByUserId: [String: String]
+}
+
 struct SendMessageRequest: Encodable {
     let chatRoomId: Int
-    let content: String
+    let content: String?
+    let contentCiphertext: String?
+    let encryptedKeys: [String: String]?
     let clientMessageId: String
 }
 
 struct MessageEnvelope: Decodable {
-    let item: MessageDTO
+    let item: MessageDTO?
+
+    let shaped: MessageDTO?
+
+    var message: MessageDTO? { item ?? shaped }
 }
 
 @MainActor
@@ -122,6 +157,10 @@ final class ChatThreadViewModel: ObservableObject {
         self.currentUserId = id
         self.currentUsername = username
         self.currentUserPublicKey = publicKey
+
+        if let id {
+            UserDefaults.standard.set(id, forKey: "chatforia.currentUserId")
+        }
     }
 
     private func refreshFromMessageStore() {
@@ -270,9 +309,14 @@ final class ChatThreadViewModel: ObservableObject {
         }
     }
 
-    func sendMessage(roomId: Int, token _: String?, text: String) async {
+    func sendMessage(roomId: Int, token: String?, text: String) async {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
+
+        guard let token, !token.isEmpty else {
+            errorText = "Missing auth token."
+            return
+        }
 
         errorText = nil
         stopTypingNow(roomId: roomId)
@@ -302,16 +346,53 @@ final class ChatThreadViewModel: ObservableObject {
 
         let bodyData: Data
         do {
-            bodyData = try JSONEncoder().encode(
-                SendMessageRequest(
+            let recipientContext = try await fetchRecipientDevicesForDirectChat(token: token, roomId: roomId)
+
+            let request: SendMessageRequest
+
+            if recipientContext.devices.isEmpty {
+                print("⚠️ No recipient devices found; falling back to plaintext send for dev")
+
+                request = SendMessageRequest(
                     chatRoomId: roomId,
                     content: trimmed,
+                    contentCiphertext: nil,
+                    encryptedKeys: nil,
                     clientMessageId: clientMessageId
                 )
-            )
+            } else {
+                guard let senderUserId = currentUserId else {
+                    throw NSError(domain: "ChatThreadViewModel", code: 3, userInfo: [NSLocalizedDescriptionKey: "Missing current user id"])
+                }
+
+                guard let senderUserId = currentUserId else {
+                    throw NSError(domain: "ChatThreadViewModel", code: 3, userInfo: [NSLocalizedDescriptionKey: "Missing current user id"])
+                }
+
+                let senderPublicKeyBase64 = try DeviceKeyManager.shared.publicKeyBase64()
+
+                let encrypted = try MessageCryptoService.shared.encryptMessageForCurrentBackend(
+                    plaintext: trimmed,
+                    senderUserId: senderUserId,
+                    recipientUserId: recipientContext.recipientUserId,
+                    senderPublicKeyBase64: senderPublicKeyBase64,
+                    recipientDevices: recipientContext.devices
+                )
+
+                request = SendMessageRequest(
+                    chatRoomId: roomId,
+                    content: nil,
+                    contentCiphertext: encrypted.ciphertextBase64,
+                    encryptedKeys: encrypted.encryptedKeysByUserId,
+                    clientMessageId: clientMessageId
+                )
+            }
+
+            bodyData = try JSONEncoder().encode(request)
         } catch {
-            messages.removeAll { $0.clientMessageId == clientMessageId }
-            errorText = "Failed to encode send body: \(error.localizedDescription)"
+            MessageStore.shared.setDeliveryState(clientMessageId: clientMessageId, state: .failed)
+            errorText = "Encryption failed: \(error.localizedDescription)"
+            print("❌ sendMessage encryption/build error:", error)
             return
         }
 
@@ -325,7 +406,6 @@ final class ChatThreadViewModel: ObservableObject {
         SendQueueManager.shared.enqueue(job)
         SendQueueManager.shared.startIfNeeded()
     }
-
     // MARK: - Socket wiring
 
     func startSocket(roomId: Int, token: String?, myUsername: String?) {
@@ -659,6 +739,46 @@ final class ChatThreadViewModel: ObservableObject {
                 print("⚠️ skipped typing:stop (socket not connected)")
             }
         }
+    }
+    
+    private func fetchRecipientDevicesForDirectChat(token: String, roomId: Int) async throws -> (recipientUserId: Int, devices: [DeviceDTO]) {
+        guard let currentUserId else {
+            throw NSError(
+                domain: "ChatThreadViewModel",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "Missing current user id"]
+            )
+        }
+
+        let participantsResponse: RoomParticipantsResponse = try await APIClient.shared.send(
+            APIRequest(
+                path: "rooms/\(roomId)/participants",
+                method: .GET,
+                requiresAuth: true
+            ),
+            token: token
+        )
+
+        let otherParticipants = participantsResponse.participants
+            .filter { $0.userId != currentUserId }
+
+        guard otherParticipants.count == 1, let recipient = otherParticipants.first else {
+            throw NSError(
+                domain: "ChatThreadViewModel",
+                code: 2,
+                userInfo: [NSLocalizedDescriptionKey: "This room is not a true 1:1 chat. Expected exactly one recipient."]
+            )
+        }
+
+        let devices = try await DeviceRegistrationService.shared.fetchPublicDevices(
+            for: recipient.userId,
+            token: token
+        )
+
+        print("🧪 resolved recipient userId = \(recipient.userId)")
+        print("🧪 fetched recipient devices count = \(devices.count)")
+
+        return (recipientUserId: recipient.userId, devices: devices)
     }
 
     private func applyTypingUpdate(username: String, isTyping: Bool) {

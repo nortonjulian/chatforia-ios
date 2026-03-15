@@ -62,7 +62,7 @@ final class DeviceRegistrationService {
             )
             let body = try JSONEncoder().encode(req)
 
-            let _: DeviceRegisterResponse = try await APIClient.shared.send(
+            let _: DeviceHeartbeatResponse = try await APIClient.shared.send(
                 APIRequest(
                     path: "devices/heartbeat",
                     method: .POST,

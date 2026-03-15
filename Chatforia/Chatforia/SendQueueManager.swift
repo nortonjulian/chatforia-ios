@@ -93,11 +93,20 @@ final class SendQueueManager {
 
     func replayQueuedJobs() {
         stateQueue.async {
+            self.ensureLoadedLocked()
+
+            for i in self.jobs.indices {
+                if self.jobs[i].state == .sending {
+                    self.jobs[i].state = .pending
+                }
+            }
+
+            self.saveToDiskLocked()
             print("🔁 replayQueuedJobs called. queued jobs=\(self.jobs.count)")
             self.startProcessingLockedIfNeeded()
         }
     }
-
+    
     func markJobSucceeded(clientMessageId: String, serverMessage: MessageDTO?) {
         stateQueue.async {
             self.ensureLoadedLocked()
@@ -115,6 +124,13 @@ final class SendQueueManager {
             self.saveToDiskLocked()
         }
     }
+    
+    func clearPersistedSendQueueForDebug() {
+        let fm = FileManager.default
+        let doc = fm.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let url = doc.appendingPathComponent("send_queue.json")
+        try? fm.removeItem(at: url)
+    }
 
     // MARK: - Persistence
 
@@ -130,6 +146,17 @@ final class SendQueueManager {
         do {
             let data = try Data(contentsOf: self.queueFileURL)
             self.jobs = try JSONDecoder().decode([SendJob].self, from: data)
+
+            // Any job that was persisted while "sending" should be replayed as pending
+            // on next launch / foreground, otherwise it can get stuck forever.
+            self.jobs = self.jobs.map { job in
+                var copy = job
+                if copy.state == .sending {
+                    copy.state = .pending
+                }
+                return copy
+            }
+
             self.logger.debug("Loaded \(self.jobs.count) jobs from disk.")
         } catch {
             self.jobs = []
