@@ -7,14 +7,14 @@ struct ChatsRootView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if vm.isLoading && vm.rooms.isEmpty {
+                if vm.isLoading && vm.conversations.isEmpty {
                     LoadingStateView(
                         title: "Loading chats…",
                         subtitle: "Pulling in your latest conversations."
                     )
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                } else if let err = vm.errorText, !err.isEmpty, vm.rooms.isEmpty {
+                } else if let err = vm.errorText, !err.isEmpty, vm.conversations.isEmpty {
                     EmptyStateView(
                         systemImage: "exclamationmark.bubble",
                         title: "Couldn’t load chats",
@@ -26,7 +26,7 @@ struct ChatsRootView: View {
                     )
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                } else if vm.filteredRooms.isEmpty && !vm.searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                } else if vm.filteredConversations.isEmpty && !vm.searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     EmptyStateView(
                         systemImage: "magnifyingglass",
                         title: "No results",
@@ -34,7 +34,7 @@ struct ChatsRootView: View {
                     )
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                } else if vm.rooms.isEmpty {
+                } else if vm.conversations.isEmpty {
                     EmptyStateView(
                         systemImage: "bubble.left.and.bubble.right",
                         title: "No chats yet",
@@ -52,22 +52,22 @@ struct ChatsRootView: View {
                             }
                         }
 
-                        ForEach(vm.filteredRooms) { room in
+                        ForEach(vm.filteredConversations) { conversation in
                             NavigationLink {
-                                ChatThreadView(room: room)
+                                destinationView(for: conversation)
                             } label: {
                                 ChatListRowView(
-                                    title: roomTitle(room),
-                                    subtitle: roomSubtitle(room),
-                                    timestamp: roomTimestamp(room),
-                                    unreadCount: 0,
+                                    title: conversationTitle(conversation),
+                                    subtitle: conversationSubtitle(conversation),
+                                    timestamp: conversationTimestamp(conversation),
+                                    unreadCount: conversation.unreadCount ?? 0,
                                     isPinned: false
                                 )
                             }
                         }
                     }
                     .listStyle(.insetGrouped)
-                    .animation(.easeInOut(duration: 0.2), value: vm.filteredRooms.map(\.id))
+                    .animation(.easeInOut(duration: 0.2), value: vm.filteredConversations.map(\.id))
                 }
             }
             .navigationTitle("Chats")
@@ -91,53 +91,68 @@ struct ChatsRootView: View {
     }
 
     private func reload() async {
-        let token = TokenStore().read()
-        await vm.loadRooms(token: token)
+        let token = TokenStore.shared.read()
+        await vm.loadConversations(token: token)
     }
 
-    private var currentUserId: Int? {
-        if case .loggedIn(let user) = auth.state { return user.id }
-        return nil
+    @ViewBuilder
+    private func destinationView(for conversation: ConversationDTO) -> some View {
+        switch conversation.kind.lowercased() {
+        case "chat":
+            ChatThreadView(room: conversation.asChatRoomDTO)
+
+        case "sms":
+            SMSThreadView(conversation: conversation)
+
+        default:
+            UnsupportedConversationView(conversation: conversation)
+        }
     }
 
-    private func roomTitle(_ room: ChatRoomDTO) -> String {
-        if let name = room.name?.trimmingCharacters(in: .whitespacesAndNewlines),
-           !name.isEmpty {
-            return name
+    private func conversationTitle(_ item: ConversationDTO) -> String {
+        let title = item.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !title.isEmpty { return title }
+
+        if item.kind.lowercased() == "sms" {
+            if let phone = item.phone?.trimmingCharacters(in: .whitespacesAndNewlines), !phone.isEmpty {
+                return phone
+            }
+            return "SMS #\(item.id)"
         }
 
-        let names = (room.participants ?? [])
-            .filter { $0.id != currentUserId }
-            .compactMap { $0.username?.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-
-        if !names.isEmpty {
-            return names.joined(separator: ", ")
-        }
-
-        return "Chat #\(room.id)"
+        return "Chat #\(item.id)"
     }
 
-    private func roomSubtitle(_ room: ChatRoomDTO) -> String {
-        guard let lm = room.lastMessage else { return "Tap to open" }
+    private func conversationSubtitle(_ item: ConversationDTO) -> String {
+        let text = item.last?.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !text.isEmpty { return text }
 
-        if let content = lm.content?.trimmingCharacters(in: .whitespacesAndNewlines),
-           !content.isEmpty {
-            return content
+        if item.kind.lowercased() == "sms" {
+            return "Tap to open SMS thread"
         }
 
         return "Tap to open"
     }
 
-    private func roomTimestamp(_ room: ChatRoomDTO) -> String {
-        if let createdAt = room.lastMessage?.createdAt {
-            return TimestampFormatter.chatListTimestamp(from: createdAt)
+    private func conversationTimestamp(_ item: ConversationDTO) -> String {
+        if let at = item.last?.at, !at.isEmpty {
+            return TimestampFormatter.chatListTimestamp(from: at)
         }
 
-        if let updatedAt = room.updatedAt {
-            return TimestampFormatter.chatListTimestamp(from: updatedAt)
-        }
+        return TimestampFormatter.chatListTimestamp(from: item.updatedAt)
+    }
+}
 
-        return ""
+private struct UnsupportedConversationView: View {
+    let conversation: ConversationDTO
+
+    var body: some View {
+        EmptyStateView(
+            systemImage: "questionmark.bubble",
+            title: "Unsupported conversation",
+            subtitle: "Kind: \(conversation.kind)"
+        )
+        .navigationTitle("Conversation")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }

@@ -1,22 +1,11 @@
-//
-//  SocketManager.swift
-//  Chatforia
-//
-//  Works with Socket.IO-Client-Swift where:
-//  - SocketManager(socketURL:config:) takes [SocketIOClientOption]
-//  - socket.emit(event, items...)
-//  - socket.on(...) returns UUID and socket.off(id:) removes it
-//
-
 import Foundation
 import Combine
 import SocketIO
 
-// MARK: - Notification helpers
 extension Notification.Name {
-    /// Posted when a message expires via socket event.
-    /// userInfo["payload"] => [String: Any] (raw server payload)
     static let socketMessageExpired = Notification.Name("socketMessageExpired")
+    static let socketMessageEdited = Notification.Name("socketMessageEdited")
+    static let socketMessageDeleted = Notification.Name("socketMessageDeleted")
 }
 
 @MainActor
@@ -25,7 +14,7 @@ final class SocketManager: ObservableObject {
 
     @Published private(set) var isConnected: Bool = false
 
-    private let url: URL = AppEnvironment.apiBaseURL   // MUST be host root (no /api)
+    private let url: URL = AppEnvironment.apiBaseURL
 
     private var manager: SocketIO.SocketManager?
     private var socket: SocketIOClient?
@@ -33,14 +22,12 @@ final class SocketManager: ObservableObject {
     private var didBindCoreHandlers = false
     private var currentToken: String?
 
-    // ✅ Track joined rooms so we can re-join on reconnect and avoid redundant emits
     private var joinedRoomIds = Set<Int>()
 
     private init() {}
 
     // MARK: - Connection
 
-    /// Backwards-compatible synchronous connect. This triggers rebuild(token:) then begins handshake.
     func connect(token: String) {
         currentToken = token
         print("SocketManager.connect invoked tokenPresent=\(!token.isEmpty) tokenPreview=\(token.prefix(8))")
@@ -52,8 +39,6 @@ final class SocketManager: ObservableObject {
         }
     }
 
-    /// Async connect that suspends until `.connect` event or timeout.
-    /// Usage: `try await SocketManager.shared.connectAsync(token: token, timeoutSecs: 8)`
     func connectAsync(token: String?, timeoutSecs: TimeInterval = 8) async throws {
         currentToken = token
         rebuild(token: token)
@@ -62,13 +47,11 @@ final class SocketManager: ObservableObject {
             throw NSError(domain: "SocketManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Socket not initialized"])
         }
 
-        // If already connected, update state and return
         if socket.status == .connected {
             await MainActor.run { self.isConnected = true }
             return
         }
 
-        // Start connection if necessary
         if socket.status != .connected && socket.status != .connecting {
             socket.connect()
         }
@@ -77,7 +60,6 @@ final class SocketManager: ObservableObject {
             var didResume = false
             var handlerId: UUID? = nil
 
-            // One-off connect handler
             let connectHandler: NormalCallback = { [weak self] _, _ in
                 Task { @MainActor in
                     guard !didResume else { return }
@@ -92,11 +74,9 @@ final class SocketManager: ObservableObject {
                 }
             }
 
-            // Register handler and keep id so we can remove it after resume
             let id = socket.on(clientEvent: .connect, callback: connectHandler)
             handlerId = id
 
-            // Timeout fallback task
             Task {
                 try? await Task.sleep(nanoseconds: UInt64(timeoutSecs * 1_000_000_000))
                 if !didResume {
@@ -110,16 +90,12 @@ final class SocketManager: ObservableObject {
         }
     }
 
-    /// Call the handler *once* when the socket next becomes connected (or immediately if already connected).
-    /// Useful if you prefer a closure API instead of async/await.
     func onConnectedOnce(_ handler: @escaping () -> Void) {
-        // If already connected, call immediately on main actor
         if let s = socket, s.status == .connected {
             Task { @MainActor in handler() }
             return
         }
 
-        // Otherwise register a temporary connect handler and remove it after firing
         let callback: NormalCallback = { _, _ in
             Task { @MainActor in
                 handler()
@@ -128,12 +104,12 @@ final class SocketManager: ObservableObject {
 
         if let id = socket?.on(clientEvent: .connect, callback: callback) {
             Task {
-                try? await Task.sleep(nanoseconds: 100_000) // tiny delay
+                try? await Task.sleep(nanoseconds: 100_000)
                 self.socket?.off(id: id)
             }
         } else {
             Task {
-                try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+                try? await Task.sleep(nanoseconds: 100_000_000)
                 handler()
             }
         }
@@ -150,8 +126,6 @@ final class SocketManager: ObservableObject {
         socket = nil
         manager = nil
         didBindCoreHandlers = false
-        // IMPORTANT: Do NOT clear joinedRoomIds here. Keep the desired rooms so we can re-join after reconnect.
-        // joinedRoomIds.removeAll()
 
         let baseConfig: SocketIOClientConfiguration = [
             .log(false),
@@ -192,7 +166,6 @@ final class SocketManager: ObservableObject {
 
     // MARK: - Public helpers
 
-    /// Register an event handler. Returns the UUID handler id from Socket.IO if available.
     @discardableResult
     func on(_ event: String, callback: @escaping NormalCallback) -> UUID? {
         if let id = socket?.on(event, callback: callback) {
@@ -201,12 +174,10 @@ final class SocketManager: ObservableObject {
         return nil
     }
 
-    /// Remove a handler by UUID
     func off(_ id: UUID) {
         socket?.off(id: id)
     }
 
-    /// Remove all handlers for an event name
     func off(_ event: String) {
         socket?.off(event)
     }
@@ -229,7 +200,6 @@ final class SocketManager: ObservableObject {
 
     // MARK: - Rooms
 
-    /// Join a single room (back-compat, matches server 'join_room')
     func joinRoom(roomId: Int) {
         guard roomId > 0 else { return }
         joinedRoomIds.insert(roomId)
@@ -240,7 +210,6 @@ final class SocketManager: ObservableObject {
         socket.emit("join_room", roomId)
     }
 
-    /// Leave a single room (matches server 'leave_room')
     func leaveRoom(roomId: Int) {
         guard roomId > 0 else { return }
         joinedRoomIds.remove(roomId)
@@ -251,9 +220,6 @@ final class SocketManager: ObservableObject {
         socket.emit("leave_room", roomId)
     }
 
-    /// ✅ Preferred: join many rooms at once (matches server 'join:rooms')
-    /// - Sends `[Int]` (array) which your server expects.
-    /// - Updates local joinedRoomIds so we can rejoin after reconnect.
     func joinRooms(_ roomIds: [Int]) {
         let ids = Array(Set(roomIds.filter { $0 > 0 }))
         guard !ids.isEmpty else { return }
@@ -266,8 +232,6 @@ final class SocketManager: ObservableObject {
         socket.emit("join:rooms", ids)
     }
 
-    /// Convenience: replace currently-joined set with a new set (diff join/leave).
-    /// Uses bulk join for additions and per-room leave for removals (since server has only leave_room).
     func setActiveRooms(_ roomIds: [Int]) {
         let desired = Set(roomIds.filter { $0 > 0 })
 
@@ -304,7 +268,6 @@ final class SocketManager: ObservableObject {
                 strongSelf.isConnected = true
                 print("✅ socket connected")
 
-                // ✅ Re-join rooms after reconnect/connect
                 let rooms = Array(strongSelf.joinedRoomIds)
                 if !rooms.isEmpty {
                     strongSelf.socket?.emit("join:rooms", rooms)
@@ -327,9 +290,7 @@ final class SocketManager: ObservableObject {
             print("🔄 socket reconnect:", data)
         }
 
-        // ---------------------------------------------------------------------
-        // Application-level socket events
-        // ---------------------------------------------------------------------
+        // MARK: Application-level socket events
 
         socket.on("message:ack") { data, _ in
             guard let payload = data.first as? [String: Any],
@@ -354,14 +315,55 @@ final class SocketManager: ObservableObject {
             }
         }
 
-        // Handle message expired events from server
-        // Posts the raw payload dictionary to NotificationCenter so view-models can decode/update.
         socket.on("message:expired") { data, _ in
             guard let payload = data.first as? [String: Any] else { return }
 
             Task { @MainActor in
                 NotificationCenter.default.post(
                     name: .socketMessageExpired,
+                    object: nil,
+                    userInfo: ["payload": payload]
+                )
+            }
+        }
+
+        socket.on("message_edited") { data, _ in
+            guard let payload = data.first as? [String: Any] else { return }
+
+            Task { @MainActor in
+                NotificationCenter.default.post(
+                    name: .socketMessageEdited,
+                    object: nil,
+                    userInfo: ["payload": payload]
+                )
+            }
+        }
+        
+        socket.on(clientEvent: .connect) { [weak self] _, _ in
+            Task { @MainActor in
+                guard let strongSelf = self else { return }
+                strongSelf.isConnected = true
+                print("✅ socket connected")
+
+                if let token = strongSelf.currentToken {
+                    Task.detached {
+                        await DeviceRegistrationService.shared.heartbeat(token: token)
+                    }
+                }
+
+                let rooms = Array(strongSelf.joinedRoomIds)
+                if !rooms.isEmpty {
+                    strongSelf.socket?.emit("join:rooms", rooms)
+                }
+            }
+        }
+
+        socket.on("message_deleted") { data, _ in
+            guard let payload = data.first as? [String: Any] else { return }
+
+            Task { @MainActor in
+                NotificationCenter.default.post(
+                    name: .socketMessageDeleted,
                     object: nil,
                     userInfo: ["payload": payload]
                 )

@@ -66,6 +66,8 @@ struct MessageBubbleView: View {
             Text(raw)
         } else if msg.contentCiphertext != nil {
             Text("🔒 Encrypted message")
+        } else if let attachments = msg.attachments, !attachments.isEmpty {
+            EmptyView()
         } else {
             Text("—")
         }

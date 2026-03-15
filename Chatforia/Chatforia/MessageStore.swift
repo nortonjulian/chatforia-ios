@@ -8,8 +8,6 @@ extension Notification.Name {
 final class MessageStore {
     static let shared = MessageStore()
 
-    // Optional mapper hook — if your codebase knows how to convert ServerMessage -> MessageDTO,
-    // set this closure (e.g., in your DTO file or app startup). If not set, insertOrReplace(ServerMessage) is a no-op.
     static var serverToDTOMapper: ((MessageDTO) -> MessageDTO)? = nil
 
     private var deliveryStates: [String: DeliveryState] = [:]
@@ -88,23 +86,21 @@ final class MessageStore {
             score += 1
         }
 
-        if message.expiresAt != nil {
-            score += 1
-        }
-
-        if message.editedAt != nil {
-            score += 1
-        }
+        if message.expiresAt != nil { score += 1 }
+        if message.editedAt != nil { score += 1 }
 
         if message.deletedAt != nil || message.deletedForAll == true || message.deletedBySender == true {
             score += 1
         }
 
-        if message.imageUrl != nil {
-            score += 1
+        if message.imageUrl != nil { score += 1 }
+        if message.audioUrl != nil { score += 1 }
+
+        if let attachments = message.attachments, !attachments.isEmpty {
+            score += 2
         }
 
-        if message.audioUrl != nil {
+        if message.encryptedKeyForMe != nil {
             score += 1
         }
 
@@ -126,7 +122,7 @@ final class MessageStore {
         case .read: return 4
         }
     }
-    
+
     private func preferredMessage(existing: MessageDTO, incoming: MessageDTO) -> MessageDTO {
         let existingRevision = existing.revision ?? 0
         let incomingRevision = incoming.revision ?? 0
@@ -161,17 +157,18 @@ final class MessageStore {
             imageUrl: preferred.imageUrl ?? fallback.imageUrl,
             audioUrl: preferred.audioUrl ?? fallback.audioUrl,
             audioDurationSec: preferred.audioDurationSec ?? fallback.audioDurationSec,
+            attachments: !(preferred.attachments?.isEmpty ?? true) ? preferred.attachments : fallback.attachments,
             isExplicit: preferred.isExplicit ?? fallback.isExplicit,
             createdAt: preferred.createdAt,
             expiresAt: preferred.expiresAt ?? fallback.expiresAt,
             editedAt: preferred.editedAt ?? fallback.editedAt,
-            deletedBySender: preferred.deletedBySender,
-            deletedForAll: preferred.deletedForAll,
+            deletedBySender: preferred.deletedBySender ?? fallback.deletedBySender,
+            deletedForAll: preferred.deletedForAll ?? fallback.deletedForAll,
             deletedAt: preferred.deletedAt ?? fallback.deletedAt,
             deletedById: preferred.deletedById ?? fallback.deletedById,
             sender: preferred.sender,
             readBy: !(preferred.readBy?.isEmpty ?? true) ? preferred.readBy : fallback.readBy,
-            chatRoomId: preferred.chatRoomId,
+            chatRoomId: preferred.chatRoomId ?? fallback.chatRoomId,
             reactionSummary: !(preferred.reactionSummary?.isEmpty ?? true) ? preferred.reactionSummary : fallback.reactionSummary,
             myReactions: !(preferred.myReactions?.isEmpty ?? true) ? preferred.myReactions : fallback.myReactions,
             revision: max(preferred.revision ?? 0, fallback.revision ?? 0),
@@ -186,10 +183,6 @@ final class MessageStore {
         }
     }
 
-    /// Canonical dedupe:
-    /// 1. Prefer clientMessageId reconciliation when present.
-    /// 2. Otherwise reconcile by server id.
-    /// 3. Merge collisions instead of blindly replacing.
     private func dedupeMessages(_ source: [MessageDTO]) -> [MessageDTO] {
         var result: [MessageDTO] = []
         var indexByClientId: [String: Int] = [:]
@@ -243,7 +236,7 @@ final class MessageStore {
     private func persistStateLocked() {
         do {
             let deliveryData = try JSONEncoder().encode(self.deliveryStates)
-            try deliveryData.write(to: self.deliveryStatesFileURL, options: Data.WritingOptions.atomic)
+            try deliveryData.write(to: self.deliveryStatesFileURL, options: .atomic)
         } catch {
             print("❌ Failed to persist delivery states:", error)
         }
@@ -251,7 +244,7 @@ final class MessageStore {
         do {
             let recentMessages = Array(self.messages.suffix(200))
             let messageData = try JSONEncoder().encode(recentMessages)
-            try messageData.write(to: self.messagesFileURL, options: Data.WritingOptions.atomic)
+            try messageData.write(to: self.messagesFileURL, options: .atomic)
         } catch {
             print("❌ Failed to persist message window:", error)
         }
@@ -295,7 +288,7 @@ final class MessageStore {
     }
 
     func markMessageRead(messageId: Int) {
-        guard let msg = messages.first(where: { $0.id == messageId }),
+        guard let msg = currentWindow().first(where: { $0.id == messageId }),
               let cid = msg.clientMessageId else { return }
 
         markDeliveryState(clientMessageId: cid, state: .read)
@@ -312,21 +305,32 @@ final class MessageStore {
     }
 
     func newestMessageId() -> Int? {
+        lock.sync { messages.last?.id }
+    }
+    
+    func message(withId id: Int) -> MessageDTO? {
+        var result: MessageDTO?
         lock.sync {
-            messages.last?.id
+            result = self.messages.first(where: { $0.id == id })
+        }
+        return result
+    }
+
+    func removeMessage(id: Int) {
+        lock.async(flags: .barrier) {
+            self.messages.removeAll { $0.id == id }
+            self.persistStateLocked()
+            self.notifyMessagesChanged()
         }
     }
 
+
     func oldestMessageId() -> Int? {
-        lock.sync {
-            messages.first?.id
-        }
+        lock.sync { messages.first?.id }
     }
 
     // MARK: - Upsert hooks
 
-    /// Convert ServerMessage -> MessageDTO then batch upsert.
-    /// Uses `MessageStore.serverToDTOMapper` if provided; otherwise does nothing.
     func insertOrReplace(_ serverMessage: MessageDTO?) {
         guard let msg = serverMessage else { return }
 
@@ -340,7 +344,6 @@ final class MessageStore {
         }
     }
 
-    /// Already-decoded MessageDTO variant
     func insertOrReplaceServerMessage(_ serverMessage: MessageDTO?) {
         guard let dto = serverMessage else { return }
         insertOrReplace([dto])
@@ -353,7 +356,6 @@ final class MessageStore {
         }
     }
 
-    /// Batch upsert (socket batch or page)
     func insertOrReplace(_ incoming: [MessageDTO]) {
         guard !incoming.isEmpty else { return }
 
@@ -406,7 +408,6 @@ final class MessageStore {
         let toRemoveCount = self.messages.count - max
         let removedPrefix = Array(self.messages.prefix(toRemoveCount))
 
-        // Keep the newest removed id as the paging tombstone boundary.
         if let newestRemovedId = removedPrefix.last?.id {
             self.oldestRemovedMessageId = newestRemovedId
         }

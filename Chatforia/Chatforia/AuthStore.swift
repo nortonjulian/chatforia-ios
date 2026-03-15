@@ -12,38 +12,58 @@ final class AuthStore: ObservableObject {
 
     @Published var state: State = .loading
 
-    private let tokenStore = TokenStore()
+    private let tokenStore = TokenStore.shared
     private(set) var socket = SocketManager.shared
 
+    var currentToken: String? {
+        tokenStore.read()
+    }
+
     func bootstrap() async {
-        guard let token = tokenStore.read() else {
+        guard let token = tokenStore.read(), !token.isEmpty else {
+            socket.disconnect()
             state = .loggedOut
             return
         }
-        
+
         do {
             let response: MeResponse = try await APIClient.shared.send(
                 APIRequest(path: "auth/me", method: .GET, requiresAuth: true),
                 token: token
             )
-            
+
             print("AUTH ME:", response.user.id, response.user.email ?? "nil")
 
             state = .loggedIn(response.user)
+
+            do {
+                let device = try await DeviceRegistrationService.shared.ensureCurrentDeviceRegistered(
+                    userId: response.user.id,
+                    token: token
+                )
+                print("✅ device registered:", device.deviceId)
+            } catch {
+                print("⚠️ device registration failed:", error)
+            }
+
             socket.connect(token: token)
         } catch {
-            socket.disconnect()
-            tokenStore.clear()
-            state = .loggedOut
+            handleInvalidSession()
         }
     }
-
+    
     func setTokenAndLoadUser(_ token: String) async {
         tokenStore.save(token)
         await bootstrap()
     }
 
     func logout() {
+        socket.disconnect()
+        tokenStore.clear()
+        state = .loggedOut
+    }
+
+    func handleInvalidSession() {
         socket.disconnect()
         tokenStore.clear()
         state = .loggedOut

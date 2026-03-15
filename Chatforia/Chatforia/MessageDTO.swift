@@ -32,14 +32,11 @@ struct MessagesEnvelope: Codable {
 }
 
 // MARK: - MessageDTO (server-authoritative shape)
-// MARK: - MessageDTO (server-authoritative shape)
 struct MessageDTO: Codable, Identifiable, Equatable {
-    // Authoritative server fields
-    let id: Int                           // positive server id, negative for local optimistic
+    let id: Int
     let contentCiphertext: String?
     let rawContent: String?
 
-    // Server may include translations + translatedFrom
     let translations: [String: String]?
     let translatedFrom: String?
 
@@ -50,37 +47,31 @@ struct MessageDTO: Codable, Identifiable, Equatable {
     let audioUrl: String?
     let audioDurationSec: Double?
 
+    let attachments: [AttachmentDTO]?
+
     let isExplicit: Bool?
 
-    // Timestamps
     var createdAt: Date
     let expiresAt: Date?
     let editedAt: Date?
 
-    // Deletion
     let deletedBySender: Bool?
     let deletedForAll: Bool?
     let deletedAt: Date?
     let deletedById: Int?
 
-    // Relations
     let sender: SenderDTO
     let readBy: [UserSummaryDTO]?
 
-    // Chat linkage
     let chatRoomId: Int?
 
-    // Reactions
     let reactionSummary: [String: Int]?
     let myReactions: [String]?
 
-    // Revision
     let revision: Int?
 
-    // Client-only (not encoded/decoded)
     let clientMessageId: String?
 
-    // Coding keys used for encode/decode (explicit)
     enum CodingKeys: String, CodingKey {
         case id
         case contentCiphertext
@@ -92,6 +83,7 @@ struct MessageDTO: Codable, Identifiable, Equatable {
         case imageUrl
         case audioUrl
         case audioDurationSec
+        case attachments
         case isExplicit
         case createdAt
         case expiresAt
@@ -108,8 +100,7 @@ struct MessageDTO: Codable, Identifiable, Equatable {
         case revision
         case clientMessageId
     }
-    
-    // Stable initializer (defaults for optional fields)
+
     init(
         id: Int,
         contentCiphertext: String? = nil,
@@ -121,6 +112,7 @@ struct MessageDTO: Codable, Identifiable, Equatable {
         imageUrl: String? = nil,
         audioUrl: String? = nil,
         audioDurationSec: Double? = nil,
+        attachments: [AttachmentDTO]? = nil,
         isExplicit: Bool? = nil,
         createdAt: Date,
         expiresAt: Date? = nil,
@@ -147,6 +139,7 @@ struct MessageDTO: Codable, Identifiable, Equatable {
         self.imageUrl = imageUrl
         self.audioUrl = audioUrl
         self.audioDurationSec = audioDurationSec
+        self.attachments = attachments
         self.isExplicit = isExplicit
         self.createdAt = createdAt
         self.expiresAt = expiresAt
@@ -164,9 +157,9 @@ struct MessageDTO: Codable, Identifiable, Equatable {
         self.clientMessageId = clientMessageId
     }
 
-    // MARK: Decodable
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
+
         id = try c.decode(Int.self, forKey: .id)
         contentCiphertext = try c.decodeIfPresent(String.self, forKey: .contentCiphertext)
         rawContent = try c.decodeIfPresent(String.self, forKey: .rawContent)
@@ -179,7 +172,16 @@ struct MessageDTO: Codable, Identifiable, Equatable {
 
         imageUrl = try c.decodeIfPresent(String.self, forKey: .imageUrl)
         audioUrl = try c.decodeIfPresent(String.self, forKey: .audioUrl)
-        audioDurationSec = try c.decodeIfPresent(Double.self, forKey: .audioDurationSec)
+
+        if let dbl = try c.decodeIfPresent(Double.self, forKey: .audioDurationSec) {
+            audioDurationSec = dbl
+        } else if let intValue = try c.decodeIfPresent(Int.self, forKey: .audioDurationSec) {
+            audioDurationSec = Double(intValue)
+        } else {
+            audioDurationSec = nil
+        }
+
+        attachments = try c.decodeIfPresent([AttachmentDTO].self, forKey: .attachments)
 
         isExplicit = try c.decodeIfPresent(Bool.self, forKey: .isExplicit)
 
@@ -204,9 +206,9 @@ struct MessageDTO: Codable, Identifiable, Equatable {
         clientMessageId = try c.decodeIfPresent(String.self, forKey: .clientMessageId)
     }
 
-    // MARK: Encodable
     func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
+
         try c.encode(id, forKey: .id)
         try c.encodeIfPresent(contentCiphertext, forKey: .contentCiphertext)
         try c.encodeIfPresent(rawContent, forKey: .rawContent)
@@ -220,6 +222,7 @@ struct MessageDTO: Codable, Identifiable, Equatable {
         try c.encodeIfPresent(imageUrl, forKey: .imageUrl)
         try c.encodeIfPresent(audioUrl, forKey: .audioUrl)
         try c.encodeIfPresent(audioDurationSec, forKey: .audioDurationSec)
+        try c.encodeIfPresent(attachments, forKey: .attachments)
 
         try c.encodeIfPresent(isExplicit, forKey: .isExplicit)
 
@@ -244,12 +247,10 @@ struct MessageDTO: Codable, Identifiable, Equatable {
         try c.encodeIfPresent(clientMessageId, forKey: .clientMessageId)
     }
 
-    // MARK: Equatable
     static func == (lhs: MessageDTO, rhs: MessageDTO) -> Bool {
-        return lhs.id == rhs.id && lhs.clientMessageId == rhs.clientMessageId
+        lhs.id == rhs.id && lhs.clientMessageId == rhs.clientMessageId
     }
 
-    // MARK: Optimistic factory
     static func optimistic(
         roomId: Int,
         clientMessageId: String,
@@ -263,6 +264,7 @@ struct MessageDTO: Codable, Identifiable, Equatable {
         return MessageDTO(
             id: localId,
             rawContent: text,
+            attachments: nil,
             createdAt: now,
             sender: SenderDTO(
                 id: senderId,
@@ -292,7 +294,7 @@ struct UserSummaryDTO: Codable {
 }
 
 // MARK: - Attachment
-struct AttachmentDTO: Codable {
+struct AttachmentDTO: Codable, Equatable {
     let id: Int?
     let kind: String?
     let url: String?
@@ -302,4 +304,60 @@ struct AttachmentDTO: Codable {
     let durationSec: Double?
     let caption: String?
     let thumbUrl: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case kind
+        case url
+        case mimeType
+        case width
+        case height
+        case durationSec
+        case caption
+        case thumbUrl
+    }
+
+    init(
+        id: Int? = nil,
+        kind: String? = nil,
+        url: String? = nil,
+        mimeType: String? = nil,
+        width: Int? = nil,
+        height: Int? = nil,
+        durationSec: Double? = nil,
+        caption: String? = nil,
+        thumbUrl: String? = nil
+    ) {
+        self.id = id
+        self.kind = kind
+        self.url = url
+        self.mimeType = mimeType
+        self.width = width
+        self.height = height
+        self.durationSec = durationSec
+        self.caption = caption
+        self.thumbUrl = thumbUrl
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+
+        id = try c.decodeIfPresent(Int.self, forKey: .id)
+        kind = try c.decodeIfPresent(String.self, forKey: .kind)
+        url = try c.decodeIfPresent(String.self, forKey: .url)
+        mimeType = try c.decodeIfPresent(String.self, forKey: .mimeType)
+        width = try c.decodeIfPresent(Int.self, forKey: .width)
+        height = try c.decodeIfPresent(Int.self, forKey: .height)
+
+        if let dbl = try c.decodeIfPresent(Double.self, forKey: .durationSec) {
+            durationSec = dbl
+        } else if let intValue = try c.decodeIfPresent(Int.self, forKey: .durationSec) {
+            durationSec = Double(intValue)
+        } else {
+            durationSec = nil
+        }
+
+        caption = try c.decodeIfPresent(String.self, forKey: .caption)
+        thumbUrl = try c.decodeIfPresent(String.self, forKey: .thumbUrl)
+    }
 }

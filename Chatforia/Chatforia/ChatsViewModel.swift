@@ -3,50 +3,49 @@ import Combine
 
 @MainActor
 final class ChatsViewModel: ObservableObject {
-    @Published var rooms: [ChatRoomDTO] = []
+    @Published var conversations: [ConversationDTO] = []
     @Published var isLoading: Bool = false
     @Published var errorText: String?
     @Published var searchText: String = ""
 
-    static let chatroomsBasePath = "chatrooms"
+    static let conversationsBasePath = "conversations"
 
-    private func searchableRoomTitle(for room: ChatRoomDTO) -> String {
-        let roomName = room.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        if !roomName.isEmpty {
-            return roomName
-        }
-
-        let participantNames = (room.participants ?? [])
-            .compactMap { $0.username?.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-
-        if !participantNames.isEmpty {
-            return participantNames.joined(separator: ", ")
-        }
-
-        return "Chat #\(room.id)"
+    private func searchableTitle(for item: ConversationDTO) -> String {
+        let title = item.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        return title.isEmpty ? fallbackTitle(for: item) : title
     }
 
-    var filteredRooms: [ChatRoomDTO] {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !query.isEmpty else { return rooms }
+    private func fallbackTitle(for item: ConversationDTO) -> String {
+        switch item.kind.lowercased() {
+        case "sms":
+            if let phone = item.phone?.trimmingCharacters(in: .whitespacesAndNewlines), !phone.isEmpty {
+                return phone
+            }
+            return "SMS #\(item.id)"
+        default:
+            return "Chat #\(item.id)"
+        }
+    }
 
-        return rooms.filter { room in
-            let title = searchableRoomTitle(for: room).lowercased()
-            let participantNames = (room.participants ?? [])
-                .compactMap { $0.username?.lowercased() }
-                .joined(separator: " ")
-            let lastMessage = room.lastMessage?.content?.lowercased() ?? ""
+    var filteredConversations: [ConversationDTO] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !query.isEmpty else { return conversations }
+
+        return conversations.filter { item in
+            let title = searchableTitle(for: item).lowercased()
+            let phone = item.phone?.lowercased() ?? ""
+            let lastText = item.last?.text?.lowercased() ?? ""
 
             return title.contains(query)
-                || participantNames.contains(query)
-                || lastMessage.contains(query)
+                || phone.contains(query)
+                || lastText.contains(query)
         }
     }
 
-    func loadRooms(token: String?) async {
+    func loadConversations(token: String?) async {
         guard let token else {
             errorText = "Missing auth token."
+            conversations = []
             return
         }
 
@@ -55,18 +54,28 @@ final class ChatsViewModel: ObservableObject {
         defer { isLoading = false }
 
         do {
-            let response: ChatRoomsResponse = try await APIClient.shared.send(
-                APIRequest(path: Self.chatroomsBasePath, method: .GET, requiresAuth: true),
+            let response: ConversationsResponse = try await APIClient.shared.send(
+                APIRequest(path: Self.conversationsBasePath, method: .GET, requiresAuth: true),
                 token: token
             )
-            self.rooms = response.rooms
+
+            if let conversations = response.conversations {
+                self.conversations = conversations
+            } else if let items = response.items {
+                self.conversations = items
+            } else {
+                self.conversations = []
+            }
         } catch {
             errorText = error.localizedDescription
-            print("❌ loadRooms error:", error)
+            #if DEBUG
+            print("❌ loadConversations error:", error)
+            #endif
         }
     }
 }
 
-private struct ChatRoomsResponse: Decodable {
-    let rooms: [ChatRoomDTO]
+private struct ConversationsResponse: Decodable {
+    let items: [ConversationDTO]?
+    let conversations: [ConversationDTO]?
 }

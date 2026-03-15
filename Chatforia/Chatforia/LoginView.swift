@@ -1,10 +1,3 @@
-//
-//  LoginView.swift
-//  Chatforia
-//
-//  Created by Julian Norton on 2/9/26.
-//
-
 import SwiftUI
 
 struct LoginResponse: Decodable {
@@ -51,8 +44,7 @@ struct LoginView: View {
                 // 👇 ADD THIS TEST BUTTON
                 Button("TEST: Call /auth/me (with token)") {
                     Task {
-                        let token = TokenStore().read()
-
+                        let token = TokenStore.shared.read()
                         do {
                             let me: UserDTO = try await APIClient.shared.send(
                                 APIRequest(path: "auth/me", method: .GET, requiresAuth: true),

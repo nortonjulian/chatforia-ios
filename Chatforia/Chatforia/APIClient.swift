@@ -109,10 +109,13 @@ final class APIClient {
                 throw APIError.server(status: -1, message: "Non-HTTP response")
             }
 
+            #if DEBUG
             print("📡 STATUS \(http.statusCode) for \(request.path)")
             print("📦 BYTES \(data.count)")
             print("🔎 RAW RESPONSE for \(request.path):")
             print(String(data: data, encoding: .utf8) ?? "<non-utf8 data>")
+            #endif
+
 
             if http.statusCode == 401 {
                 let msg = String(data: data, encoding: .utf8) ?? ""
@@ -203,10 +206,13 @@ final class APIClient {
                 throw APIError.server(status: -1, message: "Non-HTTP response")
             }
 
+            #if DEBUG
             print("📡 STATUS \(http.statusCode) for \(request.path)")
             print("📦 BYTES \(data.count)")
             print("🔎 RAW RESPONSE for \(request.path):")
             print(String(data: data, encoding: .utf8) ?? "<non-utf8 data>")
+            #endif
+
 
             if http.statusCode == 401 {
                 throw APIError.unauthorized
@@ -267,10 +273,13 @@ final class APIClient {
                 throw APIError.server(status: -1, message: "Non-HTTP response")
             }
 
+            #if DEBUG
             print("📡 MULTIPART STATUS \(http.statusCode) for \(path)")
             print("📦 MULTIPART BYTES \(data.count)")
             print("🔎 MULTIPART RAW RESPONSE for \(path):")
             print(String(data: data, encoding: .utf8) ?? "<non-utf8 data>")
+            #endif
+
 
             if http.statusCode == 401 {
                 throw APIError.unauthorized
@@ -293,18 +302,18 @@ final class APIClient {
         guard !messageIds.isEmpty else { return }
 
         struct ReadMessagesBulkRequest: Encodable {
-            let messageIds: [Int]
+            let ids: [Int]
         }
 
         Task {
             do {
-                guard let token = TokenStore().read() else {
+                guard let token = TokenStore.shared.read() else {
                     print("❌ readMessagesBulk: missing token")
                     return
                 }
 
                 let body = try JSONEncoder().encode(
-                    ReadMessagesBulkRequest(messageIds: messageIds)
+                    ReadMessagesBulkRequest(ids: messageIds)
                 )
 
                 let _: EmptyResponse = try await self.send(

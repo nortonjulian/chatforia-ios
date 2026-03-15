@@ -147,8 +147,9 @@ struct ProfileRootView: View {
     private func uploadAvatar(from item: PhotosPickerItem) async {
         avatarUploadError = nil
 
-        guard let token = TokenStore().read() else {
+        guard let token = auth.currentToken, !token.isEmpty else {
             avatarUploadError = "Missing auth token."
+            auth.handleInvalidSession()
             return
         }
 

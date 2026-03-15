@@ -31,21 +31,31 @@ struct SimpleMessageRowView: View {
                             .padding(.bottom, 2)
                     }
 
-                    Text(displayText)
-                        .font(.body)
-                        .foregroundColor(isMe ? .white : .primary)
-                        .multilineTextAlignment(.leading)
-                        .padding(.horizontal, isMe ? 13 : 14)
-                        .padding(.vertical, isMe ? 7 : 8)
-                        .background(isMe ? outgoingBlue : Color(uiColor: .systemGray5))
-                        .clipShape(
-                            ChatBubbleShape(
-                                isMe: isMe,
-                                groupedWithPrevious: groupedWithPrevious,
-                                groupedWithNext: groupedWithNext
-                            )
+                    if hasVisibleAttachments {
+                        MessageAttachmentsView(
+                            attachments: visibleAttachments,
+                            isMe: isMe,
+                            maxWidth: maxBubbleWidth
                         )
-                        .frame(maxWidth: maxBubbleWidth, alignment: isMe ? .trailing : .leading)
+                    }
+
+                    if shouldShowBubble {
+                        Text(displayText)
+                            .font(.body)
+                            .foregroundColor(isMe ? .white : .primary)
+                            .multilineTextAlignment(.leading)
+                            .padding(.horizontal, isMe ? 13 : 14)
+                            .padding(.vertical, isMe ? 7 : 8)
+                            .background(isMe ? outgoingBlue : Color(uiColor: .systemGray5))
+                            .clipShape(
+                                ChatBubbleShape(
+                                    isMe: isMe,
+                                    groupedWithPrevious: groupedWithPrevious,
+                                    groupedWithNext: groupedWithNext
+                                )
+                            )
+                            .frame(maxWidth: maxBubbleWidth, alignment: isMe ? .trailing : .leading)
+                    }
                 }
 
                 if !isMe {
@@ -96,6 +106,38 @@ struct SimpleMessageRowView: View {
         }
 
         return String(senderDisplayName.prefix(1)).uppercased()
+    }
+
+    private var visibleAttachments: [AttachmentDTO] {
+        (msg.attachments ?? []).filter { attachment in
+            let hasURL = !(attachment.url?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+            let hasThumb = !(attachment.thumbUrl?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+            return hasURL || hasThumb
+        }
+    }
+
+    private var hasVisibleAttachments: Bool {
+        !visibleAttachments.isEmpty && msg.deletedForAll != true
+    }
+
+    private var shouldShowBubble: Bool {
+        if msg.deletedForAll == true { return true }
+
+        if let translated = msg.translatedForMe,
+           !translated.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return true
+        }
+
+        if let raw = msg.rawContent,
+           !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return true
+        }
+
+        if msg.contentCiphertext != nil {
+            return true
+        }
+
+        return !hasVisibleAttachments
     }
 
     private var displayText: String {

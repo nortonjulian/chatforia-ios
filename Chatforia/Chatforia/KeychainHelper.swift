@@ -1,17 +1,9 @@
 import Foundation
 import Security
 
-final class TokenStore {
-    static let shared = TokenStore()
-
-    private init() {}
-
-    private let service = Bundle.main.bundleIdentifier ?? "com.chatforia.ios"
-    private let account = "chatforia.auth.token"
-
-    func save(_ token: String) {
-        guard let data = token.data(using: .utf8) else { return }
-
+enum KeychainHelper {
+    @discardableResult
+    static func save(data: Data, service: String, account: String) -> Bool {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -20,7 +12,7 @@ final class TokenStore {
 
         SecItemDelete(query as CFDictionary)
 
-        let attributes: [String: Any] = [
+        let addQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
@@ -28,13 +20,11 @@ final class TokenStore {
             kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         ]
 
-        let status = SecItemAdd(attributes as CFDictionary, nil)
-        if status != errSecSuccess {
-            print("🔐 TokenStore save failed: \(status)")
-        }
+        let status = SecItemAdd(addQuery as CFDictionary, nil)
+        return status == errSecSuccess
     }
 
-    func read() -> String? {
+    static func read(service: String, account: String) -> Data? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -43,30 +33,21 @@ final class TokenStore {
             kSecMatchLimit as String: kSecMatchLimitOne
         ]
 
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
 
-        guard status == errSecSuccess else {
-            if status != errSecItemNotFound {
-                print("🔐 TokenStore read failed: \(status)")
-            }
-            return nil
-        }
-
-        guard let data = item as? Data else { return nil }
-        return String(data: data, encoding: .utf8)
+        guard status == errSecSuccess else { return nil }
+        return result as? Data
     }
 
-    func clear() {
+    @discardableResult
+    static func delete(service: String, account: String) -> Bool {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account
         ]
-
         let status = SecItemDelete(query as CFDictionary)
-        if status != errSecSuccess && status != errSecItemNotFound {
-            print("🔐 TokenStore clear failed: \(status)")
-        }
+        return status == errSecSuccess || status == errSecItemNotFound
     }
 }

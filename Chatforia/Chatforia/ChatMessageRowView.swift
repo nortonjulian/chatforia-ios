@@ -41,7 +41,7 @@ struct ChatMessageRowView: View {
                 Spacer(minLength: 50)
             }
 
-            VStack(alignment: isMe ? .trailing : .leading, spacing: 2) {
+            VStack(alignment: isMe ? .trailing : .leading, spacing: 4) {
                 if showSenderName && !isMe {
                     Text(senderDisplayName)
                         .font(.caption)
@@ -54,35 +54,46 @@ struct ChatMessageRowView: View {
                         .transition(.opacity.combined(with: .move(edge: .top)))
                 }
 
-                MessageBubbleView(
-                    msg: msg,
-                    isMe: isMe,
-                    isGroupedWithPrevious: groupPosition == .middle || groupPosition == .bottom,
-                    isGroupedWithNext: groupPosition == .top || groupPosition == .middle
-                )
-                .frame(maxWidth: bubbleMaxWidth, alignment: isMe ? .trailing : .leading)
-                .contentShape(Rectangle())
-                .contextMenu {
-                    if canEdit {
-                        Button("Edit", systemImage: "pencil") {
-                            editAction?()
-                        }
-
-                        Button(role: .destructive) {
-                            deleteAction?()
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
-                    }
-
-                    if canRetry {
-                        Button("Retry", systemImage: "arrow.clockwise") {
-                            retryAction?()
-                        }
-                    }
+                if hasVisibleAttachments {
+                    MessageAttachmentsView(
+                        attachments: visibleAttachments,
+                        isMe: isMe,
+                        maxWidth: bubbleMaxWidth
+                    )
+                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
                 }
-                .onTapGesture {
-                    onBubbleTap()
+
+                if shouldShowBubble {
+                    MessageBubbleView(
+                        msg: msg,
+                        isMe: isMe,
+                        isGroupedWithPrevious: groupPosition == .middle || groupPosition == .bottom,
+                        isGroupedWithNext: groupPosition == .top || groupPosition == .middle
+                    )
+                    .frame(maxWidth: bubbleMaxWidth, alignment: isMe ? .trailing : .leading)
+                    .contentShape(Rectangle())
+                    .contextMenu {
+                        if canEdit {
+                            Button("Edit", systemImage: "pencil") {
+                                editAction?()
+                            }
+
+                            Button(role: .destructive) {
+                                deleteAction?()
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+
+                        if canRetry {
+                            Button("Retry", systemImage: "arrow.clockwise") {
+                                retryAction?()
+                            }
+                        }
+                    }
+                    .onTapGesture {
+                        onBubbleTap()
+                    }
                 }
 
                 if hasReactions {
@@ -128,26 +139,6 @@ struct ChatMessageRowView: View {
             Color.clear
                 .frame(width: 30, height: 30)
         }
-    }
-    
-    private var avatarBackgroundColor: Color {
-        Color(uiColor: .systemGray5)
-    }
-
-    private var senderInitials: String {
-        let cleaned = senderDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !cleaned.isEmpty else { return "U" }
-
-        let parts = cleaned
-            .split(separator: " ")
-            .prefix(2)
-            .map { String($0.prefix(1)).uppercased() }
-
-        if !parts.isEmpty {
-            return parts.joined()
-        }
-
-        return String(cleaned.prefix(1)).uppercased()
     }
 
     private var timestampView: some View {
@@ -210,7 +201,7 @@ struct ChatMessageRowView: View {
         guard resolvedReceiptText != nil else { return false }
         return groupPosition == .single || groupPosition == .bottom
     }
-    
+
     private var metadataIsTappable: Bool {
         if isMe && deliveryState == .failed { return true }
         if isMe && hasReadableReceiptDetails { return true }
@@ -275,33 +266,75 @@ struct ChatMessageRowView: View {
         return readBy.filter { $0.id != msg.sender.id }
     }
 
+    private var visibleAttachments: [AttachmentDTO] {
+        (msg.attachments ?? []).filter { attachment in
+            let hasURL = !(attachment.url?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+            let hasThumb = !(attachment.thumbUrl?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+            return hasURL || hasThumb
+        }
+    }
+
+    private var hasVisibleAttachments: Bool {
+        !visibleAttachments.isEmpty && msg.deletedForAll != true
+    }
+
+    private var shouldShowBubble: Bool {
+        if msg.deletedForAll == true { return true }
+        if let translated = msg.translatedForMe,
+           !translated.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return true
+        }
+        if let raw = msg.rawContent,
+           !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return true
+        }
+        if msg.contentCiphertext != nil { return true }
+        return !hasVisibleAttachments
+    }
+
     private var resolvedReceiptText: String? {
         guard isMe else { return nil }
 
         if deliveryState == .failed {
-            return "Failed · Tap to retry"
+            return editedText(prefix: "Failed · Tap to retry")
         }
 
         if let readersText = groupAwareReadText {
-            return readersText
+            return editedText(prefix: readersText)
         }
 
-        switch deliveryState {
-        case .pending:
-            return "Pending"
-        case .sending:
-            return "Sending…"
-        case .sent:
-            return "Sent"
-        case .delivered:
-            return "Delivered"
-        case .read:
-            return "Read"
-        case .failed:
-            return "Failed · Tap to retry"
-        case .none:
+        let base: String? = {
+            switch deliveryState {
+            case .pending:
+                return "Pending"
+            case .sending:
+                return "Sending…"
+            case .sent:
+                return "Sent"
+            case .delivered:
+                return "Delivered"
+            case .read:
+                return "Read"
+            case .failed:
+                return "Failed · Tap to retry"
+            case .none:
+                return nil
+            }
+        }()
+
+        return editedText(prefix: base)
+    }
+
+    private func editedText(prefix: String?) -> String? {
+        guard let prefix else {
+            if msg.editedAt != nil { return "Edited" }
             return nil
         }
+
+        if msg.editedAt != nil {
+            return "\(prefix) · Edited"
+        }
+        return prefix
     }
 
     private var groupAwareReadText: String? {
