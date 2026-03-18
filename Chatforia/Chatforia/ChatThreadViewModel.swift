@@ -45,6 +45,7 @@ struct RoomParticipantDTO: Decodable {
 struct RoomParticipantUserDTO: Decodable {
     let id: Int
     let username: String?
+    let publicKey: String?
 }
 
 struct DeviceKeyEnvelopeDTO: Codable {
@@ -346,47 +347,33 @@ final class ChatThreadViewModel: ObservableObject {
 
         let bodyData: Data
         do {
-            let recipientContext = try await fetchRecipientDevicesForDirectChat(token: token, roomId: roomId)
+            let recipientContext = try await fetchRecipientAccountKeyForDirectChat(
+                token: token,
+                roomId: roomId
+            )
 
-            let request: SendMessageRequest
-
-            if recipientContext.devices.isEmpty {
-                print("⚠️ No recipient devices found; falling back to plaintext send for dev")
-
-                request = SendMessageRequest(
-                    chatRoomId: roomId,
-                    content: trimmed,
-                    contentCiphertext: nil,
-                    encryptedKeys: nil,
-                    clientMessageId: clientMessageId
-                )
-            } else {
-                guard let senderUserId = currentUserId else {
-                    throw NSError(domain: "ChatThreadViewModel", code: 3, userInfo: [NSLocalizedDescriptionKey: "Missing current user id"])
-                }
-
-                guard let senderUserId = currentUserId else {
-                    throw NSError(domain: "ChatThreadViewModel", code: 3, userInfo: [NSLocalizedDescriptionKey: "Missing current user id"])
-                }
-
-                let senderPublicKeyBase64 = try DeviceKeyManager.shared.publicKeyBase64()
-
-                let encrypted = try MessageCryptoService.shared.encryptMessageForCurrentBackend(
-                    plaintext: trimmed,
-                    senderUserId: senderUserId,
-                    recipientUserId: recipientContext.recipientUserId,
-                    senderPublicKeyBase64: senderPublicKeyBase64,
-                    recipientDevices: recipientContext.devices
-                )
-
-                request = SendMessageRequest(
-                    chatRoomId: roomId,
-                    content: nil,
-                    contentCiphertext: encrypted.ciphertextBase64,
-                    encryptedKeys: encrypted.encryptedKeysByUserId,
-                    clientMessageId: clientMessageId
+            guard let senderUserId = currentUserId else {
+                throw NSError(
+                    domain: "ChatThreadViewModel",
+                    code: 3,
+                    userInfo: [NSLocalizedDescriptionKey: "Missing current user id"]
                 )
             }
+
+            let encrypted = try MessageCryptoService.shared.encryptMessageForCurrentBackend(
+                plaintext: trimmed,
+                senderUserId: senderUserId,
+                recipientUserId: recipientContext.recipientUserId,
+                recipientPublicKeyBase64: recipientContext.recipientPublicKey
+            )
+
+            let request = SendMessageRequest(
+                chatRoomId: roomId,
+                content: nil,
+                contentCiphertext: encrypted.ciphertextBase64,
+                encryptedKeys: encrypted.encryptedKeysByUserId,
+                clientMessageId: clientMessageId
+            )
 
             bodyData = try JSONEncoder().encode(request)
         } catch {
@@ -395,7 +382,6 @@ final class ChatThreadViewModel: ObservableObject {
             print("❌ sendMessage encryption/build error:", error)
             return
         }
-
         let job = SendJob(
             clientMessageId: clientMessageId,
             localId: String(localId),
@@ -741,7 +727,11 @@ final class ChatThreadViewModel: ObservableObject {
         }
     }
     
-    private func fetchRecipientDevicesForDirectChat(token: String, roomId: Int) async throws -> (recipientUserId: Int, devices: [DeviceDTO]) {
+    
+    private func fetchRecipientAccountKeyForDirectChat(
+        token: String,
+        roomId: Int
+    ) async throws -> (recipientUserId: Int, recipientPublicKey: String) {
         guard let currentUserId else {
             throw NSError(
                 domain: "ChatThreadViewModel",
@@ -759,6 +749,8 @@ final class ChatThreadViewModel: ObservableObject {
             token: token
         )
 
+        print("🧪 participantsResponse =", participantsResponse)
+
         let otherParticipants = participantsResponse.participants
             .filter { $0.userId != currentUserId }
 
@@ -770,17 +762,24 @@ final class ChatThreadViewModel: ObservableObject {
             )
         }
 
-        let devices = try await DeviceRegistrationService.shared.fetchPublicDevices(
-            for: recipient.userId,
-            token: token
-        )
+        print("🧪 recipient.user?.id =", recipient.user?.id as Any)
+        print("🧪 recipient.user?.username =", recipient.user?.username as Any)
+        print("🧪 recipient.user?.publicKey =", recipient.user?.publicKey as Any)
+
+        guard let recipientPublicKey = recipient.user?.publicKey,
+              !recipientPublicKey.isEmpty else {
+            throw MessageCryptoError.invalidRecipientPublicKey
+        }
 
         print("🧪 resolved recipient userId = \(recipient.userId)")
-        print("🧪 fetched recipient devices count = \(devices.count)")
+        print("🧪 resolved recipient account public key prefix = \(recipientPublicKey.prefix(24))")
 
-        return (recipientUserId: recipient.userId, devices: devices)
+        return (
+            recipientUserId: recipient.userId,
+            recipientPublicKey: recipientPublicKey
+        )
     }
-
+    
     private func applyTypingUpdate(username: String, isTyping: Bool) {
         let name = username.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return }

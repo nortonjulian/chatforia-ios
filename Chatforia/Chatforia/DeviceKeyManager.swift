@@ -80,4 +80,9 @@ final class DeviceKeyManager {
         return "iOS"
         #endif
     }
+    
+    func clear() {
+        _ = KeychainHelper.delete(service: service, account: deviceIdAccount)
+        _ = KeychainHelper.delete(service: service, account: privateKeyAccount)
+    }
 }

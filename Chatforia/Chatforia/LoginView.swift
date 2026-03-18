@@ -65,14 +65,19 @@ struct LoginView: View {
             .navigationTitle("Login")
         }
     }
+    
     private func login() async {
         errorText = nil
         isLoading = true
         defer { isLoading = false }
 
         do {
+            print("🧨 cleared account + device keychain entries")
+
+            let enteredPassword = password
+
             let body = try JSONEncoder().encode(
-                LoginRequest(identifier: email, password: password)
+                LoginRequest(identifier: email, password: enteredPassword)
             )
 
             let resp: LoginResponse = try await APIClient.shared.send(
@@ -84,6 +89,40 @@ struct LoginView: View {
                 ),
                 token: nil
             )
+
+            print("LOGIN user.publicKey =", resp.user.publicKey ?? "nil")
+            print("LOCAL account publicKey before restore =", AccountKeyManager.shared.publicKeyBase64() ?? "nil")
+            print("LOCAL device publicKey before restore =", (try? DeviceKeyManager.shared.publicKeyBase64()) ?? "nil")
+
+            do {
+                try await RemoteKeyBackupService.shared.restoreAccountKeysFromRemoteBackup(
+                    token: resp.token,
+                    password: enteredPassword
+                )
+                print("✅ Restored account keys from remote backup")
+            } catch {
+                print("⚠️ Remote key restore failed:", error.localizedDescription)
+            }
+
+            do {
+                let serverPub = resp.user.publicKey
+                let localPub = AccountKeyManager.shared.publicKeyBase64()
+
+                print("LOGIN server publicKey =", serverPub ?? "nil")
+                print("LOGIN local account publicKey after restore =", localPub ?? "nil")
+
+                if let serverPub, let localPub, !serverPub.isEmpty, !localPub.isEmpty, serverPub == localPub {
+                    try await RemoteKeyBackupService.shared.uploadCurrentDeviceKeyBackup(
+                        token: resp.token,
+                        password: enteredPassword
+                    )
+                    print("✅ Uploaded remote key backup")
+                } else {
+                    print("⚠️ Skipping backup upload because local/server account keys do not match")
+                }
+            } catch {
+                print("⚠️ Remote key backup upload failed:", error.localizedDescription)
+            }
 
             await auth.setTokenAndLoadUser(resp.token)
         } catch {

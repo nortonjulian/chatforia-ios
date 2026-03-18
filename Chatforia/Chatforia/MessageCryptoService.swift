@@ -4,7 +4,6 @@ import CryptoKit
 enum MessageCryptoError: LocalizedError {
     case invalidRecipientPublicKey
     case invalidUTF8
-    case noRecipientDevices
     case missingSenderPublicKey
 
     var errorDescription: String? {
@@ -13,8 +12,6 @@ enum MessageCryptoError: LocalizedError {
             return "Invalid recipient public key."
         case .invalidUTF8:
             return "Invalid UTF-8 plaintext."
-        case .noRecipientDevices:
-            return "No recipient devices found."
         case .missingSenderPublicKey:
             return "Missing sender public key."
         }
@@ -29,13 +26,8 @@ final class MessageCryptoService {
         plaintext: String,
         senderUserId: Int,
         recipientUserId: Int,
-        senderPublicKeyBase64: String,
-        recipientDevices: [DeviceDTO]
+        recipientPublicKeyBase64: String
     ) throws -> EncryptedMessagePayload {
-        guard !recipientDevices.isEmpty else {
-            throw MessageCryptoError.noRecipientDevices
-        }
-
         guard let plaintextData = plaintext.data(using: .utf8) else {
             throw MessageCryptoError.invalidUTF8
         }
@@ -90,10 +82,10 @@ final class MessageCryptoService {
             return String(data: wrappedPayloadData, encoding: .utf8) ?? "{}"
         }
 
-        guard let recipientDevice = recipientDevices.first,
-              let recipientPublicKeyBase64 = recipientDevice.publicKey
+        guard let senderPublicKeyBase64 = AccountKeyManager.shared.publicKeyBase64(),
+              !senderPublicKeyBase64.isEmpty
         else {
-            throw MessageCryptoError.noRecipientDevices
+            throw MessageCryptoError.missingSenderPublicKey
         }
 
         let recipientWrapped = try wrapForUser(
@@ -101,15 +93,11 @@ final class MessageCryptoService {
             userId: recipientUserId
         )
 
-        guard !senderPublicKeyBase64.isEmpty else {
-            throw MessageCryptoError.missingSenderPublicKey
-        }
-
         let senderWrapped = try wrapForUser(
             publicKeyBase64: senderPublicKeyBase64,
             userId: senderUserId
         )
-
+        
         return EncryptedMessagePayload(
             ciphertextBase64: ciphertextBase64,
             encryptedKeysByUserId: [
@@ -124,7 +112,17 @@ final class MessageCryptoService {
         encryptedKeyPayloadJSON: String,
         userId: Int
     ) throws -> String {
-        let myPrivateKey = try DeviceKeyManager.shared.privateKey()
+        guard let myPrivateKeyB64 = AccountKeyManager.shared.privateKeyBase64(),
+              let myPrivateKeyData = Data(base64Encoded: myPrivateKeyB64)
+        else {
+            throw NSError(
+                domain: "MessageCryptoService",
+                code: 100,
+                userInfo: [NSLocalizedDescriptionKey: "Missing account private key"]
+            )
+        }
+
+        let myPrivateKey = try Curve25519.KeyAgreement.PrivateKey(rawRepresentation: myPrivateKeyData)
 
         guard let payloadData = encryptedKeyPayloadJSON.data(using: .utf8),
               let payload = try JSONSerialization.jsonObject(with: payloadData) as? [String: String],

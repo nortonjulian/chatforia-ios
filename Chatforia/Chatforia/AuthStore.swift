@@ -33,6 +33,10 @@ final class AuthStore: ObservableObject {
             )
 
             print("AUTH ME:", response.user.id, response.user.email ?? "nil")
+            
+            print("SERVER user.publicKey =", response.user.publicKey ?? "nil")
+            print("ACCOUNT keychain publicKey =", AccountKeyManager.shared.publicKeyBase64() ?? "nil")
+            print("DEVICE key publicKey =", (try? DeviceKeyManager.shared.publicKeyBase64()) ?? "nil")
 
             state = .loggedIn(response.user)
 
