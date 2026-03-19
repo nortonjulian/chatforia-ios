@@ -19,6 +19,17 @@ final class AuthStore: ObservableObject {
         tokenStore.read()
     }
 
+    var currentUser: UserDTO? {
+        if case .loggedIn(let user) = state {
+            return user
+        }
+        return nil
+    }
+
+    func replaceCurrentUser(_ user: UserDTO) {
+        state = .loggedIn(user)
+    }
+
     func bootstrap() async {
         guard let token = tokenStore.read(), !token.isEmpty else {
             socket.disconnect()
@@ -33,7 +44,6 @@ final class AuthStore: ObservableObject {
             )
 
             print("AUTH ME:", response.user.id, response.user.email ?? "nil")
-            
             print("SERVER user.publicKey =", response.user.publicKey ?? "nil")
             print("ACCOUNT keychain publicKey =", AccountKeyManager.shared.publicKeyBase64() ?? "nil")
             print("DEVICE key publicKey =", (try? DeviceKeyManager.shared.publicKeyBase64()) ?? "nil")
@@ -59,7 +69,7 @@ final class AuthStore: ObservableObject {
             handleInvalidSession()
         }
     }
-    
+
     func setTokenAndLoadUser(_ token: String) async {
         tokenStore.save(token)
         await bootstrap()
@@ -75,6 +85,23 @@ final class AuthStore: ObservableObject {
         socket.disconnect()
         tokenStore.clear()
         state = .loggedOut
+    }
+    
+    func refreshCurrentUser() async {
+        guard let token = tokenStore.read(), !token.isEmpty else {
+            handleInvalidSession()
+            return
+        }
+
+        do {
+            let response: MeResponse = try await APIClient.shared.send(
+                APIRequest(path: "auth/me", method: .GET, requiresAuth: true),
+                token: token
+            )
+            state = .loggedIn(response.user)
+        } catch {
+            print("⚠️ refreshCurrentUser failed:", error)
+        }
     }
 }
 

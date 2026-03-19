@@ -31,6 +31,7 @@ struct UserAvatarView: View {
                         fallbackView
                     }
                 }
+                .id(avatarUrl ?? "")
             } else {
                 fallbackView
             }
@@ -48,16 +49,27 @@ struct UserAvatarView: View {
         guard let raw = avatarUrl?.trimmingCharacters(in: .whitespacesAndNewlines),
               !raw.isEmpty else { return nil }
 
+        let absoluteString: String
         if raw.lowercased().hasPrefix("http://") || raw.lowercased().hasPrefix("https://") {
-            return URL(string: raw)
+            absoluteString = raw
+        } else {
+            let base = AppEnvironment.apiBaseURL
+            let baseString = base.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            let path = raw.hasPrefix("/") ? raw : "/\(raw)"
+            absoluteString = baseString + path
         }
 
-        let base = AppEnvironment.apiBaseURL
-        let baseString = base.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-        let path = raw.hasPrefix("/") ? raw : "/\(raw)"
-        return URL(string: baseString + path)
-    }
+        guard var components = URLComponents(string: absoluteString) else {
+            return URL(string: absoluteString)
+        }
 
+        var queryItems = components.queryItems ?? []
+        queryItems.append(URLQueryItem(name: "v", value: String(raw.hashValue)))
+        components.queryItems = queryItems
+
+        return components.url
+    }
+    
     @ViewBuilder
     private var fallbackView: some View {
         switch fallbackStyle {
