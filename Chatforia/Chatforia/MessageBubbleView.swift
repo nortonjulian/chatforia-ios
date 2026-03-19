@@ -72,7 +72,13 @@ struct MessageBubbleView: View {
         } else if msg.contentCiphertext != nil {
             Text("🔒 Encrypted message")
         } else if let attachments = msg.attachments, !attachments.isEmpty {
-            EmptyView()
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Attachment")
+                    .font(.subheadline.weight(.semibold))
+                Text("\(attachments.count) file\(attachments.count == 1 ? "" : "s")")
+                    .font(.caption)
+                    .foregroundStyle(isMe ? Color.white.opacity(0.82) : .secondary)
+            }
         } else {
             Text("—")
         }

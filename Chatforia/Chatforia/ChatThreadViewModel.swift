@@ -48,6 +48,11 @@ struct RoomParticipantUserDTO: Decodable {
     let publicKey: String?
 }
 
+struct RecipientKeyContext {
+    let userId: Int
+    let publicKeyBase64: String
+}
+
 struct DeviceKeyEnvelopeDTO: Codable {
     let recipientUserId: Int
     let recipientDeviceId: String
@@ -67,11 +72,27 @@ struct SendMessageRequest: Encodable {
     let contentCiphertext: String?
     let encryptedKeys: [String: String]?
     let clientMessageId: String
+    let attachmentsInline: [AttachmentDTO]?
+
+    init(
+        chatRoomId: Int,
+        content: String? = nil,
+        contentCiphertext: String? = nil,
+        encryptedKeys: [String: String]? = nil,
+        clientMessageId: String,
+        attachmentsInline: [AttachmentDTO]? = nil
+    ) {
+        self.chatRoomId = chatRoomId
+        self.content = content
+        self.contentCiphertext = contentCiphertext
+        self.encryptedKeys = encryptedKeys
+        self.clientMessageId = clientMessageId
+        self.attachmentsInline = attachmentsInline
+    }
 }
 
 struct MessageEnvelope: Decodable {
     let item: MessageDTO?
-
     let shaped: MessageDTO?
 
     var message: MessageDTO? { item ?? shaped }
@@ -84,6 +105,7 @@ final class ChatThreadViewModel: ObservableObject {
     @Published var errorText: String?
     @Published var isLoadingOlder: Bool = false
     @Published var typingUsernames: [String] = []
+    @Published var isSendingImage: Bool = false
 
     @Published private(set) var nowTick: Date = Date()
     private var expiryTask: Task<Void, Never>?
@@ -192,8 +214,6 @@ final class ChatThreadViewModel: ObservableObject {
         APIClient.shared.readMessagesBulk(unread)
     }
 
-    // MARK: - Expiry Loop
-
     func startExpiryLoop() {
         expiryTask?.cancel()
         expiryTask = Task { [weak self] in
@@ -214,8 +234,6 @@ final class ChatThreadViewModel: ObservableObject {
         guard let expires = msg.expiresAt else { return false }
         return expires <= now
     }
-
-    // MARK: - Networking
 
     func loadMessages(roomId: Int, token: String?) async {
         guard roomId > 0 else {
@@ -310,13 +328,13 @@ final class ChatThreadViewModel: ObservableObject {
         }
     }
 
-    func sendMessage(roomId: Int, token: String?, text: String) async {
+    func sendMessage(roomId: Int, token: String?, text: String) async -> Bool {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
+        guard !trimmed.isEmpty else { return false }
 
         guard let token, !token.isEmpty else {
             errorText = "Missing auth token."
-            return
+            return false
         }
 
         errorText = nil
@@ -327,8 +345,7 @@ final class ChatThreadViewModel: ObservableObject {
 
         guard let sender = currentUserSenderDTO else {
             errorText = "Missing current user identity for optimistic send."
-            print("❌ sendMessage: current user identity not configured")
-            return
+            return false
         }
 
         let optimistic = MessageDTO.optimistic(
@@ -347,7 +364,7 @@ final class ChatThreadViewModel: ObservableObject {
 
         let bodyData: Data
         do {
-            let recipientContext = try await fetchRecipientAccountKeyForDirectChat(
+            let recipients = try await fetchRecipientAccountKeysForRoom(
                 token: token,
                 roomId: roomId
             )
@@ -360,11 +377,10 @@ final class ChatThreadViewModel: ObservableObject {
                 )
             }
 
-            let encrypted = try MessageCryptoService.shared.encryptMessageForCurrentBackend(
+            let encrypted = try MessageCryptoService.shared.encryptMessageForRecipients(
                 plaintext: trimmed,
                 senderUserId: senderUserId,
-                recipientUserId: recipientContext.recipientUserId,
-                recipientPublicKeyBase64: recipientContext.recipientPublicKey
+                recipients: recipients
             )
 
             let request = SendMessageRequest(
@@ -372,16 +388,18 @@ final class ChatThreadViewModel: ObservableObject {
                 content: nil,
                 contentCiphertext: encrypted.ciphertextBase64,
                 encryptedKeys: encrypted.encryptedKeysByUserId,
-                clientMessageId: clientMessageId
+                clientMessageId: clientMessageId,
+                attachmentsInline: nil
             )
 
             bodyData = try JSONEncoder().encode(request)
         } catch {
             MessageStore.shared.setDeliveryState(clientMessageId: clientMessageId, state: .failed)
-            errorText = "Encryption failed: \(error.localizedDescription)"
-            print("❌ sendMessage encryption/build error:", error)
-            return
+            errorText = "Couldn’t send message. You can retry."
+            print("❌ sendMessage encryption failed:", error)
+            return false
         }
+
         let job = SendJob(
             clientMessageId: clientMessageId,
             localId: String(localId),
@@ -391,8 +409,130 @@ final class ChatThreadViewModel: ObservableObject {
 
         SendQueueManager.shared.enqueue(job)
         SendQueueManager.shared.startIfNeeded()
+        return true
     }
-    // MARK: - Socket wiring
+
+    func sendImageMessage(
+        roomId: Int,
+        token: String?,
+        imageData: Data,
+        caption: String? = nil
+    ) async -> Bool {
+        guard let token, !token.isEmpty else {
+            errorText = "Missing auth token."
+            return false
+        }
+
+        guard !imageData.isEmpty else {
+            errorText = "Image data is empty."
+            return false
+        }
+
+        guard let sender = currentUserSenderDTO else {
+            errorText = "Missing current user identity for optimistic send."
+            return false
+        }
+
+        errorText = nil
+        stopTypingNow(roomId: roomId)
+        isSendingImage = true
+        defer { isSendingImage = false }
+
+        let trimmedCaption = caption?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let finalCaption = (trimmedCaption?.isEmpty == false) ? trimmedCaption : nil
+
+        let clientMessageId = UUID().uuidString
+        let localId = -abs(clientMessageId.hashValue)
+
+        do {
+            print("🧪 sendImageMessage: starting upload")
+
+            let upload = try await UploadService.shared.uploadImage(data: imageData, token: token)
+            print("🧪 sendImageMessage: upload success url =", upload.url)
+
+            let attachment = AttachmentDTO(
+                id: nil,
+                kind: "IMAGE",
+                url: upload.url,
+                mimeType: upload.contentType ?? "image/jpeg",
+                width: nil,
+                height: nil,
+                durationSec: nil,
+                caption: finalCaption,
+                thumbUrl: upload.url
+            )
+
+            let optimistic = MessageDTO.optimistic(
+                roomId: roomId,
+                clientMessageId: clientMessageId,
+                localId: localId,
+                text: finalCaption,
+                attachments: [attachment],
+                imageUrl: upload.url,
+                senderId: sender.id,
+                senderUsername: sender.username,
+                senderPublicKey: sender.publicKey
+            )
+
+            applyToStore(optimistic)
+            MessageStore.shared.setDeliveryState(clientMessageId: clientMessageId, state: .sending)
+            refreshFromMessageStore()
+
+            let plaintextForEncryption = finalCaption ?? "[image]"
+            print("🧪 sendImageMessage: fetching recipient keys")
+
+            let recipients = try await fetchRecipientAccountKeysForRoom(
+                token: token,
+                roomId: roomId
+            )
+
+            guard let senderUserId = currentUserId else {
+                throw NSError(
+                    domain: "ChatThreadViewModel",
+                    code: 3,
+                    userInfo: [NSLocalizedDescriptionKey: "Missing current user id"]
+                )
+            }
+
+            print("🧪 sendImageMessage: encrypting placeholder/caption for recipients")
+
+            let encrypted = try MessageCryptoService.shared.encryptMessageForRecipients(
+                plaintext: plaintextForEncryption,
+                senderUserId: senderUserId,
+                recipients: recipients
+            )
+
+            let bodyRequest = SendMessageRequest(
+                chatRoomId: roomId,
+                content: nil,
+                contentCiphertext: encrypted.ciphertextBase64,
+                encryptedKeys: encrypted.encryptedKeysByUserId,
+                clientMessageId: clientMessageId,
+                attachmentsInline: [attachment]
+            )
+
+            let bodyData = try JSONEncoder().encode(bodyRequest)
+            print("🧪 sendImageMessage: request encoded, enqueueing")
+
+            let job = SendJob(
+                clientMessageId: clientMessageId,
+                localId: String(localId),
+                bodyJSON: bodyData,
+                attachmentsMeta: nil
+            )
+
+            SendQueueManager.shared.enqueue(job)
+            SendQueueManager.shared.startIfNeeded()
+            print("✅ sendImageMessage: queued successfully")
+            return true
+
+        } catch {
+            MessageStore.shared.setDeliveryState(clientMessageId: clientMessageId, state: .failed)
+            errorText = "Couldn’t send image. \(error.localizedDescription)"
+            print("❌ sendImageMessage failed:", error)
+            return false
+        }
+    }
 
     func startSocket(roomId: Int, token: String?, myUsername: String?) {
         guard roomId > 0 else {
@@ -472,8 +612,6 @@ final class ChatThreadViewModel: ObservableObject {
         typingStopTask?.cancel()
         typingStopTask = nil
     }
-
-    // MARK: - Socket event handlers
 
     private func handleIncomingMessageEvent(data: [Any], roomId: Int) {
         guard let first = data.first else { return }
@@ -620,8 +758,6 @@ final class ChatThreadViewModel: ObservableObject {
         refreshFromMessageStore()
     }
 
-    // MARK: - Deterministic resync
-
     func configureRoom(roomId: Int) {
         guard self.roomId != roomId else { return }
         self.roomId = roomId
@@ -679,10 +815,14 @@ final class ChatThreadViewModel: ObservableObject {
     }
 
     private func keyForLastId(_ roomId: Int) -> String { "chat.lastServerMessageId.\(roomId)" }
-    private func loadLastServerMessageId(roomId: Int) -> Int { UserDefaults.standard.integer(forKey: keyForLastId(roomId)) }
-    private func persistLastServerMessageId(_ id: Int, roomId: Int) { UserDefaults.standard.set(id, forKey: keyForLastId(roomId)) }
 
-    // MARK: - Typing helpers
+    private func loadLastServerMessageId(roomId: Int) -> Int {
+        UserDefaults.standard.integer(forKey: keyForLastId(roomId))
+    }
+
+    private func persistLastServerMessageId(_ id: Int, roomId: Int) {
+        UserDefaults.standard.set(id, forKey: keyForLastId(roomId))
+    }
 
     func handleInputChanged(roomId: Int) {
         guard SocketManager.shared.isConnected else {
@@ -726,12 +866,11 @@ final class ChatThreadViewModel: ObservableObject {
             }
         }
     }
-    
-    
-    private func fetchRecipientAccountKeyForDirectChat(
+
+    private func fetchRecipientAccountKeysForRoom(
         token: String,
         roomId: Int
-    ) async throws -> (recipientUserId: Int, recipientPublicKey: String) {
+    ) async throws -> [RecipientKeyContext] {
         guard let currentUserId else {
             throw NSError(
                 domain: "ChatThreadViewModel",
@@ -749,37 +888,31 @@ final class ChatThreadViewModel: ObservableObject {
             token: token
         )
 
-        print("🧪 participantsResponse =", participantsResponse)
-
-        let otherParticipants = participantsResponse.participants
+        let recipients = participantsResponse.participants
             .filter { $0.userId != currentUserId }
+            .compactMap { participant -> RecipientKeyContext? in
+                guard let pk = participant.user?.publicKey,
+                      !pk.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                    return nil
+                }
 
-        guard otherParticipants.count == 1, let recipient = otherParticipants.first else {
+                return RecipientKeyContext(
+                    userId: participant.userId,
+                    publicKeyBase64: pk
+                )
+            }
+
+        guard !recipients.isEmpty else {
             throw NSError(
                 domain: "ChatThreadViewModel",
                 code: 2,
-                userInfo: [NSLocalizedDescriptionKey: "This room is not a true 1:1 chat. Expected exactly one recipient."]
+                userInfo: [NSLocalizedDescriptionKey: "No valid recipients with public keys found for this room."]
             )
         }
 
-        print("🧪 recipient.user?.id =", recipient.user?.id as Any)
-        print("🧪 recipient.user?.username =", recipient.user?.username as Any)
-        print("🧪 recipient.user?.publicKey =", recipient.user?.publicKey as Any)
-
-        guard let recipientPublicKey = recipient.user?.publicKey,
-              !recipientPublicKey.isEmpty else {
-            throw MessageCryptoError.invalidRecipientPublicKey
-        }
-
-        print("🧪 resolved recipient userId = \(recipient.userId)")
-        print("🧪 resolved recipient account public key prefix = \(recipientPublicKey.prefix(24))")
-
-        return (
-            recipientUserId: recipient.userId,
-            recipientPublicKey: recipientPublicKey
-        )
+        return recipients
     }
-    
+
     private func applyTypingUpdate(username: String, isTyping: Bool) {
         let name = username.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return }
@@ -813,8 +946,6 @@ final class ChatThreadViewModel: ObservableObject {
         typingLastSeen = typingLastSeen.filter { now.timeIntervalSince($0.value) < typingTTL }
         typingUsernames = Array(typingLastSeen.keys).sorted()
     }
-
-    // MARK: - JSON helpers
 
     private func decodeFromDictionary<T: Decodable>(_ dict: [String: Any]) -> T? {
         guard JSONSerialization.isValidJSONObject(dict),

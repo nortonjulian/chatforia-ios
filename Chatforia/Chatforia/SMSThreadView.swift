@@ -128,7 +128,11 @@ struct SMSThreadView: View {
 
             MessageComposerView(
                 draft: $draft,
+                isSending: isUploadingMedia || vm.isSending,
                 onDraftChanged: {},
+                onAttachmentTap: {
+                    // no-op here because SMS uses the PhotosPicker pill above
+                },
                 onSend: {
                     Task {
                         await send()

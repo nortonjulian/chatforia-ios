@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 struct ChatThreadView: View {
     let room: ChatRoomDTO
@@ -7,12 +8,12 @@ struct ChatThreadView: View {
     @StateObject private var vm = ChatThreadViewModel()
     @State private var draft = ""
     @State private var lastMessageId: Int? = nil
-
-    @State private var editingMessage: MessageDTO?
-    @State private var editDraft: String = ""
-
-    @State private var deletingMessage: MessageDTO?
-    @State private var showDeleteOptions = false
+    
+    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var selectedImageData: Data?
+    @State private var isPreparingImageSend = false
+    
+    @State private var showPhotoPicker = false
 
     @SwiftUI.Environment(\.scenePhase) private var scenePhase: ScenePhase
 
@@ -40,60 +41,6 @@ struct ChatThreadView: View {
             }
             .onReceive(SocketManager.shared.$isConnected) { connected in
                 handleSocketConnectionChange(connected)
-            }
-            .alert(
-                "Edit Message",
-                isPresented: Binding(
-                    get: { editingMessage != nil },
-                    set: { isPresented in
-                        if !isPresented {
-                            editingMessage = nil
-                            editDraft = ""
-                        }
-                    }
-                )
-            ) {
-                TextField("Message", text: $editDraft)
-
-                Button("Cancel", role: .cancel) {
-                    editingMessage = nil
-                    editDraft = ""
-                }
-
-                Button("Save") {
-                    Task {
-                        await saveEdit()
-                    }
-                }
-            } message: {
-                Text("Update your message.")
-            }
-            .confirmationDialog(
-                "Delete Message",
-                isPresented: $showDeleteOptions,
-                titleVisibility: .visible
-            ) {
-                if let msg = deletingMessage, msg.id > 0 {
-                    Button("Delete for Me", role: .destructive) {
-                        Task {
-                            await performDelete(msg, scope: "me")
-                        }
-                    }
-
-                    if msg.sender.id == currentUserId {
-                        Button("Delete for Everyone", role: .destructive) {
-                            Task {
-                                await performDelete(msg, scope: "all")
-                            }
-                        }
-                    }
-                }
-
-                Button("Cancel", role: .cancel) {
-                    deletingMessage = nil
-                }
-            } message: {
-                Text("Choose how you want to delete this message.")
             }
     }
 
@@ -135,16 +82,9 @@ struct ChatThreadView: View {
             SendQueueManager.shared.retryJob(clientMessageId: cid)
         }
 
-        let editHandler: (MessageDTO) -> Void = { msg in
-            editingMessage = msg
-            editDraft = msg.rawContent ?? ""
-        }
-
-        let deleteHandler: (MessageDTO) -> Void = { msg in
-            deletingMessage = msg
-            showDeleteOptions = true
-        }
-
+        let editHandler: (MessageDTO) -> Void = { _ in }
+        let deleteHandler: (MessageDTO) -> Void = { _ in }
+        
         return Group {
             if vm.isLoading && vm.messages.isEmpty {
                 LoadingStateView(
@@ -198,8 +138,12 @@ struct ChatThreadView: View {
     private var composer: some View {
         MessageComposerView(
             draft: $draft,
+            isSending: isBusySending,
             onDraftChanged: {
                 vm.handleInputChanged(roomId: room.id)
+            },
+            onAttachmentTap: {
+                showPhotoPicker = true
             },
             onSend: {
                 Task {
@@ -207,8 +151,58 @@ struct ChatThreadView: View {
                 }
             }
         )
-    }
+        .photosPicker(
+            isPresented: $showPhotoPicker,
+            selection: $selectedPhotoItem,
+            matching: .images,
+            photoLibrary: .shared()
+        )
+        .onChange(of: selectedPhotoItem) { _, newItem in
+            guard let newItem else { return }
 
+            Task {
+                await loadAndSendSelectedPhoto(from: newItem)
+            }
+        }
+    }
+    
+    private func loadAndSendSelectedPhoto(from item: PhotosPickerItem) async {
+        guard !isPreparingImageSend else { return }
+
+        isPreparingImageSend = true
+        defer {
+            isPreparingImageSend = false
+            selectedPhotoItem = nil
+        }
+
+        do {
+            guard let data = try await item.loadTransferable(type: Data.self), !data.isEmpty else {
+                await MainActor.run {
+                    vm.errorText = "Couldn’t load the selected image."
+                }
+                return
+            }
+
+            let token = TokenStore.shared.read()
+
+            let didQueue = await vm.sendImageMessage(
+                roomId: room.id,
+                token: token,
+                imageData: data,
+                caption: nil
+            )
+
+            if !didQueue {
+                print("⚠️ Image message was not queued.")
+            }
+        } catch {
+            await MainActor.run {
+                vm.errorText = "Failed to prepare image."
+            }
+            print("❌ loadAndSendSelectedPhoto failed:", error)
+        }
+    }
+    
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItemGroup(placement: .navigationBarTrailing) {
@@ -326,44 +320,26 @@ struct ChatThreadView: View {
     private func send() async {
         let token = TokenStore.shared.read()
         let text = draft
-        draft = ""
 
-        await vm.sendMessage(
+        let didQueue = await vm.sendMessage(
             roomId: room.id,
             token: token,
             text: text
         )
-    }
 
-    private func saveEdit() async {
-        guard editingMessage != nil else { return }
-
-        let trimmed = editDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-
-        await MainActor.run {
-            editingMessage = nil
-            editDraft = ""
+        if didQueue {
+            draft = ""
         }
-
-        // TODO: wire to your real ChatThreadViewModel edit/update method
-    }
-
-    private func performDelete(_ msg: MessageDTO, scope: String) async {
-        _ = msg
-        _ = scope
-
-        await MainActor.run {
-            deletingMessage = nil
-        }
-
-        // TODO: wire to your real ChatThreadViewModel delete method
     }
 
     private func typingIndicatorText(_ names: [String]) -> String {
         if names.count == 1 { return "\(names[0]) is typing…" }
         if names.count == 2 { return "\(names[0]) and \(names[1]) are typing…" }
         return "\(names.count) people are typing…"
+    }
+    
+    private var isBusySending: Bool {
+        isPreparingImageSend || vm.isSendingImage
     }
 
     private func deliveryState(for msg: MessageDTO) -> DeliveryState? {

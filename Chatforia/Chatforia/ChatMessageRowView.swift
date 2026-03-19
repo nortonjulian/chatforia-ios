@@ -26,11 +26,13 @@ struct ChatMessageRowView: View {
     @State private var didAppear = false
 
     var body: some View {
-        let canEdit = isEditable
         let canRetry = isMe && deliveryState == .failed
         let retryAction = onRetryTap
         let editAction = onEdit
         let deleteAction = onDelete
+
+        let canShowEdit = false && isEditable && editAction != nil
+        let canShowDelete = false && isEditable && deleteAction != nil
 
         return HStack(alignment: .bottom, spacing: 8) {
             if !isMe {
@@ -73,11 +75,13 @@ struct ChatMessageRowView: View {
                     .frame(maxWidth: bubbleMaxWidth, alignment: isMe ? .trailing : .leading)
                     .contentShape(Rectangle())
                     .contextMenu {
-                        if canEdit {
+                        if canShowEdit {
                             Button("Edit", systemImage: "pencil") {
                                 editAction?()
                             }
+                        }
 
+                        if canShowDelete {
                             Button(role: .destructive) {
                                 deleteAction?()
                             } label: {

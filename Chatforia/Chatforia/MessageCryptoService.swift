@@ -5,6 +5,7 @@ enum MessageCryptoError: LocalizedError {
     case invalidRecipientPublicKey
     case invalidUTF8
     case missingSenderPublicKey
+    case noRecipients
 
     var errorDescription: String? {
         switch self {
@@ -14,6 +15,8 @@ enum MessageCryptoError: LocalizedError {
             return "Invalid UTF-8 plaintext."
         case .missingSenderPublicKey:
             return "Missing sender public key."
+        case .noRecipients:
+            return "No recipients available for encryption."
         }
     }
 }
@@ -28,8 +31,31 @@ final class MessageCryptoService {
         recipientUserId: Int,
         recipientPublicKeyBase64: String
     ) throws -> EncryptedMessagePayload {
+        let recipients = [
+            RecipientKeyContext(
+                userId: recipientUserId,
+                publicKeyBase64: recipientPublicKeyBase64
+            )
+        ]
+
+        return try encryptMessageForRecipients(
+            plaintext: plaintext,
+            senderUserId: senderUserId,
+            recipients: recipients
+        )
+    }
+
+    func encryptMessageForRecipients(
+        plaintext: String,
+        senderUserId: Int,
+        recipients: [RecipientKeyContext]
+    ) throws -> EncryptedMessagePayload {
         guard let plaintextData = plaintext.data(using: .utf8) else {
             throw MessageCryptoError.invalidUTF8
+        }
+
+        guard !recipients.isEmpty else {
+            throw MessageCryptoError.noRecipients
         }
 
         let messageKey = SymmetricKey(size: .bits256)
@@ -83,27 +109,29 @@ final class MessageCryptoService {
         }
 
         guard let senderPublicKeyBase64 = AccountKeyManager.shared.publicKeyBase64(),
-              !senderPublicKeyBase64.isEmpty
-        else {
+              !senderPublicKeyBase64.isEmpty else {
             throw MessageCryptoError.missingSenderPublicKey
         }
 
-        let recipientWrapped = try wrapForUser(
-            publicKeyBase64: recipientPublicKeyBase64,
-            userId: recipientUserId
-        )
+        var encryptedKeysByUserId: [String: String] = [:]
 
         let senderWrapped = try wrapForUser(
             publicKeyBase64: senderPublicKeyBase64,
             userId: senderUserId
         )
-        
+        encryptedKeysByUserId[String(senderUserId)] = senderWrapped
+
+        for recipient in recipients {
+            let recipientWrapped = try wrapForUser(
+                publicKeyBase64: recipient.publicKeyBase64,
+                userId: recipient.userId
+            )
+            encryptedKeysByUserId[String(recipient.userId)] = recipientWrapped
+        }
+
         return EncryptedMessagePayload(
             ciphertextBase64: ciphertextBase64,
-            encryptedKeysByUserId: [
-                String(senderUserId): senderWrapped,
-                String(recipientUserId): recipientWrapped
-            ]
+            encryptedKeysByUserId: encryptedKeysByUserId
         )
     }
 
@@ -113,8 +141,7 @@ final class MessageCryptoService {
         userId: Int
     ) throws -> String {
         guard let myPrivateKeyB64 = AccountKeyManager.shared.privateKeyBase64(),
-              let myPrivateKeyData = Data(base64Encoded: myPrivateKeyB64)
-        else {
+              let myPrivateKeyData = Data(base64Encoded: myPrivateKeyB64) else {
             throw NSError(
                 domain: "MessageCryptoService",
                 code: 100,
@@ -127,8 +154,7 @@ final class MessageCryptoService {
         guard let payloadData = encryptedKeyPayloadJSON.data(using: .utf8),
               let payload = try JSONSerialization.jsonObject(with: payloadData) as? [String: String],
               let epkBase64 = payload["epk"],
-              let wrappedKeyBase64 = payload["wrappedKey"]
-        else {
+              let wrappedKeyBase64 = payload["wrappedKey"] else {
             throw NSError(
                 domain: "MessageCryptoService",
                 code: 3,
