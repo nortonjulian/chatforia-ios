@@ -9,6 +9,8 @@ private struct BottomSentinelMinYKey: PreferenceKey {
 }
 
 struct MessagesListView: View {
+    @EnvironmentObject private var themeManager: ThemeManager
+
     let messages: [MessageDTO]
     let currentUserId: Int?
     let isGroupRoom: Bool
@@ -27,7 +29,6 @@ struct MessagesListView: View {
     @State private var isPagingTriggerInFlight = false
     @State private var lastPagingTriggerAt: Date = .distantPast
 
-    // NEW: scroll behavior state
     @State private var isNearBottom = true
     @State private var preservedAnchorMessageId: Int?
     @State private var isRestoringAfterPrepend = false
@@ -90,6 +91,7 @@ struct MessagesListView: View {
                     .padding(.vertical, 14)
                     .animation(.spring(response: 0.28, dampingFraction: 0.88), value: sortedMessageIDs)
                 }
+                .background(themeManager.palette.screenBackground)
                 .coordinateSpace(name: "MessagesScroll")
                 .background(
                     GeometryReader { scrollGeo in
@@ -103,7 +105,6 @@ struct MessagesListView: View {
                     }
                 )
                 .onPreferenceChange(BottomSentinelMinYKey.self) { bottomMinY in
-                    // If the bottom sentinel is not far below the viewport, treat as "near bottom"
                     isNearBottom = bottomMinY <= (viewportHeight + nearBottomThreshold)
                 }
                 .onAppear {
@@ -112,8 +113,6 @@ struct MessagesListView: View {
                 .onChange(of: sortedMessages.last?.id) { _, newNewest in
                     guard newNewest != lastMessageId else { return }
 
-                    // If we're restoring position after paging older history,
-                    // do NOT auto-jump to bottom.
                     if !isRestoringAfterPrepend && isNearBottom {
                         scrollToBottom(proxy)
                     }
@@ -128,7 +127,6 @@ struct MessagesListView: View {
                         selectedReceiptMessage = nil
                     }
 
-                    // After older messages are prepended, restore the user's reading anchor.
                     if isRestoringAfterPrepend,
                        let anchorId = preservedAnchorMessageId,
                        ids.contains(anchorId) {
@@ -149,6 +147,7 @@ struct MessagesListView: View {
                 }
             }
         }
+        .background(themeManager.palette.screenBackground)
     }
 
     @ViewBuilder
@@ -218,7 +217,6 @@ struct MessagesListView: View {
         guard now.timeIntervalSince(lastPagingTriggerAt) >= pagingThrottleSeconds else { return }
         guard lastPagingTriggerOldestId != oldestId else { return }
 
-        // Preserve the current top anchor before older history is inserted.
         preservedAnchorMessageId = oldestId
         isRestoringAfterPrepend = true
 

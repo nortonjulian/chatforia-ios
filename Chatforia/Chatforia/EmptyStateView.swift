@@ -7,31 +7,31 @@ struct EmptyStateView: View {
     var buttonTitle: String? = nil
     var buttonAction: (() -> Void)? = nil
 
+    @EnvironmentObject private var themeManager: ThemeManager
+
     var body: some View {
         VStack(spacing: 14) {
             Image(systemName: systemImage)
                 .font(.system(size: 34, weight: .semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(themeManager.palette.secondaryText)
 
             VStack(spacing: 6) {
                 Text(title)
                     .font(.headline)
+                    .foregroundStyle(themeManager.palette.primaryText)
                     .multilineTextAlignment(.center)
 
                 Text(subtitle)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(themeManager.palette.secondaryText)
                     .multilineTextAlignment(.center)
             }
 
             if let buttonTitle, let buttonAction {
-                Button(action: buttonAction) {
-                    Text(buttonTitle)
-                        .font(.subheadline.weight(.semibold))
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                }
-                .buttonStyle(.borderedProminent)
+                ThemedGradientButton(
+                    title: buttonTitle,
+                    action: buttonAction
+                )
                 .padding(.top, 4)
             }
         }

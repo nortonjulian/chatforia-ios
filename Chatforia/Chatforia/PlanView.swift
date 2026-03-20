@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PlanView: View {
     @EnvironmentObject var auth: AuthStore
+    @EnvironmentObject private var themeManager: ThemeManager
 
     @State private var plusQuote: PricingQuote?
     @State private var premiumMonthlyQuote: PricingQuote?
@@ -16,7 +17,7 @@ struct PlanView: View {
             }
             .padding()
         }
-        .background(Color(uiColor: .systemGroupedBackground))
+        .background(themeManager.palette.screenBackground)
         .navigationTitle("Plan")
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -35,14 +36,15 @@ struct PlanView: View {
             VStack(alignment: .leading, spacing: 14) {
                 Text("Current plan")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(themeManager.palette.secondaryText)
 
                 Text(currentPlan.displayName)
                     .font(.title3.weight(.semibold))
+                    .foregroundStyle(themeManager.palette.primaryText)
 
                 Text(planDescription)
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(themeManager.palette.secondaryText)
             }
             .padding(.vertical, 8)
         }
@@ -54,109 +56,98 @@ struct PlanView: View {
                 planComparisonSection
 
                 Divider()
+                    .overlay(themeManager.palette.border)
                     .padding(.vertical, 6)
 
                 if currentPlan == .free {
-
-                    // PLUS
-                    Button {
+                    ThemedOutlineButton(title: plusButtonTitle) {
                         handleUpgradeToPlusTapped()
-                    } label: {
-                        Text(plusButtonTitle)
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
                     }
-                    .buttonStyle(.bordered)
 
-                    // PREMIUM MONTHLY
-                    Button {
+                    ThemedOutlineButton(title: premiumMonthlyButtonTitle) {
                         handleUpgradeToPremiumMonthlyTapped()
-                    } label: {
-                        Text(premiumMonthlyButtonTitle)
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
                     }
-                    .buttonStyle(.bordered)
 
-                    // PREMIUM ANNUAL (🔥 highlighted)
                     Button {
                         handleUpgradeToPremiumAnnualTapped()
                     } label: {
                         VStack(spacing: 4) {
-
-                            // 🔥 Stronger badge
                             Text("BEST VALUE")
                                 .font(.caption2.weight(.bold))
-                                .foregroundColor(.blue)
+                                .foregroundStyle(themeManager.palette.primaryText)
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 4)
-                                .background(Color.white)
+                                .background(themeManager.palette.highlightedSurface)
                                 .clipShape(Capsule())
 
                             Text(premiumAnnualButtonTitle)
                                 .font(.headline)
+                                .foregroundStyle(themeManager.palette.buttonForeground)
 
                             Text("Save 25% vs monthly")
                                 .font(.caption2)
-                                .foregroundStyle(.white.opacity(0.9))
+                                .foregroundStyle(themeManager.palette.buttonForeground.opacity(0.9))
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
+                        .padding(.vertical, 10)
+                        .background(
+                            LinearGradient(
+                                colors: [
+                                    themeManager.palette.buttonStart,
+                                    themeManager.palette.buttonEnd
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .shadow(color: themeManager.palette.buttonEnd.opacity(0.28), radius: 10, x: 0, y: 4)
                     }
-                    .buttonStyle(.borderedProminent)
-                    
-                } else if currentPlan == .plus {
+                    .buttonStyle(.plain)
 
-                    Button {
+                } else if currentPlan == .plus {
+                    ThemedOutlineButton(title: premiumMonthlyButtonTitle) {
                         handleUpgradeToPremiumMonthlyTapped()
-                    } label: {
-                        Text(premiumMonthlyButtonTitle)
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
                     }
-                    .buttonStyle(.bordered)
 
                     Button {
                         handleUpgradeToPremiumAnnualTapped()
                     } label: {
-                        VStack(spacing: 2) {
+                        VStack(spacing: 4) {
                             Text(premiumAnnualButtonTitle)
                                 .font(.headline)
+                                .foregroundStyle(themeManager.palette.buttonForeground)
 
                             Text("Save 25% vs monthly")
                                 .font(.caption)
-                                .foregroundStyle(.green)
+                                .foregroundStyle(themeManager.palette.buttonForeground.opacity(0.9))
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
+                        .padding(.vertical, 12)
+                        .background(
+                            LinearGradient(
+                                colors: [
+                                    themeManager.palette.buttonStart,
+                                    themeManager.palette.buttonEnd
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .shadow(color: themeManager.palette.buttonEnd.opacity(0.28), radius: 10, x: 0, y: 4)
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.plain)
 
-                    Button {
+                    ThemedOutlineButton(title: "Manage Billing") {
                         handleManageBillingTapped()
-                    } label: {
-                        Text("Manage Billing")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
                     }
-                    .buttonStyle(.bordered)
 
                 } else {
-
-                    Button {
+                    ThemedOutlineButton(title: "Manage Billing") {
                         handleManageBillingTapped()
-                    } label: {
-                        Text("Manage Billing")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
                     }
-                    .buttonStyle(.bordered)
                 }
             }
             .padding(.vertical, 8)
@@ -167,26 +158,25 @@ struct PlanView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Go ad-free with Plus, or unlock AI tools and customization with Premium.")
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(themeManager.palette.secondaryText)
 
             HStack {
                 Spacer()
 
                 Text("Plus")
                     .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(themeManager.palette.secondaryText)
                     .frame(width: 40)
 
                 Text("Premium")
                     .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(themeManager.palette.secondaryText)
                     .frame(width: 60)
             }
 
             planRow("Ad-free experience", plus: true, premium: true)
             planRow("Longer message history", plus: true, premium: true)
             planRow("Call & text forwarding", plus: true, premium: true)
-
             planRow("AI tools", plus: false, premium: true)
             planRow("Premium themes & sounds", plus: false, premium: true)
             planRow("Priority support", plus: false, premium: true)
@@ -217,10 +207,11 @@ struct PlanView: View {
     private func featureRow(_ text: String) -> some View {
         HStack(spacing: 10) {
             Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(.green)
+                .foregroundStyle(themeManager.palette.accent)
 
             Text(text)
                 .font(.body)
+                .foregroundStyle(themeManager.palette.primaryText)
 
             Spacer()
         }
@@ -230,16 +221,17 @@ struct PlanView: View {
         HStack {
             Text(title)
                 .font(.subheadline)
+                .foregroundStyle(themeManager.palette.primaryText)
 
             Spacer()
 
             HStack(spacing: 16) {
                 Image(systemName: plus ? "checkmark.circle.fill" : "xmark.circle")
-                    .foregroundStyle(plus ? .green : .gray)
+                    .foregroundStyle(plus ? themeManager.palette.accent : themeManager.palette.secondaryText)
                     .frame(width: 40)
 
                 Image(systemName: premium ? "checkmark.circle.fill" : "xmark.circle")
-                    .foregroundStyle(premium ? Color.accentColor : .gray)
+                    .foregroundStyle(premium ? themeManager.palette.buttonEnd : themeManager.palette.secondaryText)
                     .frame(width: 60)
             }
         }
@@ -260,8 +252,6 @@ struct PlanView: View {
         }
     }
 
-    // MARK: Pricing Labels
-
     private var plusButtonTitle: String {
         let price = PricingQuoteService.shared.formattedPrice(for: plusQuote, fallbackProduct: .plus) ?? "$4.99"
         return "Upgrade to Plus — \(price)/mo"
@@ -275,7 +265,7 @@ struct PlanView: View {
 
         return "Upgrade to Premium Monthly — \(price)/mo"
     }
-    
+
     private var premiumAnnualButtonTitle: String {
         let price = PricingQuoteService.shared.formattedPrice(
             for: premiumAnnualQuote,
@@ -284,8 +274,6 @@ struct PlanView: View {
 
         return "Upgrade to Premium Annual — \(price)/yr"
     }
-    
-    // MARK: Actions
 
     private func handleManageBillingTapped() {
         print("TODO: Paddle billing portal")
@@ -308,5 +296,6 @@ struct PlanView: View {
     NavigationStack {
         PlanView()
             .environmentObject(AuthStore())
+            .environmentObject(ThemeManager())
     }
 }

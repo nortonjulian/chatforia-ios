@@ -10,6 +10,7 @@ struct SMSThreadView: View {
     @State private var isUploadingMedia = false
     
     @Environment(\.scenePhase) private var scenePhase
+    @EnvironmentObject private var themeManager: ThemeManager
     @State private var pollingTask: Task<Void, Never>?
 
     var body: some View {
@@ -21,6 +22,7 @@ struct SMSThreadView: View {
 
             composer
         }
+        .background(themeManager.palette.screenBackground.ignoresSafeArea())
         .navigationTitle(
             vm.resolvedTitle(
                 fallback: conversation.title,
@@ -53,7 +55,7 @@ struct SMSThreadView: View {
             }
         }
     }
-
+    
     private var errorBanner: some View {
         Group {
             if let err = vm.errorText, !err.isEmpty {
@@ -70,7 +72,7 @@ struct SMSThreadView: View {
             }
         }
     }
-
+    
     @ViewBuilder
     private var content: some View {
         if vm.isLoading && vm.messages.isEmpty {
@@ -236,6 +238,8 @@ struct SMSThreadView: View {
 private struct SMSMessagesListView: View {
     let messages: [SMSMessageDTO]
 
+    @EnvironmentObject private var themeManager: ThemeManager
+
     var body: some View {
         GeometryReader { geo in
             let bubbleMaxWidth = geo.size.width * 0.72
@@ -257,6 +261,7 @@ private struct SMSMessagesListView: View {
                     }
                     .padding(.vertical, 14)
                 }
+                .background(themeManager.palette.screenBackground)
                 .onAppear {
                     scrollToBottom(proxy, animated: false)
                 }
@@ -265,6 +270,7 @@ private struct SMSMessagesListView: View {
                 }
             }
         }
+        .background(themeManager.palette.screenBackground)
     }
 
     private func scrollToBottom(_ proxy: ScrollViewProxy, animated: Bool) {
@@ -286,6 +292,8 @@ private struct SMSMessageRowView: View {
     let msg: SMSMessageDTO
     let bubbleMaxWidth: CGFloat
 
+    @EnvironmentObject private var themeManager: ThemeManager
+
     var body: some View {
         HStack(alignment: .bottom, spacing: 8) {
             if msg.isOutgoing {
@@ -300,7 +308,7 @@ private struct SMSMessageRowView: View {
                 if let text = msg.trimmedBody, !text.isEmpty {
                     Text(text)
                         .font(.body)
-                        .foregroundStyle(msg.isOutgoing ? .white : .primary)
+                        .foregroundStyle(msg.isOutgoing ? themeManager.palette.bubbleOutgoingText : themeManager.palette.bubbleIncomingText)
                         .multilineTextAlignment(.leading)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
@@ -308,22 +316,50 @@ private struct SMSMessageRowView: View {
                             RoundedRectangle(cornerRadius: 18, style: .continuous)
                                 .fill(
                                     msg.isOutgoing
-                                    ? Color(red: 0.05, green: 0.52, blue: 0.98)
-                                    : Color(uiColor: .systemGray6)
+                                    ? LinearGradient(
+                                        colors: [
+                                            themeManager.palette.bubbleOutgoingStart,
+                                            themeManager.palette.bubbleOutgoingEnd
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                    : LinearGradient(
+                                        colors: [
+                                            themeManager.palette.bubbleIncoming,
+                                            themeManager.palette.bubbleIncoming
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
                                 )
                         )
                 } else if msg.media.isEmpty {
                     Text("—")
                         .font(.body)
-                        .foregroundStyle(msg.isOutgoing ? .white : .primary)
+                        .foregroundStyle(msg.isOutgoing ? themeManager.palette.bubbleOutgoingText : themeManager.palette.bubbleIncomingText)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
                         .background(
                             RoundedRectangle(cornerRadius: 18, style: .continuous)
                                 .fill(
                                     msg.isOutgoing
-                                    ? Color(red: 0.05, green: 0.52, blue: 0.98)
-                                    : Color(uiColor: .systemGray6)
+                                    ? LinearGradient(
+                                        colors: [
+                                            themeManager.palette.bubbleOutgoingStart,
+                                            themeManager.palette.bubbleOutgoingEnd
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                    : LinearGradient(
+                                        colors: [
+                                            themeManager.palette.bubbleIncoming,
+                                            themeManager.palette.bubbleIncoming
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
                                 )
                         )
                 }
@@ -331,12 +367,12 @@ private struct SMSMessageRowView: View {
                 HStack(spacing: 6) {
                     Text(timestampText(msg.createdAt))
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(themeManager.palette.secondaryText)
 
                     if msg.editedAt != nil {
                         Text("Edited")
                             .font(.caption2)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(themeManager.palette.secondaryText)
                     }
                 }
                 .padding(.horizontal, 2)
@@ -532,21 +568,23 @@ private struct SMSFullscreenImageView: View {
 private struct SMSGenericAttachmentCard: View {
     let item: SMSMediaItemDTO
 
+    @EnvironmentObject private var themeManager: ThemeManager
+
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: iconName)
                 .font(.title3)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(themeManager.palette.secondaryText)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(item.displayLabel)
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(themeManager.palette.primaryText)
                     .lineLimit(1)
 
                 Text(item.contentType?.nilIfBlank ?? "Protected media")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(themeManager.palette.secondaryText)
                     .lineLimit(1)
             }
 
@@ -554,10 +592,14 @@ private struct SMSGenericAttachmentCard: View {
 
             Text("In thread")
                 .font(.caption2)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(themeManager.palette.secondaryText)
         }
         .padding(12)
-        .background(Color(uiColor: .secondarySystemBackground))
+        .background(themeManager.palette.cardBackground)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(themeManager.palette.border, lineWidth: 1)
+        )
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 

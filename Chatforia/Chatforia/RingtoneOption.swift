@@ -3,50 +3,36 @@ import Foundation
 struct RingtoneOption: Identifiable, Hashable {
     let code: String
     let name: String
-    let tier: OptionTier
+    let requiredPlan: AppPlan
 
     var id: String { code }
-
-    var isPremium: Bool {
-        tier == .premium
-    }
 }
 
 enum AppRingtones {
     static let all: [RingtoneOption] = [
-        .init(code: "classic", name: "Classic", tier: .free),
-        .init(code: "urgency", name: "Urgency", tier: .free),
+        .init(code: "Classic.mp3", name: "Classic", requiredPlan: .free),
+        .init(code: "Urgency.mp3", name: "Urgency", requiredPlan: .free),
 
-        .init(code: "bells", name: "Bells", tier: .premium),
-        .init(code: "chimes", name: "Chimes", tier: .premium),
-        .init(code: "digital_phone", name: "Digital Phone", tier: .premium),
-        .init(code: "melodic", name: "Melodic", tier: .premium),
-        .init(code: "organ_notes", name: "Organ Notes", tier: .premium),
-        .init(code: "sound_reality", name: "Sound Reality", tier: .premium),
-        .init(code: "street", name: "Street", tier: .premium),
-        .init(code: "universfield", name: "Universfield", tier: .premium)
+        .init(code: "Bells.mp3", name: "Bells", requiredPlan: .premium),
+        .init(code: "Chimes.mp3", name: "Chimes", requiredPlan: .premium),
+        .init(code: "Digital Phone.mp3", name: "Digital Phone", requiredPlan: .premium),
+        .init(code: "Melodic.mp3", name: "Melodic", requiredPlan: .premium),
+        .init(code: "Organ Notes.mp3", name: "Organ Notes", requiredPlan: .premium),
+        .init(code: "Sound Reality.mp3", name: "Sound Reality", requiredPlan: .premium),
+        .init(code: "Street.mp3", name: "Street", requiredPlan: .premium),
+        .init(code: "Universfield.mp3", name: "Universfield", requiredPlan: .premium)
     ]
 
-    static func freeOptions() -> [RingtoneOption] {
-        all.filter { $0.tier == .free }
+    static func isAvailable(_ code: String, for plan: AppPlan) -> Bool {
+        guard let option = all.first(where: { $0.code == code }) else { return false }
+        return plan.canAccess(option.requiredPlan)
     }
 
-    static func premiumOptions() -> [RingtoneOption] {
-        all.filter { $0.tier == .premium }
-    }
-
-    static func available(for plan: AppPlan) -> [RingtoneOption] {
-        if plan.hasPremiumSounds {
-            return all
-        }
-        return freeOptions()
+    static func requiredPlan(for code: String) -> AppPlan {
+        all.first(where: { $0.code == code })?.requiredPlan ?? .free
     }
 
     static func name(for code: String) -> String {
-        all.first(where: { $0.code == code })?.name ?? code.capitalized
-    }
-
-    static func tier(for code: String) -> OptionTier? {
-        all.first(where: { $0.code == code })?.tier
+        all.first(where: { $0.code == code })?.name ?? code
     }
 }

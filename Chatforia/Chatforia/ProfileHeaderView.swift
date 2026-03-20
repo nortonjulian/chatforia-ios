@@ -6,31 +6,41 @@ struct ProfileHeaderView: View {
     let plan: String?
     let avatarUrl: String?
 
+    @EnvironmentObject private var themeManager: ThemeManager
+
     var body: some View {
-        VStack(spacing: 12) {
-            UserAvatarView(
-                avatarUrl: avatarUrl,
-                displayName: username,
-                size: 84,
-                fallbackStyle: .profileDefault
-            )
+        VStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(themeManager.palette.accent.opacity(0.12))
+                    .frame(width: 96, height: 96)
+
+                UserAvatarView(
+                    avatarUrl: avatarUrl,
+                    displayName: username,
+                    size: 84,
+                    fallbackStyle: .profileDefault
+                )
+            }
 
             VStack(spacing: 4) {
                 Text(username)
                     .font(.title3.weight(.semibold))
+                    .foregroundStyle(themeManager.palette.titleAccent)
 
                 Text(displayEmail)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(themeManager.palette.secondaryText)
 
                 if let plan, !plan.isEmpty {
                     Text(plan.capitalized)
                         .font(.caption.weight(.semibold))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(Color.accentColor.opacity(0.12))
+                        .foregroundStyle(themeManager.palette.accent)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(themeManager.palette.accent.opacity(0.14))
                         .clipShape(Capsule())
-                        .padding(.top, 4)
+                        .padding(.top, 6)
                 }
             }
         }

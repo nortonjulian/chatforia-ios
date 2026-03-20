@@ -11,6 +11,8 @@ struct UserAvatarView: View {
     let size: CGFloat
     let fallbackStyle: FallbackStyle
 
+    @EnvironmentObject private var themeManager: ThemeManager
+
     var body: some View {
         Group {
             if let resolvedURL {
@@ -40,7 +42,13 @@ struct UserAvatarView: View {
         .clipShape(Circle())
         .overlay(
             Circle()
-                .stroke(Color.black.opacity(0.06), lineWidth: 0.5)
+                .stroke(themeManager.palette.accent.opacity(0.25), lineWidth: 1)
+        )
+        .shadow(
+            color: themeManager.palette.accent.opacity(0.15),
+            radius: 6,
+            x: 0,
+            y: 2
         )
         .accessibilityLabel("\(displayName) avatar")
     }
@@ -69,7 +77,7 @@ struct UserAvatarView: View {
 
         return components.url
     }
-    
+
     @ViewBuilder
     private var fallbackView: some View {
         switch fallbackStyle {
@@ -95,21 +103,22 @@ struct UserAvatarView: View {
 
     private var placeholderView: some View {
         Circle()
-            .fill(Color(uiColor: .systemGray5))
+            .fill(themeManager.palette.cardBackground)
             .overlay(
                 ProgressView()
                     .scaleEffect(0.8)
+                    .tint(themeManager.palette.accent)
             )
     }
 
     private var initialsView: some View {
         Circle()
-            .fill(Color.accentColor.opacity(0.14))
+            .fill(themeManager.palette.accent.opacity(0.14))
             .overlay(
                 Text(initialsText)
                     .font(initialsFont)
                     .fontWeight(.semibold)
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(themeManager.palette.accent)
             )
     }
 

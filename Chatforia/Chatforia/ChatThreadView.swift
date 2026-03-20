@@ -16,6 +16,8 @@ struct ChatThreadView: View {
     @State private var showPhotoPicker = false
 
     @SwiftUI.Environment(\.scenePhase) private var scenePhase: ScenePhase
+    
+    @EnvironmentObject var themeManager: ThemeManager
 
     var body: some View {
         baseContent
@@ -55,6 +57,7 @@ struct ChatThreadView: View {
 
             composer
         }
+        .background(themeManager.palette.screenBackground.ignoresSafeArea())
     }
 
     private var errorBanner: some View {
@@ -128,13 +131,14 @@ struct ChatThreadView: View {
                 TypingIndicatorView(text: typingIndicatorText(vm.typingUsernames))
                     .padding(.horizontal, 8)
                     .padding(.bottom, 4)
-                    .background(Color(uiColor: .systemBackground))
+                    .background(themeManager.palette.screenBackground)
+                    .foregroundStyle(themeManager.palette.secondaryText)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
         .animation(.easeInOut(duration: 0.2), value: vm.typingUsernames)
     }
-
+    
     private var composer: some View {
         MessageComposerView(
             draft: $draft,

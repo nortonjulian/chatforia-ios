@@ -2,6 +2,8 @@ import SwiftUI
 
 struct WirelessHomeView: View {
     @EnvironmentObject var auth: AuthStore
+    @EnvironmentObject private var themeManager: ThemeManager
+
     @State private var selectedScope: EsimScope = .local
     @State private var quotes: [PricingProduct: PricingQuote] = [:]
 
@@ -16,7 +18,7 @@ struct WirelessHomeView: View {
             }
             .padding()
         }
-        .background(Color(uiColor: .systemGroupedBackground))
+        .background(themeManager.palette.screenBackground)
         .navigationTitle("Wireless")
         .navigationBarTitleDisplayMode(.inline)
         .task(id: selectedScope) {
@@ -29,10 +31,11 @@ struct WirelessHomeView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Stay connected when you’re traveling or away from Wi-Fi.")
                     .font(.headline)
+                    .foregroundStyle(themeManager.palette.primaryText)
 
                 Text("Choose a one-time eSIM data pack for Local, Europe, or Global coverage.")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(themeManager.palette.secondaryText)
             }
             .padding(.vertical, 8)
         }
@@ -50,11 +53,11 @@ struct WirelessHomeView: View {
 
                 Text(selectedScope.subtitle)
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(themeManager.palette.secondaryText)
 
                 Text("We don’t sell data packs under 3 GB.")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(themeManager.palette.secondaryText)
             }
             .padding(.vertical, 8)
         }
@@ -73,13 +76,15 @@ struct WirelessHomeView: View {
             VStack(alignment: .leading, spacing: 14) {
                 Text(pack.displayDataAmount)
                     .font(.title3.weight(.semibold))
+                    .foregroundStyle(themeManager.palette.primaryText)
 
                 Text(priceLabel(for: pack))
                     .font(.title3.bold())
+                    .foregroundStyle(themeManager.palette.primaryText)
 
                 Text(pack.description)
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(themeManager.palette.secondaryText)
 
                 VStack(alignment: .leading, spacing: 10) {
                     featureRow("Instant eSIM activation on supported devices")
@@ -92,10 +97,23 @@ struct WirelessHomeView: View {
                 } label: {
                     Text("Get this data pack")
                         .font(.headline)
+                        .foregroundStyle(themeManager.palette.buttonForeground)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
+                        .background(
+                            LinearGradient(
+                                colors: [
+                                    themeManager.palette.buttonStart,
+                                    themeManager.palette.buttonEnd
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .shadow(color: themeManager.palette.buttonEnd.opacity(0.28), radius: 10, x: 0, y: 4)
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.plain)
             }
             .padding(.vertical, 8)
         }
@@ -104,25 +122,13 @@ struct WirelessHomeView: View {
     private var actionsSection: some View {
         SectionCardView(title: "Manage") {
             VStack(spacing: 12) {
-                Button {
+                ThemedOutlineButton(title: "Manage Wireless") {
                     handleManageWirelessTapped()
-                } label: {
-                    Text("Manage Wireless")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
                 }
-                .buttonStyle(.bordered)
 
-                Button {
+                ThemedOutlineButton(title: "Port My Number") {
                     handlePortNumberTapped()
-                } label: {
-                    Text("Port My Number")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
                 }
-                .buttonStyle(.bordered)
             }
             .padding(.vertical, 8)
         }
@@ -131,7 +137,7 @@ struct WirelessHomeView: View {
     private var disclaimerSection: some View {
         Text("eSIM data packs require an eSIM-compatible and unlocked device. Availability varies by phone model, carrier, and country. Coverage and speeds vary by region.")
             .font(.caption)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(themeManager.palette.secondaryText)
             .multilineTextAlignment(.leading)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.top, 4)
@@ -140,10 +146,11 @@ struct WirelessHomeView: View {
     private func featureRow(_ text: String) -> some View {
         HStack(spacing: 10) {
             Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(.green)
+                .foregroundStyle(themeManager.palette.accent)
 
             Text(text)
                 .font(.body)
+                .foregroundStyle(themeManager.palette.primaryText)
 
             Spacer()
         }
@@ -195,5 +202,6 @@ struct WirelessHomeView: View {
     NavigationStack {
         WirelessHomeView()
             .environmentObject(AuthStore())
+            .environmentObject(ThemeManager())
     }
 }

@@ -7,6 +7,8 @@ struct ChatListRowView: View {
     let unreadCount: Int
     var isPinned: Bool = false
 
+    @EnvironmentObject private var themeManager: ThemeManager
+
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             avatar
@@ -15,12 +17,13 @@ struct ChatListRowView: View {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text(title)
                         .font(.headline)
+                        .foregroundStyle(themeManager.palette.primaryText)
                         .lineLimit(1)
 
                     if isPinned {
                         Image(systemName: "pin.fill")
                             .font(.caption2)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(themeManager.palette.secondaryText)
                     }
 
                     Spacer(minLength: 8)
@@ -28,7 +31,7 @@ struct ChatListRowView: View {
                     if !timestamp.isEmpty {
                         Text(timestamp)
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(themeManager.palette.secondaryText)
                             .lineLimit(1)
                     }
                 }
@@ -36,7 +39,7 @@ struct ChatListRowView: View {
                 HStack(alignment: .center, spacing: 8) {
                     Text(subtitle)
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(themeManager.palette.secondaryText)
                         .lineLimit(2)
 
                     Spacer(minLength: 8)
@@ -46,17 +49,23 @@ struct ChatListRowView: View {
             }
             .padding(.vertical, 4)
         }
+        .padding(.vertical, 6)
         .contentShape(Rectangle())
+        .listRowBackground(themeManager.palette.cardBackground)
     }
 
     private var avatar: some View {
         Circle()
-            .fill(Color.accentColor.opacity(0.14))
+            .fill(themeManager.palette.accent.opacity(0.14))
             .frame(width: 44, height: 44)
+            .overlay(
+                Circle()
+                    .stroke(themeManager.palette.border.opacity(0.8), lineWidth: 1)
+            )
             .overlay(
                 Text(initials)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(themeManager.palette.accent)
             )
     }
 

@@ -1,17 +1,21 @@
 import SwiftUI
 
-struct UnreadBadgeView: View {
-    let count: Int
+struct ThemedGradientButton: View {
+    let title: String
+    let action: () -> Void
+    var horizontalPadding: CGFloat = 18
+    var verticalPadding: CGFloat = 10
+    var font: Font = .subheadline.weight(.semibold)
 
     @EnvironmentObject private var themeManager: ThemeManager
 
     var body: some View {
-        if count > 0 {
-            Text(count > 99 ? "99+" : "\(count)")
-                .font(.caption2.weight(.bold))
+        Button(action: action) {
+            Text(title)
+                .font(font)
                 .foregroundStyle(themeManager.palette.buttonForeground)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 5)
+                .padding(.horizontal, horizontalPadding)
+                .padding(.vertical, verticalPadding)
                 .background(
                     LinearGradient(
                         colors: [
@@ -23,6 +27,8 @@ struct UnreadBadgeView: View {
                     )
                 )
                 .clipShape(Capsule())
+                .shadow(color: themeManager.palette.buttonEnd.opacity(0.28), radius: 10, x: 0, y: 4)
         }
+        .buttonStyle(.plain)
     }
 }

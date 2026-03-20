@@ -6,7 +6,7 @@ final class SettingsViewModel: ObservableObject {
     @Published var preferredLanguage: String = "en"
     @Published var autoTranslate: Bool = false
     @Published var showOriginalWithTranslation: Bool = false
-    @Published var theme: String = "midnight"
+    @Published var theme: String = "dawn"
     @Published var allowExplicitContent: Bool = false
     @Published var showReadReceipts: Bool = false
     @Published var autoDeleteSeconds: Int = 0
@@ -29,16 +29,16 @@ final class SettingsViewModel: ObservableObject {
     @Published var isSaving = false
     @Published var saveError: String?
     @Published var saveSuccessMessage: String?
-    
-    @Published var messageTone: String = "default"
-    @Published var ringtone: String = "classic"
+
+    @Published var messageTone: String = "Default.mp3"
+    @Published var ringtone: String = "Classic.mp3"
     @Published var soundVolume: Int = 70
 
     func load(from user: UserDTO) {
         preferredLanguage = user.preferredLanguage ?? "en"
         autoTranslate = user.autoTranslate ?? false
         showOriginalWithTranslation = user.showOriginalWithTranslation ?? false
-        theme = user.theme ?? "midnight"
+        theme = user.theme ?? "dawn"
         allowExplicitContent = user.allowExplicitContent ?? false
         showReadReceipts = user.showReadReceipts ?? false
         autoDeleteSeconds = user.autoDeleteSeconds ?? 0
@@ -58,10 +58,11 @@ final class SettingsViewModel: ObservableObject {
         voicemailForwardEmail = user.voicemailForwardEmail ?? (user.email ?? "")
         voicemailGreetingText = user.voicemailGreetingText ?? ""
 
-        messageTone = user.messageTone ?? "default"
-        ringtone = user.ringtone ?? "classic"
+        messageTone = normalizedMessageTone(user.messageTone)
+        ringtone = normalizedRingtone(user.ringtone)
         soundVolume = user.soundVolume ?? 70
     }
+
     func makeRequest() -> UserSettingsUpdateRequest {
         UserSettingsUpdateRequest(
             preferredLanguage: preferredLanguage,
@@ -84,8 +85,63 @@ final class SettingsViewModel: ObservableObject {
             voicemailForwardEmail: voicemailForwardEmail,
             voicemailGreetingText: voicemailGreetingText,
             messageTone: messageTone,
-            ringtone: ringtone,
-            soundVolume: soundVolume
+            ringtone: ringtone
         )
+    }
+
+    private func normalizedMessageTone(_ value: String?) -> String {
+        switch value?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case "default", "default.mp3":
+            return "Default.mp3"
+        case "vibrate", "vibrate.mp3":
+            return "Vibrate.mp3"
+        case "dreamer", "dreamer.mp3":
+            return "Dreamer.mp3"
+        case "happy_message", "happy_message.mp3", "happy message.mp3":
+            return "Happy Message.mp3"
+        case "notify", "notify.mp3":
+            return "Notify.mp3"
+        case "pop", "pop.mp3":
+            return "Pop.mp3"
+        case "pulsating_sound", "pulsating_sound.mp3", "pulsating sound.mp3":
+            return "Pulsating Sound.mp3"
+        case "text_message", "text_message.mp3", "text message.mp3":
+            return "Text Message.mp3"
+        case "xylophone", "xylophone.mp3":
+            return "Xylophone.mp3"
+        case .none:
+            return "Default.mp3"
+        default:
+            return "Default.mp3"
+        }
+    }
+
+    private func normalizedRingtone(_ value: String?) -> String {
+        switch value?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case "classic", "classic.mp3":
+            return "Classic.mp3"
+        case "urgency", "urgency.mp3":
+            return "Urgency.mp3"
+        case "bells", "bells.mp3":
+            return "Bells.mp3"
+        case "chimes", "chimes.mp3":
+            return "Chimes.mp3"
+        case "digital_phone", "digital_phone.mp3", "digital phone.mp3":
+            return "Digital Phone.mp3"
+        case "melodic", "melodic.mp3":
+            return "Melodic.mp3"
+        case "organ_notes", "organ_notes.mp3", "organ notes.mp3":
+            return "Organ Notes.mp3"
+        case "sound_reality", "sound_reality.mp3", "sound reality.mp3":
+            return "Sound Reality.mp3"
+        case "street", "street.mp3":
+            return "Street.mp3"
+        case "universfield", "universfield.mp3":
+            return "Universfield.mp3"
+        case .none:
+            return "Classic.mp3"
+        default:
+            return "Classic.mp3"
+        }
     }
 }

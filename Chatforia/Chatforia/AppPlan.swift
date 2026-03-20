@@ -36,15 +36,9 @@ enum AppPlan: String, CaseIterable {
         rank >= requiredPlan.rank
     }
 
-    var hasPremiumCustomization: Bool {
-        canAccess(.premium)
-    }
-
-    var hasPremiumSounds: Bool {
-        canAccess(.premium)
-    }
-
-    var canManageBilling: Bool {
-        canAccess(.plus)
-    }
+    var hasPremiumCustomization: Bool { canAccess(.premium) }
+    var hasPremiumSounds: Bool { canAccess(.premium) }
+    var canManageBilling: Bool { canAccess(.plus) }
+    var canUseForwarding: Bool { canAccess(.plus) }
+    var canUseAITools: Bool { canAccess(.premium) }
 }

@@ -6,31 +6,31 @@ struct MessageBubbleView: View {
     let isGroupedWithPrevious: Bool
     let isGroupedWithNext: Bool
 
+    @EnvironmentObject private var themeManager: ThemeManager
+
     var body: some View {
         content
             .font(.body)
-            .foregroundStyle(isMe ? .white : .primary)
+            .foregroundStyle(isMe ? themeManager.palette.bubbleOutgoingText : themeManager.palette.bubbleIncomingText)
             .multilineTextAlignment(.leading)
             .padding(.horizontal, 14)
             .padding(.vertical, 9)
             .background(
                 bubbleShape
-                    .fill(bubbleColor)
+                    .fill(bubbleFill)
             )
             .overlay {
-                if isMe {
-                    bubbleShape
-                        .stroke(Color(red: 0.03, green: 0.45, blue: 0.90).opacity(0.22), lineWidth: 0.35)
-                } else {
-                    bubbleShape
-                        .stroke(borderColor, lineWidth: 0.5)
-                }
+                bubbleShape
+                    .stroke(
+                        isMe ? themeManager.palette.bubbleOutgoingEnd.opacity(0.15) : themeManager.palette.border.opacity(0.85),
+                        lineWidth: isMe ? 0.4 : 0.8
+                    )
             }
             .shadow(
-                color: isMe ? .clear : Color.black.opacity(0.03),
-                radius: isMe ? 0 : 1,
+                color: isMe ? themeManager.palette.bubbleOutgoingEnd.opacity(0.18) : .clear,
+                radius: isMe ? 6 : 0,
                 x: 0,
-                y: 1
+                y: 3
             )
     }
 
@@ -42,14 +42,26 @@ struct MessageBubbleView: View {
         )
     }
 
-    private var bubbleColor: Color {
-        isMe
-            ? Color(red: 0.05, green: 0.52, blue: 0.98)
-            : Color(uiColor: .systemGray6)
-    }
-
-    private var borderColor: Color {
-        Color.black.opacity(0.055)
+    private var bubbleFill: LinearGradient {
+        if isMe {
+            return LinearGradient(
+                colors: [
+                    themeManager.palette.bubbleOutgoingStart,
+                    themeManager.palette.bubbleOutgoingEnd
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        } else {
+            return LinearGradient(
+                colors: [
+                    themeManager.palette.bubbleIncoming,
+                    themeManager.palette.bubbleIncoming
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
     }
 
     @ViewBuilder
@@ -57,7 +69,7 @@ struct MessageBubbleView: View {
         if msg.deletedForAll == true {
             Text("This message was deleted")
                 .italic()
-                .foregroundStyle(isMe ? Color.white.opacity(0.82) : .secondary)
+                .foregroundStyle(isMe ? themeManager.palette.bubbleOutgoingText.opacity(0.82) : themeManager.palette.secondaryText)
         } else if let translated = msg.translatedForMe,
                   !translated.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             Text(translated)
@@ -67,7 +79,7 @@ struct MessageBubbleView: View {
         } else if msg.contentCiphertext != nil, msg.encryptedKeyForMe != nil {
             DecryptMessageTextView(
                 msg: msg,
-                fallbackColor: isMe ? Color.white.opacity(0.82) : .secondary
+                fallbackColor: isMe ? themeManager.palette.bubbleOutgoingText.opacity(0.82) : themeManager.palette.secondaryText
             )
         } else if msg.contentCiphertext != nil {
             Text("🔒 Encrypted message")
@@ -77,7 +89,7 @@ struct MessageBubbleView: View {
                     .font(.subheadline.weight(.semibold))
                 Text("\(attachments.count) file\(attachments.count == 1 ? "" : "s")")
                     .font(.caption)
-                    .foregroundStyle(isMe ? Color.white.opacity(0.82) : .secondary)
+                    .foregroundStyle(isMe ? themeManager.palette.bubbleOutgoingText.opacity(0.82) : themeManager.palette.secondaryText)
             }
         } else {
             Text("—")

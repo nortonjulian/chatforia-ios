@@ -23,8 +23,7 @@ struct UserSettingsUpdateRequest: Encodable {
     let voicemailAutoDeleteDays: Int?
     let voicemailForwardEmail: String
     let voicemailGreetingText: String
-    
+
     let messageTone: String?
     let ringtone: String?
-    let soundVolume: Int?
 }

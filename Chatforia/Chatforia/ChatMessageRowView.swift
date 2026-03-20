@@ -23,6 +23,7 @@ struct ChatMessageRowView: View {
     let onBubbleTap: () -> Void
     let bubbleMaxWidth: CGFloat
 
+    @EnvironmentObject private var themeManager: ThemeManager
     @State private var didAppear = false
 
     var body: some View {
@@ -47,7 +48,7 @@ struct ChatMessageRowView: View {
                 if showSenderName && !isMe {
                     Text(senderDisplayName)
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(themeManager.palette.secondaryText)
                         .padding(.horizontal, 2)
                 }
 
@@ -148,7 +149,7 @@ struct ChatMessageRowView: View {
     private var timestampView: some View {
         Text(timestampText)
             .font(.caption2)
-            .foregroundColor(.secondary)
+            .foregroundStyle(themeManager.palette.secondaryText)
             .padding(.horizontal, 4)
     }
 
@@ -161,9 +162,14 @@ struct ChatMessageRowView: View {
                     Text("\(pair.value)")
                 }
                 .font(.caption)
+                .foregroundStyle(themeManager.palette.primaryText)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
-                .background(Color(uiColor: .tertiarySystemBackground))
+                .background(themeManager.palette.cardBackground)
+                .overlay(
+                    Capsule()
+                        .stroke(themeManager.palette.border.opacity(0.8), lineWidth: 1)
+                )
                 .clipShape(Capsule())
             }
         }
@@ -184,14 +190,14 @@ struct ChatMessageRowView: View {
                     }) {
                         Text(text)
                             .font(.caption2)
-                            .foregroundColor(resolvedReceiptColor)
+                            .foregroundStyle(resolvedReceiptColor)
                             .lineLimit(1)
                     }
                     .buttonStyle(.plain)
                 } else {
                     Text(text)
                         .font(.caption2)
-                        .foregroundColor(resolvedReceiptColor)
+                        .foregroundStyle(resolvedReceiptColor)
                         .lineLimit(1)
                 }
             }
@@ -365,7 +371,7 @@ struct ChatMessageRowView: View {
         case .failed:
             return .red
         case .pending, .sending, .sent, .delivered, .read, .none:
-            return .secondary
+            return themeManager.palette.secondaryText
         }
     }
 }
