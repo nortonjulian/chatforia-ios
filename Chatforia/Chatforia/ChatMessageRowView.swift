@@ -19,6 +19,7 @@ struct ChatMessageRowView: View {
     let onReceiptTap: (() -> Void)?
     let onEdit: (() -> Void)?
     let onDelete: (() -> Void)?
+    let onReport: (() -> Void)?
     let isTimestampVisible: Bool
     let onBubbleTap: () -> Void
     let bubbleMaxWidth: CGFloat
@@ -42,6 +43,12 @@ struct ChatMessageRowView: View {
 
             if isMe {
                 Spacer(minLength: 50)
+            }
+            
+            if !isMe {
+                Button("Report", systemImage: "flag") {
+                    onReport?()
+                }
             }
 
             VStack(alignment: isMe ? .trailing : .leading, spacing: 4) {

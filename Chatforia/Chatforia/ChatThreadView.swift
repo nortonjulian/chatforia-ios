@@ -14,6 +14,12 @@ struct ChatThreadView: View {
     @State private var isPreparingImageSend = false
     
     @State private var showPhotoPicker = false
+    
+    @State private var reportingMessage: MessageDTO? = nil
+    @State private var reportReason: ReportReason = .harassment
+    @State private var reportContextCount: Int = 10
+    @State private var reportDetails: String = ""
+    @State private var blockAfterReport: Bool = true
 
     @SwiftUI.Environment(\.scenePhase) private var scenePhase: ScenePhase
     
@@ -43,6 +49,43 @@ struct ChatThreadView: View {
             }
             .onReceive(SocketManager.shared.$isConnected) { connected in
                 handleSocketConnectionChange(connected)
+            }
+            .sheet(item: $reportingMessage) { msg in
+                ReportMessageSheet(
+                    targetMessage: msg,
+                    senderName: msg.sender.username ?? "Unknown user",
+                    previewText: bestPlaintextForReport(msg),
+                    isSubmitting: vm.isSubmittingReport,
+                    errorText: vm.reportErrorText,
+                    reason: $reportReason,
+                    contextCount: $reportContextCount,
+                    details: $reportDetails,
+                    blockAfterReport: $blockAfterReport,
+                    onCancel: {
+                        reportingMessage = nil
+                        vm.reportErrorText = nil
+                    },
+                    onSubmit: {
+                        Task {
+                            let ok = await vm.submitReport(
+                                targetMessage: msg,
+                                roomId: room.id,
+                                reason: reportReason,
+                                details: reportDetails,
+                                contextCount: reportContextCount,
+                                blockAfterReport: blockAfterReport,
+                                token: TokenStore.shared.read()
+                            )
+                            if ok {
+                                reportingMessage = nil
+                                reportDetails = ""
+                                reportReason = .harassment
+                                reportContextCount = 10
+                                blockAfterReport = true
+                            }
+                        }
+                    }
+                )
             }
     }
 
@@ -87,6 +130,15 @@ struct ChatThreadView: View {
 
         let editHandler: (MessageDTO) -> Void = { _ in }
         let deleteHandler: (MessageDTO) -> Void = { _ in }
+        
+        let reportHandler: (MessageDTO) -> Void = { msg in
+            reportingMessage = msg
+            reportReason = .harassment
+            reportContextCount = 10
+            reportDetails = ""
+            blockAfterReport = true
+            vm.reportErrorText = nil
+        }
         
         return Group {
             if vm.isLoading && vm.messages.isEmpty {
@@ -168,6 +220,20 @@ struct ChatThreadView: View {
                 await loadAndSendSelectedPhoto(from: newItem)
             }
         }
+    }
+    
+    private func bestPlaintextForReport(_ msg: MessageDTO) -> String {
+        if let translated = msg.translatedForMe,
+           !translated.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return translated
+        }
+
+        if let raw = msg.rawContent,
+           !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return raw
+        }
+
+        return ""
     }
     
     private func loadAndSendSelectedPhoto(from item: PhotosPickerItem) async {

@@ -98,6 +98,10 @@ struct MessageEnvelope: Decodable {
     var message: MessageDTO? { item ?? shaped }
 }
 
+struct BlockUserRequest: Encodable {
+    let targetUserId: Int
+}
+
 @MainActor
 final class ChatThreadViewModel: ObservableObject {
     @Published var messages: [MessageDTO] = []
@@ -106,6 +110,9 @@ final class ChatThreadViewModel: ObservableObject {
     @Published var isLoadingOlder: Bool = false
     @Published var typingUsernames: [String] = []
     @Published var isSendingImage: Bool = false
+    
+    @Published var isSubmittingReport: Bool = false
+    @Published var reportErrorText: String?
 
     @Published private(set) var nowTick: Date = Date()
     private var expiryTask: Task<Void, Never>?
@@ -185,6 +192,7 @@ final class ChatThreadViewModel: ObservableObject {
             UserDefaults.standard.set(id, forKey: "chatforia.currentUserId")
         }
     }
+    
 
     private func refreshFromMessageStore() {
         guard let roomId = self.roomId else { return }
@@ -822,6 +830,116 @@ final class ChatThreadViewModel: ObservableObject {
 
     private func persistLastServerMessageId(_ id: Int, roomId: Int) {
         UserDefaults.standard.set(id, forKey: keyForLastId(roomId))
+    }
+    
+    private func bestPlaintext(for msg: MessageDTO) -> String {
+        if let translated = msg.translatedForMe, !translated.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return translated
+        }
+        if let raw = msg.rawContent, !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return raw
+        }
+        return ""
+    }
+
+    private func isoString(_ date: Date?) -> String? {
+        guard let date else { return nil }
+        return ISO8601DateFormatter().string(from: date)
+    }
+    
+    func submitReport(
+        targetMessage: MessageDTO,
+        roomId: Int,
+        reason: ReportReason,
+        details: String,
+        contextCount: Int,
+        blockAfterReport: Bool,
+        token: String?
+    ) async -> Bool {
+        guard let token, !token.isEmpty else {
+            reportErrorText = "Missing auth token."
+            return false
+        }
+
+        reportErrorText = nil
+        isSubmittingReport = true
+        defer { isSubmittingReport = false }
+
+        guard let targetIndex = messages.firstIndex(where: { $0.id == targetMessage.id }) else {
+            reportErrorText = "Could not find the selected message."
+            return false
+        }
+
+        let startIndex = max(0, targetIndex - max(0, contextCount))
+        let contextMessages = Array(messages[startIndex...targetIndex])
+
+        let evidence = contextMessages.map { msg in
+            ReportEvidenceMessage(
+                messageId: msg.id,
+                senderId: msg.sender.id,
+                createdAt: isoString(msg.createdAt),
+                plaintext: bestPlaintext(for: msg),
+                translatedForMe: msg.translatedForMe,
+                rawContent: msg.rawContent,
+                content: nil,
+                contentCiphertext: msg.contentCiphertext,
+                encryptedKeyForMe: msg.encryptedKeyForMe,
+                attachments: (msg.attachments ?? []).map {
+                    ReportAttachmentPayload(
+                        id: $0.id,
+                        kind: $0.kind,
+                        url: $0.url,
+                        mimeType: $0.mimeType,
+                        width: $0.width,
+                        height: $0.height,
+                        durationSec: $0.durationSec,
+                        caption: $0.caption,
+                        thumbUrl: $0.thumbUrl
+                    )
+                },
+                deletedForAll: msg.deletedForAll ?? false,
+                editedAt: isoString(msg.editedAt)
+            )
+        }
+
+        let payload = ReportMessageRequest(
+            messageId: targetMessage.id,
+            chatRoomId: roomId,
+            reportedUserId: targetMessage.sender.id,
+            reason: reason.rawValue,
+            details: details.trimmingCharacters(in: .whitespacesAndNewlines),
+            blockAfterReport: blockAfterReport,
+            messages: evidence,
+            clientMetadata: ReportClientMetadata(
+                platform: "ios",
+                locale: Locale.current.identifier
+            )
+        )
+
+        do {
+            _ = try await ReportService.shared.submitReport(payload, token: token)
+
+            if blockAfterReport {
+                let blockBody = try JSONEncoder().encode(
+                    BlockUserRequest(targetUserId: targetMessage.sender.id)
+                )
+
+                let _: JSONValue? = try? await APIClient.shared.send(
+                    APIRequest(
+                        path: "blocks",
+                        method: .POST,
+                        body: blockBody,
+                        requiresAuth: true
+                    ),
+                    token: token
+                )
+            }
+
+            return true
+        } catch {
+            reportErrorText = "Failed to submit report."
+            return false
+        }
     }
 
     func handleInputChanged(roomId: Int) {
