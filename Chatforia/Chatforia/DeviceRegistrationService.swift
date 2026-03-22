@@ -75,4 +75,35 @@ final class DeviceRegistrationService {
             print("⚠️ device heartbeat failed:", error)
         }
     }
+
+    func registerPushToken(_ pushToken: String, token: String) async throws {
+        struct RegisterPushTokenRequest: Encodable {
+            let deviceId: String
+            let pushToken: String
+            let pushProvider: String
+        }
+
+        struct RegisterPushTokenResponse: Decodable {
+            let success: Bool?
+            let device: DeviceDTO?
+        }
+
+        let body = try JSONEncoder().encode(
+            RegisterPushTokenRequest(
+                deviceId: DeviceKeyManager.shared.getOrCreateDeviceId(),
+                pushToken: pushToken,
+                pushProvider: "apns"
+            )
+        )
+
+        let _: RegisterPushTokenResponse = try await APIClient.shared.send(
+            APIRequest(
+                path: "devices/push-token",
+                method: .POST,
+                body: body,
+                requiresAuth: true
+            ),
+            token: token
+        )
+    }
 }

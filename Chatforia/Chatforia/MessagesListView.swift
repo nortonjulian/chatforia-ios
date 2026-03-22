@@ -20,6 +20,7 @@ struct MessagesListView: View {
     let onRetryTap: (MessageDTO) -> Void
     let onEdit: (MessageDTO) -> Void
     let onDelete: (MessageDTO) -> Void
+    let onReport: (MessageDTO) -> Void
 
     @Binding var lastMessageId: Int?
     @State private var expandedTimestampMessageId: Int?
@@ -71,7 +72,7 @@ struct MessagesListView: View {
                                 .padding(.vertical, 8)
                         }
 
-                        ForEach(sortedMessages.indices, id: \.self) { index in
+                        ForEach(Array(sortedMessages.enumerated()), id: \.element.id) { index, _ in
                             messageRow(at: index, bubbleMaxWidth: bubbleMaxWidth)
                         }
 
@@ -166,6 +167,10 @@ struct MessagesListView: View {
             groupedWithPrevious: groupedWithPrevious,
             groupedWithNext: groupedWithNext
         )
+        
+        let showAvatar = !isMe && !groupedWithNext
+        let showSenderName = isGroupRoom && !isMe && !groupedWithPrevious
+        let isTimestampVisible = expandedTimestampMessageId == msg.id
 
         if shouldShowDateSeparator(previous: previous, current: msg) {
             DateSeparatorView(date: msg.createdAt)
@@ -178,26 +183,23 @@ struct MessagesListView: View {
             isMe: isMe,
             isGroupRoom: isGroupRoom,
             groupPosition: groupPosition,
-            showAvatar: !isMe && (groupPosition == .single || groupPosition == .bottom),
-            showSenderName: isGroupRoom && !isMe && (groupPosition == .single || groupPosition == .top),
+            showAvatar: showAvatar,
+            showSenderName: showSenderName,
             deliveryState: deliveryStateForMessage(msg),
             onRetryTap: { onRetryTap(msg) },
             onReceiptTap: {
-                guard isMe else { return }
-                guard let readBy = msg.readBy, !readBy.isEmpty else { return }
                 selectedReceiptMessage = msg
             },
             onEdit: { onEdit(msg) },
             onDelete: { onDelete(msg) },
-            isTimestampVisible: expandedTimestampMessageId == msg.id,
+            onReport: { onReport(msg) },
+            isTimestampVisible: isTimestampVisible,
             onBubbleTap: {
-                withAnimation(.easeInOut(duration: 0.18)) {
-                    expandedTimestampMessageId = (expandedTimestampMessageId == msg.id) ? nil : msg.id
-                }
+                expandedTimestampMessageId = (expandedTimestampMessageId == msg.id ? nil : msg.id)
             },
             bubbleMaxWidth: bubbleMaxWidth
         )
-        .id(msg.id)
+        .id(rowRenderKey(for: msg))
         .transition(
             .asymmetric(
                 insertion: .move(edge: .bottom)
@@ -206,6 +208,14 @@ struct MessagesListView: View {
                 removal: .opacity
             )
         )
+    }
+    
+    private func rowRenderKey(for msg: MessageDTO) -> String {
+        let edited = msg.editedAt?.timeIntervalSince1970 ?? 0
+        let revision = msg.revision ?? 0
+        let raw = msg.rawContent ?? ""
+        let translated = msg.translatedForMe ?? ""
+        return "\(msg.id)|\(revision)|\(edited)|\(raw)|\(translated)"
     }
 
     private func triggerLoadOlderIfNeeded() {

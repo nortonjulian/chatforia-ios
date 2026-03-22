@@ -3,7 +3,17 @@ import SwiftUI
 struct ChatsRootView: View {
     @EnvironmentObject var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var vm = ChatsViewModel()
+
+    @State private var showingStartChat = false
+    @State private var selectedRoom: ChatRoomDTO? = nil
+    @State private var showSelectedRoom = false
+    @State private var selectedSMSConversation: ConversationDTO? = nil
+    @State private var showSelectedSMS = false
+
+    @State private var showDeleteConfirm = false
+    @State private var pendingConversation: ConversationDTO?
 
     var body: some View {
         NavigationStack {
@@ -44,7 +54,7 @@ struct ChatsRootView: View {
                         EmptyStateView(
                             systemImage: "bubble.left.and.bubble.right",
                             title: "No chats yet",
-                            subtitle: "Your conversations will show up here once you start messaging."
+                            subtitle: "Tap the plus button to start your first conversation."
                         )
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
 
@@ -59,7 +69,7 @@ struct ChatsRootView: View {
                                 .listRowBackground(themeManager.palette.cardBackground)
                             }
 
-                            ForEach(vm.filteredConversations) { conversation in
+                            ForEach(vm.filteredConversations, id: \.uniqueId) { conversation in
                                 NavigationLink {
                                     destinationView(for: conversation)
                                 } label: {
@@ -71,14 +81,42 @@ struct ChatsRootView: View {
                                         isPinned: false
                                     )
                                 }
+                                .swipeActions(edge: .trailing) {
+                                    Button {
+                                        Task {
+                                            let token = TokenStore.shared.read()
+                                            _ = await vm.archiveConversation(conversation, token: token)
+                                        }
+                                    } label: {
+                                        Label("Archive", systemImage: "archivebox")
+                                    }
+                                    .tint(.blue)
+
+                                    Button(role: .destructive) {
+                                        pendingConversation = conversation
+                                        showDeleteConfirm = true
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
                                 .listRowBackground(themeManager.palette.cardBackground)
                             }
                         }
                         .scrollContentBackground(.hidden)
                         .background(Color.clear)
                         .listStyle(.insetGrouped)
-                        .animation(.easeInOut(duration: 0.2), value: vm.filteredConversations.map(\.id))
+                        .animation(.easeInOut(duration: 0.2), value: vm.filteredConversations.map { "\($0.kind)-\($0.id)" })
                     }
+                }
+            }
+            .navigationDestination(isPresented: $showSelectedRoom) {
+                if let room = selectedRoom {
+                    ChatThreadView(room: room)
+                }
+            }
+            .navigationDestination(isPresented: $showSelectedSMS) {
+                if let conversation = selectedSMSConversation {
+                    SMSThreadView(conversation: conversation)
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
@@ -89,7 +127,14 @@ struct ChatsRootView: View {
                         .environmentObject(themeManager)
                 }
 
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button {
+                        showingStartChat = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .foregroundStyle(themeManager.palette.accent)
+
                     Button {
                         Task { await reload() }
                     } label: {
@@ -97,6 +142,37 @@ struct ChatsRootView: View {
                     }
                     .foregroundStyle(themeManager.palette.accent)
                 }
+            }
+            .sheet(isPresented: $showingStartChat) {
+                StartChatView { destination in
+                    switch destination {
+                    case .chat(let room):
+                        selectedRoom = room
+                        showSelectedRoom = true
+
+                    case .sms(let conversation):
+                        selectedSMSConversation = conversation
+                        showSelectedSMS = true
+                    }
+                }
+                .environmentObject(auth)
+                .environmentObject(themeManager)
+            }
+            .alert("Delete Conversation?", isPresented: $showDeleteConfirm) {
+                Button("Delete", role: .destructive) {
+                    if let convo = pendingConversation {
+                        Task {
+                            let token = TokenStore.shared.read()
+                            _ = await vm.deleteConversation(convo, token: token)
+                            pendingConversation = nil
+                        }
+                    }
+                }
+                Button("Cancel", role: .cancel) {
+                    pendingConversation = nil
+                }
+            } message: {
+                Text("This will remove the conversation from your list.")
             }
             .task {
                 await reload()

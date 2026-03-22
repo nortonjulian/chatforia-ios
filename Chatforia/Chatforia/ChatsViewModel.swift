@@ -73,6 +73,71 @@ final class ChatsViewModel: ObservableObject {
             #endif
         }
     }
+    
+    func archiveConversation(_ conversation: ConversationDTO, token: String?) async -> Bool {
+        guard let token, !token.isEmpty else {
+            errorText = "Missing auth token."
+            return false
+        }
+
+        struct ArchiveRequest: Encodable {
+            let archived: Bool
+        }
+
+        do {
+            let body = try JSONEncoder().encode(ArchiveRequest(archived: true))
+
+            let _: EmptyResponse = try await APIClient.shared.send(
+                APIRequest(
+                    path: "conversations/\(conversation.kind.lowercased())/\(conversation.id)/archive",
+                    method: .PATCH,
+                    body: body,
+                    requiresAuth: true
+                ),
+                token: token
+            )
+
+            conversations.removeAll {
+                $0.id == conversation.id &&
+                $0.kind.lowercased() == conversation.kind.lowercased()
+            }
+
+            errorText = nil
+            return true
+        } catch {
+            errorText = "Failed to archive conversation."
+            print("❌ archiveConversation failed:", error)
+            return false
+        }
+    }
+    
+    func deleteConversation(_ conversation: ConversationDTO, token: String?) async {
+        guard let token else {
+            errorText = "Missing auth token."
+            return
+        }
+
+        do {
+            let _: EmptyResponse = try await APIClient.shared.send(
+                APIRequest(
+                    path: "conversations/\(conversation.kind.lowercased())/\(conversation.id)",
+                    method: .DELETE,
+                    requiresAuth: true
+                ),
+                token: token
+            )
+
+            conversations.removeAll {
+                $0.id == conversation.id &&
+                $0.kind.lowercased() == conversation.kind.lowercased()
+            }
+
+            errorText = nil
+        } catch {
+            errorText = "Failed to delete conversation."
+            print("❌ deleteConversation failed:", error)
+        }
+    }
 }
 
 private struct ConversationsResponse: Decodable {

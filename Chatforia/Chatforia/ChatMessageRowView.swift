@@ -33,8 +33,6 @@ struct ChatMessageRowView: View {
         let editAction = onEdit
         let deleteAction = onDelete
 
-        let canShowEdit = false && isEditable && editAction != nil
-        let canShowDelete = false && isEditable && deleteAction != nil
 
         return HStack(alignment: .bottom, spacing: 8) {
             if !isMe {
@@ -43,12 +41,6 @@ struct ChatMessageRowView: View {
 
             if isMe {
                 Spacer(minLength: 50)
-            }
-            
-            if !isMe {
-                Button("Report", systemImage: "flag") {
-                    onReport?()
-                }
             }
 
             VStack(alignment: isMe ? .trailing : .leading, spacing: 4) {
@@ -83,23 +75,41 @@ struct ChatMessageRowView: View {
                     .frame(maxWidth: bubbleMaxWidth, alignment: isMe ? .trailing : .leading)
                     .contentShape(Rectangle())
                     .contextMenu {
-                        if canShowEdit {
-                            Button("Edit", systemImage: "pencil") {
-                                editAction?()
+                        if isMe {
+                            if canEditByRules {
+                                Button("Edit", systemImage: "pencil") {
+                                    print("🟡 Edit tapped for message \(msg.id)")
+                                    editAction?()
+                                }
                             }
-                        }
 
-                        if canShowDelete {
-                            Button(role: .destructive) {
-                                deleteAction?()
-                            } label: {
-                                Label("Delete", systemImage: "trash")
+                            if canDeleteForEveryoneByRules || canDeleteForMeByRules {
+                                Button(role: .destructive) {
+                                    print("🟡 Delete tapped for message \(msg.id)")
+                                    deleteAction?()
+                                } label: {
+                                    Label(deleteMenuTitle, systemImage: "trash")
+                                }
                             }
-                        }
 
-                        if canRetry {
-                            Button("Retry", systemImage: "arrow.clockwise") {
-                                retryAction?()
+                            if canRetry {
+                                Button("Retry", systemImage: "arrow.clockwise") {
+                                    retryAction?()
+                                }
+                            }
+                        } else {
+                            if onReport != nil {
+                                Button("Report", systemImage: "flag") {
+                                    onReport?()
+                                }
+                            }
+
+                            if canDeleteForMeByRules {
+                                Button(role: .destructive) {
+                                    deleteAction?()
+                                } label: {
+                                    Label("Delete for me", systemImage: "trash")
+                                }
                             }
                         }
                     }
@@ -244,6 +254,14 @@ struct ChatMessageRowView: View {
                 .minute()
         )
     }
+    
+    private var deleteMenuTitle: String {
+        if canDeleteForEveryoneByRules {
+            return "Delete"
+        } else {
+            return "Delete for me"
+        }
+    }
 
     private var topPadding: CGFloat {
         switch groupPosition {
@@ -278,10 +296,18 @@ struct ChatMessageRowView: View {
         isMe && !(msg.deletedForAll ?? false)
     }
 
-    private var otherReaders: [UserSummaryDTO] {
-        guard let readBy = msg.readBy else { return [] }
-        return readBy.filter { $0.id != msg.sender.id }
+    private var messageAge: TimeInterval {
+        Date().timeIntervalSince(msg.createdAt)
     }
+
+    private var withinEditWindow: Bool {
+        messageAge <= 15 * 60
+    }
+
+    private var withinDeleteForEveryoneWindow: Bool {
+        messageAge <= 15 * 60
+    }
+
 
     private var visibleAttachments: [AttachmentDTO] {
         (msg.attachments ?? []).filter { attachment in
@@ -307,6 +333,37 @@ struct ChatMessageRowView: View {
         }
         if msg.contentCiphertext != nil { return true }
         return !hasVisibleAttachments
+    }
+
+    
+    private var otherReaders: [UserSummaryDTO] {
+        guard let readBy = msg.readBy else { return [] }
+        return readBy.filter { $0.id != msg.sender.id }
+    }
+
+    private var isPendingOrSending: Bool {
+        deliveryState == .pending || deliveryState == .sending
+    }
+
+    private var canEditByRules: Bool {
+        let result =
+            isMe &&
+            msg.id > 0 &&
+            isEditable &&
+            !isPendingOrSending &&
+            otherReaders.isEmpty &&
+            withinEditWindow
+        return result
+    }
+    
+    private var canDeleteForEveryoneByRules: Bool {
+        guard isMe else { return false }
+        guard !isPendingOrSending else { return false }
+        return withinDeleteForEveryoneWindow
+    }
+
+    private var canDeleteForMeByRules: Bool {
+        true
     }
 
     private var resolvedReceiptText: String? {

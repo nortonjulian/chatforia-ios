@@ -8,41 +8,53 @@ struct ChatThreadView: View {
     @StateObject private var vm = ChatThreadViewModel()
     @State private var draft = ""
     @State private var lastMessageId: Int? = nil
-    
+
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var selectedImageData: Data?
     @State private var isPreparingImageSend = false
-    
+
     @State private var showPhotoPicker = false
-    
+
     @State private var reportingMessage: MessageDTO? = nil
     @State private var reportReason: ReportReason = .harassment
     @State private var reportContextCount: Int = 10
     @State private var reportDetails: String = ""
     @State private var blockAfterReport: Bool = true
 
-    @SwiftUI.Environment(\.scenePhase) private var scenePhase: ScenePhase
-    
+    @State private var editingMessage: MessageDTO? = nil
+    @State private var editDraft: String = ""
+
+    // Step 1: lightweight confirm
+    @State private var confirmDeleteMessage: MessageDTO? = nil
+
+    // Step 2: scope picker
+    @State private var deletingMessage: MessageDTO? = nil
+
+    @State private var pendingEditMessage: MessageDTO? = nil
+    @State private var pendingDeleteMessage: MessageDTO? = nil
+
+    @State private var showDeleteConversationConfirm = false
+
+    @Environment(\.dismiss) private var dismissView
     @EnvironmentObject var themeManager: ThemeManager
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
+        mainContent
+    }
+}
+
+extension ChatThreadView {
+    private var mainContent: some View {
         baseContent
             .navigationTitle(roomDisplayTitle)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                toolbarContent
-            }
+            .toolbar { toolbarContent }
             .task(id: room.id) {
                 await onTaskLoad()
             }
             .onDisappear {
                 onDisappearView()
-            }
-            .onChange(of: currentUserId) { _, _ in
-                syncCurrentUser()
-            }
-            .onChange(of: currentUsername) { _, _ in
-                syncCurrentUser()
             }
             .onChange(of: scenePhase) { _, newPhase in
                 handleScenePhaseChange(newPhase)
@@ -50,43 +62,214 @@ struct ChatThreadView: View {
             .onReceive(SocketManager.shared.$isConnected) { connected in
                 handleSocketConnectionChange(connected)
             }
+            .onChange(of: pendingEditMessage?.id) { _, _ in
+                guard let msg = pendingEditMessage else { return }
+                print("🟣 presenting edit sheet for \(msg.id)")
+
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.20) {
+                    editDraft = bestEditableText(for: msg)
+                    editingMessage = msg
+                    pendingEditMessage = nil
+                }
+            }
+            .onChange(of: pendingDeleteMessage?.id) { _, _ in
+                guard let msg = pendingDeleteMessage else { return }
+
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    deletingMessage = msg
+                    pendingDeleteMessage = nil
+                }
+            }
+            .modifier(DeleteConversationDialogModifier(
+                showDeleteConversationConfirm: $showDeleteConversationConfirm,
+                onDeleteConversation: {
+                    Task { await deleteConversation() }
+                }
+            ))
+            .modifier(DeleteConfirmDialogModifier(
+                confirmDeleteMessage: $confirmDeleteMessage,
+                pendingDeleteMessage: $pendingDeleteMessage
+            ))
+            .modifier(DeleteOptionsDialogModifier(
+                deletingMessage: $deletingMessage,
+                reportingMessage: $reportingMessage,
+                currentUserId: currentUserId,
+                deliveryState: deliveryState(for:),
+                onDelete: { msg, deleteForEveryone in
+                    let ok = await vm.deleteMessage(
+                        messageId: msg.id,
+                        token: TokenStore.shared.read(),
+                        deleteForEveryone: deleteForEveryone
+                    )
+                    if ok {
+                        deletingMessage = nil
+                    }
+                }
+            ))
             .sheet(item: $reportingMessage) { msg in
-                ReportMessageSheet(
-                    targetMessage: msg,
-                    senderName: msg.sender.username ?? "Unknown user",
-                    previewText: bestPlaintextForReport(msg),
-                    isSubmitting: vm.isSubmittingReport,
-                    errorText: vm.reportErrorText,
-                    reason: $reportReason,
-                    contextCount: $reportContextCount,
-                    details: $reportDetails,
-                    blockAfterReport: $blockAfterReport,
-                    onCancel: {
+                reportSheet(for: msg)
+            }
+            .sheet(item: $editingMessage) { msg in
+                editSheet(for: msg)
+            }
+    }
+
+    private func reportSheet(for msg: MessageDTO) -> some View {
+        ReportMessageSheet(
+            targetMessage: msg,
+            senderName: msg.sender.username ?? "Unknown user",
+            previewText: bestPlaintextForReport(msg),
+            isSubmitting: vm.isSubmittingReport,
+            errorText: vm.reportErrorText,
+            reason: $reportReason,
+            contextCount: $reportContextCount,
+            details: $reportDetails,
+            blockAfterReport: $blockAfterReport,
+            onCancel: {
+                reportingMessage = nil
+                vm.reportErrorText = nil
+            },
+            onSubmit: {
+                Task {
+                    let ok = await vm.submitReport(
+                        targetMessage: msg,
+                        roomId: room.id,
+                        reason: reportReason,
+                        details: reportDetails,
+                        contextCount: reportContextCount,
+                        blockAfterReport: blockAfterReport,
+                        token: TokenStore.shared.read()
+                    )
+                    if ok {
                         reportingMessage = nil
-                        vm.reportErrorText = nil
-                    },
-                    onSubmit: {
+                        reportDetails = ""
+                        reportReason = .harassment
+                        reportContextCount = 10
+                        blockAfterReport = true
+                    }
+                }
+            }
+        )
+    }
+
+    private func editSheet(for msg: MessageDTO) -> some View {
+        let trimmed = editDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        let original = bestEditableText(for: msg).trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return NavigationStack {
+            VStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Update your message")
+                        .font(.subheadline)
+                        .foregroundStyle(themeManager.palette.secondaryText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                ZStack(alignment: .topLeading) {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(themeManager.palette.screenBackground)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .stroke(themeManager.palette.border.opacity(0.9), lineWidth: 1)
+                        )
+
+                    TextEditor(text: $editDraft)
+                        .scrollContentBackground(.hidden)
+                        .background(Color.clear)
+                        .padding(14)
+                        .frame(minHeight: 160, maxHeight: 240)
+                        .foregroundStyle(themeManager.palette.primaryText)
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(16)
+            .background(themeManager.palette.screenBackground.ignoresSafeArea())
+            .navigationTitle("Edit message")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        editingMessage = nil
+                        editDraft = ""
+                    }
+                    .foregroundStyle(themeManager.palette.secondaryText)
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
                         Task {
-                            let ok = await vm.submitReport(
-                                targetMessage: msg,
-                                roomId: room.id,
-                                reason: reportReason,
-                                details: reportDetails,
-                                contextCount: reportContextCount,
-                                blockAfterReport: blockAfterReport,
+                            let ok = await vm.editMessage(
+                                messageId: msg.id,
+                                newText: trimmed,
                                 token: TokenStore.shared.read()
                             )
+
                             if ok {
-                                reportingMessage = nil
-                                reportDetails = ""
-                                reportReason = .harassment
-                                reportContextCount = 10
-                                blockAfterReport = true
+                                editingMessage = nil
+                                editDraft = ""
                             }
                         }
                     }
-                )
+                    .disabled(trimmed.isEmpty || trimmed == original)
+                    .fontWeight(.semibold)
+                }
             }
+        }
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
+    }
+}
+
+extension ChatThreadView {
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItemGroup(placement: .navigationBarTrailing) {
+            Menu {
+                Button {
+                    Task {
+                        let ok = await vm.archiveConversation(
+                            conversationId: room.id,
+                            kind: "chat",
+                            token: TokenStore.shared.read()
+                        )
+                        if ok {
+                            dismissView()
+                        }
+                    }
+                } label: {
+                    Label("Archive", systemImage: "archivebox")
+                }
+
+                Button(role: .destructive) {
+                    showDeleteConversationConfirm = true
+                } label: {
+                    Label("Delete conversation", systemImage: "trash")
+                }
+
+                Divider()
+
+                Button {
+                    Task { await reload() }
+                } label: {
+                    Label("Refresh", systemImage: "arrow.clockwise")
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+            }
+        }
+    }
+
+    private func deleteConversation() async {
+        let success = await vm.deleteConversation(
+            conversationId: room.id,
+            kind: "chat",
+            token: TokenStore.shared.read()
+        )
+
+        if success {
+            dismissView()
+        }
     }
 
     private var baseContent: some View {
@@ -128,9 +311,29 @@ struct ChatThreadView: View {
             SendQueueManager.shared.retryJob(clientMessageId: cid)
         }
 
-        let editHandler: (MessageDTO) -> Void = { _ in }
-        let deleteHandler: (MessageDTO) -> Void = { _ in }
-        
+        let editHandler: (MessageDTO) -> Void = { msg in
+            guard msg.id > 0 else { return }
+            print("🟢 editHandler received \(msg.id)")
+            pendingEditMessage = msg
+        }
+
+        let deleteHandler: (MessageDTO) -> Void = { msg in
+            print("🟢 deleteHandler received \(msg.id)")
+
+            if msg.id <= 0 {
+                Task {
+                    _ = await vm.deleteMessage(
+                        messageId: msg.id,
+                        token: TokenStore.shared.read(),
+                        deleteForEveryone: false
+                    )
+                }
+                return
+            }
+
+            confirmDeleteMessage = msg
+        }
+
         let reportHandler: (MessageDTO) -> Void = { msg in
             reportingMessage = msg
             reportReason = .harassment
@@ -139,7 +342,7 @@ struct ChatThreadView: View {
             blockAfterReport = true
             vm.reportErrorText = nil
         }
-        
+
         return Group {
             if vm.isLoading && vm.messages.isEmpty {
                 LoadingStateView(
@@ -171,6 +374,7 @@ struct ChatThreadView: View {
                     onRetryTap: retryHandler,
                     onEdit: editHandler,
                     onDelete: deleteHandler,
+                    onReport: reportHandler,
                     lastMessageId: $lastMessageId
                 )
             }
@@ -190,7 +394,7 @@ struct ChatThreadView: View {
         }
         .animation(.easeInOut(duration: 0.2), value: vm.typingUsernames)
     }
-    
+
     private var composer: some View {
         MessageComposerView(
             draft: $draft,
@@ -221,7 +425,7 @@ struct ChatThreadView: View {
             }
         }
     }
-    
+
     private func bestPlaintextForReport(_ msg: MessageDTO) -> String {
         if let translated = msg.translatedForMe,
            !translated.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -235,7 +439,7 @@ struct ChatThreadView: View {
 
         return ""
     }
-    
+
     private func loadAndSendSelectedPhoto(from item: PhotosPickerItem) async {
         guard !isPreparingImageSend else { return }
 
@@ -253,13 +457,23 @@ struct ChatThreadView: View {
                 return
             }
 
+            guard let senderId = currentUserId else {
+                await MainActor.run {
+                    vm.errorText = "Missing current user identity."
+                }
+                return
+            }
+
             let token = TokenStore.shared.read()
 
             let didQueue = await vm.sendImageMessage(
                 roomId: room.id,
                 token: token,
                 imageData: data,
-                caption: nil
+                caption: nil,
+                senderId: senderId,
+                senderUsername: currentUsername,
+                senderPublicKey: nil
             )
 
             if !didQueue {
@@ -272,18 +486,24 @@ struct ChatThreadView: View {
             print("❌ loadAndSendSelectedPhoto failed:", error)
         }
     }
-    
-    @ToolbarContentBuilder
-    private var toolbarContent: some ToolbarContent {
-        ToolbarItemGroup(placement: .navigationBarTrailing) {
-            Button {
-                Task {
-                    await reload()
-                }
-            } label: {
-                Image(systemName: "arrow.clockwise")
-            }
+
+    private func bestEditableText(for msg: MessageDTO) -> String {
+        if let raw = msg.rawContent,
+           !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return raw
         }
+
+        if let translated = msg.translatedForMe,
+           !translated.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return translated
+        }
+
+        if let decrypted = DecryptedMessageTextStore.shared.text(for: msg.id),
+           !decrypted.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return decrypted
+        }
+
+        return ""
     }
 
     private var currentUserId: Int? {
@@ -320,7 +540,6 @@ struct ChatThreadView: View {
 
     private func onTaskLoad() async {
         vm.configureRoom(roomId: room.id)
-        syncCurrentUser()
 
         await reload()
         await vm.resyncIfNeeded(token: TokenStore.shared.read())
@@ -342,14 +561,6 @@ struct ChatThreadView: View {
         vm.stopTypingNow(roomId: room.id)
         vm.stopSocket()
         vm.stopExpiryLoop()
-    }
-
-    private func syncCurrentUser() {
-        vm.configureCurrentUser(
-            id: currentUserId,
-            username: currentUsername,
-            publicKey: nil
-        )
     }
 
     private func handleScenePhaseChange(_ newPhase: ScenePhase) {
@@ -388,13 +599,21 @@ struct ChatThreadView: View {
     }
 
     private func send() async {
+        guard let senderId = currentUserId else {
+            vm.errorText = "Missing current user identity."
+            return
+        }
+
         let token = TokenStore.shared.read()
         let text = draft
 
         let didQueue = await vm.sendMessage(
             roomId: room.id,
             token: token,
-            text: text
+            text: text,
+            senderId: senderId,
+            senderUsername: currentUsername,
+            senderPublicKey: nil
         )
 
         if didQueue {
@@ -407,7 +626,7 @@ struct ChatThreadView: View {
         if names.count == 2 { return "\(names[0]) and \(names[1]) are typing…" }
         return "\(names.count) people are typing…"
     }
-    
+
     private var isBusySending: Bool {
         isPreparingImageSend || vm.isSendingImage
     }
@@ -417,5 +636,111 @@ struct ChatThreadView: View {
               !clientMessageId.isEmpty else { return nil }
 
         return MessageStore.shared.getDeliveryState(clientMessageId: clientMessageId)
+    }
+}
+
+// MARK: - Dialog Modifiers
+
+private struct DeleteConversationDialogModifier: ViewModifier {
+    @Binding var showDeleteConversationConfirm: Bool
+    let onDeleteConversation: () -> Void
+
+    func body(content: Content) -> some View {
+        content.confirmationDialog(
+            "Delete conversation?",
+            isPresented: $showDeleteConversationConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Delete conversation", role: .destructive) {
+                onDeleteConversation()
+            }
+            Button("Cancel", role: .cancel) {}
+        }
+    }
+}
+
+private struct DeleteConfirmDialogModifier: ViewModifier {
+    @Binding var confirmDeleteMessage: MessageDTO?
+    @Binding var pendingDeleteMessage: MessageDTO?
+
+    func body(content: Content) -> some View {
+        content.confirmationDialog(
+            "Delete message?",
+            isPresented: Binding(
+                get: { confirmDeleteMessage != nil },
+                set: { if !$0 { confirmDeleteMessage = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            if let msg = confirmDeleteMessage {
+                Button("Delete", role: .destructive) {
+                    pendingDeleteMessage = msg
+                    confirmDeleteMessage = nil
+                }
+            }
+
+            Button("Cancel", role: .cancel) {
+                confirmDeleteMessage = nil
+            }
+        }
+    }
+}
+
+private struct DeleteOptionsDialogModifier: ViewModifier {
+    @Binding var deletingMessage: MessageDTO?
+    @Binding var reportingMessage: MessageDTO?
+
+    let currentUserId: Int?
+    let deliveryState: (MessageDTO) -> DeliveryState?
+    let onDelete: (MessageDTO, Bool) async -> Void
+
+    func body(content: Content) -> some View {
+        content.confirmationDialog(
+            "Delete options",
+            isPresented: Binding(
+                get: { deletingMessage != nil },
+                set: { if !$0 { deletingMessage = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            if let msg = deletingMessage {
+                let isMine = msg.sender.id == currentUserId || (msg.id < 0 && msg.clientMessageId != nil)
+                let age = Date().timeIntervalSince(msg.createdAt)
+                let withinWindow = age <= 15 * 60
+                let isServerMessage = msg.id > 0
+                let isSending = deliveryState(msg) == .pending || deliveryState(msg) == .sending
+
+                if isMine {
+                    if isServerMessage && !isSending && withinWindow {
+                        Button("Delete for everyone", role: .destructive) {
+                            Task {
+                                await onDelete(msg, true)
+                            }
+                        }
+                    }
+
+                    Button("Delete for me", role: .destructive) {
+                        Task {
+                            await onDelete(msg, false)
+                        }
+                    }
+                } else {
+                    Button("Delete for me", role: .destructive) {
+                        Task {
+                            await onDelete(msg, false)
+                        }
+                    }
+
+                    Button("Report") {
+                        reportingMessage = msg
+                        deletingMessage = nil
+                    }
+                }
+            }
+
+            Button("Cancel", role: .cancel) {
+                deletingMessage = nil
+            }
+        }
     }
 }

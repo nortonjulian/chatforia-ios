@@ -260,7 +260,9 @@ final class SendQueueManager {
             MessageStore.shared.setDeliveryState(clientMessageId: job.clientMessageId, state: .sent)
             self.sendSuccessCallback?(job.clientMessageId, serverMessage)
         }
-
+        print("✅ handleSuccessLocked clientMessageId =", job.clientMessageId)
+        print("✅ serverMessage id =", serverMessage?.id as Any)
+        print("✅ serverMessage clientMessageId =", serverMessage?.clientMessageId as Any)
         processNextLocked()
     }
 

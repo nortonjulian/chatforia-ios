@@ -44,7 +44,11 @@ final class SocketManager: ObservableObject {
         rebuild(token: token)
 
         guard let socket = self.socket else {
-            throw NSError(domain: "SocketManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Socket not initialized"])
+            throw NSError(
+                domain: "SocketManager",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "Socket not initialized"]
+            )
         }
 
         if socket.status == .connected {
@@ -84,7 +88,13 @@ final class SocketManager: ObservableObject {
                     if let idToRemove = handlerId {
                         socket.off(id: idToRemove)
                     }
-                    continuation.resume(throwing: NSError(domain: "SocketManager", code: 2, userInfo: [NSLocalizedDescriptionKey: "Socket connect timeout"]))
+                    continuation.resume(
+                        throwing: NSError(
+                            domain: "SocketManager",
+                            code: 2,
+                            userInfo: [NSLocalizedDescriptionKey: "Socket connect timeout"]
+                        )
+                    )
                 }
             }
         }
@@ -168,10 +178,7 @@ final class SocketManager: ObservableObject {
 
     @discardableResult
     func on(_ event: String, callback: @escaping NormalCallback) -> UUID? {
-        if let id = socket?.on(event, callback: callback) {
-            return id
-        }
-        return nil
+        socket?.on(event, callback: callback)
     }
 
     func off(_ id: UUID) {
@@ -203,20 +210,24 @@ final class SocketManager: ObservableObject {
     func joinRoom(roomId: Int) {
         guard roomId > 0 else { return }
         joinedRoomIds.insert(roomId)
+
         guard let socket = socket, socket.status == .connected else {
             print("ℹ️ joinRoom queued (not connected) roomId=\(roomId)")
             return
         }
+
         socket.emit("join_room", roomId)
     }
 
     func leaveRoom(roomId: Int) {
         guard roomId > 0 else { return }
         joinedRoomIds.remove(roomId)
+
         guard let socket = socket, socket.status == .connected else {
             print("ℹ️ leaveRoom queued (not connected) roomId=\(roomId)")
             return
         }
+
         socket.emit("leave_room", roomId)
     }
 
@@ -224,11 +235,15 @@ final class SocketManager: ObservableObject {
         let ids = Array(Set(roomIds.filter { $0 > 0 }))
         guard !ids.isEmpty else { return }
 
-        for id in ids { joinedRoomIds.insert(id) }
+        for id in ids {
+            joinedRoomIds.insert(id)
+        }
+
         guard let socket = socket, socket.status == .connected else {
             print("ℹ️ joinRooms queued (not connected) ids=\(ids)")
             return
         }
+
         socket.emit("join:rooms", ids)
     }
 
@@ -247,12 +262,13 @@ final class SocketManager: ObservableObject {
         }
 
         if !toJoin.isEmpty {
-            if let s = socket, s.status == .connected {
-                s.emit("join:rooms", Array(toJoin))
+            if let socket = socket, socket.status == .connected {
+                socket.emit("join:rooms", Array(toJoin))
             } else {
                 print("⚠️ join:rooms queued (not connected) ids=\(Array(toJoin))")
             }
         }
+
         joinedRoomIds = desired
     }
 
@@ -264,13 +280,19 @@ final class SocketManager: ObservableObject {
 
         socket.on(clientEvent: .connect) { [weak self] _, _ in
             Task { @MainActor in
-                guard let strongSelf = self else { return }
-                strongSelf.isConnected = true
+                guard let self else { return }
+                self.isConnected = true
                 print("✅ socket connected")
 
-                let rooms = Array(strongSelf.joinedRoomIds)
+                if let token = self.currentToken {
+                    Task.detached {
+                        await DeviceRegistrationService.shared.heartbeat(token: token)
+                    }
+                }
+
+                let rooms = Array(self.joinedRoomIds)
                 if !rooms.isEmpty {
-                    strongSelf.socket?.emit("join:rooms", rooms)
+                    self.socket?.emit("join:rooms", rooms)
                 }
             }
         }
@@ -290,12 +312,13 @@ final class SocketManager: ObservableObject {
             print("🔄 socket reconnect:", data)
         }
 
-        // MARK: Application-level socket events
+        // MARK: - Application-level socket events
 
         socket.on("message:ack") { data, _ in
             guard let payload = data.first as? [String: Any],
-                  let clientMessageId = payload["clientMessageId"] as? String
-            else { return }
+                  let clientMessageId = payload["clientMessageId"] as? String else {
+                return
+            }
 
             Task { @MainActor in
                 MessageStore.shared.markDeliveryState(
@@ -307,8 +330,9 @@ final class SocketManager: ObservableObject {
 
         socket.on("message_read") { data, _ in
             guard let payload = data.first as? [String: Any],
-                  let messageId = payload["messageId"] as? Int
-            else { return }
+                  let messageId = payload["messageId"] as? Int else {
+                return
+            }
 
             Task { @MainActor in
                 MessageStore.shared.markMessageRead(messageId: messageId)
@@ -336,25 +360,6 @@ final class SocketManager: ObservableObject {
                     object: nil,
                     userInfo: ["payload": payload]
                 )
-            }
-        }
-        
-        socket.on(clientEvent: .connect) { [weak self] _, _ in
-            Task { @MainActor in
-                guard let strongSelf = self else { return }
-                strongSelf.isConnected = true
-                print("✅ socket connected")
-
-                if let token = strongSelf.currentToken {
-                    Task.detached {
-                        await DeviceRegistrationService.shared.heartbeat(token: token)
-                    }
-                }
-
-                let rooms = Array(strongSelf.joinedRoomIds)
-                if !rooms.isEmpty {
-                    strongSelf.socket?.emit("join:rooms", rooms)
-                }
             }
         }
 

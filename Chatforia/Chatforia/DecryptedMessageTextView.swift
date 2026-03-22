@@ -9,7 +9,7 @@ struct DecryptMessageTextView: View {
 
     var body: some View {
         Group {
-            if let text = store.text(for: msg.id),
+            if let text = preferredVisibleText(),
                !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Text(text)
             } else {
@@ -22,13 +22,35 @@ struct DecryptMessageTextView: View {
         }
     }
 
+    private func preferredVisibleText() -> String? {
+        if let cached = store.text(for: msg.id),
+           !cached.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return cached
+        }
+
+        if let translated = msg.translatedForMe,
+           !translated.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return translated
+        }
+
+        if let raw = msg.rawContent,
+           !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return raw
+        }
+
+        return nil
+    }
+
     private func decryptIfNeeded() async {
         guard !attempted else { return }
         attempted = true
 
+        guard msg.deletedForAll != true, msg.deletedBySender != true else {
+            return
+        }
+
         guard let ciphertext = msg.contentCiphertext,
-              let encryptedKeyPayload = msg.encryptedKeyForMe
-        else {
+              let encryptedKeyPayload = msg.encryptedKeyForMe else {
             return
         }
 
@@ -36,15 +58,11 @@ struct DecryptMessageTextView: View {
         guard currentUserId > 0 else { return }
 
         do {
-            print("🔓 attempting decrypt for message \(msg.id)")
-            
             let plaintext = try MessageCryptoService.shared.decryptMessageForCurrentBackend(
                 ciphertextBase64: ciphertext,
                 encryptedKeyPayloadJSON: encryptedKeyPayload,
                 userId: currentUserId
             )
-            
-            print("✅ decrypted message \(msg.id): \(plaintext)")
 
             await MainActor.run {
                 DecryptedMessageTextStore.shared.setText(plaintext, for: msg.id)

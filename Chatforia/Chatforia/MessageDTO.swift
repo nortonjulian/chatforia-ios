@@ -248,7 +248,17 @@ struct MessageDTO: Codable, Identifiable, Equatable {
     }
     
     static func == (lhs: MessageDTO, rhs: MessageDTO) -> Bool {
-        lhs.id == rhs.id && lhs.clientMessageId == rhs.clientMessageId
+        return lhs.id == rhs.id &&
+               lhs.clientMessageId == rhs.clientMessageId &&
+               lhs.revision == rhs.revision &&
+               lhs.editedAt == rhs.editedAt &&
+               lhs.rawContent == rhs.rawContent &&
+               lhs.translatedForMe == rhs.translatedForMe &&
+               lhs.deletedForAll == rhs.deletedForAll &&
+               lhs.deletedBySender == rhs.deletedBySender &&
+               lhs.reactionSummary == rhs.reactionSummary &&
+               lhs.myReactions == rhs.myReactions &&
+               lhs.readBy?.count == rhs.readBy?.count
     }
     
     static func optimistic(

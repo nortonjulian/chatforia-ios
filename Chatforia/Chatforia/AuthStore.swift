@@ -11,6 +11,7 @@ final class AuthStore: ObservableObject {
     }
 
     @Published var state: State = .loading
+    @Published var needsOnboarding: Bool = false
 
     private let tokenStore = TokenStore.shared
     private(set) var socket = SocketManager.shared
@@ -28,11 +29,13 @@ final class AuthStore: ObservableObject {
 
     func replaceCurrentUser(_ user: UserDTO) {
         state = .loggedIn(user)
+        evaluateOnboarding(for: user)
     }
 
     func bootstrap() async {
         guard let token = tokenStore.read(), !token.isEmpty else {
             socket.disconnect()
+            needsOnboarding = false
             state = .loggedOut
             return
         }
@@ -49,6 +52,7 @@ final class AuthStore: ObservableObject {
             print("DEVICE key publicKey =", (try? DeviceKeyManager.shared.publicKeyBase64()) ?? "nil")
 
             state = .loggedIn(response.user)
+            evaluateOnboarding(for: response.user)
 
             do {
                 let device = try await DeviceRegistrationService.shared.ensureCurrentDeviceRegistered(
@@ -78,15 +82,17 @@ final class AuthStore: ObservableObject {
     func logout() {
         socket.disconnect()
         tokenStore.clear()
+        needsOnboarding = false
         state = .loggedOut
     }
 
     func handleInvalidSession() {
         socket.disconnect()
         tokenStore.clear()
+        needsOnboarding = false
         state = .loggedOut
     }
-    
+
     func refreshCurrentUser() async {
         guard let token = tokenStore.read(), !token.isEmpty else {
             handleInvalidSession()
@@ -99,9 +105,29 @@ final class AuthStore: ObservableObject {
                 token: token
             )
             state = .loggedIn(response.user)
+            evaluateOnboarding(for: response.user)
         } catch {
             print("⚠️ refreshCurrentUser failed:", error)
         }
+    }
+
+    func markOnboardingComplete() {
+        guard let user = currentUser else {
+            needsOnboarding = false
+            return
+        }
+        UserDefaults.standard.set(true, forKey: onboardingKey(for: user.id))
+        needsOnboarding = false
+    }
+
+    private func evaluateOnboarding(for user: UserDTO) {
+        let languageMissing = (user.preferredLanguage?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+        let completedLocally = UserDefaults.standard.bool(forKey: onboardingKey(for: user.id))
+        needsOnboarding = languageMissing || !completedLocally
+    }
+
+    private func onboardingKey(for userId: Int) -> String {
+        "chatforia.onboarding.complete.\(userId)"
     }
 }
 

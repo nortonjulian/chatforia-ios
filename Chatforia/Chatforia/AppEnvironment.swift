@@ -49,6 +49,10 @@ enum AppEnvironment {
 
                     let decoder = JSONDecoder.tolerantISO8601Decoder()
 
+                    struct MessageEnvelopeResponse: Decodable {
+                        let message: MessageDTO
+                    }
+
                     struct ShapedEnvelope: Decodable {
                         let shaped: MessageDTO
                     }
@@ -60,6 +64,12 @@ enum AppEnvironment {
                     if let dto = try? decoder.decode(MessageDTO.self, from: data) {
                         print("✅ decoded direct MessageDTO id=\(dto.id) clientMessageId=\(dto.clientMessageId ?? "nil")")
                         completion(.success(serverMessage: dto))
+                        return
+                    }
+
+                    if let env = try? decoder.decode(MessageEnvelopeResponse.self, from: data) {
+                        print("✅ decoded message MessageDTO id=\(env.message.id) clientMessageId=\(env.message.clientMessageId ?? "nil")")
+                        completion(.success(serverMessage: env.message))
                         return
                     }
 
@@ -97,7 +107,45 @@ enum AppEnvironment {
         SendQueueManager.shared.sendSuccessCallback = { clientMessageId, serverMessage in
             DispatchQueue.main.async {
                 print("🎉 sendSuccessCallback for \(clientMessageId)")
-                guard serverMessage != nil else { return }
+                print("🟢 callback serverMessage id =", serverMessage?.id as Any)
+                print("🟢 callback serverMessage clientMessageId =", serverMessage?.clientMessageId as Any)
+
+                guard let serverMessage else { return }
+
+                let normalized = MessageDTO(
+                    id: serverMessage.id,
+                    contentCiphertext: serverMessage.contentCiphertext,
+                    rawContent: serverMessage.rawContent,
+                    translations: serverMessage.translations,
+                    translatedFrom: serverMessage.translatedFrom,
+                    translatedForMe: serverMessage.translatedForMe,
+                    encryptedKeyForMe: serverMessage.encryptedKeyForMe,
+                    imageUrl: serverMessage.imageUrl,
+                    audioUrl: serverMessage.audioUrl,
+                    audioDurationSec: serverMessage.audioDurationSec,
+                    attachments: serverMessage.attachments,
+                    isExplicit: serverMessage.isExplicit,
+                    createdAt: serverMessage.createdAt,
+                    expiresAt: serverMessage.expiresAt,
+                    editedAt: serverMessage.editedAt,
+                    deletedBySender: serverMessage.deletedBySender,
+                    deletedForAll: serverMessage.deletedForAll,
+                    deletedAt: serverMessage.deletedAt,
+                    deletedById: serverMessage.deletedById,
+                    sender: serverMessage.sender,
+                    readBy: serverMessage.readBy,
+                    chatRoomId: serverMessage.chatRoomId,
+                    reactionSummary: serverMessage.reactionSummary,
+                    myReactions: serverMessage.myReactions,
+                    revision: serverMessage.revision,
+                    clientMessageId: serverMessage.clientMessageId ?? clientMessageId
+                )
+
+                MessageStore.shared.replaceOptimisticMessage(
+                    clientMessageId: clientMessageId,
+                    with: normalized
+                )
+
                 MessageStore.shared.markDeliveryState(
                     clientMessageId: clientMessageId,
                     state: .sent

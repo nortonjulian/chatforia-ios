@@ -12,6 +12,9 @@ struct SMSThreadView: View {
     @Environment(\.scenePhase) private var scenePhase
     @EnvironmentObject private var themeManager: ThemeManager
     @State private var pollingTask: Task<Void, Never>?
+    @State private var showPhotoPicker = false
+    
+    @State private var showingAddContact = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -31,13 +34,29 @@ struct SMSThreadView: View {
         )
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Button {
+                    showingAddContact = true
+                } label: {
+                    Image(systemName: "person.crop.circle.badge.plus")
+                }
+
                 Button {
                     Task { await reload() }
                 } label: {
                     Image(systemName: "arrow.clockwise")
                 }
             }
+        }
+        .sheet(isPresented: $showingAddContact) {
+            AddContactView(
+                initialMode: .phone,
+                initialPhoneNumber: vm.resolvedPhone(fallback: conversation.phone) ?? "",
+                initialExternalName: inferredContactName
+            ) { _ in
+                showingAddContact = false
+            }
+            .environmentObject(themeManager)
         }
         .task(id: conversation.id) {
             await reload()
@@ -54,6 +73,17 @@ struct SMSThreadView: View {
                 stopPolling()
             }
         }
+    }
+    
+    private var inferredContactName: String {
+        let title = conversation.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let phone = (conversation.phone ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if !title.isEmpty && title != phone {
+            return title
+        }
+
+        return ""
     }
     
     private var errorBanner: some View {
@@ -99,49 +129,25 @@ struct SMSThreadView: View {
     }
 
     private var composer: some View {
-        VStack(spacing: 6) {
-            HStack {
-                PhotosPicker(
-                    selection: $selectedPhotos,
-                    maxSelectionCount: 6,
-                    matching: .images
-                ) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "photo")
-                        Text(selectedPhotos.isEmpty ? "Add Photo" : "\(selectedPhotos.count) selected")
-                    }
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.blue)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(Color.blue.opacity(0.08))
-                    .clipShape(Capsule())
-                }
-
-                Spacer()
-
-                if isUploadingMedia || vm.isSending {
-                    ProgressView()
-                        .scaleEffect(0.9)
+        MessageComposerView(
+            draft: $draft,
+            isSending: isUploadingMedia || vm.isSending,
+            onDraftChanged: {},
+            onAttachmentTap: {
+                showPhotoPicker = true
+            },
+            onSend: {
+                Task {
+                    await send()
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.top, 8)
-
-            MessageComposerView(
-                draft: $draft,
-                isSending: isUploadingMedia || vm.isSending,
-                onDraftChanged: {},
-                onAttachmentTap: {
-                    // no-op here because SMS uses the PhotosPicker pill above
-                },
-                onSend: {
-                    Task {
-                        await send()
-                    }
-                }
-            )
-        }
+        )
+        .photosPicker(
+            isPresented: $showPhotoPicker,
+            selection: $selectedPhotos,
+            maxSelectionCount: 6,
+            matching: .images
+        )
     }
     
     private func startPolling() {

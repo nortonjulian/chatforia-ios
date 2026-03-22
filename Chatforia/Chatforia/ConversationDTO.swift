@@ -9,6 +9,10 @@ struct ConversationDTO: Codable, Identifiable {
     let phone: String?
     let unreadCount: Int?
     let last: ConversationLastDTO?
+
+    var uniqueId: String {
+        "\(kind)-\(id)"
+    }
 }
 
 struct ConversationLastDTO: Codable {
@@ -20,8 +24,6 @@ struct ConversationLastDTO: Codable {
     let mediaKinds: [String]?
     let thumbUrl: String?
 }
-
-// MARK: - Compatibility bridge to existing ChatThreadView
 
 extension ConversationDTO {
     var asChatRoomDTO: ChatRoomDTO {
@@ -44,9 +46,7 @@ extension ConversationDTO {
     }
 }
 
-// MARK: - Keep existing ChatThreadView compiling for now
-
-struct ChatRoomDTO: Codable, Identifiable {
+struct ChatRoomDTO: Codable, Identifiable, Hashable {
     let id: Int
     let name: String?
     let isGroup: Bool?
@@ -55,12 +55,12 @@ struct ChatRoomDTO: Codable, Identifiable {
     let participants: [UserPreviewDTO]?
 }
 
-struct UserPreviewDTO: Codable, Identifiable {
+struct UserPreviewDTO: Codable, Identifiable, Hashable {
     let id: Int
     let username: String?
 }
 
-struct MessagePreviewDTO: Codable, Identifiable {
+struct MessagePreviewDTO: Codable, Identifiable, Hashable {
     let id: Int
     let content: String?
     let createdAt: String?

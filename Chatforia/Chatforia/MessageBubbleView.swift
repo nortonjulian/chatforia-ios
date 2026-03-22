@@ -10,9 +10,12 @@ struct MessageBubbleView: View {
 
     var body: some View {
         content
+            .id(contentRenderKey)
             .font(.body)
             .foregroundStyle(isMe ? themeManager.palette.bubbleOutgoingText : themeManager.palette.bubbleIncomingText)
             .multilineTextAlignment(.leading)
+            .contentTransition(.opacity)
+            .animation(.easeInOut(duration: 0.18), value: contentRenderKey)
             .padding(.horizontal, 14)
             .padding(.vertical, 9)
             .background(
@@ -33,7 +36,16 @@ struct MessageBubbleView: View {
                 y: 3
             )
     }
-
+    
+    private var contentRenderKey: String {
+        let edited = msg.editedAt?.timeIntervalSince1970 ?? 0
+        let revision = msg.revision ?? 0
+        let raw = msg.rawContent ?? ""
+        let translated = msg.translatedForMe ?? ""
+        let deleted = (msg.deletedForAll == true || msg.deletedBySender == true) ? "deleted" : "live"
+        return "\(msg.id)|\(revision)|\(edited)|\(raw)|\(translated)|\(deleted)"
+    }
+    
     private var bubbleShape: ChatBubbleShape {
         ChatBubbleShape(
             isMe: isMe,
@@ -66,7 +78,7 @@ struct MessageBubbleView: View {
 
     @ViewBuilder
     private var content: some View {
-        if msg.deletedForAll == true {
+        if msg.deletedForAll == true || msg.deletedBySender == true {
             Text("This message was deleted")
                 .italic()
                 .foregroundStyle(isMe ? themeManager.palette.bubbleOutgoingText.opacity(0.82) : themeManager.palette.secondaryText)

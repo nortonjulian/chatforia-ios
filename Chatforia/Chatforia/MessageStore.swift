@@ -108,8 +108,9 @@ final class MessageStore {
     }
 
     private func normalizedClientMessageId(_ value: String?) -> String? {
-        guard let value, !value.isEmpty else { return nil }
-        return value
+        guard let value else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 
     private func rank(_ s: DeliveryState) -> Int {
@@ -146,8 +147,41 @@ final class MessageStore {
     }
 
     private func mergedMessage(preferred: MessageDTO, fallback: MessageDTO) -> MessageDTO {
-        MessageDTO(
-            id: preferred.id,
+        let isDeleted = (preferred.deletedForAll == true || preferred.deletedBySender == true)
+
+        if isDeleted {
+            return MessageDTO(
+                id: preferred.id > 0 ? preferred.id : fallback.id,
+                contentCiphertext: nil,
+                rawContent: nil,
+                translations: nil,
+                translatedFrom: preferred.translatedFrom ?? fallback.translatedFrom,
+                translatedForMe: nil,
+                encryptedKeyForMe: nil,
+                imageUrl: nil,
+                audioUrl: nil,
+                audioDurationSec: nil,
+                attachments: [],
+                isExplicit: preferred.isExplicit ?? fallback.isExplicit,
+                createdAt: preferred.createdAt,
+                expiresAt: preferred.expiresAt ?? fallback.expiresAt,
+                editedAt: preferred.editedAt ?? fallback.editedAt,
+                deletedBySender: preferred.deletedBySender ?? fallback.deletedBySender,
+                deletedForAll: preferred.deletedForAll ?? fallback.deletedForAll,
+                deletedAt: preferred.deletedAt ?? fallback.deletedAt,
+                deletedById: preferred.deletedById ?? fallback.deletedById,
+                sender: preferred.sender,
+                readBy: !(preferred.readBy?.isEmpty ?? true) ? preferred.readBy : fallback.readBy,
+                chatRoomId: preferred.chatRoomId ?? fallback.chatRoomId,
+                reactionSummary: !(preferred.reactionSummary?.isEmpty ?? true) ? preferred.reactionSummary : fallback.reactionSummary,
+                myReactions: !(preferred.myReactions?.isEmpty ?? true) ? preferred.myReactions : fallback.myReactions,
+                revision: max(preferred.revision ?? 0, fallback.revision ?? 0),
+                clientMessageId: preferred.clientMessageId ?? fallback.clientMessageId
+            )
+        }
+
+        return MessageDTO(
+            id: preferred.id > 0 ? preferred.id : fallback.id,
             contentCiphertext: preferred.contentCiphertext ?? fallback.contentCiphertext,
             rawContent: preferred.rawContent ?? fallback.rawContent,
             translations: preferred.translations ?? fallback.translations,
@@ -181,6 +215,12 @@ final class MessageStore {
             if $0.createdAt != $1.createdAt { return $0.createdAt < $1.createdAt }
             return $0.id < $1.id
         }
+    }
+    
+    private func resolvedMessageId(preferred: MessageDTO, fallback: MessageDTO) -> Int {
+        if preferred.id > 0 { return preferred.id }
+        if fallback.id > 0 { return fallback.id }
+        return preferred.id
     }
 
     private func dedupeMessages(_ source: [MessageDTO]) -> [MessageDTO] {
@@ -225,6 +265,20 @@ final class MessageStore {
         }
 
         return result
+    }
+
+    private func existingIndexLocked(for incoming: MessageDTO) -> Int? {
+        let incomingClientId = normalizedClientMessageId(incoming.clientMessageId)
+
+        return self.messages.firstIndex { existing in
+            let existingClientId = normalizedClientMessageId(existing.clientMessageId)
+
+            if let incomingClientId, existingClientId == incomingClientId {
+                return true
+            }
+
+            return existing.id == incoming.id
+        }
     }
 
     private func notifyMessagesChanged() {
@@ -307,7 +361,7 @@ final class MessageStore {
     func newestMessageId() -> Int? {
         lock.sync { messages.last?.id }
     }
-    
+
     func message(withId id: Int) -> MessageDTO? {
         var result: MessageDTO?
         lock.sync {
@@ -316,39 +370,45 @@ final class MessageStore {
         return result
     }
 
-    func removeMessage(id: Int) {
-        lock.async(flags: .barrier) {
+    func removeMessageSync(id: Int) {
+        lock.sync(flags: .barrier) {
             self.messages.removeAll { $0.id == id }
             self.persistStateLocked()
-            self.notifyMessagesChanged()
         }
+        self.notifyMessagesChanged()
     }
 
-
-    func oldestMessageId() -> Int? {
-        lock.sync { messages.first?.id }
+    func removeMessage(id: Int) {
+        removeMessageSync(id: id)
     }
 
-    // MARK: - Upsert hooks
+    func insertOrReplaceSync(_ incoming: [MessageDTO]) {
+        guard !incoming.isEmpty else { return }
 
-    func insertOrReplace(_ serverMessage: MessageDTO?) {
-        guard let msg = serverMessage else { return }
+        lock.sync(flags: .barrier) {
+            for inc in incoming {
+                if let idx = self.existingIndexLocked(for: inc) {
+                    let existing = self.messages[idx]
+                    self.messages[idx] = self.preferredMessage(existing: existing, incoming: inc)
+                } else {
+                    self.messages.append(inc)
+                }
+            }
 
-        insertOrReplace([msg])
-
-        if let clientId = msg.clientMessageId, !clientId.isEmpty {
-            setDeliveryState(clientMessageId: clientId, state: .sent)
-        } else {
-            let serverKey = "server:\(msg.id)"
-            setDeliveryState(clientMessageId: serverKey, state: .sent)
+            self.sortMessagesLocked()
+            self.messages = self.dedupeMessages(self.messages)
+            self.capInMemoryMessagesLocked(max: self.inMemoryMax)
+            self.persistStateLocked()
         }
+
+        self.notifyMessagesChanged()
     }
 
     func insertOrReplaceServerMessage(_ serverMessage: MessageDTO?) {
         guard let dto = serverMessage else { return }
         insertOrReplace([dto])
 
-        if let clientId = dto.clientMessageId, !clientId.isEmpty {
+        if let clientId = normalizedClientMessageId(dto.clientMessageId) {
             setDeliveryState(clientMessageId: clientId, state: .sent)
         } else {
             let serverKey = "server:\(dto.id)"
@@ -361,19 +421,7 @@ final class MessageStore {
 
         lock.async(flags: .barrier) {
             for inc in incoming {
-                let incomingClientId = self.normalizedClientMessageId(inc.clientMessageId)
-
-                let existingIndex = self.messages.firstIndex { existing in
-                    let existingClientId = self.normalizedClientMessageId(existing.clientMessageId)
-
-                    if let incomingClientId, existingClientId == incomingClientId {
-                        return true
-                    }
-
-                    return existing.id == inc.id
-                }
-
-                if let idx = existingIndex {
+                if let idx = self.existingIndexLocked(for: inc) {
                     let existing = self.messages[idx]
                     self.messages[idx] = self.preferredMessage(existing: existing, incoming: inc)
                 } else {
@@ -432,12 +480,11 @@ final class MessageStore {
     // MARK: - Convenience
 
     func replaceOptimisticMessage(clientMessageId: String, with serverDTO: MessageDTO) {
-        guard !clientMessageId.isEmpty else { return }
+        let normalizedClientId = normalizedClientMessageId(clientMessageId)
+        guard normalizedClientId != nil else { return }
 
         lock.async(flags: .barrier) {
-            if let idx = self.messages.firstIndex(where: {
-                self.normalizedClientMessageId($0.clientMessageId) == clientMessageId || $0.id == serverDTO.id
-            }) {
+            if let idx = self.existingIndexLocked(for: serverDTO) {
                 let existing = self.messages[idx]
                 self.messages[idx] = self.preferredMessage(existing: existing, incoming: serverDTO)
             } else {
@@ -451,6 +498,8 @@ final class MessageStore {
             self.notifyMessagesChanged()
         }
 
-        setDeliveryState(clientMessageId: clientMessageId, state: .sent)
+        if let normalizedClientId {
+            setDeliveryState(clientMessageId: normalizedClientId, state: .sent)
+        }
     }
 }

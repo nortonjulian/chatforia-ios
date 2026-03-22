@@ -110,7 +110,7 @@ final class ChatThreadViewModel: ObservableObject {
     @Published var isLoadingOlder: Bool = false
     @Published var typingUsernames: [String] = []
     @Published var isSendingImage: Bool = false
-    
+
     @Published var isSubmittingReport: Bool = false
     @Published var reportErrorText: String?
 
@@ -192,7 +192,6 @@ final class ChatThreadViewModel: ObservableObject {
             UserDefaults.standard.set(id, forKey: "chatforia.currentUserId")
         }
     }
-    
 
     private func refreshFromMessageStore() {
         guard let roomId = self.roomId else { return }
@@ -205,6 +204,7 @@ final class ChatThreadViewModel: ObservableObject {
             }
 
         self.messages = snapshot
+        self.objectWillChange.send()
     }
 
     func markVisibleMessagesRead() {
@@ -336,7 +336,14 @@ final class ChatThreadViewModel: ObservableObject {
         }
     }
 
-    func sendMessage(roomId: Int, token: String?, text: String) async -> Bool {
+    func sendMessage(
+        roomId: Int,
+        token: String?,
+        text: String,
+        senderId: Int,
+        senderUsername: String?,
+        senderPublicKey: String?
+    ) async -> Bool {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return false }
 
@@ -351,10 +358,12 @@ final class ChatThreadViewModel: ObservableObject {
         let clientMessageId = UUID().uuidString
         let localId = -abs(clientMessageId.hashValue)
 
-        guard let sender = currentUserSenderDTO else {
-            errorText = "Missing current user identity for optimistic send."
-            return false
-        }
+        let sender = SenderDTO(
+            id: senderId,
+            username: senderUsername,
+            publicKey: senderPublicKey,
+            avatarUrl: nil
+        )
 
         let optimistic = MessageDTO.optimistic(
             roomId: roomId,
@@ -374,20 +383,13 @@ final class ChatThreadViewModel: ObservableObject {
         do {
             let recipients = try await fetchRecipientAccountKeysForRoom(
                 token: token,
-                roomId: roomId
+                roomId: roomId,
+                senderUserId: senderId
             )
-
-            guard let senderUserId = currentUserId else {
-                throw NSError(
-                    domain: "ChatThreadViewModel",
-                    code: 3,
-                    userInfo: [NSLocalizedDescriptionKey: "Missing current user id"]
-                )
-            }
 
             let encrypted = try MessageCryptoService.shared.encryptMessageForRecipients(
                 plaintext: trimmed,
-                senderUserId: senderUserId,
+                senderUserId: senderId,
                 recipients: recipients
             )
 
@@ -424,7 +426,10 @@ final class ChatThreadViewModel: ObservableObject {
         roomId: Int,
         token: String?,
         imageData: Data,
-        caption: String? = nil
+        caption: String? = nil,
+        senderId: Int,
+        senderUsername: String?,
+        senderPublicKey: String?
     ) async -> Bool {
         guard let token, !token.isEmpty else {
             errorText = "Missing auth token."
@@ -436,10 +441,12 @@ final class ChatThreadViewModel: ObservableObject {
             return false
         }
 
-        guard let sender = currentUserSenderDTO else {
-            errorText = "Missing current user identity for optimistic send."
-            return false
-        }
+        let sender = SenderDTO(
+            id: senderId,
+            username: senderUsername,
+            publicKey: senderPublicKey,
+            avatarUrl: nil
+        )
 
         errorText = nil
         stopTypingNow(roomId: roomId)
@@ -491,22 +498,15 @@ final class ChatThreadViewModel: ObservableObject {
 
             let recipients = try await fetchRecipientAccountKeysForRoom(
                 token: token,
-                roomId: roomId
+                roomId: roomId,
+                senderUserId: senderId
             )
-
-            guard let senderUserId = currentUserId else {
-                throw NSError(
-                    domain: "ChatThreadViewModel",
-                    code: 3,
-                    userInfo: [NSLocalizedDescriptionKey: "Missing current user id"]
-                )
-            }
 
             print("🧪 sendImageMessage: encrypting placeholder/caption for recipients")
 
             let encrypted = try MessageCryptoService.shared.encryptMessageForRecipients(
                 plaintext: plaintextForEncryption,
-                senderUserId: senderUserId,
+                senderUserId: senderId,
                 recipients: recipients
             )
 
@@ -831,7 +831,7 @@ final class ChatThreadViewModel: ObservableObject {
     private func persistLastServerMessageId(_ id: Int, roomId: Int) {
         UserDefaults.standard.set(id, forKey: keyForLastId(roomId))
     }
-    
+
     private func bestPlaintext(for msg: MessageDTO) -> String {
         if let translated = msg.translatedForMe, !translated.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return translated
@@ -846,7 +846,7 @@ final class ChatThreadViewModel: ObservableObject {
         guard let date else { return nil }
         return ISO8601DateFormatter().string(from: date)
     }
-    
+
     func submitReport(
         targetMessage: MessageDTO,
         roomId: Int,
@@ -985,18 +985,280 @@ final class ChatThreadViewModel: ObservableObject {
         }
     }
 
-    private func fetchRecipientAccountKeysForRoom(
-        token: String,
-        roomId: Int
-    ) async throws -> [RecipientKeyContext] {
-        guard let currentUserId else {
-            throw NSError(
-                domain: "ChatThreadViewModel",
-                code: 1,
-                userInfo: [NSLocalizedDescriptionKey: "Missing current user id"]
-            )
+    func editMessage(
+        messageId: Int,
+        newText: String,
+        token: String?
+    ) async -> Bool {
+        guard messageId > 0 else {
+            errorText = "Only sent messages can be edited."
+            return false
         }
 
+        guard let token, !token.isEmpty else {
+            errorText = "Missing auth token."
+            return false
+        }
+
+        let trimmed = newText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            errorText = "Message cannot be empty."
+            return false
+        }
+
+        struct EditMessageRequest: Encodable {
+            let newContent: String
+        }
+
+        struct EditMessageResponse: Decodable {
+            let id: Int
+            let chatRoomId: Int?
+            let rawContent: String?
+            let editedAt: Date?
+        }
+
+        do {
+            let body = try JSONEncoder().encode(EditMessageRequest(newContent: trimmed))
+
+            let updated: EditMessageResponse = try await APIClient.shared.send(
+                APIRequest(
+                    path: "messages/\(messageId)",
+                    method: .PATCH,
+                    body: body,
+                    requiresAuth: true
+                ),
+                token: token
+            )
+
+            guard let existing = MessageStore.shared.message(withId: updated.id) else {
+                let patched = MessageDTO(
+                    id: updated.id,
+                    contentCiphertext: nil,
+                    rawContent: updated.rawContent ?? trimmed,
+                    translations: nil,
+                    translatedFrom: nil,
+                    translatedForMe: updated.rawContent ?? trimmed,
+                    encryptedKeyForMe: nil,
+                    imageUrl: nil,
+                    audioUrl: nil,
+                    audioDurationSec: nil,
+                    attachments: nil,
+                    isExplicit: nil,
+                    createdAt: Date(),
+                    expiresAt: nil,
+                    editedAt: updated.editedAt ?? Date(),
+                    deletedBySender: nil,
+                    deletedForAll: nil,
+                    deletedAt: nil,
+                    deletedById: nil,
+                    sender: currentUserSenderDTO ?? SenderDTO(id: currentUserId ?? 0, username: currentUsername, publicKey: currentUserPublicKey, avatarUrl: nil),
+                    readBy: nil,
+                    chatRoomId: updated.chatRoomId ?? roomId,
+                    reactionSummary: nil,
+                    myReactions: nil,
+                    revision: 1,
+                    clientMessageId: nil
+                )
+
+                MessageStore.shared.insertOrReplaceSync([patched])
+                DecryptedMessageTextStore.shared.setText(updated.rawContent ?? trimmed, for: patched.id)
+                refreshFromMessageStore()
+                errorText = nil
+                return true
+            }
+
+            let patched = MessageDTO(
+                id: existing.id,
+                contentCiphertext: nil,
+                rawContent: updated.rawContent ?? trimmed,
+                translations: nil,
+                translatedFrom: existing.translatedFrom,
+                translatedForMe: updated.rawContent ?? trimmed,
+                encryptedKeyForMe: nil,
+                imageUrl: existing.imageUrl,
+                audioUrl: existing.audioUrl,
+                audioDurationSec: existing.audioDurationSec,
+                attachments: existing.attachments,
+                isExplicit: existing.isExplicit,
+                createdAt: existing.createdAt,
+                expiresAt: existing.expiresAt,
+                editedAt: updated.editedAt ?? Date(),
+                deletedBySender: existing.deletedBySender,
+                deletedForAll: existing.deletedForAll,
+                deletedAt: existing.deletedAt,
+                deletedById: existing.deletedById,
+                sender: existing.sender,
+                readBy: existing.readBy,
+                chatRoomId: existing.chatRoomId,
+                reactionSummary: existing.reactionSummary,
+                myReactions: existing.myReactions,
+                revision: max((existing.revision ?? 1) + 1, existing.revision ?? 1),
+                clientMessageId: existing.clientMessageId
+            )
+
+            MessageStore.shared.insertOrReplaceSync([patched])
+
+            let freshText = updated.rawContent ?? trimmed
+            DecryptedMessageTextStore.shared.setText(freshText, for: patched.id)
+
+            refreshFromMessageStore()
+            errorText = nil
+            return true
+        } catch {
+            errorText = "Failed to edit message."
+            print("❌ editMessage failed:", error)
+            return false
+        }
+    }
+
+    func archiveConversation(
+        conversationId: Int,
+        kind: String,
+        token: String?
+    ) async -> Bool {
+        guard let token, !token.isEmpty else {
+            errorText = "Missing auth token."
+            return false
+        }
+
+        struct ArchiveRequest: Encodable {
+            let archived: Bool
+        }
+
+        do {
+            let body = try JSONEncoder().encode(ArchiveRequest(archived: true))
+
+            let _: EmptyResponse = try await APIClient.shared.send(
+                APIRequest(
+                    path: "conversations/\(kind)/\(conversationId)/archive",
+                    method: .PATCH,
+                    body: body,
+                    requiresAuth: true
+                ),
+                token: token
+            )
+
+            errorText = nil
+            return true
+        } catch {
+            errorText = "Failed to archive conversation."
+            print("❌ archiveConversation failed:", error)
+            return false
+        }
+    }
+
+    func deleteConversation(
+        conversationId: Int,
+        kind: String,
+        token: String?
+    ) async -> Bool {
+        guard let token, !token.isEmpty else {
+            errorText = "Missing auth token."
+            return false
+        }
+
+        do {
+            let _: EmptyResponse = try await APIClient.shared.send(
+                APIRequest(
+                    path: "conversations/\(kind)/\(conversationId)",
+                    method: .DELETE,
+                    requiresAuth: true
+                ),
+                token: token
+            )
+
+            errorText = nil
+            return true
+        } catch {
+            errorText = "Failed to delete conversation."
+            print("❌ deleteConversation failed:", error)
+            return false
+        }
+    }
+
+    func deleteMessage(
+        messageId: Int,
+        token: String?,
+        deleteForEveryone: Bool = false
+    ) async -> Bool {
+        if messageId <= 0 {
+            MessageStore.shared.removeMessageSync(id: messageId)
+            refreshFromMessageStore()
+            errorText = nil
+            return true
+        }
+
+        guard let token, !token.isEmpty else {
+            errorText = "Missing auth token."
+            return false
+        }
+
+        let scope = deleteForEveryone ? "all" : "me"
+
+        do {
+            let _: EmptyResponse = try await APIClient.shared.send(
+                APIRequest(
+                    path: "messages/\(messageId)?scope=\(scope)",
+                    method: .DELETE,
+                    requiresAuth: true
+                ),
+                token: token
+            )
+
+            if deleteForEveryone {
+                if let existing = MessageStore.shared.message(withId: messageId) {
+                    let patched = MessageDTO(
+                        id: existing.id,
+                        contentCiphertext: nil,
+                        rawContent: nil,
+                        translations: existing.translations,
+                        translatedFrom: existing.translatedFrom,
+                        translatedForMe: nil,
+                        encryptedKeyForMe: existing.encryptedKeyForMe,
+                        imageUrl: nil,
+                        audioUrl: nil,
+                        audioDurationSec: nil,
+                        attachments: [],
+                        isExplicit: existing.isExplicit,
+                        createdAt: existing.createdAt,
+                        expiresAt: existing.expiresAt,
+                        editedAt: nil,
+                        deletedBySender: existing.deletedBySender,
+                        deletedForAll: true,
+                        deletedAt: Date(),
+                        deletedById: currentUserId,
+                        sender: existing.sender,
+                        readBy: existing.readBy,
+                        chatRoomId: existing.chatRoomId,
+                        reactionSummary: existing.reactionSummary,
+                        myReactions: existing.myReactions,
+                        revision: max((existing.revision ?? 1) + 1, existing.revision ?? 1),
+                        clientMessageId: existing.clientMessageId
+                    )
+
+                    MessageStore.shared.insertOrReplaceSync([patched])
+                }
+            } else {
+                MessageStore.shared.removeMessageSync(id: messageId)
+            }
+
+            await MainActor.run {
+                self.refreshFromMessageStore()
+                self.errorText = nil
+            }
+            return true
+        } catch {
+            errorText = "Failed to delete message."
+            print("❌ deleteMessage failed:", error)
+            return false
+        }
+    }
+
+    private func fetchRecipientAccountKeysForRoom(
+        token: String,
+        roomId: Int,
+        senderUserId: Int
+    ) async throws -> [RecipientKeyContext] {
         let participantsResponse: RoomParticipantsResponse = try await APIClient.shared.send(
             APIRequest(
                 path: "rooms/\(roomId)/participants",
@@ -1007,7 +1269,7 @@ final class ChatThreadViewModel: ObservableObject {
         )
 
         let recipients = participantsResponse.participants
-            .filter { $0.userId != currentUserId }
+            .filter { $0.userId != senderUserId }
             .compactMap { participant -> RecipientKeyContext? in
                 guard let pk = participant.user?.publicKey,
                       !pk.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {

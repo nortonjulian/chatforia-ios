@@ -17,4 +17,17 @@ final class DecryptedMessageTextStore: ObservableObject {
     func setText(_ text: String, for messageId: Int) {
         values[messageId] = text
     }
+
+    func removeText(for messageId: Int) {
+        values.removeValue(forKey: messageId)
+    }
+
+    func replaceTextIfPresent(_ text: String, for messageId: Int) {
+        guard values[messageId] != nil else { return }
+        values[messageId] = text
+    }
+
+    func clearAll() {
+        values.removeAll()
+    }
 }
