@@ -6,14 +6,21 @@ struct ChatThreadView: View {
     let randomSession: RandomSession?
 
     @EnvironmentObject var auth: AuthStore
+    @EnvironmentObject var themeManager: ThemeManager
+
     @StateObject private var vm = ChatThreadViewModel()
+    @StateObject private var riaVM = RiaViewModel()
+    @StateObject private var settingsVM = SettingsViewModel()
+
+    @Environment(\.dismiss) private var dismissView
+    @Environment(\.scenePhase) private var scenePhase
+
     @State private var draft = ""
     @State private var lastMessageId: Int? = nil
 
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var selectedImageData: Data?
     @State private var isPreparingImageSend = false
-
     @State private var showPhotoPicker = false
 
     @State private var reportingMessage: MessageDTO? = nil
@@ -32,13 +39,31 @@ struct ChatThreadView: View {
     @State private var pendingDeleteMessage: MessageDTO? = nil
 
     @State private var showDeleteConversationConfirm = false
-
-    @Environment(\.dismiss) private var dismissView
-    @EnvironmentObject var themeManager: ThemeManager
-    @Environment(\.scenePhase) private var scenePhase
+    @State private var showingRewriteSheet = false
 
     var body: some View {
         mainContent
+            .sheet(isPresented: $showingRewriteSheet) {
+                RiaRewriteSheet(
+                    draft: draft,
+                    isLoading: riaVM.isLoadingRewrite,
+                    options: riaVM.rewriteOptions,
+                    onToneTap: { tone in
+                        Task {
+                            await riaVM.rewrite(
+                                token: auth.currentToken,
+                                text: draft,
+                                tone: tone,
+                                filterProfanity: settingsVM.maskAIProfanity
+                            )
+                        }
+                    },
+                    onSelectRewrite: { rewritten in
+                        draft = rewritten
+                    }
+                )
+                .environmentObject(themeManager)
+            }
     }
 }
 
@@ -77,6 +102,9 @@ extension ChatThreadView {
                     deletingMessage = msg
                     pendingDeleteMessage = nil
                 }
+            }
+            .onChange(of: vm.messages.last?.id) { _, _ in
+                refreshRiaSuggestions()
             }
             .modifier(DeleteConversationDialogModifier(
                 showDeleteConversationConfirm: $showDeleteConversationConfirm,
@@ -304,9 +332,22 @@ extension ChatThreadView {
                     .padding(.horizontal, 10)
                     .padding(.top, 8)
                     .transition(.move(edge: .top).combined(with: .opacity))
+            } else if let aiReason = riaVM.aiDisabledReason, !aiReason.isEmpty {
+                Text(aiReason)
+                    .font(.footnote)
+                    .foregroundStyle(themeManager.palette.secondaryText)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(themeManager.palette.cardBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .padding(.horizontal, 10)
+                    .padding(.top, 8)
+                    .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
         .animation(.easeInOut(duration: 0.2), value: vm.errorText)
+        .animation(.easeInOut(duration: 0.2), value: riaVM.aiDisabledReason)
     }
 
     private func matchedHeaderCard(session: RandomSession) -> some View {
@@ -461,20 +502,61 @@ extension ChatThreadView {
         .animation(.easeInOut(duration: 0.2), value: vm.typingUsernames)
     }
 
+    private func riaContextMessages(from messages: [MessageDTO], currentUserId: Int?) -> [RiaContextMessageDTO] {
+        let recent = messages.sorted {
+            if $0.createdAt != $1.createdAt { return $0.createdAt < $1.createdAt }
+            return $0.id < $1.id
+        }
+        .suffix(8)
+
+        return recent.compactMap { msg in
+            let text =
+                DecryptedMessageTextStore.shared.text(for: msg.id)?
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                ?? msg.translatedForMe?.trimmingCharacters(in: .whitespacesAndNewlines)
+                ?? msg.rawContent?.trimmingCharacters(in: .whitespacesAndNewlines)
+
+            guard let text, !text.isEmpty else { return nil }
+
+            let role = (msg.sender.id == currentUserId) ? "user" : "assistant"
+            return RiaContextMessageDTO(role: role, content: text)
+        }
+    }
+
+    private func refreshRiaSuggestions() {
+        guard let token = auth.currentToken else { return }
+
+        riaVM.loadSuggestions(
+            token: token,
+            enabled: settingsVM.enableSmartReplies,
+            filterProfanity: settingsVM.maskAIProfanity,
+            draft: draft,
+            messages: riaContextMessages(from: vm.messages, currentUserId: auth.currentUser?.id)
+        )
+    }
+
     private var composer: some View {
         MessageComposerView(
             draft: $draft,
             isSending: isBusySending,
             onDraftChanged: {
                 vm.handleInputChanged(roomId: room.id)
+                refreshRiaSuggestions()
             },
             onAttachmentTap: {
                 showPhotoPicker = true
             },
             onSend: {
-                Task {
-                    await send()
-                }
+                Task { await send() }
+            },
+            suggestions: riaVM.suggestions,
+            isLoadingSuggestions: riaVM.isLoadingSuggestions,
+            onSuggestionTap: { suggestion in
+                draft = suggestion
+                vm.handleInputChanged(roomId: room.id)
+            },
+            onRewriteTap: {
+                showingRewriteSheet = true
             }
         )
         .photosPicker(
@@ -621,6 +703,11 @@ extension ChatThreadView {
     }
 
     private func onTaskLoad() async {
+        if let user = auth.currentUser {
+            settingsVM.load(from: user)
+        }
+        settingsVM.loadLocalAISettings()
+
         vm.configureRoom(roomId: room.id)
 
         if let session = randomSession {
@@ -644,6 +731,7 @@ extension ChatThreadView {
 
         DispatchQueue.main.async {
             self.lastMessageId = vm.messages.sorted(by: { $0.id < $1.id }).last?.id
+            self.refreshRiaSuggestions()
         }
     }
 
@@ -657,6 +745,11 @@ extension ChatThreadView {
         if newPhase == .active {
             Task {
                 await vm.resyncIfNeeded(token: TokenStore.shared.read())
+                if let user = auth.currentUser {
+                    settingsVM.load(from: user)
+                }
+                settingsVM.loadLocalAISettings()
+                refreshRiaSuggestions()
             }
             vm.startExpiryLoop()
         } else {
@@ -670,6 +763,7 @@ extension ChatThreadView {
 
         Task {
             await vm.resyncIfNeeded(token: TokenStore.shared.read())
+            refreshRiaSuggestions()
         }
     }
 
@@ -708,6 +802,8 @@ extension ChatThreadView {
 
         if didQueue {
             draft = ""
+            riaVM.clearSuggestions()
+            vm.stopTypingNow(roomId: room.id)
         }
     }
 

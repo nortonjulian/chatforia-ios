@@ -37,6 +37,8 @@ struct UserDTO: Codable, Identifiable {
     let ringtone: String?
     let soundVolume: Int?
 
+    let enableSmartReplies: Bool?
+
     init(
         id: Int,
         email: String?,
@@ -67,7 +69,8 @@ struct UserDTO: Codable, Identifiable {
         voicemailGreetingUrl: String? = nil,
         messageTone: String? = nil,
         ringtone: String? = nil,
-        soundVolume: Int? = nil
+        soundVolume: Int? = nil,
+        enableSmartReplies: Bool? = nil
     ) {
         self.id = id
         self.email = email
@@ -104,5 +107,7 @@ struct UserDTO: Codable, Identifiable {
         self.messageTone = messageTone
         self.ringtone = ringtone
         self.soundVolume = soundVolume
+
+        self.enableSmartReplies = enableSmartReplies
     }
 }

@@ -21,6 +21,9 @@ struct ChatsRootView: View {
     @State private var selectedRandomSession: RandomSession? = nil
 
     @State private var didSetupRandomMatchListener = false
+    
+    @State private var showRiaChat = false
+    @StateObject private var settingsVM = SettingsViewModel()
 
     var body: some View {
         NavigationStack {
@@ -129,6 +132,12 @@ struct ChatsRootView: View {
                     SMSThreadView(conversation: conversation)
                 }
             }
+            .navigationDestination(isPresented: $showRiaChat) {
+                RiaChatView()
+                    .environmentObject(auth)
+                    .environmentObject(themeManager)
+                    .environmentObject(settingsVM)
+            }
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $vm.searchText, prompt: "Search chats")
             .toolbar {
@@ -149,6 +158,13 @@ struct ChatsRootView: View {
                         Task { await reload() }
                     } label: {
                         Image(systemName: "arrow.clockwise")
+                    }
+                    .foregroundStyle(themeManager.palette.accent)
+
+                    Button {
+                        showRiaChat = true
+                    } label: {
+                        Image(systemName: "sparkles")
                     }
                     .foregroundStyle(themeManager.palette.accent)
 

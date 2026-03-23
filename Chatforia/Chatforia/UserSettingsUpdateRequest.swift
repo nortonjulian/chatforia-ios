@@ -26,4 +26,8 @@ struct UserSettingsUpdateRequest: Encodable {
 
     let messageTone: String?
     let ringtone: String?
+
+    let enableSmartReplies: Bool
+
+    let maskAIProfanity: Bool?
 }

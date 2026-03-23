@@ -34,6 +34,11 @@ final class SettingsViewModel: ObservableObject {
     @Published var ringtone: String = "Classic.mp3"
     @Published var soundVolume: Int = 70
 
+    @Published var enableSmartReplies: Bool = true
+    @Published var maskAIProfanity: Bool = false
+
+    private let maskAIProfanityKey = "chatforia.maskAIProfanity"
+
     func load(from user: UserDTO) {
         preferredLanguage = user.preferredLanguage ?? "en"
         autoTranslate = user.autoTranslate ?? false
@@ -61,6 +66,8 @@ final class SettingsViewModel: ObservableObject {
         messageTone = normalizedMessageTone(user.messageTone)
         ringtone = normalizedRingtone(user.ringtone)
         soundVolume = user.soundVolume ?? 70
+
+        enableSmartReplies = user.enableSmartReplies ?? true
     }
 
     func makeRequest() -> UserSettingsUpdateRequest {
@@ -85,7 +92,9 @@ final class SettingsViewModel: ObservableObject {
             voicemailForwardEmail: voicemailForwardEmail,
             voicemailGreetingText: voicemailGreetingText,
             messageTone: messageTone,
-            ringtone: ringtone
+            ringtone: ringtone,
+            enableSmartReplies: enableSmartReplies,
+            maskAIProfanity: maskAIProfanity
         )
     }
 
@@ -143,5 +152,14 @@ final class SettingsViewModel: ObservableObject {
         default:
             return "Classic.mp3"
         }
+    }
+
+    func loadLocalAISettings() {
+        maskAIProfanity = UserDefaults.standard.bool(forKey: maskAIProfanityKey)
+    }
+
+    func setMaskAIProfanity(_ value: Bool) {
+        maskAIProfanity = value
+        UserDefaults.standard.set(value, forKey: maskAIProfanityKey)
     }
 }
