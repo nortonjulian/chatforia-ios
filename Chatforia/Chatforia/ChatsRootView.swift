@@ -15,6 +15,13 @@ struct ChatsRootView: View {
     @State private var showDeleteConfirm = false
     @State private var pendingConversation: ConversationDTO?
 
+    @State private var isMatching = false
+    @State private var matchedRoom: ChatRoomDTO?
+    
+    @State private var selectedRandomSession: RandomSession? = nil
+
+    @State private var didSetupRandomMatchListener = false
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -111,7 +118,10 @@ struct ChatsRootView: View {
             }
             .navigationDestination(isPresented: $showSelectedRoom) {
                 if let room = selectedRoom {
-                    ChatThreadView(room: room)
+                    ChatThreadView(
+                        room: room,
+                        randomSession: selectedRandomSession
+                    )
                 }
             }
             .navigationDestination(isPresented: $showSelectedSMS) {
@@ -141,6 +151,13 @@ struct ChatsRootView: View {
                         Image(systemName: "arrow.clockwise")
                     }
                     .foregroundStyle(themeManager.palette.accent)
+
+                    Button {
+                        startRandomChat()
+                    } label: {
+                        Image(systemName: "shuffle")
+                    }
+                    .foregroundStyle(themeManager.palette.accent)
                 }
             }
             .sheet(isPresented: $showingStartChat) {
@@ -148,6 +165,7 @@ struct ChatsRootView: View {
                     switch destination {
                     case .chat(let room):
                         selectedRoom = room
+                        showSelectedRoom = true
                         showSelectedRoom = true
 
                     case .sms(let conversation):
@@ -157,6 +175,14 @@ struct ChatsRootView: View {
                 }
                 .environmentObject(auth)
                 .environmentObject(themeManager)
+            }
+            .sheet(isPresented: $isMatching) {
+                RandomMatchingView(
+                    onCancel: {
+                        SocketManager.shared.leaveRandomQueue()
+                        isMatching = false
+                    }
+                )
             }
             .alert("Delete Conversation?", isPresented: $showDeleteConfirm) {
                 Button("Delete", role: .destructive) {
@@ -175,10 +201,27 @@ struct ChatsRootView: View {
                 Text("This will remove the conversation from your list.")
             }
             .task {
+                if !didSetupRandomMatchListener {
+                    setupRandomMatchListener()
+                    didSetupRandomMatchListener = true
+                }
+
                 await reload()
             }
             .refreshable {
                 await reload()
+            }
+            .onReceive(NotificationCoordinator.shared.$pendingChatRoomId) { roomId in
+                guard let roomId else { return }
+
+                Task {
+                    await openChatFromNotification(roomId: roomId)
+                }
+
+                NotificationCoordinator.shared.pendingChatRoomId = nil
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .init("randomNextPerson"))) { _ in
+                startRandomChat()
             }
         }
     }
@@ -192,11 +235,103 @@ struct ChatsRootView: View {
     private func destinationView(for conversation: ConversationDTO) -> some View {
         switch conversation.kind.lowercased() {
         case "chat":
-            ChatThreadView(room: conversation.asChatRoomDTO)
+            ChatThreadView(room: conversation.asChatRoomDTO, randomSession: nil)
         case "sms":
             SMSThreadView(conversation: conversation)
         default:
             UnsupportedConversationView(conversation: conversation)
+        }
+    }
+
+    private func startRandomChat() {
+        isMatching = true
+
+        guard let token = TokenStore.shared.read(), !token.isEmpty else {
+            isMatching = false
+            return
+        }
+
+        SocketManager.shared.connect(token: token)
+
+        // Default behavior: no topic required.
+        // This supports users who just want to talk to anyone.
+        SocketManager.shared.joinRandomQueue()
+    }
+
+    private func setupRandomMatchListener() {
+
+        // 🔹 MATCH FOUND
+        SocketManager.shared.on("random:matched") { data, _ in
+            guard let dict = data.first as? [String: Any],
+                  let roomId = dict["roomId"] as? Int else { return }
+
+            let myAlias = dict["myAlias"] as? String ?? "You"
+            let partnerAlias = dict["partnerAlias"] as? String ?? "Stranger"
+
+            Task { @MainActor in
+                await handleMatchFound(
+                    roomId: roomId,
+                    myAlias: myAlias,
+                    partnerAlias: partnerAlias
+                )
+            }
+        }
+
+        // 🔹 FRIEND ACCEPTED (NEW)
+        SocketManager.shared.on("random:friend_accepted") { data, _ in
+            guard let dict = data.first as? [String: Any],
+                  let roomId = dict["roomId"] as? Int else { return }
+
+            Task { @MainActor in
+                NotificationCenter.default.post(
+                    name: .init("randomFriendAccepted"),
+                    object: roomId
+                )
+            }
+        }
+    }
+
+    private func handleMatchFound(roomId: Int, myAlias: String, partnerAlias: String) async {
+        isMatching = false
+
+        guard let token = TokenStore.shared.read(), !token.isEmpty else { return }
+
+        do {
+            let room: ChatRoomDTO = try await APIClient.shared.send(
+                APIRequest(path: "chatrooms/\(roomId)", method: .GET, requiresAuth: true),
+                token: token
+            )
+
+            let session = RandomSession(
+                roomId: roomId,
+                myAlias: myAlias,
+                partnerAlias: partnerAlias
+            )
+
+            selectedRoom = room
+            matchedRoom = room
+
+            selectedRandomSession = session
+
+            showSelectedRoom = true
+        } catch {
+            print("❌ match fetch failed:", error)
+        }
+    }
+
+    private func openChatFromNotification(roomId: Int) async {
+        guard let token = TokenStore.shared.read(), !token.isEmpty else { return }
+
+        do {
+            let room: ChatRoomDTO = try await APIClient.shared.send(
+                APIRequest(path: "chatrooms/\(roomId)", method: .GET, requiresAuth: true),
+                token: token
+            )
+            selectedRandomSession = nil
+            selectedRoom = room
+            showSelectedRoom = true
+        } catch {
+            print("❌ Failed to open chat from notification:", error)
         }
     }
 

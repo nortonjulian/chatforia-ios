@@ -24,6 +24,9 @@ final class SocketManager: ObservableObject {
 
     private var joinedRoomIds = Set<Int>()
 
+    // 🔥 NEW: Track random queue state
+    private var isInRandomQueue = false
+
     private init() {}
 
     // MARK: - Connection
@@ -100,6 +103,7 @@ final class SocketManager: ObservableObject {
         }
     }
 
+    // 🔥 IMPORTANT: ensures safe emit timing
     func onConnectedOnce(_ handler: @escaping () -> Void) {
         if let s = socket, s.status == .connected {
             Task { @MainActor in handler() }
@@ -129,6 +133,7 @@ final class SocketManager: ObservableObject {
         socket?.disconnect()
         isConnected = false
         joinedRoomIds.removeAll()
+        isInRandomQueue = false
     }
 
     private func rebuild(token: String?) {
@@ -169,8 +174,6 @@ final class SocketManager: ObservableObject {
         self.manager = mgr
         self.socket = mgr.defaultSocket
 
-        print("SocketManager.rebuild: manager socketURL=\(String(describing: mgr.socketURL))")
-
         bindCoreHandlersIfNeeded()
     }
 
@@ -191,7 +194,7 @@ final class SocketManager: ObservableObject {
 
     func emit(_ event: String, _ payload: [String: Any]) {
         guard let socket = socket, socket.status == .connected else {
-            print("⚠️ socket emit skipped (not connected) event=\(event) payloadPreview=\(payload.keys)")
+            print("⚠️ socket emit skipped (not connected) event=\(event)")
             return
         }
         socket.emit(event, payload)
@@ -211,11 +214,7 @@ final class SocketManager: ObservableObject {
         guard roomId > 0 else { return }
         joinedRoomIds.insert(roomId)
 
-        guard let socket = socket, socket.status == .connected else {
-            print("ℹ️ joinRoom queued (not connected) roomId=\(roomId)")
-            return
-        }
-
+        guard let socket = socket, socket.status == .connected else { return }
         socket.emit("join_room", roomId)
     }
 
@@ -223,53 +222,43 @@ final class SocketManager: ObservableObject {
         guard roomId > 0 else { return }
         joinedRoomIds.remove(roomId)
 
-        guard let socket = socket, socket.status == .connected else {
-            print("ℹ️ leaveRoom queued (not connected) roomId=\(roomId)")
-            return
-        }
-
+        guard let socket = socket, socket.status == .connected else { return }
         socket.emit("leave_room", roomId)
     }
 
-    func joinRooms(_ roomIds: [Int]) {
-        let ids = Array(Set(roomIds.filter { $0 > 0 }))
-        guard !ids.isEmpty else { return }
+    // MARK: - 🔥 RANDOM MATCHING
 
-        for id in ids {
-            joinedRoomIds.insert(id)
-        }
-
-        guard let socket = socket, socket.status == .connected else {
-            print("ℹ️ joinRooms queued (not connected) ids=\(ids)")
+    func joinRandomQueue(topic: String? = nil, region: String? = nil) {
+        guard !isInRandomQueue else {
+            print("ℹ️ already in random queue")
             return
         }
 
-        socket.emit("join:rooms", ids)
+        onConnectedOnce {
+            var payload: [String: Any] = [:]
+
+            if let topic, !topic.isEmpty {
+                payload["topic"] = topic
+            }
+
+            if let region, !region.isEmpty {
+                payload["region"] = region
+            }
+
+            self.emit("random:join", payload)
+            self.isInRandomQueue = true
+        }
     }
 
-    func setActiveRooms(_ roomIds: [Int]) {
-        let desired = Set(roomIds.filter { $0 > 0 })
+    func leaveRandomQueue() {
+        guard isInRandomQueue else { return }
 
-        let toLeave = joinedRoomIds.subtracting(desired)
-        let toJoin = desired.subtracting(joinedRoomIds)
+        emit("random:leave")
+        isInRandomQueue = false
+    }
 
-        for rid in toLeave {
-            guard let socket = socket, socket.status == .connected else {
-                print("ℹ️ leave_room queued (not connected) rid=\(rid)")
-                continue
-            }
-            socket.emit("leave_room", rid)
-        }
-
-        if !toJoin.isEmpty {
-            if let socket = socket, socket.status == .connected {
-                socket.emit("join:rooms", Array(toJoin))
-            } else {
-                print("⚠️ join:rooms queued (not connected) ids=\(Array(toJoin))")
-            }
-        }
-
-        joinedRoomIds = desired
+    func markRandomMatchCompleted() {
+        isInRandomQueue = false
     }
 
     // MARK: - Core handlers
@@ -283,17 +272,6 @@ final class SocketManager: ObservableObject {
                 guard let self else { return }
                 self.isConnected = true
                 print("✅ socket connected")
-
-                if let token = self.currentToken {
-                    Task.detached {
-                        await DeviceRegistrationService.shared.heartbeat(token: token)
-                    }
-                }
-
-                let rooms = Array(self.joinedRoomIds)
-                if !rooms.isEmpty {
-                    self.socket?.emit("join:rooms", rooms)
-                }
             }
         }
 
@@ -310,69 +288,6 @@ final class SocketManager: ObservableObject {
 
         socket.on(clientEvent: .reconnect) { data, _ in
             print("🔄 socket reconnect:", data)
-        }
-
-        // MARK: - Application-level socket events
-
-        socket.on("message:ack") { data, _ in
-            guard let payload = data.first as? [String: Any],
-                  let clientMessageId = payload["clientMessageId"] as? String else {
-                return
-            }
-
-            Task { @MainActor in
-                MessageStore.shared.markDeliveryState(
-                    clientMessageId: clientMessageId,
-                    state: .delivered
-                )
-            }
-        }
-
-        socket.on("message_read") { data, _ in
-            guard let payload = data.first as? [String: Any],
-                  let messageId = payload["messageId"] as? Int else {
-                return
-            }
-
-            Task { @MainActor in
-                MessageStore.shared.markMessageRead(messageId: messageId)
-            }
-        }
-
-        socket.on("message:expired") { data, _ in
-            guard let payload = data.first as? [String: Any] else { return }
-
-            Task { @MainActor in
-                NotificationCenter.default.post(
-                    name: .socketMessageExpired,
-                    object: nil,
-                    userInfo: ["payload": payload]
-                )
-            }
-        }
-
-        socket.on("message_edited") { data, _ in
-            guard let payload = data.first as? [String: Any] else { return }
-
-            Task { @MainActor in
-                NotificationCenter.default.post(
-                    name: .socketMessageEdited,
-                    object: nil,
-                    userInfo: ["payload": payload]
-                )
-            }
-        }
-
-        socket.on("message_deleted") { data, _ in
-            guard let payload = data.first as? [String: Any] else { return }
-
-            Task { @MainActor in
-                NotificationCenter.default.post(
-                    name: .socketMessageDeleted,
-                    object: nil,
-                    userInfo: ["payload": payload]
-                )
-            }
         }
     }
 }

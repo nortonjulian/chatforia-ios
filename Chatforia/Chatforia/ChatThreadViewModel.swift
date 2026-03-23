@@ -110,6 +110,7 @@ final class ChatThreadViewModel: ObservableObject {
     @Published var isLoadingOlder: Bool = false
     @Published var typingUsernames: [String] = []
     @Published var isSendingImage: Bool = false
+    @Published var randomSession: RandomSession? = nil
 
     @Published var isSubmittingReport: Bool = false
     @Published var reportErrorText: String?
@@ -181,6 +182,56 @@ final class ChatThreadViewModel: ObservableObject {
                 self.handleMessageDeletedEvent(payload)
             }
             .store(in: &cancellables)
+
+        NotificationCenter.default.publisher(for: .init("randomFriendAccepted"))
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] note in
+                guard let self else { return }
+                guard let roomId = note.object as? Int else { return }
+                guard self.randomSession?.roomId == roomId else { return }
+
+                self.randomSession?.partnerRequestedFriend = true
+            }
+            .store(in: &cancellables)
+    }
+
+    // MARK: - Random Chat
+
+    func configureRandomSession(roomId: Int, myAlias: String, partnerAlias: String) {
+        if let existing = randomSession, existing.roomId == roomId {
+            return
+        }
+
+        randomSession = RandomSession(
+            roomId: roomId,
+            myAlias: myAlias,
+            partnerAlias: partnerAlias
+        )
+    }
+
+    func requestAddFriend() async {
+        guard let session = randomSession else { return }
+
+        SocketManager.shared.emit("random:add_friend", [
+            "roomId": session.roomId
+        ])
+
+        randomSession?.iRequestedFriend = true
+    }
+
+    func nextPerson() async {
+        guard let session = randomSession else { return }
+
+        SocketManager.shared.emit("random:skip", [
+            "roomId": session.roomId
+        ])
+
+        SocketManager.shared.markRandomMatchCompleted()
+
+        NotificationCenter.default.post(
+            name: .init("randomNextPerson"),
+            object: nil
+        )
     }
 
     func configureCurrentUser(id: Int?, username: String?, publicKey: String? = nil) {
@@ -770,6 +821,7 @@ final class ChatThreadViewModel: ObservableObject {
         guard self.roomId != roomId else { return }
         self.roomId = roomId
         self.lastServerMessageId = loadLastServerMessageId(roomId: roomId)
+        randomSession = nil
         refreshFromMessageStore()
         markVisibleMessagesRead()
     }

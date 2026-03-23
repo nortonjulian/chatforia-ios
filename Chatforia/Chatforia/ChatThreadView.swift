@@ -3,6 +3,7 @@ import PhotosUI
 
 struct ChatThreadView: View {
     let room: ChatRoomDTO
+    let randomSession: RandomSession?
 
     @EnvironmentObject var auth: AuthStore
     @StateObject private var vm = ChatThreadViewModel()
@@ -24,10 +25,7 @@ struct ChatThreadView: View {
     @State private var editingMessage: MessageDTO? = nil
     @State private var editDraft: String = ""
 
-    // Step 1: lightweight confirm
     @State private var confirmDeleteMessage: MessageDTO? = nil
-
-    // Step 2: scope picker
     @State private var deletingMessage: MessageDTO? = nil
 
     @State private var pendingEditMessage: MessageDTO? = nil
@@ -117,7 +115,7 @@ extension ChatThreadView {
     private func reportSheet(for msg: MessageDTO) -> some View {
         ReportMessageSheet(
             targetMessage: msg,
-            senderName: msg.sender.username ?? "Unknown user",
+            senderName: displayName(for: msg),
             previewText: bestPlaintextForReport(msg),
             isSubmitting: vm.isSubmittingReport,
             errorText: vm.reportErrorText,
@@ -276,6 +274,12 @@ extension ChatThreadView {
         VStack(spacing: 0) {
             errorBanner
 
+            if let session = vm.randomSession, !session.isFriendUnlocked {
+                matchedHeaderCard(session: session)
+                    .padding(.horizontal, 12)
+                    .padding(.top, 10)
+            }
+
             messagesSection
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
@@ -303,6 +307,68 @@ extension ChatThreadView {
             }
         }
         .animation(.easeInOut(duration: 0.2), value: vm.errorText)
+    }
+
+    private func matchedHeaderCard(session: RandomSession) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .center, spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(themeManager.palette.border)
+                        .frame(width: 44, height: 44)
+
+                    Image(systemName: "person.2.wave.2.fill")
+                        .foregroundStyle(themeManager.palette.accent)
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("You matched with \(session.partnerAlias)")
+                        .font(.headline)
+                        .foregroundStyle(themeManager.palette.primaryText)
+
+                    if session.iRequestedFriend && !session.partnerRequestedFriend {
+                        Text("Friend request sent. Waiting for them to accept.")
+                            .font(.footnote)
+                            .foregroundStyle(themeManager.palette.secondaryText)
+                    } else {
+                        Text("You’re anonymous until both people choose Add Friend.")
+                            .font(.footnote)
+                            .foregroundStyle(themeManager.palette.secondaryText)
+                    }
+                }
+
+                Spacer()
+            }
+
+            HStack(spacing: 10) {
+                Button {
+                    Task { await vm.requestAddFriend() }
+                } label: {
+                    Text(session.iRequestedFriend ? "Requested" : "Add Friend")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(session.iRequestedFriend)
+
+                Button {
+                    Task {
+                        await vm.nextPerson()
+                        dismissView()
+                    }
+                } label: {
+                    Text("Next Person")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+            }
+        }
+        .padding(14)
+        .background(themeManager.palette.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(themeManager.palette.border.opacity(0.8), lineWidth: 1)
+        )
     }
 
     private var messagesSection: some View {
@@ -521,6 +587,10 @@ extension ChatThreadView {
     }
 
     private var roomDisplayTitle: String {
+        if let session = vm.randomSession, !session.isFriendUnlocked {
+            return session.partnerAlias
+        }
+
         if let n = room.name?.trimmingCharacters(in: .whitespacesAndNewlines),
            !n.isEmpty {
             return n
@@ -538,8 +608,28 @@ extension ChatThreadView {
         return "Chat #\(room.id)"
     }
 
+    private func displayName(for msg: MessageDTO) -> String {
+        guard let session = vm.randomSession, !session.isFriendUnlocked else {
+            return msg.sender.username ?? "User"
+        }
+
+        if msg.sender.id == currentUserId {
+            return session.myAlias
+        } else {
+            return session.partnerAlias
+        }
+    }
+
     private func onTaskLoad() async {
         vm.configureRoom(roomId: room.id)
+
+        if let session = randomSession {
+            vm.configureRandomSession(
+                roomId: session.roomId,
+                myAlias: session.myAlias,
+                partnerAlias: session.partnerAlias
+            )
+        }
 
         await reload()
         await vm.resyncIfNeeded(token: TokenStore.shared.read())
@@ -622,6 +712,12 @@ extension ChatThreadView {
     }
 
     private func typingIndicatorText(_ names: [String]) -> String {
+        if let session = vm.randomSession, !session.isFriendUnlocked {
+            if names.isEmpty { return "" }
+            if names.count == 1 { return "\(session.partnerAlias) is typing…" }
+            return "People are typing…"
+        }
+
         if names.count == 1 { return "\(names[0]) is typing…" }
         if names.count == 2 { return "\(names[0]) and \(names[1]) are typing…" }
         return "\(names.count) people are typing…"
