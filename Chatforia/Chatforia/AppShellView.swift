@@ -17,6 +17,11 @@ struct AppShellView: View {
                         Label("Chats", systemImage: "bubble.left.and.bubble.right.fill")
                     }
 
+                DialerView()   
+                    .tabItem {
+                        Label("Calls", systemImage: "phone.fill")
+                    }
+
                 ContactsRootView()
                     .tabItem {
                         Label("Contacts", systemImage: "person.2.fill")
@@ -26,6 +31,7 @@ struct AppShellView: View {
                     .tabItem {
                         Label("Profile", systemImage: "person.crop.circle.fill")
                     }
+                
             }
             .tint(themeManager.palette.tabSelected)
         }

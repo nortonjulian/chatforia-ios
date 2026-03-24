@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		475F9DFD2F418A78006B79D9 /* SocketIO in Frameworks */ = {isa = PBXBuildFile; productRef = 475F9DFC2F418A78006B79D9 /* SocketIO */; };
+		47D716242F72198B007F3F42 /* TwilioVoice in Frameworks */ = {isa = PBXBuildFile; productRef = 47D716232F72198B007F3F42 /* TwilioVoice */; };
+		47D716262F72198B007F3F42 /* TwilioVoice-static in Frameworks */ = {isa = PBXBuildFile; productRef = 47D716252F72198B007F3F42 /* TwilioVoice-static */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,6 +30,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				475F9DFD2F418A78006B79D9 /* SocketIO in Frameworks */,
+				47D716262F72198B007F3F42 /* TwilioVoice-static in Frameworks */,
+				47D716242F72198B007F3F42 /* TwilioVoice in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -71,6 +75,8 @@
 			name = Chatforia;
 			packageProductDependencies = (
 				475F9DFC2F418A78006B79D9 /* SocketIO */,
+				47D716232F72198B007F3F42 /* TwilioVoice */,
+				47D716252F72198B007F3F42 /* TwilioVoice-static */,
 			);
 			productName = Chatforia;
 			productReference = 474C11282F3A993100D958AB /* Chatforia.app */;
@@ -102,6 +108,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				475F9DFB2F418A78006B79D9 /* XCRemoteSwiftPackageReference "socket.io-client-swift" */,
+				47D716222F72198B007F3F42 /* XCRemoteSwiftPackageReference "twilio-voice-ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 474C11292F3A993100D958AB /* Products */;
@@ -355,6 +362,14 @@
 				kind = branch;
 			};
 		};
+		47D716222F72198B007F3F42 /* XCRemoteSwiftPackageReference "twilio-voice-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/twilio/twilio-voice-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 6.13.6;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -362,6 +377,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 475F9DFB2F418A78006B79D9 /* XCRemoteSwiftPackageReference "socket.io-client-swift" */;
 			productName = SocketIO;
+		};
+		47D716232F72198B007F3F42 /* TwilioVoice */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 47D716222F72198B007F3F42 /* XCRemoteSwiftPackageReference "twilio-voice-ios" */;
+			productName = TwilioVoice;
+		};
+		47D716252F72198B007F3F42 /* TwilioVoice-static */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 47D716222F72198B007F3F42 /* XCRemoteSwiftPackageReference "twilio-voice-ios" */;
+			productName = "TwilioVoice-static";
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

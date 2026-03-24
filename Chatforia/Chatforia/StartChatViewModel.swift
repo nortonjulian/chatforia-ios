@@ -403,6 +403,7 @@ extension DirectChatRoomResponseDTO {
             name: nil,
             isGroup: isGroup,
             updatedAt: updatedAt,
+            phone: nil,
             lastMessage: nil,
             participants: participants?
                 .compactMap { $0.user }

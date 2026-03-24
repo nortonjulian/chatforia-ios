@@ -32,6 +32,7 @@ struct ChatforiaApp: App {
     @StateObject private var auth = AuthStore()
     @StateObject private var themeManager = ThemeManager()
     @StateObject private var notificationCoordinator = NotificationCoordinator.shared
+    @StateObject private var callManager = CallManager()
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -42,22 +43,27 @@ struct ChatforiaApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environmentObject(auth)
-                .environmentObject(themeManager)
-                .environmentObject(notificationCoordinator)
-                .tint(themeManager.palette.accent)
-                .task {
-                    await auth.bootstrap()
+            ZStack {
+                ContentView()
+                CallOverlayHostView()
+            }
+            .environmentObject(auth)
+            .environmentObject(themeManager)
+            .environmentObject(notificationCoordinator)
+            .environmentObject(callManager)
+            .tint(themeManager.palette.accent)
+            .task {
+                await auth.bootstrap()
 
-                    if let user = auth.currentUser {
-                        themeManager.apply(code: user.theme ?? "dawn")
-                        await notificationCoordinator.requestAuthorization()
-                    }
-
-                    AppEnvironment.configureSendQueueHandlersIfNeeded()
-                    SendQueueManager.shared.replayQueuedJobs()
+                if let user = auth.currentUser {
+                    themeManager.apply(code: user.theme ?? "dawn")
+                    await notificationCoordinator.requestAuthorization()
+                    callManager.startVoIPIfNeeded(auth: auth)
                 }
+
+                AppEnvironment.configureSendQueueHandlersIfNeeded()
+                SendQueueManager.shared.replayQueuedJobs()
+            }
         }
         .onChange(of: scenePhase) { _, newPhase in
             guard newPhase == .active else { return }
@@ -67,6 +73,10 @@ struct ChatforiaApp: App {
 
             if let token = auth.currentToken, !token.isEmpty {
                 SocketManager.shared.connect(token: token)
+            }
+
+            if auth.currentUser != nil {
+                callManager.startVoIPIfNeeded(auth: auth)
             }
         }
     }

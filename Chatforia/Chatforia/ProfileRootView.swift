@@ -45,13 +45,8 @@ struct ProfileRootView: View {
                 .padding()
             }
             .background(themeManager.palette.screenBackground)
+            .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    ThemedNavigationTitle(title: "Profile")
-                        .environmentObject(themeManager)
-                }
-            }
             .task {
                 let sourceUser = auth.currentUser ?? user
                 vm.load(from: sourceUser)
@@ -155,8 +150,6 @@ struct ProfileRootView: View {
             }
         }
     }
-
-    // MARK: - Sections
 
     private var headerSection: some View {
         VStack(spacing: 8) {
@@ -307,6 +300,36 @@ struct ProfileRootView: View {
                             .foregroundStyle(themeManager.palette.primaryText)
 
                         Text("Browse eSIM data packs and manage wireless features.")
+                            .font(.subheadline)
+                            .foregroundStyle(themeManager.palette.secondaryText)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(.vertical, 10)
+            }
+            .buttonStyle(.plain)
+
+            Divider()
+
+            NavigationLink {
+                PhoneNumberManagementView()
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "phone")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(themeManager.palette.accent)
+                        .frame(width: 22)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Phone Number")
+                            .font(.body)
+                            .foregroundStyle(themeManager.palette.primaryText)
+
+                        Text("Pick, manage, and keep your Chatforia number.")
                             .font(.subheadline)
                             .foregroundStyle(themeManager.palette.secondaryText)
                     }
@@ -767,8 +790,6 @@ struct ProfileRootView: View {
         )
         .padding(.top, 4)
     }
-
-    // MARK: - Helpers
 
     private var currentPlan: AppPlan {
         AppPlan(serverValue: auth.currentUser?.plan ?? user.plan)

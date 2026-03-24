@@ -32,6 +32,7 @@ extension ConversationDTO {
             name: title,
             isGroup: isGroup,
             updatedAt: updatedAt,
+            phone: phone,
             lastMessage: {
                 guard let last else { return nil }
                 return MessagePreviewDTO(
@@ -51,6 +52,7 @@ struct ChatRoomDTO: Codable, Identifiable, Hashable {
     let name: String?
     let isGroup: Bool?
     let updatedAt: String?
+    let phone: String?
     let lastMessage: MessagePreviewDTO?
     let participants: [UserPreviewDTO]?
 }

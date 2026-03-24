@@ -7,6 +7,8 @@ struct ChatThreadView: View {
 
     @EnvironmentObject var auth: AuthStore
     @EnvironmentObject var themeManager: ThemeManager
+    
+    @EnvironmentObject var callManager: CallManager
 
     @StateObject private var vm = ChatThreadViewModel()
     @StateObject private var riaVM = RiaViewModel()
@@ -251,6 +253,12 @@ extension ChatThreadView {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItemGroup(placement: .navigationBarTrailing) {
+            Button {
+                startCall()
+            } label: {
+                Image(systemName: "phone.fill")
+            }
+
             Menu {
                 Button {
                     Task {
@@ -633,6 +641,29 @@ extension ChatThreadView {
             }
             print("❌ loadAndSendSelectedPhoto failed:", error)
         }
+    }
+    
+    private func startCall() {
+        // PSTN-style thread
+        if let phone = room.phone?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !phone.isEmpty {
+            callManager.startCall(
+                to: .phoneNumber(phone, displayName: roomDisplayTitle),
+                auth: auth
+            )
+            return
+        }
+
+        // 1:1 Chatforia user
+        if let other = room.participants?.first(where: { $0.id != currentUserId }) {
+            callManager.startCall(
+                to: .appUser(userId: other.id, username: other.username),
+                auth: auth
+            )
+            return
+        }
+
+        vm.errorText = "Could not determine call destination."
     }
 
     private func bestEditableText(for msg: MessageDTO) -> String {

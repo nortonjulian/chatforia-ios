@@ -62,11 +62,21 @@ struct ChatListRowView: View {
                 Circle()
                     .stroke(themeManager.palette.border.opacity(0.8), lineWidth: 1)
             )
-            .overlay(
-                Text(initials)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(themeManager.palette.accent)
-            )
+            .overlay(avatarContent)
+    }
+
+    @ViewBuilder
+    private var avatarContent: some View {
+        Text(initials)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(themeManager.palette.accent)
+    }
+    
+    private var shouldUseGenericChatIcon: Bool {
+        let cleaned = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        if cleaned.isEmpty { return true }
+        if cleaned.lowercased().hasPrefix("chat #") { return true }
+        return false
     }
 
     private var initials: String {

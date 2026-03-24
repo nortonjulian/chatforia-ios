@@ -91,10 +91,8 @@ struct UserAvatarView: View {
             }
 
         case .initialsPreferred:
-            if initialsText.isEmpty, let image = UIImage(named: "default-avatar") {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
+            if initialsText.isEmpty {
+                genericPersonView
             } else {
                 initialsView
             }
@@ -108,6 +106,16 @@ struct UserAvatarView: View {
                 ProgressView()
                     .scaleEffect(0.8)
                     .tint(themeManager.palette.accent)
+            )
+    }
+    
+    private var genericPersonView: some View {
+        Circle()
+            .fill(themeManager.palette.accent.opacity(0.14))
+            .overlay(
+                Image(systemName: "person.fill")
+                    .font(size >= 72 ? .title3 : (size >= 44 ? .headline : .caption))
+                    .foregroundStyle(themeManager.palette.accent)
             )
     }
 

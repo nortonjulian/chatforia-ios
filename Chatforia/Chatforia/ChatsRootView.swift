@@ -139,13 +139,9 @@ struct ChatsRootView: View {
                     .environmentObject(settingsVM)
             }
             .navigationBarTitleDisplayMode(.inline)
+            .navigationTitle("Chats")
             .searchable(text: $vm.searchText, prompt: "Search chats")
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    ThemedNavigationTitle(title: "Chats")
-                        .environmentObject(themeManager)
-                }
-
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button {
                         showingStartChat = true

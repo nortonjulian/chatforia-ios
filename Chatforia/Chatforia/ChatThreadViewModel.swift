@@ -703,6 +703,11 @@ final class ChatThreadViewModel: ObservableObject {
 
         let username = (first["username"] as? String) ?? (first["name"] as? String) ?? ""
         let isTyping = (first["isTyping"] as? Bool) ?? defaultIsTyping
+
+        if username == currentUsername {
+            return
+        }
+
         applyTypingUpdate(username: username, isTyping: isTyping)
     }
 

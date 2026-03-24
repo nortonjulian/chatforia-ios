@@ -20,87 +20,20 @@ struct ContactsRootView: View {
                 themeManager.palette.screenBackground
                     .ignoresSafeArea()
 
-                Group {
-                    if vm.isLoading && vm.contacts.isEmpty {
-                        LoadingStateView(
-                            title: "Loading contacts…",
-                            subtitle: "Pulling in your saved people."
-                        )
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                    } else if let errorText = vm.errorText, !errorText.isEmpty, vm.contacts.isEmpty {
-                        EmptyStateView(
-                            systemImage: "person.crop.circle.badge.exclamationmark",
-                            title: "Couldn’t load contacts",
-                            subtitle: errorText,
-                            buttonTitle: "Try Again",
-                            buttonAction: {
-                                Task { await reload() }
-                            }
-                        )
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                    } else if vm.contacts.isEmpty && !vm.searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        EmptyStateView(
-                            systemImage: "magnifyingglass",
-                            title: "No contacts found",
-                            subtitle: "Try a different name or username."
-                        )
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                    } else if vm.contacts.isEmpty {
-                        EmptyStateView(
-                            systemImage: "person.2",
-                            title: "No contacts yet",
-                            subtitle: "Add contacts manually, import them from your phone, or start a new conversation.",
-                            buttonTitle: "New Conversation",
-                            buttonAction: {
-                                showingStartChat = true
-                            }
-                        )
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                    } else {
-                        List {
-                            ForEach(vm.contacts) { contact in
-                                Button {
-                                    Task {
-                                        await open(contact)
-                                    }
-                                } label: {
-                                    ContactRowView(
-                                        title: vm.displayName(for: contact),
-                                        subtitle: vm.subtitle(for: contact),
-                                        favorite: contact.favorite ?? false
-                                    )
-                                    .environmentObject(themeManager)
-                                }
-                                .buttonStyle(.plain)
-                                .listRowBackground(themeManager.palette.cardBackground)
-                            }
-                        }
-                        .scrollContentBackground(.hidden)
-                        .background(Color.clear)
-                        .listStyle(.insetGrouped)
-                    }
-                }
+                content
             }
             .navigationDestination(isPresented: $showSelectedSMS) {
                 if let conversation = selectedSMSConversation {
                     SMSThreadView(conversation: conversation)
                 }
             }
+            .navigationTitle("Contacts")
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $vm.searchText, prompt: "Search contacts")
             .onChange(of: vm.searchText) { _, _ in
                 Task { await reload() }
             }
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    ThemedNavigationTitle(title: "Contacts")
-                        .environmentObject(themeManager)
-                }
-
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Menu {
                         Button {
@@ -167,6 +100,74 @@ struct ContactsRootView: View {
             }
             .refreshable {
                 await reload()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        Group {
+            if vm.isLoading && vm.contacts.isEmpty {
+                LoadingStateView(
+                    title: "Loading contacts…",
+                    subtitle: "Pulling in your saved people."
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            } else if let errorText = vm.errorText, !errorText.isEmpty, vm.contacts.isEmpty {
+                EmptyStateView(
+                    systemImage: "person.crop.circle.badge.exclamationmark",
+                    title: "Couldn’t load contacts",
+                    subtitle: errorText,
+                    buttonTitle: "Try Again",
+                    buttonAction: {
+                        Task { await reload() }
+                    }
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            } else if vm.contacts.isEmpty && !vm.searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                EmptyStateView(
+                    systemImage: "magnifyingglass",
+                    title: "No contacts found",
+                    subtitle: "Try a different name or username."
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            } else if vm.contacts.isEmpty {
+                EmptyStateView(
+                    systemImage: "person.2",
+                    title: "No contacts yet",
+                    subtitle: "Add contacts manually, import them from your phone, or start a new conversation.",
+                    buttonTitle: "New Conversation",
+                    buttonAction: {
+                        showingStartChat = true
+                    }
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            } else {
+                List {
+                    ForEach(vm.contacts) { contact in
+                        Button {
+                            Task {
+                                await open(contact)
+                            }
+                        } label: {
+                            ContactRowView(
+                                title: vm.displayName(for: contact),
+                                subtitle: vm.subtitle(for: contact),
+                                favorite: contact.favorite ?? false
+                            )
+                            .environmentObject(themeManager)
+                        }
+                        .buttonStyle(.plain)
+                        .listRowBackground(themeManager.palette.cardBackground)
+                    }
+                }
+                .scrollContentBackground(.hidden)
+                .background(Color.clear)
+                .listStyle(.insetGrouped)
             }
         }
     }

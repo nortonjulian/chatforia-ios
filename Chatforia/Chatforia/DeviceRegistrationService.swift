@@ -77,6 +77,14 @@ final class DeviceRegistrationService {
     }
 
     func registerPushToken(_ pushToken: String, token: String) async throws {
+        try await registerPushToken(pushToken, provider: "apns", token: token)
+    }
+
+    func registerVoIPPushToken(_ pushToken: String, token: String) async throws {
+        try await registerPushToken(pushToken, provider: "apns_voip", token: token)
+    }
+
+    private func registerPushToken(_ pushToken: String, provider: String, token: String) async throws {
         struct RegisterPushTokenRequest: Encodable {
             let deviceId: String
             let pushToken: String
@@ -92,7 +100,7 @@ final class DeviceRegistrationService {
             RegisterPushTokenRequest(
                 deviceId: DeviceKeyManager.shared.getOrCreateDeviceId(),
                 pushToken: pushToken,
-                pushProvider: "apns"
+                pushProvider: provider
             )
         )
 
