@@ -2,7 +2,7 @@ import Foundation
 
 struct RiaService {
     private func withTimeout<T>(
-        seconds: Double = 1.5,
+        seconds: Double,
         operation: @escaping () async throws -> T
     ) async throws -> T {
         try await withThrowingTaskGroup(of: T.self) { group in
@@ -35,7 +35,7 @@ struct RiaService {
             )
         )
 
-        let response: SuggestRepliesResponse = try await withTimeout {
+        let response: SuggestRepliesResponse = try await withTimeout(seconds: 2.5) {
             try await APIClient.shared.send(
                 APIRequest(
                     path: "ai/suggest-replies",
@@ -64,7 +64,7 @@ struct RiaService {
             )
         )
 
-        let response: RewriteTextResponse = try await withTimeout {
+        let response: RewriteTextResponse = try await withTimeout(seconds: 6.0) {
             try await APIClient.shared.send(
                 APIRequest(
                     path: "ai/rewrite",

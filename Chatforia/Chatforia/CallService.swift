@@ -16,7 +16,7 @@ final class CallService {
         struct Body: Encodable {
             let calleeId: Int
             let mode: String
-            let offer: Offer
+            let offer: Offer?
         }
 
         struct Offer: Encodable {
@@ -28,7 +28,9 @@ final class CallService {
             Body(
                 calleeId: calleeId,
                 mode: mode,
-                offer: Offer(type: "offer", sdp: "placeholder")
+                offer: mode == "AUDIO"
+                    ? Offer(type: "offer", sdp: "placeholder")
+                    : nil
             )
         )
 
@@ -43,6 +45,34 @@ final class CallService {
         )
 
         return response.callId
+    }
+
+    func answerCall(
+        callId: Int,
+        token: String
+    ) async throws {
+        struct Body: Encodable {
+            let answer: Answer
+        }
+
+        struct Answer: Encodable {
+            let type: String
+            let sdp: String
+        }
+
+        let body = try JSONEncoder().encode(
+            Body(answer: Answer(type: "answer", sdp: "accepted"))
+        )
+
+        let _: EmptyResponse = try await APIClient.shared.send(
+            APIRequest(
+                path: "calls/\(callId)/answer",
+                method: .POST,
+                body: body,
+                requiresAuth: true
+            ),
+            token: token
+        )
     }
 
     func updateCall(

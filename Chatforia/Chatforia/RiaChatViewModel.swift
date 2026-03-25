@@ -55,7 +55,15 @@ final class RiaChatViewModel: ObservableObject {
             } else if (error as? URLError)?.code == .timedOut {
                 lastError = "Ria took too long to respond."
             } else {
-                lastError = error.localizedDescription
+                let message = error.localizedDescription.lowercased()
+
+                if message.contains("strict_e2ee") || message.contains("strict e2ee") {
+                    aiDisabledReason = "Ria is unavailable while Strict E2EE is enabled."
+                } else if message.contains("429") || message.contains("quota") || message.contains("billing") {
+                    lastError = "Ria isn’t available yet because AI billing hasn’t been set up."
+                } else {
+                    lastError = error.localizedDescription
+                }
             }
         }
 

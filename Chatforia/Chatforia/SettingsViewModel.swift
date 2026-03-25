@@ -38,6 +38,8 @@ final class SettingsViewModel: ObservableObject {
     @Published var maskAIProfanity: Bool = false
 
     private let maskAIProfanityKey = "chatforia.maskAIProfanity"
+    
+    private let enableSmartRepliesKey = "chatforia.enableSmartReplies"
 
     func load(from user: UserDTO) {
         preferredLanguage = user.preferredLanguage ?? "en"
@@ -67,7 +69,16 @@ final class SettingsViewModel: ObservableObject {
         ringtone = normalizedRingtone(user.ringtone)
         soundVolume = user.soundVolume ?? 70
 
-        enableSmartReplies = user.enableSmartReplies ?? true
+        if let serverValue = user.enableSmartReplies {
+            enableSmartReplies = serverValue
+        } else {
+            enableSmartReplies = UserDefaults.standard.object(forKey: enableSmartRepliesKey) as? Bool ?? true
+        }
+    }
+    
+    func setEnableSmartReplies(_ value: Bool) {
+        enableSmartReplies = value
+        UserDefaults.standard.set(value, forKey: enableSmartRepliesKey)
     }
 
     func makeRequest() -> UserSettingsUpdateRequest {

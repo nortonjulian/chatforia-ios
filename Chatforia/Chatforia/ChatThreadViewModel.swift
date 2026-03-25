@@ -111,6 +111,7 @@ final class ChatThreadViewModel: ObservableObject {
     @Published var typingUsernames: [String] = []
     @Published var isSendingImage: Bool = false
     @Published var randomSession: RandomSession? = nil
+    @Published var isSendingAudio: Bool = false
 
     @Published var isSubmittingReport: Bool = false
     @Published var reportErrorText: String?
@@ -589,6 +590,109 @@ final class ChatThreadViewModel: ObservableObject {
             MessageStore.shared.setDeliveryState(clientMessageId: clientMessageId, state: .failed)
             errorText = "Couldn’t send image. \(error.localizedDescription)"
             print("❌ sendImageMessage failed:", error)
+            return false
+        }
+    }
+    
+    func sendAudioMessage(
+        roomId: Int,
+        token: String?,
+        fileURL: URL,
+        durationSec: Double,
+        senderId: Int,
+        senderUsername: String?,
+        senderPublicKey: String?
+    ) async -> Bool {
+        guard let token, !token.isEmpty else {
+            errorText = "Missing auth token."
+            return false
+        }
+
+        let sender = SenderDTO(
+            id: senderId,
+            username: senderUsername,
+            publicKey: senderPublicKey,
+            avatarUrl: nil
+        )
+
+        errorText = nil
+        stopTypingNow(roomId: roomId)
+        isSendingAudio = true
+        defer { isSendingAudio = false }
+
+        let clientMessageId = UUID().uuidString
+        let localId = -abs(clientMessageId.hashValue)
+
+        do {
+            let upload = try await UploadService.shared.uploadAudio(fileURL: fileURL, token: token)
+
+            let attachment = AttachmentDTO(
+                id: nil,
+                kind: "AUDIO",
+                url: upload.url,
+                mimeType: upload.contentType ?? "audio/m4a",
+                width: nil,
+                height: nil,
+                durationSec: durationSec,
+                caption: nil,
+                thumbUrl: nil
+            )
+
+            let optimistic = MessageDTO.optimistic(
+                roomId: roomId,
+                clientMessageId: clientMessageId,
+                localId: localId,
+                text: nil,
+                attachments: [attachment],
+                imageUrl: nil,
+                audioUrl: upload.url,
+                audioDurationSec: durationSec,
+                senderId: sender.id,
+                senderUsername: sender.username,
+                senderPublicKey: sender.publicKey
+            )
+
+            applyToStore(optimistic)
+            MessageStore.shared.setDeliveryState(clientMessageId: clientMessageId, state: .sending)
+            refreshFromMessageStore()
+
+            let recipients = try await fetchRecipientAccountKeysForRoom(
+                token: token,
+                roomId: roomId,
+                senderUserId: senderId
+            )
+
+            let encrypted = try MessageCryptoService.shared.encryptMessageForRecipients(
+                plaintext: "[voice note]",
+                senderUserId: senderId,
+                recipients: recipients
+            )
+
+            let bodyRequest = SendMessageRequest(
+                chatRoomId: roomId,
+                content: nil,
+                contentCiphertext: encrypted.ciphertextBase64,
+                encryptedKeys: encrypted.encryptedKeysByUserId,
+                clientMessageId: clientMessageId,
+                attachmentsInline: [attachment]
+            )
+
+            let bodyData = try JSONEncoder().encode(bodyRequest)
+
+            let job = SendJob(
+                clientMessageId: clientMessageId,
+                localId: String(localId),
+                bodyJSON: bodyData,
+                attachmentsMeta: nil
+            )
+
+            SendQueueManager.shared.enqueue(job)
+            SendQueueManager.shared.startIfNeeded()
+            return true
+
+        } catch {
+            MessageStore.shared.setDeliveryState(clientMessageId: clientMessageId, state: .failed)
+            errorText = "Couldn’t send audio. \(error.localizedDescription)"
             return false
         }
     }

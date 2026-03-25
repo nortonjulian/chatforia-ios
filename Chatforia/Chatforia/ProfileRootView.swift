@@ -379,6 +379,20 @@ struct ProfileRootView: View {
                     title: "Enable read receipts",
                     isOn: $vm.showReadReceipts
                 )
+                
+                VStack(alignment: .leading, spacing: 6) {
+                    ThemedToggleRow(
+                        title: "Smart reply suggestions",
+                        isOn: Binding(
+                            get: { vm.enableSmartReplies },
+                            set: { vm.setEnableSmartReplies($0) }
+                        )
+                    )
+
+                    Text("Show suggested replies above the message box.")
+                        .font(.caption)
+                        .foregroundStyle(themeManager.palette.secondaryText)
+                }
             }
         }
     }

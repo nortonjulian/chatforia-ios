@@ -10,6 +10,8 @@
 		475F9DFD2F418A78006B79D9 /* SocketIO in Frameworks */ = {isa = PBXBuildFile; productRef = 475F9DFC2F418A78006B79D9 /* SocketIO */; };
 		47D716242F72198B007F3F42 /* TwilioVoice in Frameworks */ = {isa = PBXBuildFile; productRef = 47D716232F72198B007F3F42 /* TwilioVoice */; };
 		47D716262F72198B007F3F42 /* TwilioVoice-static in Frameworks */ = {isa = PBXBuildFile; productRef = 47D716252F72198B007F3F42 /* TwilioVoice-static */; };
+		47D7165D2F72F102007F3F42 /* TwilioVideo in Frameworks */ = {isa = PBXBuildFile; productRef = 47D7165C2F72F102007F3F42 /* TwilioVideo */; };
+		47D7165F2F72F102007F3F42 /* TwilioVideo-static in Frameworks */ = {isa = PBXBuildFile; productRef = 47D7165E2F72F102007F3F42 /* TwilioVideo-static */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -30,7 +32,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				475F9DFD2F418A78006B79D9 /* SocketIO in Frameworks */,
+				47D7165F2F72F102007F3F42 /* TwilioVideo-static in Frameworks */,
 				47D716262F72198B007F3F42 /* TwilioVoice-static in Frameworks */,
+				47D7165D2F72F102007F3F42 /* TwilioVideo in Frameworks */,
 				47D716242F72198B007F3F42 /* TwilioVoice in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -77,6 +81,8 @@
 				475F9DFC2F418A78006B79D9 /* SocketIO */,
 				47D716232F72198B007F3F42 /* TwilioVoice */,
 				47D716252F72198B007F3F42 /* TwilioVoice-static */,
+				47D7165C2F72F102007F3F42 /* TwilioVideo */,
+				47D7165E2F72F102007F3F42 /* TwilioVideo-static */,
 			);
 			productName = Chatforia;
 			productReference = 474C11282F3A993100D958AB /* Chatforia.app */;
@@ -109,6 +115,7 @@
 			packageReferences = (
 				475F9DFB2F418A78006B79D9 /* XCRemoteSwiftPackageReference "socket.io-client-swift" */,
 				47D716222F72198B007F3F42 /* XCRemoteSwiftPackageReference "twilio-voice-ios" */,
+				47D7165B2F72F102007F3F42 /* XCRemoteSwiftPackageReference "twilio-video-ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 474C11292F3A993100D958AB /* Products */;
@@ -275,6 +282,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSContactsUsageDescription = "Chatforia uses your contacts so you can import people from your phonebook.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Chatforia needs microphone access so you can record and send voice notes.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -308,6 +316,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSContactsUsageDescription = "Chatforia uses your contacts so you can import people from your phonebook.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Chatforia needs microphone access so you can record and send voice notes.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -370,6 +379,14 @@
 				minimumVersion = 6.13.6;
 			};
 		};
+		47D7165B2F72F102007F3F42 /* XCRemoteSwiftPackageReference "twilio-video-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/twilio/twilio-video-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.11.2;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -387,6 +404,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 47D716222F72198B007F3F42 /* XCRemoteSwiftPackageReference "twilio-voice-ios" */;
 			productName = "TwilioVoice-static";
+		};
+		47D7165C2F72F102007F3F42 /* TwilioVideo */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 47D7165B2F72F102007F3F42 /* XCRemoteSwiftPackageReference "twilio-video-ios" */;
+			productName = TwilioVideo;
+		};
+		47D7165E2F72F102007F3F42 /* TwilioVideo-static */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 47D7165B2F72F102007F3F42 /* XCRemoteSwiftPackageReference "twilio-video-ios" */;
+			productName = "TwilioVideo-static";
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

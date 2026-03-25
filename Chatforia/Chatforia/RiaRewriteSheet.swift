@@ -4,6 +4,8 @@ struct RiaRewriteSheet: View {
     let draft: String
     let isLoading: Bool
     let options: [String]
+    let errorText: String?
+    let disabledReason: String?
     let onToneTap: (String) -> Void
     let onSelectRewrite: (String) -> Void
 
@@ -37,11 +39,22 @@ struct RiaRewriteSheet: View {
                             onToneTap(tone)
                         }
                         .buttonStyle(.bordered)
+                        .disabled(isLoading)
                     }
                 }
 
                 if isLoading {
                     ProgressView("Rewriting…")
+                        .padding(.top, 8)
+                } else if let disabledReason, !disabledReason.isEmpty {
+                    Text(disabledReason)
+                        .font(.subheadline)
+                        .foregroundStyle(.orange)
+                        .padding(.top, 8)
+                } else if let errorText, !errorText.isEmpty {
+                    Text(errorText)
+                        .font(.subheadline)
+                        .foregroundStyle(.red)
                         .padding(.top, 8)
                 } else if !options.isEmpty {
                     Text("Suggestions")
@@ -67,6 +80,11 @@ struct RiaRewriteSheet: View {
                             }
                         }
                     }
+                } else {
+                    Text("No rewrite suggestions came back. Try another tone.")
+                        .font(.subheadline)
+                        .foregroundStyle(themeManager.palette.secondaryText)
+                        .padding(.top, 8)
                 }
 
                 Spacer()

@@ -268,6 +268,8 @@ struct MessageDTO: Codable, Identifiable, Equatable {
         text: String? = nil,
         attachments: [AttachmentDTO]? = nil,
         imageUrl: String? = nil,
+        audioUrl: String? = nil,
+        audioDurationSec: Double? = nil,
         senderId: Int,
         senderUsername: String?,
         senderPublicKey: String?
@@ -277,6 +279,8 @@ struct MessageDTO: Codable, Identifiable, Equatable {
             id: localId,
             rawContent: text,
             imageUrl: imageUrl,
+            audioUrl: audioUrl,
+            audioDurationSec: audioDurationSec,
             attachments: attachments,
             createdAt: now,
             sender: SenderDTO(

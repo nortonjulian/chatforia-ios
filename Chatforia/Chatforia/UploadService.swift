@@ -27,4 +27,20 @@ final class UploadService {
         let decoder = JSONDecoder.tolerantISO8601Decoder()
         return try decoder.decode(UploadResultDTO.self, from: responseData)
     }
+    
+    func uploadAudio(fileURL: URL, token: String) async throws -> UploadResultDTO {
+        let data = try Data(contentsOf: fileURL)
+
+        let responseData = try await APIClient.shared.uploadMultipart(
+            path: "media/upload",
+            token: token,
+            fieldName: "file",
+            fileData: data,
+            fileName: "voice-\(Int(Date().timeIntervalSince1970)).m4a",
+            mimeType: "audio/m4a"
+        )
+
+        let decoder = JSONDecoder.tolerantISO8601Decoder()
+        return try decoder.decode(UploadResultDTO.self, from: responseData)
+    }
 }

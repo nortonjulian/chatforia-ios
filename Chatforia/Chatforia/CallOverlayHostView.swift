@@ -6,9 +6,21 @@ struct CallOverlayHostView: View {
     var body: some View {
         Group {
             if callManager.state.isInCallFlow || callManager.activeSession != nil {
-                ActiveCallView()
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .zIndex(999)
+                if let session = callManager.activeSession {
+                    if session.isVideo {
+                        VideoCallView()
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                            .zIndex(999)
+                    } else {
+                        ActiveCallView()
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                            .zIndex(999)
+                    }
+                } else {
+                    ActiveCallView()
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .zIndex(999)
+                }
             } else if case .failed(let message) = callManager.state {
                 VStack {
                     Spacer()

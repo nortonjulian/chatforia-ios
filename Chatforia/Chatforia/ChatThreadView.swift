@@ -7,7 +7,6 @@ struct ChatThreadView: View {
 
     @EnvironmentObject var auth: AuthStore
     @EnvironmentObject var themeManager: ThemeManager
-    
     @EnvironmentObject var callManager: CallManager
 
     @StateObject private var vm = ChatThreadViewModel()
@@ -21,7 +20,6 @@ struct ChatThreadView: View {
     @State private var lastMessageId: Int? = nil
 
     @State private var selectedPhotoItem: PhotosPickerItem?
-    @State private var selectedImageData: Data?
     @State private var isPreparingImageSend = false
     @State private var showPhotoPicker = false
 
@@ -43,6 +41,15 @@ struct ChatThreadView: View {
     @State private var showDeleteConversationConfirm = false
     @State private var showingRewriteSheet = false
 
+    // Voice notes
+    @State private var isRecordingVoice = false
+    @State private var voiceDraft: VoiceNoteDraft? = nil
+    @State private var isPlayingVoiceDraft = false
+    @State private var recordingStartedAt: Date? = nil
+    @State private var showMicSettingsAlert = false
+
+    private let recorder = AudioRecorderService()
+
     var body: some View {
         mainContent
             .sheet(isPresented: $showingRewriteSheet) {
@@ -50,6 +57,8 @@ struct ChatThreadView: View {
                     draft: draft,
                     isLoading: riaVM.isLoadingRewrite,
                     options: riaVM.rewriteOptions,
+                    errorText: riaVM.lastError,
+                    disabledReason: riaVM.aiDisabledReason,
                     onToneTap: { tone in
                         Task {
                             await riaVM.rewrite(
@@ -139,6 +148,16 @@ extension ChatThreadView {
             }
             .sheet(item: $editingMessage) { msg in
                 editSheet(for: msg)
+            }
+            .alert("Microphone Access Needed", isPresented: $showMicSettingsAlert) {
+                Button("Cancel", role: .cancel) {}
+                Button("Open Settings") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                }
+            } message: {
+                Text("Enable microphone access in Settings to record and send voice notes.")
             }
     }
 
@@ -259,6 +278,12 @@ extension ChatThreadView {
                 Image(systemName: "phone.fill")
             }
 
+            Button {
+                startVideoCall()
+            } label: {
+                Image(systemName: "video.fill")
+            }
+
             Menu {
                 Button {
                     Task {
@@ -324,6 +349,106 @@ extension ChatThreadView {
             composer
         }
         .background(themeManager.palette.screenBackground.ignoresSafeArea())
+    }
+
+    private var recordingElapsedSec: Double {
+        guard let recordingStartedAt else { return 0 }
+        return Date().timeIntervalSince(recordingStartedAt)
+    }
+
+    private func formatDuration(_ seconds: Double) -> String {
+        let total = max(0, Int(seconds.rounded()))
+        let mins = total / 60
+        let secs = total % 60
+        return "\(mins):" + String(format: "%02d", secs)
+    }
+
+    private func startVoiceRecording() {
+        Task {
+            do {
+                try await recorder.start()
+
+                await MainActor.run {
+                    recordingStartedAt = Date()
+                    isRecordingVoice = true
+                    voiceDraft = nil
+                    isPlayingVoiceDraft = false
+                    vm.errorText = nil
+                }
+            } catch {
+                await MainActor.run {
+                    isRecordingVoice = false
+                    recordingStartedAt = nil
+                    voiceDraft = nil
+                    isPlayingVoiceDraft = false
+
+                    let nsError = error as NSError
+                    if nsError.code == 401 {
+                        vm.errorText = "Microphone access is required to record a voice note."
+                        showMicSettingsAlert = true
+                    } else {
+                        vm.errorText = "Couldn’t start recording."
+                    }
+
+                    print("❌ startVoiceRecording failed:", error)
+                }
+            }
+        }
+    }
+
+    private func stopVoiceRecording() {
+        if let draft = recorder.stop() {
+            voiceDraft = draft
+        } else {
+            vm.errorText = "Couldn’t finish recording."
+        }
+
+        recordingStartedAt = nil
+        isRecordingVoice = false
+    }
+
+    private func cancelVoiceRecording() {
+        recorder.cancel()
+        recordingStartedAt = nil
+        isRecordingVoice = false
+    }
+
+    private func cancelVoiceDraft() {
+        if let voiceDraft {
+            try? FileManager.default.removeItem(at: voiceDraft.fileURL)
+        }
+        self.voiceDraft = nil
+        isPlayingVoiceDraft = false
+    }
+
+    private func toggleVoiceDraftPreviewPlayback() {
+        // Wire this to a local preview player later if desired.
+        isPlayingVoiceDraft.toggle()
+    }
+
+    private func sendVoiceDraft() async {
+        guard let voiceDraft,
+              let senderId = currentUserId else {
+            return
+        }
+
+        let token = TokenStore.shared.read()
+
+        let didSend = await vm.sendAudioMessage(
+            roomId: room.id,
+            token: token,
+            fileURL: voiceDraft.fileURL,
+            durationSec: voiceDraft.durationSec,
+            senderId: senderId,
+            senderUsername: currentUsername,
+            senderPublicKey: nil
+        )
+
+        if didSend {
+            try? FileManager.default.removeItem(at: voiceDraft.fileURL)
+            self.voiceDraft = nil
+            isPlayingVoiceDraft = false
+        }
     }
 
     private var errorBanner: some View {
@@ -465,7 +590,6 @@ extension ChatThreadView {
                     subtitle: "Bringing your conversation up to date."
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-
             } else if vm.messages.isEmpty {
                 EmptyStateView(
                     systemImage: "bubble.left.and.bubble.right",
@@ -473,7 +597,6 @@ extension ChatThreadView {
                     subtitle: "Start the conversation."
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-
             } else {
                 MessagesListView(
                     messages: vm.messages,
@@ -532,6 +655,11 @@ extension ChatThreadView {
     }
 
     private func refreshRiaSuggestions() {
+        guard settingsVM.enableSmartReplies else {
+            riaVM.clearSuggestions()
+            return
+        }
+
         guard let token = auth.currentToken else { return }
 
         riaVM.loadSuggestions(
@@ -547,6 +675,7 @@ extension ChatThreadView {
         MessageComposerView(
             draft: $draft,
             isSending: isBusySending,
+            isSendingVoice: isSendingVoice,
             onDraftChanged: {
                 vm.handleInputChanged(roomId: room.id)
                 refreshRiaSuggestions()
@@ -565,8 +694,32 @@ extension ChatThreadView {
             },
             onRewriteTap: {
                 showingRewriteSheet = true
-            }
+            },
+            isRecordingVoice: isRecordingVoice,
+            recordingDurationText: formatDuration(recordingElapsedSec),
+            voiceDraftDurationText: voiceDraft.map { formatDuration($0.durationSec) },
+            onMicTap: {
+                startVoiceRecording()
+            },
+            onStopRecordingTap: {
+                stopVoiceRecording()
+            },
+            onCancelRecordingTap: {
+                cancelVoiceRecording()
+            },
+            onCancelVoiceDraftTap: {
+                cancelVoiceDraft()
+            },
+            onSendVoiceDraftTap: {
+                Task { await sendVoiceDraft() }
+            },
+            onPlayVoiceDraftTap: {
+                toggleVoiceDraftPreviewPlayback()
+            },
+            isPlayingVoiceDraft: isPlayingVoiceDraft,
+            hasVoiceDraft: voiceDraft != nil
         )
+        .environmentObject(settingsVM)
         .photosPicker(
             isPresented: $showPhotoPicker,
             selection: $selectedPhotoItem,
@@ -642,9 +795,8 @@ extension ChatThreadView {
             print("❌ loadAndSendSelectedPhoto failed:", error)
         }
     }
-    
+
     private func startCall() {
-        // PSTN-style thread
         if let phone = room.phone?.trimmingCharacters(in: .whitespacesAndNewlines),
            !phone.isEmpty {
             callManager.startCall(
@@ -654,7 +806,6 @@ extension ChatThreadView {
             return
         }
 
-        // 1:1 Chatforia user
         if let other = room.participants?.first(where: { $0.id != currentUserId }) {
             callManager.startCall(
                 to: .appUser(userId: other.id, username: other.username),
@@ -664,6 +815,33 @@ extension ChatThreadView {
         }
 
         vm.errorText = "Could not determine call destination."
+    }
+
+    private func startVideoCall() {
+        if let phone = room.phone?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !phone.isEmpty {
+            vm.errorText = "Video calls are only available for Chatforia users."
+            return
+        }
+
+        if room.isGroup == true {
+            callManager.startGroupVideoCall(
+                roomId: room.id,
+                displayName: roomDisplayTitle,
+                auth: auth
+            )
+            return
+        }
+
+        if let other = room.participants?.first(where: { $0.id != currentUserId }) {
+            callManager.startVideoCall(
+                to: .appUser(userId: other.id, username: other.username),
+                auth: auth
+            )
+            return
+        }
+
+        vm.errorText = "Could not determine video call destination."
     }
 
     private func bestEditableText(for msg: MessageDTO) -> String {
@@ -851,7 +1029,11 @@ extension ChatThreadView {
     }
 
     private var isBusySending: Bool {
-        isPreparingImageSend || vm.isSendingImage
+        isPreparingImageSend || vm.isSendingImage || vm.isSendingAudio
+    }
+    
+    private var isSendingVoice: Bool {
+        vm.isSendingAudio
     }
 
     private func deliveryState(for msg: MessageDTO) -> DeliveryState? {
