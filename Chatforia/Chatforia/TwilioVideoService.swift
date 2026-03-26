@@ -116,8 +116,6 @@ final class TwilioVideoService: NSObject {
 
     func disconnect() {
         room?.disconnect()
-        cleanupAfterDisconnect(notifyDelegate: false)
-        delegate?.twilioVideoDidDisconnect(roomName: roomName)
     }
 
     // MARK: - Controls
@@ -229,6 +227,16 @@ final class TwilioVideoService: NSObject {
         try session.setActive(true)
     }
 
+    private func deactivateAudioSessionIfPossible() {
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.overrideOutputAudioPort(.none)
+            try session.setActive(false, options: [.notifyOthersOnDeactivation])
+        } catch {
+            print("⚠️ Failed to deactivate video audio session:", error)
+        }
+    }
+
     private func cleanupAfterDisconnect(notifyDelegate: Bool) {
         room = nil
 
@@ -246,6 +254,8 @@ final class TwilioVideoService: NSObject {
         isMuted = false
         isCameraEnabled = true
         isFrontCamera = true
+
+        deactivateAudioSessionIfPossible()
     }
 }
 

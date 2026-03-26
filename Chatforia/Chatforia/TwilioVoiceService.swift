@@ -8,7 +8,7 @@ protocol TwilioVoiceServiceDelegate: AnyObject {
     func twilioVoiceDidConnect(callSid: String?)
     func twilioVoiceDidDisconnect()
     func twilioVoiceDidFail(_ message: String)
-    func twilioVoiceDidReceiveIncoming(from: String)
+    func twilioVoiceDidReceiveIncoming(from: String, backendCallId: Int?)
     func twilioVoiceIncomingInviteCanceled()
 }
 
@@ -22,6 +22,7 @@ final class TwilioVoiceService: NSObject {
     private var callInvite: CallInvite?
     private var cancelledCallInvite: CancelledCallInvite?
     private var accessToken: String?
+    private var pendingBackendCallId: Int?
 
     private(set) var isReady = false
     private(set) var isMuted = false
@@ -41,6 +42,10 @@ final class TwilioVoiceService: NSObject {
         let response = try await fetchToken(authToken: authToken)
         self.accessToken = response.token
         self.isReady = true
+    }
+
+    func setPendingBackendCallId(_ id: Int?) {
+        pendingBackendCallId = id
     }
 
     func startCall(to: String, accessToken: String) async throws {
@@ -79,6 +84,7 @@ final class TwilioVoiceService: NSObject {
         callInvite.reject()
         self.callInvite = nil
         self.cancelledCallInvite = nil
+        self.pendingBackendCallId = nil
     }
 
     func hangup() {
@@ -86,6 +92,7 @@ final class TwilioVoiceService: NSObject {
         activeCall = nil
         callInvite = nil
         cancelledCallInvite = nil
+        pendingBackendCallId = nil
         isMuted = false
     }
 
@@ -145,8 +152,15 @@ extension TwilioVoiceService: NotificationDelegate {
     nonisolated func callInviteReceived(callInvite: CallInvite) {
         Task { @MainActor in
             self.callInvite = callInvite
+
             let from = callInvite.from ?? "Incoming Call"
-            self.delegate?.twilioVoiceDidReceiveIncoming(from: from)
+            let backendCallId = self.pendingBackendCallId
+            self.pendingBackendCallId = nil
+
+            self.delegate?.twilioVoiceDidReceiveIncoming(
+                from: from,
+                backendCallId: backendCallId
+            )
         }
     }
 
@@ -157,6 +171,7 @@ extension TwilioVoiceService: NotificationDelegate {
         Task { @MainActor in
             self.cancelledCallInvite = cancelledCallInvite
             self.callInvite = nil
+            self.pendingBackendCallId = nil
             self.delegate?.twilioVoiceIncomingInviteCanceled()
         }
     }

@@ -176,43 +176,88 @@ struct StartChatView: View {
     }
 
     private func phoneRow(phone: String) -> some View {
-        Button {
-            Task { await selectPhone() }
-        } label: {
-            HStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(themeManager.palette.border)
-                        .frame(width: 42, height: 42)
+        VStack(spacing: 10) {
 
-                    Image(systemName: "phone.fill")
-                        .foregroundStyle(themeManager.palette.primaryText)
-                }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(phone)
-                        .font(.body.weight(.medium))
-                        .foregroundStyle(themeManager.palette.primaryText)
-
-                    Text("Text this number")
-                        .font(.footnote)
-                        .foregroundStyle(themeManager.palette.secondaryText)
-                }
-
-                Spacer()
-
-                if vm.isCreating {
-                    ProgressView()
-                        .tint(themeManager.palette.accent)
-                } else {
-                    Image(systemName: "chevron.right")
-                        .foregroundStyle(.tertiary)
-                }
+            // Existing SMS option
+            Button {
+                Task { await selectPhone() }
+            } label: {
+                rowContent(
+                    icon: "phone.fill",
+                    title: phone,
+                    subtitle: "Text this number"
+                )
             }
-            .padding(.vertical, 6)
+            .buttonStyle(.plain)
+
+            // 🔥 NEW: Invite option
+            Button {
+                Task {
+                    await invitePhoneNumber(phone)
+                }
+            } label: {
+                rowContent(
+                    icon: "square.and.arrow.up",
+                    title: phone,
+                    subtitle: "Invite to Chatforia"
+                )
+            }
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
         .disabled(vm.isCreating)
+    }
+    
+    private func rowContent(icon: String, title: String, subtitle: String) -> some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(themeManager.palette.border)
+                    .frame(width: 42, height: 42)
+
+                Image(systemName: icon)
+                    .foregroundStyle(themeManager.palette.primaryText)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(themeManager.palette.primaryText)
+
+                Text(subtitle)
+                    .font(.footnote)
+                    .foregroundStyle(themeManager.palette.secondaryText)
+            }
+
+            Spacer()
+        }
+        .padding(.vertical, 6)
+    }
+    
+    private func invitePhoneNumber(_ phone: String) async {
+        guard let token = auth.currentToken, !token.isEmpty else { return }
+
+        do {
+            let response = try await InviteService.shared.createInvite(
+                targetPhone: phone,
+                channel: "share_link",
+                token: token
+            )
+
+            let message = InviteService.shared.createShareMessage(
+                inviterUsername: auth.currentUser?.username,
+                inviteURL: response.url
+            )
+
+            let av = UIActivityViewController(activityItems: [message], applicationActivities: nil)
+
+            if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let root = scene.windows.first?.rootViewController {
+                root.present(av, animated: true)
+            }
+
+        } catch {
+            print("❌ invite failed:", error)
+        }
     }
 
     private func selectUser(_ user: UserSearchResultDTO) async {

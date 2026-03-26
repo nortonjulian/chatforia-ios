@@ -15,11 +15,13 @@ struct CallRecordDTO: Decodable, Identifiable, Equatable {
     let endedAt: Date?
     let caller: CallUserSummaryDTO?
     let callee: CallUserSummaryDTO?
+    let hasVoicemail: Bool?
+    let voicemailId: String?
 }
 
 struct CallUserSummaryDTO: Decodable, Equatable {
     let id: Int
     let username: String?
-    let name: String?
+    let displayName: String?
     let avatarUrl: String?
 }

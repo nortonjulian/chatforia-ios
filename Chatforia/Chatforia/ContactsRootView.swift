@@ -13,6 +13,8 @@ struct ContactsRootView: View {
     @State private var showingStartChat = false
     @State private var showingAddContact = false
     @State private var showingImportContacts = false
+    
+    @State private var showingInviteFriends = false
 
     var body: some View {
         NavigationStack {
@@ -52,6 +54,12 @@ struct ContactsRootView: View {
                             showingImportContacts = true
                         } label: {
                             Label("Import from Phone", systemImage: "square.and.arrow.down")
+                        }
+                        
+                        Button {
+                            showingInviteFriends = true
+                        } label: {
+                            Label("Invite Friends", systemImage: "square.and.arrow.up")
                         }
                     } label: {
                         Image(systemName: "plus")
@@ -94,6 +102,10 @@ struct ContactsRootView: View {
                 }
                 .environmentObject(auth)
                 .environmentObject(themeManager)
+            }
+            .sheet(isPresented: $showingInviteFriends) {
+                InviteFriendsView()
+                    .environmentObject(auth)
             }
             .task {
                 await reload()

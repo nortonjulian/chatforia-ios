@@ -7,15 +7,37 @@ struct AudioAttachmentCardView: View {
     let durationSec: Double?
     let isMe: Bool
     let maxWidth: CGFloat
+    let onPlaybackStarted: (() -> Void)?
 
     @EnvironmentObject private var themeManager: ThemeManager
     @StateObject private var playback = AudioPlaybackViewModel()
+
+    init(
+        urlString: String,
+        title: String,
+        durationSec: Double?,
+        isMe: Bool,
+        maxWidth: CGFloat,
+        onPlaybackStarted: (() -> Void)? = nil
+    ) {
+        self.urlString = urlString
+        self.title = title
+        self.durationSec = durationSec
+        self.isMe = isMe
+        self.maxWidth = maxWidth
+        self.onPlaybackStarted = onPlaybackStarted
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
                 Button {
+                    let wasPlaying = playback.isPlaying
                     playback.togglePlayback(urlString: urlString)
+
+                    if !wasPlaying {
+                        onPlaybackStarted?()
+                    }
                 } label: {
                     ZStack {
                         Circle()

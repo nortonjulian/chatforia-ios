@@ -71,12 +71,29 @@ extension VoIPPushManager: PKPushRegistryDelegate {
             return
         }
 
+        let rawData = payload.dictionaryPayload
+
+        let data = rawData.reduce(into: [String: Any]()) { result, pair in
+            if let key = pair.key as? String {
+                result[key] = pair.value
+            }
+        }
+
+        let backendCallId: Int? = {
+            if let id = data["callId"] as? Int { return id }
+            if let str = data["callId"] as? String { return Int(str) }
+            return nil
+        }()
+
         Task { @MainActor in
             TwilioVoiceSDK.handleNotification(
-                payload.dictionaryPayload,
+                data,
                 delegate: TwilioVoiceService.shared,
                 delegateQueue: nil
             )
+
+            TwilioVoiceService.shared.setPendingBackendCallId(backendCallId)
+
             completion()
         }
     }

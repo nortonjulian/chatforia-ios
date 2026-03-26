@@ -6,6 +6,7 @@ struct ProfileRootView: View {
 
     @EnvironmentObject var auth: AuthStore
     @EnvironmentObject var themeManager: ThemeManager
+    @EnvironmentObject private var inviteFlow: InviteFlowManager
 
     @StateObject private var vm = SettingsViewModel()
 
@@ -21,11 +22,37 @@ struct ProfileRootView: View {
     @State private var showingThemeSheet = false
     @State private var showingMessageToneSheet = false
     @State private var showingRingtoneSheet = false
+    
+    @StateObject private var contactsVM = ContactsViewModel()
+    @State private var inviterRoom: ChatRoomDTO?
+    @State private var showInviterChat = false
+    
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
+                    
+                    if let message = inviteFlow.redemptionMessage {
+                        VStack(spacing: 12) {
+                            InviteAttributionBannerView(text: message)
+
+                            Button("Message inviter") {
+                                Task {
+                                    if let room = await inviteFlow.openChatWithInviterIfPossible(
+                                        auth: auth,
+                                        contactsViewModel: contactsVM
+                                    ) {
+                                        inviterRoom = room
+                                        showInviterChat = true
+                                    }
+                                }
+                            }
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(themeManager.palette.accent)
+                        }
+                    }
+
                     headerSection
                     accountSection
                     planSection
@@ -47,6 +74,13 @@ struct ProfileRootView: View {
             .background(themeManager.palette.screenBackground)
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.inline)
+            
+            .navigationDestination(isPresented: $showInviterChat) {
+                if let room = inviterRoom {
+                    ChatThreadView(room: room, randomSession: nil)
+                }
+            }
+            
             .task {
                 let sourceUser = auth.currentUser ?? user
                 vm.load(from: sourceUser)
@@ -735,9 +769,12 @@ struct ProfileRootView: View {
                 } label: {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Manage Forwarding 🔒")
-                                .font(.body.weight(.semibold))
-                                .foregroundStyle(themeManager.palette.primaryText)
+                            HStack(spacing: 6) {
+                                Text("Manage Forwarding")
+                                Image(systemName: "lock.fill")
+                            }
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(themeManager.palette.primaryText)
 
                             Text("Upgrade to Plus or Premium to enable forwarding.")
                                 .font(.footnote)
@@ -745,9 +782,6 @@ struct ProfileRootView: View {
                         }
 
                         Spacer()
-
-                        Image(systemName: "lock.fill")
-                            .foregroundStyle(themeManager.palette.secondaryText)
                     }
                     .padding(.vertical, 4)
                 }
@@ -938,4 +972,27 @@ struct ProfileRootView: View {
 
         vm.isSaving = false
     }
+    
+    struct InviteAttributionBannerView: View {
+            let text: String
+
+            var body: some View {
+                HStack(spacing: 10) {
+                    Image(systemName: "sparkles")
+                    Text(text)
+                        .font(.subheadline)
+                    Spacer()
+                }
+                .padding(12)
+                .background(
+                    LinearGradient(
+                        colors: [Color.blue.opacity(0.15), .clear],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+            }
+    }
+
 }

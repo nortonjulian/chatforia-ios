@@ -13,47 +13,49 @@ final class PhoneContactsService {
         }
     }
 
-    func fetchContacts() throws -> [PhoneContactDTO] {
-        let store = CNContactStore()
-        let keys: [CNKeyDescriptor] = [
-            CNContactGivenNameKey as CNKeyDescriptor,
-            CNContactFamilyNameKey as CNKeyDescriptor,
-            CNContactPhoneNumbersKey as CNKeyDescriptor
-        ]
+    func fetchContacts() async throws -> [PhoneContactDTO] {
+        try await Task.detached(priority: .userInitiated) {
+            let store = CNContactStore()
+            let keys: [CNKeyDescriptor] = [
+                CNContactGivenNameKey as CNKeyDescriptor,
+                CNContactFamilyNameKey as CNKeyDescriptor,
+                CNContactPhoneNumbersKey as CNKeyDescriptor
+            ]
 
-        let request = CNContactFetchRequest(keysToFetch: keys)
+            let request = CNContactFetchRequest(keysToFetch: keys)
 
-        var results: [PhoneContactDTO] = []
+            var results: [PhoneContactDTO] = []
 
-        try store.enumerateContacts(with: request) { contact, _ in
-            let fullName = [contact.givenName, contact.familyName]
-                .joined(separator: " ")
-                .trimmingCharacters(in: .whitespacesAndNewlines)
+            try store.enumerateContacts(with: request) { contact, _ in
+                let fullName = [contact.givenName, contact.familyName]
+                    .joined(separator: " ")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
 
-            let displayName = fullName.isEmpty ? "Unknown" : fullName
+                let displayName = fullName.isEmpty ? "Unknown" : fullName
 
-            for phoneValue in contact.phoneNumbers {
-                let raw = phoneValue.value.stringValue
-                let normalized = Self.normalizePhone(raw)
-                guard let normalized, !normalized.isEmpty else { continue }
+                for phoneValue in contact.phoneNumbers {
+                    let raw = phoneValue.value.stringValue
+                    let normalized = Self.normalizePhone(raw)
+                    guard let normalized, !normalized.isEmpty else { continue }
 
-                let id = "\(contact.identifier)-\(normalized)"
-                results.append(
-                    PhoneContactDTO(
-                        id: id,
-                        displayName: displayName,
-                        phoneNumber: normalized
+                    let id = "\(contact.identifier)-\(normalized)"
+                    results.append(
+                        PhoneContactDTO(
+                            id: id,
+                            displayName: displayName,
+                            phoneNumber: normalized
+                        )
                     )
-                )
+                }
             }
-        }
 
-        return results.sorted {
-            if $0.displayName == $1.displayName {
-                return $0.phoneNumber < $1.phoneNumber
+            return results.sorted {
+                if $0.displayName == $1.displayName {
+                    return $0.phoneNumber < $1.phoneNumber
+                }
+                return $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending
             }
-            return $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending
-        }
+        }.value
     }
 
     static func normalizePhone(_ input: String) -> String? {

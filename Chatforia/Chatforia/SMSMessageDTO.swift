@@ -101,10 +101,10 @@ struct SMSMessageDTO: Decodable, Identifiable, Equatable {
     var displayFallbackText: String {
         if hasText { return trimmedBody ?? "" }
         if hasMedia {
-            if media.contains(where: { $0.isImage }) { return "📷 Photo" }
-            if media.contains(where: { $0.isVideo }) { return "🎥 Video" }
-            if media.contains(where: { $0.isAudio }) { return "🎵 Audio" }
-            return "📎 Attachment"
+            if media.contains(where: { $0.isImage }) { return "Photo" }
+            if media.contains(where: { $0.isVideo }) { return "Video" }
+            if media.contains(where: { $0.isAudio }) { return "Audio" }
+            return "Attachment"
         }
         return ""
     }

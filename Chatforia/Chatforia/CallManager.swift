@@ -25,13 +25,30 @@ final class CallManager: ObservableObject {
     private var pendingIsVideo: Bool = false
     private var pendingIncomingPayload: IncomingCallPayload?
 
+    private enum CallEndOutcome: Equatable {
+        case localHangup
+        case remoteEnded
+        case declined
+        case missed
+        case failed(String)
+    }
+
+    private enum FinalDisplayState {
+        case ended
+        case failed(String)
+    }
+
+    private var pendingEndOutcome: CallEndOutcome?
+    private var finalizedCallUUID: UUID?
+    private var pendingVoIPToken: String?
+
     init() {
         twilioService.delegate = self
         twilioVideoService.delegate = self
         callKit.delegate = self
         voipPushManager.delegate = self
     }
-    
+
     func toggleVideoCamera() {
         let newValue = !twilioVideoService.isCameraEnabled
         twilioVideoService.setCameraEnabled(newValue)
@@ -45,6 +62,7 @@ final class CallManager: ObservableObject {
     func startVoIPIfNeeded(auth: AuthStore) {
         pendingAuth = auth
         voipPushManager.start()
+        registerPendingVoIPTokenIfPossible()
 
         if let token = auth.currentToken, !token.isEmpty {
             Task {
@@ -70,7 +88,7 @@ final class CallManager: ObservableObject {
             beginOutgoingCall(to: destination, auth: auth, isVideo: true)
         }
     }
-    
+
     func startGroupVideoCall(roomId: Int, displayName: String?, auth: AuthStore) {
         beginOutgoingCall(
             to: .videoRoom(
@@ -90,6 +108,12 @@ final class CallManager: ObservableObject {
 
         pendingAuth = auth
         pendingIncomingPayload = payload
+        pendingEndOutcome = nil
+        finalizedCallUUID = nil
+
+        if payload.hasVideo {
+            clearPublishedVideoState()
+        }
 
         let destination = CallDestination.appUser(
             userId: 0,
@@ -127,7 +151,7 @@ final class CallManager: ObservableObject {
             }
         }
     }
-    
+
     private func clearPublishedVideoState() {
         localVideoTrack = nil
         remoteVideoTracks = [:]
@@ -138,6 +162,12 @@ final class CallManager: ObservableObject {
     private func beginOutgoingCall(to destination: CallDestination, auth: AuthStore, isVideo: Bool) {
         lastError = nil
         pendingAuth = auth
+        pendingEndOutcome = nil
+        finalizedCallUUID = nil
+
+        if isVideo {
+            clearPublishedVideoState()
+        }
 
         let uuid = UUID()
         let session = CallSession(
@@ -431,108 +461,180 @@ final class CallManager: ObservableObject {
     }
 
     private func markMissedCall() {
-        let now = Date()
+        completeCall(outcome: .missed)
+    }
 
-        if let callId = activeSession?.backendCallId,
-           let token = TokenStore.shared.read(),
-           !token.isEmpty {
-            Task {
-                await patchCallStatus(
-                    callId: callId,
-                    token: token,
-                    status: "MISSED",
-                    endedAt: now,
-                    endReason: "missed"
-                )
-            }
+    private func failCall(_ message: String) {
+        completeCall(outcome: .failed(message))
+    }
+
+    private func finishCall(reason: CXCallEndedReason = .remoteEnded) {
+        switch reason {
+        case .declinedElsewhere:
+            completeCall(outcome: .declined)
+        case .unanswered:
+            completeCall(outcome: .missed)
+        case .failed:
+            completeCall(outcome: .failed("Call failed."))
+        default:
+            completeCall(outcome: .remoteEnded)
         }
+    }
 
-        updateSession {
-            $0.status = .missed
-            $0.endedAt = now
-        }
-
-        state = .ended
-        activeSession = nil
+    private func resetTransientState() {
         pendingAuth = nil
         pendingDestination = nil
         pendingIsVideo = false
         pendingIncomingPayload = nil
+        pendingEndOutcome = nil
     }
 
-    private func failCall(_ message: String) {
-        lastError = message
-
-        let now = Date()
-
-        updateSession {
-            $0.status = .failed
-            $0.endedAt = now
+    private func deactivateSystemAudioSessionIfPossible() {
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.overrideOutputAudioPort(.none)
+            try session.setActive(false, options: [.notifyOthersOnDeactivation])
+        } catch {
+            print("⚠️ Failed to deactivate audio session:", error)
         }
+    }
 
-        if let uuid = activeSession?.id {
-            callKit.reportCallEnded(uuid: uuid, reason: .failed)
+    private func backendPayload(
+        for outcome: CallEndOutcome,
+        at endedAt: Date,
+        session: CallSession
+    ) -> (status: String, endReason: String, durationSec: Int?) {
+        let duration: Int? = {
+            guard let answeredAt = session.answeredAt else { return nil }
+            return max(0, Int(endedAt.timeIntervalSince(answeredAt)))
+        }()
+
+        switch outcome {
+        case .localHangup:
+            return ("ENDED", "local_hangup", duration)
+        case .remoteEnded:
+            return ("ENDED", "remote_ended", duration)
+        case .declined:
+            return ("DECLINED", "declined", nil)
+        case .missed:
+            return ("MISSED", "missed", nil)
+        case .failed(let message):
+            return ("FAILED", message, nil)
         }
+    }
 
-        if let callId = activeSession?.backendCallId,
-           let token = TokenStore.shared.read(),
-           !token.isEmpty {
-            Task {
-                await patchCallStatus(
-                    callId: callId,
-                    token: token,
-                    status: "FAILED",
-                    endedAt: now,
-                    endReason: message
-                )
+    private func callKitReason(for outcome: CallEndOutcome) -> CXCallEndedReason {
+        switch outcome {
+        case .localHangup:
+            return .remoteEnded
+        case .remoteEnded:
+            return .remoteEnded
+        case .declined:
+            return .declinedElsewhere
+        case .missed:
+            return .unanswered
+        case .failed:
+            return .failed
+        }
+    }
+
+    private func finalDisplayState(for outcome: CallEndOutcome) -> FinalDisplayState {
+        switch outcome {
+        case .failed(let message):
+            return .failed(message)
+        default:
+            return .ended
+        }
+    }
+
+    private func registerPendingVoIPTokenIfPossible() {
+        guard let voipToken = pendingVoIPToken,
+              let authToken = TokenStore.shared.read(),
+              !authToken.isEmpty else { return }
+
+        Task {
+            do {
+                try await DeviceRegistrationService.shared.registerVoIPPushToken(voipToken, token: authToken)
+                print("✅ VoIP push token registered")
+                await MainActor.run {
+                    self.pendingVoIPToken = nil
+                }
+            } catch {
+                print("❌ VoIP push token registration failed:", error)
             }
         }
-
-        state = .failed(message)
-        activeSession = nil
-        pendingDestination = nil
-        pendingIsVideo = false
-        pendingIncomingPayload = nil
     }
 
-    private func finishCall(reason: CXCallEndedReason = .remoteEnded) {
-        let now = Date()
-
-        if let uuid = activeSession?.id {
-            callKit.reportCallEnded(uuid: uuid, reason: reason)
-        }
-
-        updateSession {
-            $0.status = .ended
-            $0.endedAt = now
-        }
-
-        if let callId = activeSession?.backendCallId,
-           let token = TokenStore.shared.read(),
-           !token.isEmpty {
-            let duration: Int? = {
-                guard let start = activeSession?.answeredAt else { return nil }
-                return max(0, Int(now.timeIntervalSince(start)))
+    private func completeCall(
+        outcome: CallEndOutcome,
+        reportToCallKit: Bool = true
+    ) {
+        guard let session = activeSession else {
+            state = {
+                switch finalDisplayState(for: outcome) {
+                case .ended: return .ended
+                case .failed(let message): return .failed(message)
+                }
             }()
+            resetTransientState()
+            return
+        }
 
+        if finalizedCallUUID == session.id {
+            return
+        }
+        finalizedCallUUID = session.id
+
+        let endedAt = Date()
+        let backend = backendPayload(for: outcome, at: endedAt, session: session)
+
+        updateSession {
+            $0.endedAt = endedAt
+            switch outcome {
+            case .missed:
+                $0.status = .missed
+            case .declined:
+                $0.status = .declined
+            case .failed:
+                $0.status = .failed
+            default:
+                $0.status = .ended
+            }
+        }
+
+        clearPublishedVideoState()
+        deactivateSystemAudioSessionIfPossible()
+
+        if reportToCallKit {
+            callKit.reportCallEnded(uuid: session.id, reason: callKitReason(for: outcome))
+        }
+
+        if let callId = session.backendCallId,
+           let token = TokenStore.shared.read(),
+           !token.isEmpty {
             Task {
                 await patchCallStatus(
                     callId: callId,
                     token: token,
-                    status: "ENDED",
-                    endedAt: now,
-                    durationSec: duration,
-                    endReason: "completed",
-                    twilioCallSid: activeSession?.callSid
+                    status: backend.status,
+                    endedAt: endedAt,
+                    durationSec: backend.durationSec,
+                    endReason: backend.endReason,
+                    twilioCallSid: session.callSid
                 )
             }
         }
 
-        state = .ended
+        switch finalDisplayState(for: outcome) {
+        case .ended:
+            state = .ended
+        case .failed(let message):
+            lastError = message
+            state = .failed(message)
+        }
+
         activeSession = nil
-        pendingDestination = nil
-        pendingIsVideo = false
-        pendingIncomingPayload = nil
+        resetTransientState()
     }
 }
 
@@ -592,55 +694,31 @@ extension CallManager: CallKitManagerDelegate {
             return
         }
 
-        if activeSession?.direction == .incoming,
-           activeSession?.status == .ringing {
-            if activeSession?.isVideo == true {
-                if let callId = activeSession?.backendCallId,
-                   let token = TokenStore.shared.read(),
-                   !token.isEmpty {
-                    Task {
-                        await patchCallStatus(
-                            callId: callId,
-                            token: token,
-                            status: "DECLINED",
-                            endedAt: Date(),
-                            endReason: "declined"
-                        )
-                    }
-                }
+        guard let session = activeSession else { return }
 
-                finishCall(reason: .declinedElsewhere)
+        if session.direction == .incoming, session.status == .ringing {
+            pendingEndOutcome = .declined
+
+            if session.isVideo {
+                completeCall(outcome: .declined, reportToCallKit: false)
                 return
             } else {
                 twilioService.rejectIncomingCall()
-
-                if let callId = activeSession?.backendCallId,
-                   let token = TokenStore.shared.read(),
-                   !token.isEmpty {
-                    Task {
-                        await patchCallStatus(
-                            callId: callId,
-                            token: token,
-                            status: "DECLINED",
-                            endedAt: Date(),
-                            endReason: "declined"
-                        )
-                    }
-                }
-
-                finishCall(reason: .declinedElsewhere)
+                completeCall(outcome: .declined, reportToCallKit: false)
                 return
             }
         }
 
-        if activeSession?.isVideo == true {
-            twilioVideoService.disconnect()
-        } else {
-            twilioService.hangup()
-        }
+        pendingEndOutcome = .localHangup
 
         updateSession {
             $0.status = .ending
+        }
+
+        if session.isVideo {
+            twilioVideoService.disconnect()
+        } else {
+            twilioService.hangup()
         }
     }
 
@@ -730,34 +808,41 @@ extension CallManager: TwilioVoiceServiceDelegate {
     }
 
     func twilioVoiceDidDisconnect() {
-        finishCall(reason: .remoteEnded)
+        let outcome = pendingEndOutcome ?? .remoteEnded
+        completeCall(outcome: outcome)
     }
 
     func twilioVoiceDidFail(_ message: String) {
-        failCall(message)
+        completeCall(outcome: .failed(message))
     }
 
-    func twilioVoiceDidReceiveIncoming(from: String) {
-        if activeSession?.status == .ringing {
-            return
-        }
-
+    func twilioVoiceDidReceiveIncoming(from: String, backendCallId: Int?) {
         let payload = IncomingCallPayload(
             uuid: UUID(),
             displayName: from,
             remoteIdentity: from,
             hasVideo: false,
-            backendCallId: nil
+            backendCallId: backendCallId
         )
 
         handleIncomingCallPayload(payload, auth: pendingAuth)
     }
 
     func twilioVoiceIncomingInviteCanceled() {
-        if activeSession?.status == .ringing {
-            markMissedCall()
+        guard let session = activeSession else { return }
+
+        if finalizedCallUUID == session.id {
+            return
+        }
+
+        if pendingEndOutcome == .declined {
+            return
+        }
+
+        if session.status == .ringing && session.direction == .incoming {
+            completeCall(outcome: .missed)
         } else {
-            finishCall(reason: .remoteEnded)
+            completeCall(outcome: .remoteEnded)
         }
     }
 }
@@ -802,11 +887,12 @@ extension CallManager: TwilioVideoServiceDelegate {
     }
 
     func twilioVideoDidDisconnect(roomName: String?) {
-        finishCall(reason: .remoteEnded)
+        let outcome = pendingEndOutcome ?? .remoteEnded
+        completeCall(outcome: outcome)
     }
 
     func twilioVideoDidFail(_ message: String) {
-        failCall(message)
+        completeCall(outcome: .failed(message))
     }
 
     func twilioVideoDidAddLocalVideoTrack(_ track: LocalVideoTrack) {
@@ -851,16 +937,8 @@ extension CallManager: TwilioVideoServiceDelegate {
 
 extension CallManager: VoIPPushManagerDelegate {
     func voipPushManagerDidUpdateToken(_ token: String) {
-        guard let authToken = TokenStore.shared.read(), !authToken.isEmpty else { return }
-
-        Task {
-            do {
-                try await DeviceRegistrationService.shared.registerVoIPPushToken(token, token: authToken)
-                print("✅ VoIP push token registered")
-            } catch {
-                print("❌ VoIP push token registration failed:", error)
-            }
-        }
+        pendingVoIPToken = token
+        registerPendingVoIPTokenIfPossible()
     }
 
     func voipPushManagerDidInvalidateToken() {

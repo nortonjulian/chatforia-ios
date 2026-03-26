@@ -16,11 +16,12 @@ struct AppShellView: View {
                     .tabItem {
                         Label("Chats", systemImage: "bubble.left.and.bubble.right.fill")
                     }
-
-                DialerView()   
-                    .tabItem {
-                        Label("Calls", systemImage: "phone.fill")
-                    }
+                NavigationStack {
+                    CallHistoryView()
+                }
+                .tabItem {
+                    Label("Calls", systemImage: "phone.fill")
+                }
 
                 ContactsRootView()
                     .tabItem {
