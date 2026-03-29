@@ -27,6 +27,7 @@ struct MessageComposerView: View {
     let onPlayVoiceDraftTap: () -> Void
     let isPlayingVoiceDraft: Bool
     let hasVoiceDraft: Bool
+    let hasPendingAttachment: Bool
 
     @EnvironmentObject private var themeManager: ThemeManager
 
@@ -51,7 +52,8 @@ struct MessageComposerView: View {
         onSendVoiceDraftTap: @escaping () -> Void = {},
         onPlayVoiceDraftTap: @escaping () -> Void = {},
         isPlayingVoiceDraft: Bool = false,
-        hasVoiceDraft: Bool = false
+        hasVoiceDraft: Bool = false,
+        hasPendingAttachment: Bool = false
     ) {
         self._draft = draft
         self.isSending = isSending
@@ -74,6 +76,7 @@ struct MessageComposerView: View {
         self.onPlayVoiceDraftTap = onPlayVoiceDraftTap
         self.isPlayingVoiceDraft = isPlayingVoiceDraft
         self.hasVoiceDraft = hasVoiceDraft
+        self.hasPendingAttachment = hasPendingAttachment
     }
 
     private var trimmedDraft: String {
@@ -81,7 +84,7 @@ struct MessageComposerView: View {
     }
 
     private var isTextSendDisabled: Bool {
-        isSending || isSendingVoice || trimmedDraft.isEmpty
+        isSending || isSendingVoice || (trimmedDraft.isEmpty && !hasPendingAttachment)
     }
 
     var body: some View {
@@ -178,7 +181,7 @@ struct MessageComposerView: View {
             }
             .buttonStyle(.plain)
             .disabled(isSending || isSendingVoice)
-        } else if trimmedDraft.isEmpty {
+        } else if trimmedDraft.isEmpty && !hasPendingAttachment {
             Button {
                 onMicTap()
             } label: {

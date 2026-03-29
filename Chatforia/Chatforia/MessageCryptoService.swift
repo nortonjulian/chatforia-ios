@@ -203,10 +203,7 @@ final class MessageCryptoService {
         let sealedContent = try AES.GCM.SealedBox(combined: ciphertextData)
         let plaintextData = try AES.GCM.open(sealedContent, using: messageKey)
 
-        guard let plaintext = String(data: plaintextData, encoding: .utf8) else {
-            throw MessageCryptoError.invalidUTF8
-        }
-
+        let plaintext = String(decoding: plaintextData, as: UTF8.self)
         return plaintext
     }
 }

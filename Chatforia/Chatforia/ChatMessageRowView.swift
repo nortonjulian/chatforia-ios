@@ -63,6 +63,44 @@ struct ChatMessageRowView: View {
                         maxWidth: bubbleMaxWidth
                     )
                     .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                    .contentShape(Rectangle())
+                    .contextMenu {
+                        if isMe {
+                            if canEditByRules {
+                                Button("Edit", systemImage: "pencil") {
+                                    onEdit?()
+                                }
+                            }
+
+                            if canDeleteForEveryoneByRules || canDeleteForMeByRules {
+                                Button(role: .destructive) {
+                                    onDelete?()
+                                } label: {
+                                    Label(deleteMenuTitle, systemImage: "trash")
+                                }
+                            }
+
+                            if isMe && deliveryState == .failed {
+                                Button("Retry", systemImage: "arrow.clockwise") {
+                                    onRetryTap?()
+                                }
+                            }
+                        } else {
+                            if onReport != nil {
+                                Button("Report", systemImage: "flag") {
+                                    onReport?()
+                                }
+                            }
+
+                            if canDeleteForMeByRules {
+                                Button(role: .destructive) {
+                                    onDelete?()
+                                } label: {
+                                    Label("Delete for me", systemImage: "trash")
+                                }
+                            }
+                        }
+                    }
                 }
 
                 if shouldShowBubble {
@@ -321,17 +359,39 @@ struct ChatMessageRowView: View {
         !visibleAttachments.isEmpty && msg.deletedForAll != true
     }
 
+    private var attachmentCaptionText: String? {
+        visibleAttachments
+            .compactMap { $0.caption?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .first { !$0.isEmpty }
+    }
+
+    private var hasAttachmentCaption: Bool {
+        attachmentCaptionText != nil
+    }
+
     private var shouldShowBubble: Bool {
         if msg.deletedForAll == true { return true }
+
         if let translated = msg.translatedForMe,
            !translated.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return true
         }
+
         if let raw = msg.rawContent,
            !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return true
         }
-        if msg.contentCiphertext != nil { return true }
+
+        // If this message is attachment-based and the only "text" is the encrypted placeholder,
+        // do not render a separate bubble.
+        if hasVisibleAttachments {
+            return false
+        }
+
+        if msg.contentCiphertext != nil {
+            return true
+        }
+
         return !hasVisibleAttachments
     }
 

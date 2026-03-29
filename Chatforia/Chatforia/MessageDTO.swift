@@ -1,6 +1,130 @@
 import Foundation
 
-// MARK: - MessagesEnvelope / Page
+extension MessageDTO {
+    static func merged(current: MessageDTO, incoming: MessageDTO) -> MessageDTO {
+        MessageDTO(
+            id: incoming.id,
+            contentCiphertext: incoming.contentCiphertext ?? current.contentCiphertext,
+            rawContent: incoming.rawContent ?? current.rawContent,
+            translations: incoming.translations ?? current.translations,
+            translatedFrom: incoming.translatedFrom ?? current.translatedFrom,
+            translatedForMe: incoming.translatedForMe ?? current.translatedForMe,
+            encryptedKeyForMe: incoming.encryptedKeyForMe ?? current.encryptedKeyForMe,
+            imageUrl: incoming.imageUrl ?? current.imageUrl,
+            audioUrl: incoming.audioUrl ?? current.audioUrl,
+            audioDurationSec: incoming.audioDurationSec ?? current.audioDurationSec,
+            attachments: preferredAttachments(current: current.attachments, incoming: incoming.attachments),
+            isExplicit: incoming.isExplicit ?? current.isExplicit,
+            createdAt: incoming.createdAt,
+            expiresAt: incoming.expiresAt ?? current.expiresAt,
+            editedAt: incoming.editedAt ?? current.editedAt,
+            deletedBySender: incoming.deletedBySender ?? current.deletedBySender,
+            deletedForAll: incoming.deletedForAll ?? current.deletedForAll,
+            deletedAt: incoming.deletedAt ?? current.deletedAt,
+            deletedById: incoming.deletedById ?? current.deletedById,
+            sender: preferredSender(current: current.sender, incoming: incoming.sender),
+            readBy: preferredReadBy(current: current.readBy, incoming: incoming.readBy),
+            chatRoomId: incoming.chatRoomId ?? current.chatRoomId,
+            reactionSummary: preferredReactionSummary(current: current.reactionSummary, incoming: incoming.reactionSummary),
+            myReactions: preferredMyReactions(current: current.myReactions, incoming: incoming.myReactions),
+            revision: max(incoming.revision ?? 0, current.revision ?? 0) == 0
+                ? (incoming.revision ?? current.revision)
+                : max(incoming.revision ?? 0, current.revision ?? 0),
+            clientMessageId: incoming.clientMessageId ?? current.clientMessageId
+        )
+    }
+
+    private static func preferredAttachments(
+        current: [AttachmentDTO]?,
+        incoming: [AttachmentDTO]?
+    ) -> [AttachmentDTO]? {
+        if let incoming, !incoming.isEmpty { return incoming }
+        return current
+    }
+
+    private static func preferredReadBy(
+        current: [UserSummaryDTO]?,
+        incoming: [UserSummaryDTO]?
+    ) -> [UserSummaryDTO]? {
+        if let incoming, !incoming.isEmpty { return incoming }
+        return current
+    }
+
+    private static func preferredReactionSummary(
+        current: [String: Int]?,
+        incoming: [String: Int]?
+    ) -> [String: Int]? {
+        if let incoming, !incoming.isEmpty { return incoming }
+        return current
+    }
+
+    private static func preferredMyReactions(
+        current: [String]?,
+        incoming: [String]?
+    ) -> [String]? {
+        if let incoming, !incoming.isEmpty { return incoming }
+        return current
+    }
+
+    private static func preferredSender(
+        current: SenderDTO,
+        incoming: SenderDTO
+    ) -> SenderDTO {
+        let incomingScore =
+            (incoming.username?.isEmpty == false ? 1 : 0) +
+            (incoming.publicKey?.isEmpty == false ? 1 : 0) +
+            (incoming.avatarUrl?.isEmpty == false ? 1 : 0)
+
+        let currentScore =
+            (current.username?.isEmpty == false ? 1 : 0) +
+            (current.publicKey?.isEmpty == false ? 1 : 0) +
+            (current.avatarUrl?.isEmpty == false ? 1 : 0)
+
+        return incomingScore >= currentScore ? incoming : current
+    }
+    
+    private static let iso8601Fractional: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+
+    private static let iso8601Plain: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime]
+        return f
+    }()
+
+    private static func decodeFlexibleDate(
+        from container: KeyedDecodingContainer<CodingKeys>,
+        forKey key: CodingKeys
+    ) throws -> Date? {
+        if let str = try? container.decode(String.self, forKey: key) {
+            if let d = iso8601Fractional.date(from: str) ?? iso8601Plain.date(from: str) {
+                return d
+            }
+        }
+
+        if let seconds = try? container.decode(Double.self, forKey: key) {
+            return Date(timeIntervalSince1970: seconds)
+        }
+
+        if let millis = try? container.decode(Int64.self, forKey: key) {
+            return Date(timeIntervalSince1970: TimeInterval(millis) / 1000.0)
+        }
+
+        return nil
+    }
+
+    private static func decodeFlexibleDateIfPresent(
+        from container: KeyedDecodingContainer<CodingKeys>,
+        forKey key: CodingKeys
+    ) throws -> Date? {
+        guard container.contains(key) else { return nil }
+        return try decodeFlexibleDate(from: container, forKey: key)
+    }
+}
+
 struct MessagesEnvelope: Codable {
     let items: [MessageDTO]
     let nextCursor: String?
@@ -12,6 +136,18 @@ struct MessagesEnvelope: Codable {
         case nextCursor
         case nextCursorId
         case count
+    }
+
+    init(
+        items: [MessageDTO],
+        nextCursor: String? = nil,
+        nextCursorId: Int? = nil,
+        count: Int? = nil
+    ) {
+        self.items = items
+        self.nextCursor = nextCursor
+        self.nextCursorId = nextCursorId
+        self.count = count
     }
 
     init(from decoder: Decoder) throws {
@@ -36,42 +172,42 @@ struct MessageDTO: Codable, Identifiable, Equatable {
     let id: Int
     let contentCiphertext: String?
     let rawContent: String?
-    
+
     let translations: [String: String]?
     let translatedFrom: String?
-    
+
     let translatedForMe: String?
     let encryptedKeyForMe: String?
-    
+
     let imageUrl: String?
     let audioUrl: String?
     let audioDurationSec: Double?
-    
+
     let attachments: [AttachmentDTO]?
-    
+
     let isExplicit: Bool?
-    
+
     var createdAt: Date
     let expiresAt: Date?
     let editedAt: Date?
-    
+
     let deletedBySender: Bool?
     let deletedForAll: Bool?
     let deletedAt: Date?
     let deletedById: Int?
-    
+
     let sender: SenderDTO
     let readBy: [UserSummaryDTO]?
-    
+
     let chatRoomId: Int?
-    
+
     let reactionSummary: [String: Int]?
     let myReactions: [String]?
-    
+
     let revision: Int?
-    
+
     let clientMessageId: String?
-    
+
     enum CodingKeys: String, CodingKey {
         case id
         case contentCiphertext
@@ -100,7 +236,7 @@ struct MessageDTO: Codable, Identifiable, Equatable {
         case revision
         case clientMessageId
     }
-    
+
     init(
         id: Int,
         contentCiphertext: String? = nil,
@@ -156,23 +292,23 @@ struct MessageDTO: Codable, Identifiable, Equatable {
         self.revision = revision
         self.clientMessageId = clientMessageId
     }
-    
+
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        
+
         id = try c.decode(Int.self, forKey: .id)
         contentCiphertext = try c.decodeIfPresent(String.self, forKey: .contentCiphertext)
         rawContent = try c.decodeIfPresent(String.self, forKey: .rawContent)
-        
+
         translations = try c.decodeIfPresent([String: String].self, forKey: .translations)
         translatedFrom = try c.decodeIfPresent(String.self, forKey: .translatedFrom)
-        
+
         translatedForMe = try c.decodeIfPresent(String.self, forKey: .translatedForMe)
         encryptedKeyForMe = try c.decodeIfPresent(String.self, forKey: .encryptedKeyForMe)
-        
+
         imageUrl = try c.decodeIfPresent(String.self, forKey: .imageUrl)
         audioUrl = try c.decodeIfPresent(String.self, forKey: .audioUrl)
-        
+
         if let dbl = try c.decodeIfPresent(Double.self, forKey: .audioDurationSec) {
             audioDurationSec = dbl
         } else if let intValue = try c.decodeIfPresent(Int.self, forKey: .audioDurationSec) {
@@ -180,87 +316,88 @@ struct MessageDTO: Codable, Identifiable, Equatable {
         } else {
             audioDurationSec = nil
         }
-        
+
         attachments = try c.decodeIfPresent([AttachmentDTO].self, forKey: .attachments)
-        
+
         isExplicit = try c.decodeIfPresent(Bool.self, forKey: .isExplicit)
-        
-        createdAt = try c.decode(Date.self, forKey: .createdAt)
-        expiresAt = try c.decodeIfPresent(Date.self, forKey: .expiresAt)
-        editedAt = try c.decodeIfPresent(Date.self, forKey: .editedAt)
-        
+
+        createdAt = try Self.decodeFlexibleDate(from: c, forKey: .createdAt) ?? Date()
+        expiresAt = try Self.decodeFlexibleDateIfPresent(from: c, forKey: .expiresAt)
+        editedAt = try Self.decodeFlexibleDateIfPresent(from: c, forKey: .editedAt)
+        deletedAt = try Self.decodeFlexibleDateIfPresent(from: c, forKey: .deletedAt)
+
         deletedBySender = try c.decodeIfPresent(Bool.self, forKey: .deletedBySender)
         deletedForAll = try c.decodeIfPresent(Bool.self, forKey: .deletedForAll)
-        deletedAt = try c.decodeIfPresent(Date.self, forKey: .deletedAt)
-        deletedById = try c.decodeIfPresent(Int.self, forKey: .deletedById)
         
+        deletedById = try c.decodeIfPresent(Int.self, forKey: .deletedById)
+
         sender = try c.decode(SenderDTO.self, forKey: .sender)
         readBy = try c.decodeIfPresent([UserSummaryDTO].self, forKey: .readBy)
-        
+
         chatRoomId = try c.decodeIfPresent(Int.self, forKey: .chatRoomId)
-        
+
         reactionSummary = try c.decodeIfPresent([String: Int].self, forKey: .reactionSummary)
         myReactions = try c.decodeIfPresent([String].self, forKey: .myReactions)
-        
+
         revision = try c.decodeIfPresent(Int.self, forKey: .revision)
         clientMessageId = try c.decodeIfPresent(String.self, forKey: .clientMessageId)
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
-        
+
         try c.encode(id, forKey: .id)
         try c.encodeIfPresent(contentCiphertext, forKey: .contentCiphertext)
         try c.encodeIfPresent(rawContent, forKey: .rawContent)
-        
+
         try c.encodeIfPresent(translations, forKey: .translations)
         try c.encodeIfPresent(translatedFrom, forKey: .translatedFrom)
-        
+
         try c.encodeIfPresent(translatedForMe, forKey: .translatedForMe)
         try c.encodeIfPresent(encryptedKeyForMe, forKey: .encryptedKeyForMe)
-        
+
         try c.encodeIfPresent(imageUrl, forKey: .imageUrl)
         try c.encodeIfPresent(audioUrl, forKey: .audioUrl)
         try c.encodeIfPresent(audioDurationSec, forKey: .audioDurationSec)
         try c.encodeIfPresent(attachments, forKey: .attachments)
-        
+
         try c.encodeIfPresent(isExplicit, forKey: .isExplicit)
-        
+
         try c.encode(createdAt, forKey: .createdAt)
         try c.encodeIfPresent(expiresAt, forKey: .expiresAt)
         try c.encodeIfPresent(editedAt, forKey: .editedAt)
-        
+
         try c.encodeIfPresent(deletedBySender, forKey: .deletedBySender)
         try c.encodeIfPresent(deletedForAll, forKey: .deletedForAll)
         try c.encodeIfPresent(deletedAt, forKey: .deletedAt)
         try c.encodeIfPresent(deletedById, forKey: .deletedById)
-        
+
         try c.encode(sender, forKey: .sender)
         try c.encodeIfPresent(readBy, forKey: .readBy)
-        
+
         try c.encodeIfPresent(chatRoomId, forKey: .chatRoomId)
-        
+
         try c.encodeIfPresent(reactionSummary, forKey: .reactionSummary)
         try c.encodeIfPresent(myReactions, forKey: .myReactions)
-        
+
         try c.encodeIfPresent(revision, forKey: .revision)
         try c.encodeIfPresent(clientMessageId, forKey: .clientMessageId)
     }
-    
+
     static func == (lhs: MessageDTO, rhs: MessageDTO) -> Bool {
-        return lhs.id == rhs.id &&
-               lhs.clientMessageId == rhs.clientMessageId &&
-               lhs.revision == rhs.revision &&
-               lhs.editedAt == rhs.editedAt &&
-               lhs.rawContent == rhs.rawContent &&
-               lhs.translatedForMe == rhs.translatedForMe &&
-               lhs.deletedForAll == rhs.deletedForAll &&
-               lhs.deletedBySender == rhs.deletedBySender &&
-               lhs.reactionSummary == rhs.reactionSummary &&
-               lhs.myReactions == rhs.myReactions &&
-               lhs.readBy?.count == rhs.readBy?.count
+        lhs.id == rhs.id &&
+        lhs.clientMessageId == rhs.clientMessageId &&
+        lhs.revision == rhs.revision &&
+        lhs.editedAt == rhs.editedAt &&
+        lhs.rawContent == rhs.rawContent &&
+        lhs.translatedForMe == rhs.translatedForMe &&
+        lhs.deletedForAll == rhs.deletedForAll &&
+        lhs.deletedBySender == rhs.deletedBySender &&
+        lhs.reactionSummary == rhs.reactionSummary &&
+        lhs.myReactions == rhs.myReactions &&
+        lhs.readBy?.count == rhs.readBy?.count
     }
-    
+
     static func optimistic(
         roomId: Int,
         clientMessageId: String,
@@ -294,7 +431,7 @@ struct MessageDTO: Codable, Identifiable, Equatable {
             clientMessageId: clientMessageId
         )
     }
-    
+
     static func optimisticImage(
         roomId: Int,
         clientMessageId: String,
@@ -329,7 +466,6 @@ struct MessageDTO: Codable, Identifiable, Equatable {
             senderPublicKey: senderPublicKey
         )
     }
-    
 }
 
 // MARK: - Sender / summaries

@@ -20,17 +20,15 @@ struct DecryptMessageTextView: View {
                     }
             }
         }
+        .task {
+            await decryptIfNeeded()
+        }
     }
 
     private func preferredVisibleText() -> String? {
         if let cached = store.text(for: msg.id),
            !cached.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return cached
-        }
-
-        if let translated = msg.translatedForMe,
-           !translated.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return translated
         }
 
         if let raw = msg.rawContent,

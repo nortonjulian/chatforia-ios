@@ -1,44 +1,28 @@
 import Foundation
 
-struct ReportAttachmentPayload: Encodable {
-    let id: Int?
-    let kind: String?
-    let url: String?
-    let mimeType: String?
-    let width: Int?
-    let height: Int?
-    let durationSec: Double?
-    let caption: String?
-    let thumbUrl: String?
-}
-
-struct ReportEvidenceMessage: Encodable {
-    let messageId: Int
-    let senderId: Int?
-    let createdAt: String?
-    let plaintext: String
-    let translatedForMe: String?
-    let rawContent: String?
-    let content: String?
-    let contentCiphertext: String?
-    let encryptedKeyForMe: String?
-    let attachments: [ReportAttachmentPayload]
-    let deletedForAll: Bool
-    let editedAt: String?
-}
-
-struct ReportClientMetadata: Encodable {
-    let platform: String
-    let locale: String
-}
-
 struct ReportMessageRequest: Encodable {
     let messageId: Int
-    let chatRoomId: Int
-    let reportedUserId: Int?
     let reason: String
-    let details: String
+    let details: String?
+    let contextCount: Int
     let blockAfterReport: Bool
-    let messages: [ReportEvidenceMessage]
-    let clientMetadata: ReportClientMetadata
+}
+
+struct ReportMessageResponse: Decodable {
+    let success: Bool
+    let report: ReportSummary
+}
+
+struct ReportSummary: Decodable {
+    let id: Int
+    let messageId: Int
+    let reporterId: Int
+    let reportedUserId: Int?
+    let chatRoomId: Int?
+    let decryptedContent: String?
+    let reason: String?
+    let details: String?
+    let blockApplied: Bool
+    let status: String
+    let createdAt: String
 }

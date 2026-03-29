@@ -30,7 +30,9 @@ struct RemoteKeyBackupPayload: Encodable {
 
 struct RemoteKeyBackupResponse: Decodable {
     let ok: Bool?
+    let hasBackup: Bool?
     let keys: RemoteKeyBackupRecord?
+    let backupUpdatedAt: String?
 }
 
 struct RemoteKeyBackupRecord: Decodable {
@@ -40,6 +42,18 @@ struct RemoteKeyBackupRecord: Decodable {
     let privateKeyWrapKdf: String?
     let privateKeyWrapIterations: Int?
     let privateKeyWrapVersion: Int?
+}
+
+struct RotateKeyPayload: Encodable {
+    let publicKey: String
+    let invalidateExistingBackup: Bool
+}
+
+struct RotateKeyResponse: Decodable {
+    let ok: Bool?
+    let publicKey: String?
+    let hasBackup: Bool?
+    let rotatedAt: String?
 }
 
 final class RemoteKeyBackupService {
@@ -72,6 +86,47 @@ final class RemoteKeyBackupService {
                 path: "auth/keys/backup",
                 method: .POST,
                 body: body,
+                requiresAuth: true
+            ),
+            token: token
+        )
+    }
+    
+    func fetchRemoteKeyBackupResponse(token: String) async throws -> RemoteKeyBackupResponse {
+        try await APIClient.shared.send(
+            APIRequest(
+                path: "auth/keys/backup",
+                method: .GET,
+                body: nil,
+                requiresAuth: true
+            ),
+            token: token
+        )
+    }
+
+    func fetchRemoteKeyBackup(token: String) async throws -> RemoteKeyBackupRecord? {
+        let response = try await fetchRemoteKeyBackupResponse(token: token)
+        return response.keys
+    }
+
+    func hasRemoteBackup(token: String) async -> Bool {
+        do {
+            let response = try await fetchRemoteKeyBackupResponse(token: token)
+            if let hasBackup = response.hasBackup {
+                return hasBackup
+            }
+            return response.keys?.encryptedPrivateKeyBundle != nil
+        } catch {
+            return false
+        }
+    }
+
+    func deleteRemoteKeyBackup(token: String) async throws {
+        let _: EmptyResponse = try await APIClient.shared.send(
+            APIRequest(
+                path: "auth/keys/backup",
+                method: .DELETE,
+                body: nil,
                 requiresAuth: true
             ),
             token: token
@@ -171,19 +226,6 @@ final class RemoteKeyBackupService {
         }
 
         return derived
-    }
-    
-    func fetchRemoteKeyBackup(token: String) async throws -> RemoteKeyBackupRecord? {
-        let response: RemoteKeyBackupResponse = try await APIClient.shared.send(
-            APIRequest(
-                path: "auth/keys/backup",
-                method: .GET,
-                body: nil,
-                requiresAuth: true
-            ),
-            token: token
-        )
-        return response.keys
     }
 
     func restoreAccountKeysFromRemoteBackup(token: String, password: String) async throws {

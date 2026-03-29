@@ -83,6 +83,129 @@ final class DeviceRegistrationService {
     func registerVoIPPushToken(_ pushToken: String, token: String) async throws {
         try await registerPushToken(pushToken, provider: "apns_voip", token: token)
     }
+    
+    func fetchPendingPairingDevices(token: String) async throws -> [DeviceDTO] {
+        let response: DeviceListResponse = try await APIClient.shared.send(
+            APIRequest(
+                path: "devices/pairing/pending",
+                method: .GET,
+                requiresAuth: true
+            ),
+            token: token
+        )
+        return response.items
+    }
+
+    func approvePairing(
+        deviceId: String,
+        wrappedAccountKey: String,
+        wrappedAccountKeyAlgo: String = "x25519-xsalsa20poly1305",
+        wrappedAccountKeyVer: Int = 1,
+        token: String
+    ) async throws -> DeviceDTO {
+        let payload = DevicePairingApproveRequest(
+            deviceId: deviceId,
+            wrappedAccountKey: wrappedAccountKey,
+            wrappedAccountKeyAlgo: wrappedAccountKeyAlgo,
+            wrappedAccountKeyVer: wrappedAccountKeyVer
+        )
+
+        let body = try JSONEncoder().encode(payload)
+
+        let response: DeviceRegisterResponse = try await APIClient.shared.send(
+            APIRequest(
+                path: "devices/pairing/approve",
+                method: .POST,
+                body: body,
+                requiresAuth: true
+            ),
+            token: token
+        )
+
+        return response.device
+    }
+
+    func rejectPairing(deviceId: String, token: String) async throws -> DeviceDTO {
+        let payload = DevicePairingRejectRequest(deviceId: deviceId)
+        let body = try JSONEncoder().encode(payload)
+
+        let response: DeviceRegisterResponse = try await APIClient.shared.send(
+            APIRequest(
+                path: "devices/pairing/reject",
+                method: .POST,
+                body: body,
+                requiresAuth: true
+            ),
+            token: token
+        )
+
+        return response.device
+    }
+
+    func fetchPairingStatus(deviceId: String, token: String) async throws -> DeviceDTO {
+        let response: DevicePairingStatusResponse = try await APIClient.shared.send(
+            APIRequest(
+                path: "devices/pairing/status/\(deviceId)",
+                method: .GET,
+                requiresAuth: true
+            ),
+            token: token
+        )
+
+        return response.device
+    }
+    
+    func approvePairingRequest(
+        for pendingDevice: DeviceDTO,
+        token: String
+    ) async throws -> DeviceDTO {
+        guard let deviceId = pendingDevice.deviceId,
+              let browserPublicKey = pendingDevice.publicKey
+        else {
+            throw NSError(
+                domain: "DeviceRegistrationService",
+                code: 1001,
+                userInfo: [NSLocalizedDescriptionKey: "Pending device is missing deviceId or publicKey"]
+            )
+        }
+
+        let wrapped = try DevicePairingCrypto.shared.wrapAccountKeysForBrowser(
+            browserPublicKeyBase64: browserPublicKey
+        )
+
+        let request = DevicePairingApproveRequest(
+            deviceId: deviceId,
+            wrappedAccountKey: try encodeWrappedPayload(wrapped),
+            wrappedAccountKeyAlgo: wrapped.algorithm,
+            wrappedAccountKeyVer: wrapped.version
+        )
+
+        let body = try JSONEncoder().encode(request)
+
+        let response: DeviceRegisterResponse = try await APIClient.shared.send(
+            APIRequest(
+                path: "devices/pairing/approve",
+                method: .POST,
+                body: body,
+                requiresAuth: true
+            ),
+            token: token
+        )
+
+        return response.device
+    }
+
+    private func encodeWrappedPayload(_ payload: WrappedAccountKeyPayload) throws -> String {
+        let data = try JSONEncoder().encode(payload)
+        guard let string = String(data: data, encoding: .utf8) else {
+            throw NSError(
+                domain: "DeviceRegistrationService",
+                code: 1002,
+                userInfo: [NSLocalizedDescriptionKey: "Failed to encode wrapped payload"]
+            )
+        }
+        return string
+    }
 
     private func registerPushToken(_ pushToken: String, provider: String, token: String) async throws {
         struct RegisterPushTokenRequest: Encodable {

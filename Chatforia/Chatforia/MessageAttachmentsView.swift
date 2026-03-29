@@ -22,33 +22,38 @@ struct MessageAttachmentsView: View {
     @ViewBuilder
     private func attachmentCard(_ attachment: AttachmentDTO) -> some View {
         let kind = (attachment.kind ?? "").uppercased()
+        let mimeType = (attachment.mimeType ?? "").lowercased()
 
-        switch kind {
-        case "IMAGE":
-            imageCard(attachment)
-        case "AUDIO":
-            audioCard(attachment)
-        case "VIDEO":
-            tappableFileCard(
-                title: attachment.caption?.nilIfBlank ?? "Video",
-                subtitle: attachment.mimeType?.nilIfBlank ?? "Video attachment",
-                systemImage: "video.fill",
-                urlString: attachment.url
-            )
-        case "FILE":
-            tappableFileCard(
-                title: attachment.caption?.nilIfBlank ?? fileNameFromURL(attachment.url) ?? "File",
-                subtitle: attachment.mimeType?.nilIfBlank ?? "File attachment",
-                systemImage: "doc.fill",
-                urlString: attachment.url
-            )
-        default:
-            tappableFileCard(
-                title: attachment.caption?.nilIfBlank ?? "Attachment",
-                subtitle: attachment.mimeType?.nilIfBlank ?? "Attachment",
-                systemImage: "paperclip",
-                urlString: attachment.url
-            )
+        if mimeType == "image/gif" || kind == "GIF" {
+            gifCard(attachment)
+        } else {
+            switch kind {
+            case "IMAGE":
+                imageCard(attachment)
+            case "AUDIO":
+                audioCard(attachment)
+            case "VIDEO":
+                tappableFileCard(
+                    title: attachment.caption?.nilIfBlank ?? "Video",
+                    subtitle: attachment.mimeType?.nilIfBlank ?? "Video attachment",
+                    systemImage: "video.fill",
+                    urlString: attachment.url
+                )
+            case "FILE":
+                tappableFileCard(
+                    title: attachment.caption?.nilIfBlank ?? fileNameFromURL(attachment.url) ?? "File",
+                    subtitle: attachment.mimeType?.nilIfBlank ?? "File attachment",
+                    systemImage: "doc.fill",
+                    urlString: attachment.url
+                )
+            default:
+                tappableFileCard(
+                    title: attachment.caption?.nilIfBlank ?? "Attachment",
+                    subtitle: attachment.mimeType?.nilIfBlank ?? "Attachment",
+                    systemImage: "paperclip",
+                    urlString: attachment.url
+                )
+            }
         }
     }
 
@@ -120,6 +125,56 @@ struct MessageAttachmentsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 2)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func gifCard(_ attachment: AttachmentDTO) -> some View {
+        let thumbURLString = attachment.thumbUrl?.nilIfBlank
+        let fullURLString = attachment.url?.nilIfBlank
+        let previewURLString = thumbURLString ?? fullURLString
+        let fullURL = fullURLString.flatMap { URL(string: absoluteMediaURLString($0)) }
+
+        VStack(alignment: .leading, spacing: 6) {
+            if let previewURLString,
+               let url = URL(string: absoluteMediaURLString(previewURLString)) {
+
+                Button {
+                    if let fullURL {
+                        selectedImageURL = IdentifiableURL(url: fullURL)
+                    } else {
+                        selectedImageURL = IdentifiableURL(url: url)
+                    }
+                } label: {
+                    VStack(alignment: .leading, spacing: 6) {
+                        ZStack(alignment: .topTrailing) {
+                            GIFWebView(url: url)
+                                .frame(width: min(maxWidth, 240), height: 180)
+                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+                            Text("GIF")
+                                .font(.caption2.bold())
+                                .padding(6)
+                                .background(.black.opacity(0.7))
+                                .foregroundColor(.white)
+                                .clipShape(Capsule())
+                                .padding(6)
+                        }
+                    }
+                    .padding(10)
+                    .background(Color(uiColor: .secondarySystemBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                }
+                .buttonStyle(.plain)
+
+            } else {
+                fallbackMediaCard(
+                    title: attachment.caption?.nilIfBlank ?? "GIF",
+                    subtitle: attachment.mimeType?.nilIfBlank ?? "GIF attachment",
+                    systemImage: "photo"
+                )
+                .frame(width: min(maxWidth, 240))
             }
         }
     }
@@ -240,31 +295,40 @@ private struct AttachmentImageViewer: View {
     let imageURL: URL
     @Environment(\.dismiss) private var dismiss
 
+    private var isGIF: Bool {
+        imageURL.pathExtension.lowercased() == "gif"
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
                 Color.black.ignoresSafeArea()
 
-                AsyncImage(url: imageURL) { phase in
-                    switch phase {
-                    case .empty:
-                        ProgressView()
-                            .tint(.white)
+                if isGIF {
+                    GIFWebView(url: imageURL)
+                        .ignoresSafeArea()
+                } else {
+                    AsyncImage(url: imageURL) { phase in
+                        switch phase {
+                        case .empty:
+                            ProgressView()
+                                .tint(.white)
 
-                    case .success(let image):
-                        ZoomableImageView(image: image)
+                        case .success(let image):
+                            ZoomableImageView(image: image)
 
-                    case .failure:
-                        VStack(spacing: 12) {
-                            Image(systemName: "exclamationmark.triangle")
-                                .font(.system(size: 28))
-                            Text("Could not load image")
-                                .font(.headline)
+                        case .failure:
+                            VStack(spacing: 12) {
+                                Image(systemName: "exclamationmark.triangle")
+                                    .font(.system(size: 28))
+                                Text("Could not load image")
+                                    .font(.headline)
+                            }
+                            .foregroundStyle(.white)
+
+                        @unknown default:
+                            EmptyView()
                         }
-                        .foregroundStyle(.white)
-
-                    @unknown default:
-                        EmptyView()
                     }
                 }
             }

@@ -18,9 +18,22 @@
 		474C11282F3A993100D958AB /* Chatforia.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Chatforia.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		47B4DE7B2F778ED00055A82B /* Exceptions for "Chatforia" folder in "Chatforia" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 474C11272F3A993100D958AB /* Chatforia */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		474C112A2F3A993100D958AB /* Chatforia */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				47B4DE7B2F778ED00055A82B /* Exceptions for "Chatforia" folder in "Chatforia" target */,
+			);
 			path = Chatforia;
 			sourceTree = "<group>";
 		};
@@ -281,6 +294,7 @@
 				DEVELOPMENT_TEAM = 975B563V2R;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Chatforia/Info.plist;
 				INFOPLIST_KEY_NSContactsUsageDescription = "Chatforia uses your contacts so you can import people from your phonebook.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Chatforia needs microphone access so you can record and send voice notes.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -302,6 +316,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				TENOR_API_KEY = AIzaSyAP0d9gHvgwthTVhSPf6CDH38YP1QYQabM;
 			};
 			name = Debug;
 		};
@@ -315,6 +330,7 @@
 				DEVELOPMENT_TEAM = 975B563V2R;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Chatforia/Info.plist;
 				INFOPLIST_KEY_NSContactsUsageDescription = "Chatforia uses your contacts so you can import people from your phonebook.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Chatforia needs microphone access so you can record and send voice notes.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -336,6 +352,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				TENOR_API_KEY = AIzaSyAP0d9gHvgwthTVhSPf6CDH38YP1QYQabM;
 			};
 			name = Release;
 		};

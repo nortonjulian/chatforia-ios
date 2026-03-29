@@ -47,6 +47,8 @@ final class MessageStore {
         loadPersistedState()
     }
 
+    // MARK: - Persistence
+
     private func loadPersistedState() {
         lock.async(flags: .barrier) {
             do {
@@ -61,10 +63,45 @@ final class MessageStore {
                 self.messages = try JSONDecoder().decode([MessageDTO].self, from: messageData)
                 self.sortMessagesLocked()
                 self.messages = self.dedupeMessages(self.messages)
-                self.capInMemoryMessagesLocked(max: self.inMemoryMax)
+                self.capInMemoryMessagesLocked(limit: self.inMemoryMax)
             } catch {
                 self.messages = []
             }
+        }
+    }
+
+    private func persistLocked() {
+        do {
+            let deliveryData = try JSONEncoder().encode(deliveryStates)
+            try deliveryData.write(to: deliveryStatesFileURL, options: .atomic)
+        } catch {
+            print("❌ MessageStore persist deliveryStates failed:", error)
+        }
+
+        do {
+            let messageData = try JSONEncoder().encode(messages)
+            try messageData.write(to: messagesFileURL, options: .atomic)
+        } catch {
+            print("❌ MessageStore persist messages failed:", error)
+        }
+    }
+
+    private func postMessagesChanged() {
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .MessagesChanged, object: nil)
+        }
+    }
+
+    private func postDeliveryStateChanged(clientMessageId: String, state: DeliveryState) {
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(
+                name: .DeliveryStateChanged,
+                object: nil,
+                userInfo: [
+                    "clientMessageId": clientMessageId,
+                    "state": state.rawValue
+                ]
+            )
         }
     }
 
@@ -78,6 +115,11 @@ final class MessageStore {
             score += 2
         }
 
+        if let translated = message.translatedForMe,
+           !translated.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            score += 2
+        }
+
         if let readBy = message.readBy, !readBy.isEmpty {
             score += 1
         }
@@ -86,129 +128,52 @@ final class MessageStore {
             score += 1
         }
 
-        if message.expiresAt != nil { score += 1 }
-        if message.editedAt != nil { score += 1 }
-
-        if message.deletedAt != nil || message.deletedForAll == true || message.deletedBySender == true {
+        if let myReactions = message.myReactions, !myReactions.isEmpty {
             score += 1
         }
-
-        if message.imageUrl != nil { score += 1 }
-        if message.audioUrl != nil { score += 1 }
 
         if let attachments = message.attachments, !attachments.isEmpty {
             score += 2
         }
 
-        if message.encryptedKeyForMe != nil {
+        if message.imageUrl != nil { score += 1 }
+        if message.audioUrl != nil { score += 1 }
+        if message.audioDurationSec != nil { score += 1 }
+
+        if message.expiresAt != nil { score += 1 }
+        if message.editedAt != nil { score += 1 }
+        if message.deletedAt != nil { score += 1 }
+        if message.deletedForAll == true { score += 2 }
+
+        if let ciphertext = message.contentCiphertext, !ciphertext.isEmpty {
             score += 1
         }
+        if let key = message.encryptedKeyForMe, !key.isEmpty {
+            score += 1
+        }
+
+        let revision = message.revision ?? 0
+        score += revision
 
         return score
     }
 
-    private func normalizedClientMessageId(_ value: String?) -> String? {
-        guard let value else { return nil }
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
-    }
-
-    private func rank(_ s: DeliveryState) -> Int {
-        switch s {
-        case .failed: return -1
-        case .pending: return 0
-        case .sending: return 1
-        case .sent: return 2
-        case .delivered: return 3
-        case .read: return 4
-        }
-    }
-
-    private func preferredMessage(existing: MessageDTO, incoming: MessageDTO) -> MessageDTO {
-        let existingRevision = existing.revision ?? 0
-        let incomingRevision = incoming.revision ?? 0
-
-        if incomingRevision > existingRevision {
-            return mergedMessage(preferred: incoming, fallback: existing)
-        }
-
-        if incomingRevision < existingRevision {
-            return mergedMessage(preferred: existing, fallback: incoming)
-        }
-
-        let existingScore = completenessScore(existing)
+    private func preferredMessage(current: MessageDTO, incoming: MessageDTO) -> MessageDTO {
+        let currentScore = completenessScore(current)
         let incomingScore = completenessScore(incoming)
 
-        if incomingScore >= existingScore {
-            return mergedMessage(preferred: incoming, fallback: existing)
-        } else {
-            return mergedMessage(preferred: existing, fallback: incoming)
-        }
-    }
-
-    private func mergedMessage(preferred: MessageDTO, fallback: MessageDTO) -> MessageDTO {
-        let isDeleted = (preferred.deletedForAll == true || preferred.deletedBySender == true)
-
-        if isDeleted {
-            return MessageDTO(
-                id: preferred.id > 0 ? preferred.id : fallback.id,
-                contentCiphertext: nil,
-                rawContent: nil,
-                translations: nil,
-                translatedFrom: preferred.translatedFrom ?? fallback.translatedFrom,
-                translatedForMe: nil,
-                encryptedKeyForMe: nil,
-                imageUrl: nil,
-                audioUrl: nil,
-                audioDurationSec: nil,
-                attachments: [],
-                isExplicit: preferred.isExplicit ?? fallback.isExplicit,
-                createdAt: preferred.createdAt,
-                expiresAt: preferred.expiresAt ?? fallback.expiresAt,
-                editedAt: preferred.editedAt ?? fallback.editedAt,
-                deletedBySender: preferred.deletedBySender ?? fallback.deletedBySender,
-                deletedForAll: preferred.deletedForAll ?? fallback.deletedForAll,
-                deletedAt: preferred.deletedAt ?? fallback.deletedAt,
-                deletedById: preferred.deletedById ?? fallback.deletedById,
-                sender: preferred.sender,
-                readBy: !(preferred.readBy?.isEmpty ?? true) ? preferred.readBy : fallback.readBy,
-                chatRoomId: preferred.chatRoomId ?? fallback.chatRoomId,
-                reactionSummary: !(preferred.reactionSummary?.isEmpty ?? true) ? preferred.reactionSummary : fallback.reactionSummary,
-                myReactions: !(preferred.myReactions?.isEmpty ?? true) ? preferred.myReactions : fallback.myReactions,
-                revision: max(preferred.revision ?? 0, fallback.revision ?? 0),
-                clientMessageId: preferred.clientMessageId ?? fallback.clientMessageId
-            )
+        if incomingScore > currentScore {
+            return incoming
         }
 
-        return MessageDTO(
-            id: preferred.id > 0 ? preferred.id : fallback.id,
-            contentCiphertext: preferred.contentCiphertext ?? fallback.contentCiphertext,
-            rawContent: preferred.rawContent ?? fallback.rawContent,
-            translations: preferred.translations ?? fallback.translations,
-            translatedFrom: preferred.translatedFrom ?? fallback.translatedFrom,
-            translatedForMe: preferred.translatedForMe ?? fallback.translatedForMe,
-            encryptedKeyForMe: preferred.encryptedKeyForMe ?? fallback.encryptedKeyForMe,
-            imageUrl: preferred.imageUrl ?? fallback.imageUrl,
-            audioUrl: preferred.audioUrl ?? fallback.audioUrl,
-            audioDurationSec: preferred.audioDurationSec ?? fallback.audioDurationSec,
-            attachments: !(preferred.attachments?.isEmpty ?? true) ? preferred.attachments : fallback.attachments,
-            isExplicit: preferred.isExplicit ?? fallback.isExplicit,
-            createdAt: preferred.createdAt,
-            expiresAt: preferred.expiresAt ?? fallback.expiresAt,
-            editedAt: preferred.editedAt ?? fallback.editedAt,
-            deletedBySender: preferred.deletedBySender ?? fallback.deletedBySender,
-            deletedForAll: preferred.deletedForAll ?? fallback.deletedForAll,
-            deletedAt: preferred.deletedAt ?? fallback.deletedAt,
-            deletedById: preferred.deletedById ?? fallback.deletedById,
-            sender: preferred.sender,
-            readBy: !(preferred.readBy?.isEmpty ?? true) ? preferred.readBy : fallback.readBy,
-            chatRoomId: preferred.chatRoomId ?? fallback.chatRoomId,
-            reactionSummary: !(preferred.reactionSummary?.isEmpty ?? true) ? preferred.reactionSummary : fallback.reactionSummary,
-            myReactions: !(preferred.myReactions?.isEmpty ?? true) ? preferred.myReactions : fallback.myReactions,
-            revision: max(preferred.revision ?? 0, fallback.revision ?? 0),
-            clientMessageId: preferred.clientMessageId ?? fallback.clientMessageId
-        )
+        if incomingScore < currentScore {
+            return MessageDTO.merged(current: current, incoming: incoming)
+        }
+
+        return MessageDTO.merged(current: current, incoming: incoming)
     }
+
+    // MARK: - Sort / dedupe / cap
 
     private func sortMessagesLocked() {
         self.messages.sort {
@@ -216,290 +181,223 @@ final class MessageStore {
             return $0.id < $1.id
         }
     }
-    
-    private func resolvedMessageId(preferred: MessageDTO, fallback: MessageDTO) -> Int {
-        if preferred.id > 0 { return preferred.id }
-        if fallback.id > 0 { return fallback.id }
-        return preferred.id
-    }
 
     private func dedupeMessages(_ source: [MessageDTO]) -> [MessageDTO] {
+        var seenServerIds = Set<Int>()
+        var seenClientIds = Set<String>()
         var result: [MessageDTO] = []
-        var indexByClientId: [String: Int] = [:]
-        var indexByServerId: [Int: Int] = [:]
 
-        for message in source {
-            let incomingClientId = normalizedClientMessageId(message.clientMessageId)
-
-            if let incomingClientId,
-               let existingIndex = indexByClientId[incomingClientId] {
-                let existing = result[existingIndex]
-                let merged = preferredMessage(existing: existing, incoming: message)
-                result[existingIndex] = merged
-
-                indexByServerId[merged.id] = existingIndex
-                if let mergedClientId = normalizedClientMessageId(merged.clientMessageId) {
-                    indexByClientId[mergedClientId] = existingIndex
-                }
+        for msg in source {
+            if msg.id > 0 {
+                if seenServerIds.contains(msg.id) { continue }
+                seenServerIds.insert(msg.id)
+                result.append(msg)
                 continue
             }
 
-            if let existingIndex = indexByServerId[message.id] {
-                let existing = result[existingIndex]
-                let merged = preferredMessage(existing: existing, incoming: message)
-                result[existingIndex] = merged
-
-                indexByServerId[merged.id] = existingIndex
-                if let mergedClientId = normalizedClientMessageId(merged.clientMessageId) {
-                    indexByClientId[mergedClientId] = existingIndex
-                }
+            if let cid = msg.clientMessageId, !cid.isEmpty {
+                if seenClientIds.contains(cid) { continue }
+                seenClientIds.insert(cid)
+                result.append(msg)
                 continue
             }
 
-            let newIndex = result.count
-            result.append(message)
-            indexByServerId[message.id] = newIndex
-            if let incomingClientId {
-                indexByClientId[incomingClientId] = newIndex
-            }
+            result.append(msg)
         }
 
         return result
     }
 
-    private func existingIndexLocked(for incoming: MessageDTO) -> Int? {
-        let incomingClientId = normalizedClientMessageId(incoming.clientMessageId)
+    private func capInMemoryMessagesLocked(limit: Int) {
+        guard messages.count > limit else { return }
 
-        return self.messages.firstIndex { existing in
-            let existingClientId = normalizedClientMessageId(existing.clientMessageId)
+        let overflow = messages.count - limit
+        let removed = messages.prefix(overflow)
 
-            if let incomingClientId, existingClientId == incomingClientId {
-                return true
-            }
+        if let maxRemovedServerId = removed.map(\.id).filter({ $0 > 0 }).max() {
+            oldestRemovedMessageId = Swift.max(oldestRemovedMessageId ?? 0, maxRemovedServerId)
+        }
 
-            return existing.id == incoming.id
+        messages.removeFirst(overflow)
+    }
+
+    func removeMessages(forRoomId roomId: Int) {
+        lock.async(flags: .barrier) {
+            self.messages.removeAll { $0.chatRoomId == roomId }
+            self.persistLocked()
+            self.postMessagesChanged()
         }
     }
 
-    private func notifyMessagesChanged() {
-        DispatchQueue.main.async {
-            NotificationCenter.default.post(name: .MessagesChanged, object: nil)
+    func deliveryState(for clientMessageId: String) -> DeliveryState? {
+        lock.sync {
+            deliveryStates[clientMessageId]
         }
     }
-
-    private func persistStateLocked() {
-        do {
-            let deliveryData = try JSONEncoder().encode(self.deliveryStates)
-            try deliveryData.write(to: self.deliveryStatesFileURL, options: .atomic)
-        } catch {
-            print("❌ Failed to persist delivery states:", error)
-        }
-
-        do {
-            let recentMessages = Array(self.messages.suffix(200))
-            let messageData = try JSONEncoder().encode(recentMessages)
-            try messageData.write(to: self.messagesFileURL, options: .atomic)
-        } catch {
-            print("❌ Failed to persist message window:", error)
-        }
-    }
-
-    // MARK: - Delivery state
 
     func setDeliveryState(clientMessageId: String, state: DeliveryState) {
-        guard !clientMessageId.isEmpty else { return }
+        lock.async(flags: .barrier) {
+            self.deliveryStates[clientMessageId] = state
+            self.persistLocked()
+            self.postDeliveryStateChanged(clientMessageId: clientMessageId, state: state)
+        }
+    }
+
+    // MARK: - Core upsert
+
+    func upsertMessage(_ incoming: MessageDTO) {
+        lock.async(flags: .barrier) {
+            self.upsertMessageLocked(incoming)
+            self.persistLocked()
+            self.postMessagesChanged()
+        }
+    }
+
+    func upsertMany(_ incoming: [MessageDTO]) {
+        guard !incoming.isEmpty else { return }
 
         lock.async(flags: .barrier) {
-            if let currentState = self.deliveryStates[clientMessageId],
-               self.rank(state) < self.rank(currentState) {
-                return
+            for msg in incoming {
+                self.upsertMessageLocked(msg)
             }
-
-            self.deliveryStates[clientMessageId] = state
-            self.persistStateLocked()
-
-            DispatchQueue.main.async {
-                NotificationCenter.default.post(
-                    name: .DeliveryStateChanged,
-                    object: nil,
-                    userInfo: ["clientMessageId": clientMessageId, "state": state.rawValue]
-                )
-            }
+            self.persistLocked()
+            self.postMessagesChanged()
         }
     }
 
-    func getDeliveryState(clientMessageId: String) -> DeliveryState? {
-        guard !clientMessageId.isEmpty else { return nil }
-        var result: DeliveryState?
-        lock.sync {
-            result = self.deliveryStates[clientMessageId]
-        }
-        return result
+    func insertOrReplace(_ incoming: MessageDTO) {
+        upsertMessage(incoming)
     }
 
-    func markDeliveryState(clientMessageId: String, state: DeliveryState) {
-        setDeliveryState(clientMessageId: clientMessageId, state: state)
-    }
-
-    func markMessageRead(messageId: Int) {
-        guard let msg = currentWindow().first(where: { $0.id == messageId }),
-              let cid = msg.clientMessageId else { return }
-
-        markDeliveryState(clientMessageId: cid, state: .read)
-    }
-
-    // MARK: - In-memory window access
-
-    func currentWindow() -> [MessageDTO] {
-        var snapshot: [MessageDTO] = []
-        lock.sync {
-            snapshot = self.messages
-        }
-        return snapshot
-    }
-
-    func newestMessageId() -> Int? {
-        lock.sync { messages.last?.id }
-    }
-
-    func message(withId id: Int) -> MessageDTO? {
-        var result: MessageDTO?
-        lock.sync {
-            result = self.messages.first(where: { $0.id == id })
-        }
-        return result
-    }
-
-    func removeMessageSync(id: Int) {
-        lock.sync(flags: .barrier) {
-            self.messages.removeAll { $0.id == id }
-            self.persistStateLocked()
-        }
-        self.notifyMessagesChanged()
-    }
-
-    func removeMessage(id: Int) {
-        removeMessageSync(id: id)
+    func insertOrReplace(_ incoming: [MessageDTO]) {
+        upsertMany(incoming)
     }
 
     func insertOrReplaceSync(_ incoming: [MessageDTO]) {
         guard !incoming.isEmpty else { return }
 
         lock.sync(flags: .barrier) {
-            for inc in incoming {
-                if let idx = self.existingIndexLocked(for: inc) {
-                    let existing = self.messages[idx]
-                    self.messages[idx] = self.preferredMessage(existing: existing, incoming: inc)
-                } else {
-                    self.messages.append(inc)
-                }
+            for msg in incoming {
+                self.upsertMessageLocked(msg)
             }
-
-            self.sortMessagesLocked()
-            self.messages = self.dedupeMessages(self.messages)
-            self.capInMemoryMessagesLocked(max: self.inMemoryMax)
-            self.persistStateLocked()
+            self.persistLocked()
         }
 
-        self.notifyMessagesChanged()
+        postMessagesChanged()
     }
 
-    func insertOrReplaceServerMessage(_ serverMessage: MessageDTO?) {
-        guard let dto = serverMessage else { return }
-        insertOrReplace([dto])
-
-        if let clientId = normalizedClientMessageId(dto.clientMessageId) {
-            setDeliveryState(clientMessageId: clientId, state: .sent)
+    private func upsertMessageLocked(_ incoming: MessageDTO) {
+        if let idx = self.messages.firstIndex(where: {
+            ($0.id > 0 && incoming.id > 0 && $0.id == incoming.id) ||
+            ($0.clientMessageId != nil &&
+             incoming.clientMessageId != nil &&
+             $0.clientMessageId == incoming.clientMessageId)
+        }) {
+            let existing = self.messages[idx]
+            self.messages[idx] = self.preferredMessage(current: existing, incoming: incoming)
         } else {
-            let serverKey = "server:\(dto.id)"
-            setDeliveryState(clientMessageId: serverKey, state: .sent)
+            self.messages.append(incoming)
         }
+
+        self.sortMessagesLocked()
+        self.messages = self.dedupeMessages(self.messages)
+        self.capInMemoryMessagesLocked(limit: self.inMemoryMax)
     }
 
-    func insertOrReplace(_ incoming: [MessageDTO]) {
-        guard !incoming.isEmpty else { return }
+    // MARK: - Optimistic replacement
 
+    func replaceOptimisticMessage(clientMessageId: String, with serverMessage: MessageDTO) {
         lock.async(flags: .barrier) {
-            for inc in incoming {
-                if let idx = self.existingIndexLocked(for: inc) {
-                    let existing = self.messages[idx]
-                    self.messages[idx] = self.preferredMessage(existing: existing, incoming: inc)
-                } else {
-                    self.messages.append(inc)
-                }
+            if let idx = self.messages.firstIndex(where: { $0.clientMessageId == clientMessageId }) {
+                let existing = self.messages[idx]
+
+                let normalized = MessageDTO.merged(
+                    current: existing,
+                    incoming: MessageDTO(
+                        id: serverMessage.id,
+                        contentCiphertext: serverMessage.contentCiphertext,
+                        rawContent: serverMessage.rawContent,
+                        translations: serverMessage.translations,
+                        translatedFrom: serverMessage.translatedFrom,
+                        translatedForMe: serverMessage.translatedForMe,
+                        encryptedKeyForMe: serverMessage.encryptedKeyForMe,
+                        imageUrl: serverMessage.imageUrl,
+                        audioUrl: serverMessage.audioUrl,
+                        audioDurationSec: serverMessage.audioDurationSec,
+                        attachments: serverMessage.attachments,
+                        isExplicit: serverMessage.isExplicit,
+                        createdAt: serverMessage.createdAt,
+                        expiresAt: serverMessage.expiresAt,
+                        editedAt: serverMessage.editedAt,
+                        deletedBySender: serverMessage.deletedBySender,
+                        deletedForAll: serverMessage.deletedForAll,
+                        deletedAt: serverMessage.deletedAt,
+                        deletedById: serverMessage.deletedById,
+                        sender: serverMessage.sender,
+                        readBy: serverMessage.readBy,
+                        chatRoomId: serverMessage.chatRoomId,
+                        reactionSummary: serverMessage.reactionSummary,
+                        myReactions: serverMessage.myReactions,
+                        revision: serverMessage.revision,
+                        clientMessageId: serverMessage.clientMessageId ?? clientMessageId
+                    )
+                )
+
+                self.messages[idx] = normalized
+            } else {
+                self.messages.append(serverMessage)
             }
 
             self.sortMessagesLocked()
             self.messages = self.dedupeMessages(self.messages)
-            self.capInMemoryMessagesLocked(max: self.inMemoryMax)
-            self.persistStateLocked()
-            self.notifyMessagesChanged()
+            self.capInMemoryMessagesLocked(limit: self.inMemoryMax)
+            self.persistLocked()
+            self.postMessagesChanged()
         }
     }
 
-    // MARK: - Trimming / tombstone
+    // MARK: - Read
 
-    func capInMemoryMessages(max: Int = 500) {
-        guard max > 0 else { return }
-
-        lock.async(flags: .barrier) {
-            self.capInMemoryMessagesLocked(max: max)
-            self.persistStateLocked()
-            self.notifyMessagesChanged()
+    func currentWindow() -> [MessageDTO] {
+        lock.sync {
+            self.messages
         }
     }
 
-    private func capInMemoryMessagesLocked(max: Int) {
-        guard max > 0 else { return }
-        guard self.messages.count > max else { return }
-
-        let toRemoveCount = self.messages.count - max
-        let removedPrefix = Array(self.messages.prefix(toRemoveCount))
-
-        if let newestRemovedId = removedPrefix.last?.id {
-            self.oldestRemovedMessageId = newestRemovedId
+    func message(withId id: Int) -> MessageDTO? {
+        lock.sync {
+            self.messages.first(where: { $0.id == id })
         }
-
-        self.messages.removeFirst(toRemoveCount)
     }
-
-    // MARK: - Paging helpers
 
     func serverBeforeIdForPaging() -> Int? {
-        var id: Int?
         lock.sync {
-            if let oldestInMemory = self.messages.first?.id {
-                id = oldestInMemory
-            } else {
-                id = self.oldestRemovedMessageId
-            }
+            let serverIds = self.messages.map(\.id).filter { $0 > 0 }
+            return serverIds.min()
         }
-        return id
     }
 
-    // MARK: - Convenience
+    // MARK: - Remove
 
-    func replaceOptimisticMessage(clientMessageId: String, with serverDTO: MessageDTO) {
-        let normalizedClientId = normalizedClientMessageId(clientMessageId)
-        guard normalizedClientId != nil else { return }
-
+    func removeMessage(id: Int) {
         lock.async(flags: .barrier) {
-            if let idx = self.existingIndexLocked(for: serverDTO) {
-                let existing = self.messages[idx]
-                self.messages[idx] = self.preferredMessage(existing: existing, incoming: serverDTO)
-            } else {
-                self.messages.append(serverDTO)
+            if id > 0 {
+                self.oldestRemovedMessageId = max(self.oldestRemovedMessageId ?? 0, id)
             }
 
-            self.sortMessagesLocked()
-            self.messages = self.dedupeMessages(self.messages)
-            self.capInMemoryMessagesLocked(max: self.inMemoryMax)
-            self.persistStateLocked()
-            self.notifyMessagesChanged()
+            self.messages.removeAll { $0.id == id }
+            self.persistLocked()
+            self.postMessagesChanged()
         }
+    }
 
-        if let normalizedClientId {
-            setDeliveryState(clientMessageId: normalizedClientId, state: .sent)
+    func clearAll() {
+        lock.async(flags: .barrier) {
+            self.messages.removeAll()
+            self.deliveryStates.removeAll()
+            self.oldestRemovedMessageId = nil
+            self.persistLocked()
+            self.postMessagesChanged()
         }
     }
 }

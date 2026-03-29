@@ -19,10 +19,23 @@ enum AppEnvironment {
         return 30
         #endif
     }()
+    
+    static let tenorAPIKey: String = {
+        guard
+            let value = Bundle.main.infoDictionary?["TENOR_API_KEY"] as? String,
+            !value.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty
+        else {
+            assertionFailure("Missing TENOR_API_KEY in build settings")
+            return ""
+        }
+        return value
+    }()
 
     static func configureSendQueueHandlersIfNeeded() {
         guard !SendQueueManager.isConfiguredForHandlers else { return }
         SendQueueManager.isConfiguredForHandlers = true
+
+        // MARK: - SEND JOB HANDLER
 
         SendQueueManager.shared.sendJobHandler = { job, completion in
             print("🚀 sendJobHandler invoked for \(job.clientMessageId)")
@@ -42,10 +55,7 @@ enum AppEnvironment {
                         return
                     }
 
-                    print("🔑 queue token present: true")
-
                     let (data, _) = try await APIClient.shared.sendRaw(request, token: token)
-                    print("✅ sendRaw returned for \(job.clientMessageId), bytes=\(data.count)")
 
                     let decoder = JSONDecoder.tolerantISO8601Decoder()
 
@@ -61,35 +71,33 @@ enum AppEnvironment {
                         let item: MessageDTO
                     }
 
+                    // Try decoding in order of likelihood
                     if let dto = try? decoder.decode(MessageDTO.self, from: data) {
-                        print("✅ decoded direct MessageDTO id=\(dto.id) clientMessageId=\(dto.clientMessageId ?? "nil")")
                         completion(.success(serverMessage: dto))
                         return
                     }
 
                     if let env = try? decoder.decode(MessageEnvelopeResponse.self, from: data) {
-                        print("✅ decoded message MessageDTO id=\(env.message.id) clientMessageId=\(env.message.clientMessageId ?? "nil")")
                         completion(.success(serverMessage: env.message))
                         return
                     }
 
                     if let env = try? decoder.decode(ShapedEnvelope.self, from: data) {
-                        print("✅ decoded shaped MessageDTO id=\(env.shaped.id) clientMessageId=\(env.shaped.clientMessageId ?? "nil")")
                         completion(.success(serverMessage: env.shaped))
                         return
                     }
 
                     if let env = try? decoder.decode(ItemEnvelope.self, from: data) {
-                        print("✅ decoded item MessageDTO id=\(env.item.id) clientMessageId=\(env.item.clientMessageId ?? "nil")")
                         completion(.success(serverMessage: env.item))
                         return
                     }
 
-                    let rawPreview = String(data: data.prefix(1000), encoding: .utf8) ?? "<non-utf8 data>"
-                    print("❌ queued send decode failed. RAW: \(rawPreview)")
+                    print("❌ decode failed")
                     completion(.temporaryFailure)
+
                 } catch {
-                    print("❌ sendJobHandler network error for \(job.clientMessageId): \(error)")
+                    print("❌ sendJobHandler error:", error)
+
                     let nsError = error as NSError
                     let isRetryable =
                         nsError.code == NSURLErrorNotConnectedToInternet ||
@@ -104,12 +112,10 @@ enum AppEnvironment {
             }
         }
 
+        // MARK: - SUCCESS CALLBACK
+
         SendQueueManager.shared.sendSuccessCallback = { clientMessageId, serverMessage in
             DispatchQueue.main.async {
-                print("🎉 sendSuccessCallback for \(clientMessageId)")
-                print("🟢 callback serverMessage id =", serverMessage?.id as Any)
-                print("🟢 callback serverMessage clientMessageId =", serverMessage?.clientMessageId as Any)
-
                 guard let serverMessage else { return }
 
                 let normalized = MessageDTO(
@@ -141,24 +147,26 @@ enum AppEnvironment {
                     clientMessageId: serverMessage.clientMessageId ?? clientMessageId
                 )
 
+                // ✅ FIX: use existing MessageStore API
                 MessageStore.shared.replaceOptimisticMessage(
                     clientMessageId: clientMessageId,
                     with: normalized
                 )
 
-                MessageStore.shared.markDeliveryState(
+                MessageStore.shared.setDeliveryState(
                     clientMessageId: clientMessageId,
-                    state: .sent
+                    state: DeliveryState.sent
                 )
             }
         }
 
+        // MARK: - FAILURE CALLBACK
+
         SendQueueManager.shared.sendFailedCallback = { clientMessageId in
             DispatchQueue.main.async {
-                print("🛑 sendFailedCallback for \(clientMessageId)")
-                MessageStore.shared.markDeliveryState(
+                MessageStore.shared.setDeliveryState(
                     clientMessageId: clientMessageId,
-                    state: .failed
+                    state: DeliveryState.failed
                 )
             }
         }

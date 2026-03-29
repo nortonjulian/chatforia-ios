@@ -6,12 +6,10 @@ struct ReportMessageSheet: View {
     let previewText: String
     let isSubmitting: Bool
     let errorText: String?
-
     @Binding var reason: ReportReason
     @Binding var contextCount: Int
     @Binding var details: String
     @Binding var blockAfterReport: Bool
-
     let onCancel: () -> Void
     let onSubmit: () -> Void
 
@@ -20,8 +18,8 @@ struct ReportMessageSheet: View {
             Form {
                 Section("Reason") {
                     Picker("Reason", selection: $reason) {
-                        ForEach(ReportReason.allCases) { item in
-                            Text(item.label).tag(item)
+                        ForEach(ReportReason.allCases) { value in
+                            Text(value.title).tag(value)
                         }
                     }
                 }
@@ -33,11 +31,12 @@ struct ReportMessageSheet: View {
                         Text("This + previous 10").tag(10)
                         Text("This + previous 20").tag(20)
                     }
+                    .pickerStyle(.navigationLink)
                 }
 
                 Section("Additional details") {
                     TextEditor(text: $details)
-                        .frame(minHeight: 100)
+                        .frame(minHeight: 120)
                 }
 
                 Section {
@@ -46,10 +45,12 @@ struct ReportMessageSheet: View {
 
                 Section("Preview") {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Reporting message from \(senderName)")
-                            .font(.subheadline.weight(.semibold))
+                        Text("Reporting message from **\(senderName)**")
+                            .font(.subheadline)
+
                         Text(previewText.isEmpty ? "[No visible text]" : previewText)
-                            .font(.body)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(5)
                     }
                 }
 
@@ -60,18 +61,28 @@ struct ReportMessageSheet: View {
                     }
                 }
             }
-            .navigationTitle("Report message")
+            .navigationTitle("Report Message")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel", action: onCancel)
-                        .disabled(isSubmitting)
+                    Button("Cancel", role: .cancel) {
+                        if !isSubmitting {
+                            onCancel()
+                        }
+                    }
+                    .disabled(isSubmitting)
                 }
+
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Submit") {
                         onSubmit()
                     }
                     .disabled(isSubmitting)
+                }
+            }
+            .overlay {
+                if isSubmitting {
+                    ProgressView()
                 }
             }
         }

@@ -167,7 +167,7 @@ struct MessagesListView: View {
             groupedWithPrevious: groupedWithPrevious,
             groupedWithNext: groupedWithNext
         )
-        
+
         let showAvatar = !isMe && !groupedWithNext
         let showSenderName = isGroupRoom && !isMe && !groupedWithPrevious
         let isTimestampVisible = expandedTimestampMessageId == msg.id
@@ -186,16 +186,24 @@ struct MessagesListView: View {
             showAvatar: showAvatar,
             showSenderName: showSenderName,
             deliveryState: deliveryStateForMessage(msg),
-            onRetryTap: { onRetryTap(msg) },
+            onRetryTap: {
+                onRetryTap(msg)
+            },
             onReceiptTap: {
                 selectedReceiptMessage = msg
             },
-            onEdit: { onEdit(msg) },
-            onDelete: { onDelete(msg) },
-            onReport: { onReport(msg) },
+            onEdit: {
+                onEdit(msg)
+            },
+            onDelete: {
+                onDelete(msg)
+            },
+            onReport: !isMe ? {
+                onReport(msg)
+            } : nil,
             isTimestampVisible: isTimestampVisible,
             onBubbleTap: {
-                expandedTimestampMessageId = (expandedTimestampMessageId == msg.id ? nil : msg.id)
+                expandedTimestampMessageId = expandedTimestampMessageId == msg.id ? nil : msg.id
             },
             bubbleMaxWidth: bubbleMaxWidth
         )
@@ -209,7 +217,7 @@ struct MessagesListView: View {
             )
         )
     }
-    
+
     private func rowRenderKey(for msg: MessageDTO) -> String {
         let edited = msg.editedAt?.timeIntervalSince1970 ?? 0
         let revision = msg.revision ?? 0
@@ -242,7 +250,10 @@ struct MessagesListView: View {
         }
     }
 
-    private func makeGroupPosition(groupedWithPrevious: Bool, groupedWithNext: Bool) -> ChatMessageRowView.GroupPosition {
+    private func makeGroupPosition(
+        groupedWithPrevious: Bool,
+        groupedWithNext: Bool
+    ) -> ChatMessageRowView.GroupPosition {
         switch (groupedWithPrevious, groupedWithNext) {
         case (false, false): return .single
         case (false, true): return .top

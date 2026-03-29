@@ -7,11 +7,23 @@ struct WirelessHomeView: View {
     @State private var selectedScope: EsimScope = .local
     @State private var quotes: [PricingProduct: PricingQuote] = [:]
 
+    @State private var activationStatus: ESIMStatus = .none
+    @State private var activationPayload: ESIMActivationDTO?
+
+    @State private var showActivation = false
+
+    enum ESIMStatus {
+        case none
+        case readyToInstall
+        case active
+    }
+
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
                 heroSection
                 scopePickerSection
+                activationSection
                 packsSection
                 actionsSection
                 disclaimerSection
@@ -23,6 +35,14 @@ struct WirelessHomeView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task(id: selectedScope) {
             await loadQuotes()
+            await loadActivationIfExists()
+        }
+        .navigationDestination(isPresented: $showActivation) {
+            if let payload = activationPayload {
+                ESIMActivationView(
+                    viewModel: ESIMActivationViewModel(payload: payload)
+                )
+            }
         }
     }
 
@@ -60,6 +80,36 @@ struct WirelessHomeView: View {
                     .foregroundStyle(themeManager.palette.secondaryText)
             }
             .padding(.vertical, 8)
+        }
+    }
+
+    @ViewBuilder
+    private var activationSection: some View {
+        if activationStatus != .none {
+            SectionCardView(title: "Your eSIM") {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(statusText)
+                        .font(.headline)
+                        .foregroundStyle(themeManager.palette.primaryText)
+
+                    if let payload = activationPayload?.planName, !payload.isEmpty {
+                        Text(payload)
+                            .font(.footnote)
+                            .foregroundStyle(themeManager.palette.secondaryText)
+                    }
+
+                    Button {
+                        openActivation()
+                    } label: {
+                        Text(buttonText)
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .padding(.vertical, 8)
+            }
         }
     }
 
@@ -111,7 +161,12 @@ struct WirelessHomeView: View {
                             )
                         )
                         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                        .shadow(color: themeManager.palette.buttonEnd.opacity(0.28), radius: 10, x: 0, y: 4)
+                        .shadow(
+                            color: themeManager.palette.buttonEnd.opacity(0.28),
+                            radius: 10,
+                            x: 0,
+                            y: 4
+                        )
                 }
                 .buttonStyle(.plain)
             }
@@ -156,9 +211,44 @@ struct WirelessHomeView: View {
         }
     }
 
+    private var statusText: String {
+        switch activationStatus {
+        case .readyToInstall:
+            return "Ready to install"
+        case .active:
+            return "Service active"
+        case .none:
+            return ""
+        }
+    }
+
+    private var buttonText: String {
+        switch activationStatus {
+        case .readyToInstall:
+            return "Activate eSIM"
+        case .active:
+            return "Manage eSIM"
+        case .none:
+            return ""
+        }
+    }
+
     private func loadQuotes() async {
         let products = pricingProducts(for: selectedScope)
         quotes = await PricingQuoteService.shared.getQuotes(products: products)
+    }
+
+    private func loadActivationIfExists() async {
+        // TODO: Replace with a real backend call when ready.
+        // Example future logic:
+        // if let payload = try? await ESIMService.shared.fetchCurrentActivation() {
+        //     activationPayload = payload
+        //     activationStatus = payload.status.lowercased() == "active" ? .active : .readyToInstall
+        // }
+
+        // Temporary placeholder so the screen does not show stale state by accident.
+        activationPayload = nil
+        activationStatus = .none
     }
 
     private func pricingProducts(for scope: EsimScope) -> [PricingProduct] {
@@ -185,12 +275,30 @@ struct WirelessHomeView: View {
         ) ?? "—"
     }
 
+    private func openActivation() {
+        guard activationPayload != nil else { return }
+        showActivation = true
+    }
+
     private func handleGetPackTapped(_ pack: DataPackOption) {
-        print("TODO: start Paddle/checkout flow for product \(pack.product)")
+        Task {
+            do {
+                let payload = try await ESIMService.shared.purchaseAndProvision(pack: pack)
+                activationPayload = payload
+                activationStatus = .readyToInstall
+                showActivation = true
+            } catch {
+                print("Purchase/provision failed for product \(pack.product): \(error)")
+            }
+        }
     }
 
     private func handleManageWirelessTapped() {
-        print("TODO: open wireless management")
+        if activationPayload != nil {
+            openActivation()
+        } else {
+            print("TODO: open wireless management")
+        }
     }
 
     private func handlePortNumberTapped() {

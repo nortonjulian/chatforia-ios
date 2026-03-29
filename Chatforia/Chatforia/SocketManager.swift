@@ -2,10 +2,14 @@ import Foundation
 import Combine
 import SocketIO
 
+// MARK: - Notifications
+
 extension Notification.Name {
     static let socketMessageExpired = Notification.Name("socketMessageExpired")
     static let socketMessageEdited = Notification.Name("socketMessageEdited")
     static let socketMessageDeleted = Notification.Name("socketMessageDeleted")
+    static let socketMessageUpsert = Notification.Name("socketMessageUpsert")
+    static let socketDidReconnect = Notification.Name("socketDidReconnect")
 }
 
 @MainActor
@@ -19,24 +23,47 @@ final class SocketManager: ObservableObject {
     private var manager: SocketIO.SocketManager?
     private var socket: SocketIOClient?
 
-    private var didBindCoreHandlers = false
     private var currentToken: String?
-
     private var joinedRoomIds = Set<Int>()
-
-    // 🔥 NEW: Track random queue state
     private var isInRandomQueue = false
 
     private init() {}
+
+    // MARK: - Public socket helpers
+
+    @discardableResult
+    func on(_ event: String, callback: @escaping NormalCallback) -> UUID? {
+        guard let socket else { return nil }
+        return socket.on(event, callback: callback)
+    }
+
+    func off(_ id: UUID) {
+        socket?.off(id: id)
+    }
+
+    func emit(_ event: String, _ payload: [String: Any]) {
+        guard let socket, socket.status == .connected else {
+            print("⚠️ socket emit skipped (not connected) event=\(event)")
+            return
+        }
+        socket.emit(event, payload)
+    }
+
+    func emit(_ event: String) {
+        guard let socket, socket.status == .connected else {
+            print("⚠️ socket emit skipped (not connected) event=\(event)")
+            return
+        }
+        socket.emit(event)
+    }
 
     // MARK: - Connection
 
     func connect(token: String) {
         currentToken = token
-        print("SocketManager.connect invoked tokenPresent=\(!token.isEmpty) tokenPreview=\(token.prefix(8))")
         rebuild(token: token)
 
-        guard let socket = self.socket else { return }
+        guard let socket else { return }
         if socket.status != .connected && socket.status != .connecting {
             socket.connect()
         }
@@ -46,7 +73,7 @@ final class SocketManager: ObservableObject {
         currentToken = token
         rebuild(token: token)
 
-        guard let socket = self.socket else {
+        guard let socket else {
             throw NSError(
                 domain: "SocketManager",
                 code: 1,
@@ -55,7 +82,7 @@ final class SocketManager: ObservableObject {
         }
 
         if socket.status == .connected {
-            await MainActor.run { self.isConnected = true }
+            self.isConnected = true
             return
         }
 
@@ -103,32 +130,6 @@ final class SocketManager: ObservableObject {
         }
     }
 
-    // 🔥 IMPORTANT: ensures safe emit timing
-    func onConnectedOnce(_ handler: @escaping () -> Void) {
-        if let s = socket, s.status == .connected {
-            Task { @MainActor in handler() }
-            return
-        }
-
-        let callback: NormalCallback = { _, _ in
-            Task { @MainActor in
-                handler()
-            }
-        }
-
-        if let id = socket?.on(clientEvent: .connect, callback: callback) {
-            Task {
-                try? await Task.sleep(nanoseconds: 100_000)
-                self.socket?.off(id: id)
-            }
-        } else {
-            Task {
-                try? await Task.sleep(nanoseconds: 100_000_000)
-                handler()
-            }
-        }
-    }
-
     func disconnect() {
         socket?.disconnect()
         isConnected = false
@@ -140,9 +141,14 @@ final class SocketManager: ObservableObject {
         socket?.disconnect()
         socket = nil
         manager = nil
-        didBindCoreHandlers = false
 
-        let baseConfig: SocketIOClientConfiguration = [
+        let params: [String: Any] = {
+            guard let token, !token.isEmpty else { return [:] }
+            return ["token": token]
+        }()
+
+        let config: SocketIOClientConfiguration = [
+            .connectParams(params),
             .log(false),
             .compress,
             .path("/socket.io"),
@@ -152,129 +158,37 @@ final class SocketManager: ObservableObject {
             .forceWebsockets(true)
         ]
 
-        let config: SocketIOClientConfiguration
-        if let t = token, !t.isEmpty {
-            config = [
-                .connectParams(["token": t]),
-                .log(false),
-                .compress,
-                .path("/socket.io"),
-                .reconnects(true),
-                .reconnectAttempts(-1),
-                .reconnectWait(1),
-                .forceWebsockets(true)
-            ]
-            let preview = String(t.prefix(8))
-            print("SocketManager.rebuild: tokenPreview=\(preview)…")
-        } else {
-            config = baseConfig
-        }
-
         let mgr = SocketIO.SocketManager(socketURL: url, config: config)
         self.manager = mgr
         self.socket = mgr.defaultSocket
 
-        bindCoreHandlersIfNeeded()
+        bindAllHandlers()
     }
 
-    // MARK: - Public helpers
+    // MARK: - Unified Handlers (Core + Realtime)
 
-    @discardableResult
-    func on(_ event: String, callback: @escaping NormalCallback) -> UUID? {
-        socket?.on(event, callback: callback)
-    }
+    private func bindAllHandlers() {
+        guard let socket else { return }
 
-    func off(_ id: UUID) {
-        socket?.off(id: id)
-    }
+        socket.removeAllHandlers()
 
-    func off(_ event: String) {
-        socket?.off(event)
-    }
-
-    func emit(_ event: String, _ payload: [String: Any]) {
-        guard let socket = socket, socket.status == .connected else {
-            print("⚠️ socket emit skipped (not connected) event=\(event)")
-            return
-        }
-        socket.emit(event, payload)
-    }
-
-    func emit(_ event: String) {
-        guard let socket = socket, socket.status == .connected else {
-            print("⚠️ socket emit skipped (not connected) event=\(event)")
-            return
-        }
-        socket.emit(event)
-    }
-
-    // MARK: - Rooms
-
-    func joinRoom(roomId: Int) {
-        guard roomId > 0 else { return }
-        joinedRoomIds.insert(roomId)
-
-        guard let socket = socket, socket.status == .connected else { return }
-        socket.emit("join_room", roomId)
-    }
-
-    func leaveRoom(roomId: Int) {
-        guard roomId > 0 else { return }
-        joinedRoomIds.remove(roomId)
-
-        guard let socket = socket, socket.status == .connected else { return }
-        socket.emit("leave_room", roomId)
-    }
-
-    // MARK: - 🔥 RANDOM MATCHING
-
-    func joinRandomQueue(topic: String? = nil, region: String? = nil) {
-        guard !isInRandomQueue else {
-            print("ℹ️ already in random queue")
-            return
-        }
-
-        onConnectedOnce {
-            var payload: [String: Any] = [:]
-
-            if let topic, !topic.isEmpty {
-                payload["topic"] = topic
-            }
-
-            if let region, !region.isEmpty {
-                payload["region"] = region
-            }
-
-            self.emit("random:join", payload)
-            self.isInRandomQueue = true
-        }
-    }
-
-    func leaveRandomQueue() {
-        guard isInRandomQueue else { return }
-
-        emit("random:leave")
-        isInRandomQueue = false
-    }
-
-    func markRandomMatchCompleted() {
-        isInRandomQueue = false
-    }
-
-    // MARK: - Core handlers
-
-    private func bindCoreHandlersIfNeeded() {
-        guard !didBindCoreHandlers, let socket = self.socket else { return }
-        didBindCoreHandlers = true
-
+        // CONNECT
         socket.on(clientEvent: .connect) { [weak self] _, _ in
             Task { @MainActor in
                 guard let self else { return }
                 self.isConnected = true
                 print("✅ socket connected")
+
+                for roomId in self.joinedRoomIds {
+                    socket.emit("joinRoom", ["roomId": roomId])
+                    print("[SocketManager] rejoined room \(roomId)")
+                }
+
+                NotificationCenter.default.post(name: .socketDidReconnect, object: nil)
             }
         }
 
+        // DISCONNECT
         socket.on(clientEvent: .disconnect) { [weak self] data, _ in
             Task { @MainActor in
                 self?.isConnected = false
@@ -282,12 +196,116 @@ final class SocketManager: ObservableObject {
             }
         }
 
+        // ERROR
         socket.on(clientEvent: .error) { data, _ in
             print("❌ socket error:", data)
         }
 
+        // RECONNECT
         socket.on(clientEvent: .reconnect) { data, _ in
             print("🔄 socket reconnect:", data)
         }
+
+        // MARK: - Realtime Message Events
+
+        socket.on("message:upsert") { [weak self] data, _ in
+            guard let payload = self?.normalizeFirstPayload(data) else {
+                print("[SocketManager] message:upsert missing payload")
+                return
+            }
+
+            NotificationCenter.default.post(
+                name: .socketMessageUpsert,
+                object: nil,
+                userInfo: ["payload": payload]
+            )
+        }
+
+        socket.on("message:edited") { [weak self] data, _ in
+            guard let payload = self?.normalizeFirstPayload(data) else { return }
+
+            NotificationCenter.default.post(
+                name: .socketMessageEdited,
+                object: nil,
+                userInfo: ["payload": payload]
+            )
+        }
+
+        socket.on("message:deleted") { [weak self] data, _ in
+            guard let payload = self?.normalizeFirstPayload(data) else { return }
+
+            NotificationCenter.default.post(
+                name: .socketMessageDeleted,
+                object: nil,
+                userInfo: ["payload": payload]
+            )
+        }
+
+        socket.on("message:expired") { [weak self] data, _ in
+            guard let payload = self?.normalizeFirstPayload(data) else { return }
+
+            NotificationCenter.default.post(
+                name: .socketMessageExpired,
+                object: nil,
+                userInfo: ["payload": payload]
+            )
+        }
+    }
+
+    // MARK: - Rooms
+
+    func joinRoom(_ roomId: Int) {
+        guard roomId > 0 else { return }
+        joinedRoomIds.insert(roomId)
+
+        socket?.emit("joinRoom", ["roomId": roomId])
+        print("[SocketManager] joinRoom \(roomId)")
+    }
+
+    func leaveRoom(_ roomId: Int) {
+        guard roomId > 0 else { return }
+        joinedRoomIds.remove(roomId)
+
+        socket?.emit("leaveRoom", ["roomId": roomId])
+        print("[SocketManager] leaveRoom \(roomId)")
+    }
+
+    // MARK: - Random Matching
+
+    func joinRandomQueue(topic: String? = nil, region: String? = nil) {
+        guard !isInRandomQueue else { return }
+
+        var payload: [String: Any] = [:]
+        if let topic { payload["topic"] = topic }
+        if let region { payload["region"] = region }
+
+        socket?.emit("random:join", payload)
+        isInRandomQueue = true
+    }
+
+    func leaveRandomQueue() {
+        guard isInRandomQueue else { return }
+        socket?.emit("random:leave")
+        isInRandomQueue = false
+    }
+
+    func markRandomMatchCompleted() {
+        isInRandomQueue = false
+    }
+
+    // MARK: - Helpers
+
+    private func normalizeFirstPayload(_ data: [Any]) -> [String: Any]? {
+        guard let first = data.first else { return nil }
+
+        if let dict = first as? [String: Any] {
+            return dict
+        }
+
+        if let arr = first as? [[String: Any]] {
+            return arr.first
+        }
+
+        return nil
     }
 }

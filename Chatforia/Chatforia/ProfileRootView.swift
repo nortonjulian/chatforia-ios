@@ -27,6 +27,13 @@ struct ProfileRootView: View {
     @State private var inviterRoom: ChatRoomDTO?
     @State private var showInviterChat = false
     
+    @State private var showingBackupSheet = false
+    @State private var showingRestoreSheet = false
+    @State private var showingRotateSheet = false
+    
+    @State private var hasRemoteBackup: Bool?
+    @State private var isCheckingBackup = false
+    
 
     var body: some View {
         NavigationStack {
@@ -58,6 +65,7 @@ struct ProfileRootView: View {
                     planSection
                     wirelessSection
                     profileSettingsSection
+                    securitySection
                     appearanceSection
                     soundsSection
                     disappearingMessagesSection
@@ -89,6 +97,10 @@ struct ProfileRootView: View {
                 let savedTheme = sourceUser.theme ?? "dawn"
                 let themeToApply = AppThemes.isAvailable(savedTheme, for: plan) ? savedTheme : "dawn"
                 themeManager.apply(code: themeToApply)
+                
+                if let token = auth.currentToken, !token.isEmpty {
+                    await loadBackupStatus(token: token)
+                }
             }
             .sheet(isPresented: $showingUpgradeSheet) {
                 UpgradePromptSheet(
@@ -181,6 +193,23 @@ struct ProfileRootView: View {
                     }
                 )
                 .environmentObject(themeManager)
+            }
+            .sheet(isPresented: $showingBackupSheet) {
+                BackupEncryptionKeyView()
+                    .environmentObject(auth)
+                    .environmentObject(themeManager)
+            }
+
+            .sheet(isPresented: $showingRestoreSheet) {
+                RestoreEncryptionKeyView()
+                    .environmentObject(auth)
+                    .environmentObject(themeManager)
+            }
+
+            .sheet(isPresented: $showingRotateSheet) {
+                RotateEncryptionKeyView()
+                    .environmentObject(auth)
+                    .environmentObject(themeManager)
             }
         }
     }
@@ -828,6 +857,13 @@ struct ProfileRootView: View {
             }
         }
     }
+    
+    private func loadBackupStatus(token: String) async {
+        isCheckingBackup = true
+        defer { isCheckingBackup = false }
+
+        hasRemoteBackup = await RemoteKeyBackupService.shared.hasRemoteBackup(token: token)
+    }
 
     private var logoutButtonSection: some View {
         ThemedOutlineButton(
@@ -841,6 +877,148 @@ struct ProfileRootView: View {
 
     private var currentPlan: AppPlan {
         AppPlan(serverValue: auth.currentUser?.plan ?? user.plan)
+    }
+    
+    private var encryptionStatusText: String {
+        if !AccountKeyManager.shared.hasAccountKeys() {
+            return "Recovery needed on this device"
+        }
+
+        if isCheckingBackup {
+            return "Protected on this device"
+        }
+
+        if let hasRemoteBackup {
+            return hasRemoteBackup
+                ? "Protected on this device • Recovery backup saved"
+                : "Protected on this device • No recovery backup yet"
+        }
+
+        return "Protected on this device"
+    }
+
+    private var encryptionStatusColor: Color {
+        if !AccountKeyManager.shared.hasAccountKeys() {
+            return .red
+        }
+        return themeManager.palette.secondaryText
+    }
+    
+    private var securitySection: some View {
+        SectionCardView(title: "Security") {
+            VStack(alignment: .leading, spacing: 8) {
+
+                Text("Protect your messages by saving a secure recovery backup. You’ll only need it if you switch devices or lose access to this one.")
+                    .font(.footnote)
+                    .foregroundStyle(themeManager.palette.secondaryText)
+                    .padding(.bottom, 4)
+
+                VStack(spacing: 0) {
+
+                    // Encryption status
+                    HStack(spacing: 12) {
+                        Image(systemName: "lock.shield")
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(themeManager.palette.accent)
+                            .frame(width: 22)
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Encryption Key")
+                                .font(.body)
+                                .foregroundStyle(themeManager.palette.primaryText)
+
+                            Text(encryptionStatusText)
+                                .font(.subheadline)
+                                .foregroundStyle(encryptionStatusColor)
+                        }
+
+                        Spacer()
+                    }
+                    .padding(.vertical, 10)
+
+                    if AccountKeyManager.shared.hasAccountKeys(),
+                       hasRemoteBackup == false,
+                       !isCheckingBackup {
+                        Text("Recommended: save a recovery backup in case you replace or reset this device.")
+                            .font(.caption)
+                            .foregroundStyle(themeManager.palette.secondaryText)
+                            .padding(.bottom, 6)
+                    }
+
+                    Divider()
+
+                    Button {
+                        showingBackupSheet = true
+                    } label: {
+                        rowLabel(
+                            icon: "icloud.and.arrow.up",
+                            title: "Back Up Encryption Key",
+                            subtitle: "Save a secure backup of your key"
+                        )
+                    }
+                    .buttonStyle(.plain)
+
+                    Divider()
+
+                    if !AccountKeyManager.shared.hasAccountKeys() {
+                        Divider()
+
+                        Button {
+                            showingRestoreSheet = true
+                        } label: {
+                            rowLabel(
+                                icon: "icloud.and.arrow.down",
+                                title: "Restore Encryption Key",
+                                subtitle: "Recover your key on this device"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    Divider()
+
+                    Button {
+                        showingRotateSheet = true
+                    } label: {
+                        rowLabel(
+                            icon: "arrow.triangle.2.circlepath",
+                            title: "Rotate Encryption Key",
+                            subtitle: hasRemoteBackup == true
+                                ? "Create a fresh encryption key for your account"
+                                : "Backup required to refresh your key"
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(hasRemoteBackup != true)
+                    .opacity(hasRemoteBackup == true ? 1 : 0.5)
+                }
+            }
+        }
+    }
+    
+    private func rowLabel(icon: String, title: String, subtitle: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(themeManager.palette.accent)
+                .frame(width: 22)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.body)
+                    .foregroundStyle(themeManager.palette.primaryText)
+
+                Text(subtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(themeManager.palette.secondaryText)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.vertical, 10)
     }
 
     private func presentUpgrade(title: String, message: String, requiredPlan: AppPlan) {

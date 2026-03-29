@@ -16,6 +16,7 @@ struct AppShellView: View {
                     .tabItem {
                         Label("Chats", systemImage: "bubble.left.and.bubble.right.fill")
                     }
+
                 NavigationStack {
                     CallHistoryView()
                 }
@@ -32,9 +33,13 @@ struct AppShellView: View {
                     .tabItem {
                         Label("Profile", systemImage: "person.crop.circle.fill")
                     }
-                
             }
             .tint(themeManager.palette.tabSelected)
+        }
+        .fullScreenCover(isPresented: $auth.needsKeyRestore) {
+            NavigationStack {
+                RestoreEncryptionKeyView()
+            }
         }
     }
 }

@@ -81,18 +81,33 @@ struct MessageBubbleView: View {
         if msg.deletedForAll == true || msg.deletedBySender == true {
             Text("This message was deleted")
                 .italic()
-                .foregroundStyle(isMe ? themeManager.palette.bubbleOutgoingText.opacity(0.82) : themeManager.palette.secondaryText)
-        } else if let translated = msg.translatedForMe,
-                  !translated.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            Text(translated)
-        } else if let raw = msg.rawContent,
-                  !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            Text(raw)
+                .foregroundStyle(
+                    isMe
+                    ? themeManager.palette.bubbleOutgoingText.opacity(0.82)
+                    : themeManager.palette.secondaryText
+                )
         } else if msg.contentCiphertext != nil, msg.encryptedKeyForMe != nil {
             DecryptMessageTextView(
                 msg: msg,
-                fallbackColor: isMe ? themeManager.palette.bubbleOutgoingText.opacity(0.82) : themeManager.palette.secondaryText
+                fallbackColor: isMe
+                    ? themeManager.palette.bubbleOutgoingText.opacity(0.82)
+                    : themeManager.palette.secondaryText
             )
+        } else if let raw = msg.rawContent,
+                  !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            Text(raw)
+                .onAppear {
+                    print("RAW:", raw)
+                    print(
+                        "SCALARS:",
+                        raw.unicodeScalars
+                            .map { String(format: "U+%04X", $0.value) }
+                            .joined(separator: " ")
+                    )
+                }
+        } else if let translated = msg.translatedForMe,
+                  !translated.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            Text(translated)
         } else if msg.contentCiphertext != nil {
             Text("🔒 Encrypted message")
         } else if let attachments = msg.attachments, !attachments.isEmpty {
@@ -101,7 +116,11 @@ struct MessageBubbleView: View {
                     .font(.subheadline.weight(.semibold))
                 Text("\(attachments.count) file\(attachments.count == 1 ? "" : "s")")
                     .font(.caption)
-                    .foregroundStyle(isMe ? themeManager.palette.bubbleOutgoingText.opacity(0.82) : themeManager.palette.secondaryText)
+                    .foregroundStyle(
+                        isMe
+                        ? themeManager.palette.bubbleOutgoingText.opacity(0.82)
+                        : themeManager.palette.secondaryText
+                    )
             }
         } else {
             Text("—")

@@ -1,4 +1,72 @@
 import Foundation
+import CryptoKit
+
+extension AccountKeyManager {
+    func generateNewAccountKeys() throws -> (publicKeyBase64: String, privateKeyBase64: String) {
+        let privateKey = Curve25519.KeyAgreement.PrivateKey()
+        let publicKey = privateKey.publicKey
+
+        return (
+            publicKeyBase64: publicKey.rawRepresentation.base64EncodedString(),
+            privateKeyBase64: privateKey.rawRepresentation.base64EncodedString()
+        )
+    }
+
+    func ensureLocalKeysExist(token: String) async throws -> Bool {
+        if hasAccountKeys() {
+            return false
+        }
+
+        let hasBackup = await RemoteKeyBackupService.shared.hasRemoteBackup(token: token)
+
+        if hasBackup {
+            return true
+        }
+
+        let newKeys = try generateNewAccountKeys()
+        try saveAccountKeys(
+            publicKeyBase64: newKeys.publicKeyBase64,
+            privateKeyBase64: newKeys.privateKeyBase64
+        )
+
+        return false
+    }
+
+    func resetAccountEncryption(token: String) async throws {
+        let newKeys = try generateNewAccountKeys()
+
+        try saveAccountKeys(
+            publicKeyBase64: newKeys.publicKeyBase64,
+            privateKeyBase64: newKeys.privateKeyBase64
+        )
+
+        let requestBody = ResetEncryptionRequest(
+            publicKey: newKeys.publicKeyBase64,
+            invalidateExistingBackup: true
+        )
+        
+        let bodyData = try JSONEncoder().encode(requestBody)
+
+        _ = try await APIClient.shared.send(
+            APIRequest(
+                path: "auth/keys/rotate",
+                method: .POST,
+                body: bodyData,
+                requiresAuth: true
+            ),
+            token: token
+        ) as ResetEncryptionResponse
+    }
+}
+
+struct ResetEncryptionRequest: Encodable {
+    let publicKey: String
+    let invalidateExistingBackup: Bool
+}
+
+struct ResetEncryptionResponse: Decodable {
+    let ok: Bool
+}
 
 final class AccountKeyManager {
     static let shared = AccountKeyManager()

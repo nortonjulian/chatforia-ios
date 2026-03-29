@@ -361,15 +361,47 @@ struct ChatsRootView: View {
         return "Chat #\(item.id)"
     }
 
-    private func conversationSubtitle(_ item: ConversationDTO) -> String {
-        let text = item.last?.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        if !text.isEmpty { return text }
-
-        if item.kind.lowercased() == "sms" {
-            return "Tap to open SMS thread"
+    private func conversationSubtitle(_ conversation: ConversationDTO) -> String {
+        guard let last = conversation.last else {
+            return conversation.kind.lowercased() == "sms"
+                ? "Tap to open SMS thread"
+                : "Tap to open"
         }
 
-        return "Tap to open"
+        let text = last.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !text.isEmpty {
+            return text
+        }
+
+        if last.hasMedia == true {
+            let kinds = (last.mediaKinds ?? []).map { $0.uppercased() }
+
+            if kinds.contains("GIF") {
+                return "🎞 GIF"
+            }
+
+            if kinds.contains("IMAGE") {
+                return "📷 Photo"
+            }
+
+            if kinds.contains("AUDIO") {
+                return "🎤 Voice message"
+            }
+
+            if kinds.contains("VIDEO") {
+                return "🎥 Video"
+            }
+
+            if let mediaCount = last.mediaCount, mediaCount > 1 {
+                return "📎 \(mediaCount) attachments"
+            }
+
+            return "📎 Attachment"
+        }
+
+        return conversation.kind.lowercased() == "sms"
+            ? "Tap to open SMS thread"
+            : "Tap to open"
     }
 
     private func conversationTimestamp(_ item: ConversationDTO) -> String {
