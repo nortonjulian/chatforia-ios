@@ -8,12 +8,12 @@ struct SMSThreadView: View {
     @State private var draft: String = ""
     @State private var selectedPhotos: [PhotosPickerItem] = []
     @State private var isUploadingMedia = false
-    
+
     @Environment(\.scenePhase) private var scenePhase
     @EnvironmentObject private var themeManager: ThemeManager
     @State private var pollingTask: Task<Void, Never>?
     @State private var showPhotoPicker = false
-    
+
     @State private var showingAddContact = false
 
     var body: some View {
@@ -74,7 +74,7 @@ struct SMSThreadView: View {
             }
         }
     }
-    
+
     private var inferredContactName: String {
         let title = conversation.title.trimmingCharacters(in: .whitespacesAndNewlines)
         let phone = (conversation.phone ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
@@ -85,7 +85,7 @@ struct SMSThreadView: View {
 
         return ""
     }
-    
+
     private var errorBanner: some View {
         Group {
             if let err = vm.errorText, !err.isEmpty {
@@ -102,7 +102,7 @@ struct SMSThreadView: View {
             }
         }
     }
-    
+
     @ViewBuilder
     private var content: some View {
         if vm.isLoading && vm.messages.isEmpty {
@@ -149,7 +149,7 @@ struct SMSThreadView: View {
             matching: .images
         )
     }
-    
+
     private func startPolling() {
         stopPolling()
 
@@ -193,26 +193,33 @@ struct SMSThreadView: View {
                 return
             }
 
-            _ = await vm.sendMediaMessage(
+            let ok = await vm.sendMediaMessage(
                 threadId: conversation.id,
                 to: to,
                 mediaUrls: urls,
                 token: token
             )
+
+            if ok {
+                draft = ""
+            }
+
             return
         }
 
         let trimmed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
-        draft = ""
-
-        _ = await vm.sendTextMessage(
+        let ok = await vm.sendTextMessage(
             threadId: conversation.id,
             to: to,
             text: trimmed,
             token: token
         )
+
+        if ok {
+            draft = ""
+        }
     }
 
     private func uploadImages(_ items: [PhotosPickerItem]) async -> [String] {
@@ -314,7 +321,11 @@ private struct SMSMessageRowView: View {
                 if let text = msg.trimmedBody, !text.isEmpty {
                     Text(text)
                         .font(.body)
-                        .foregroundStyle(msg.isOutgoing ? themeManager.palette.bubbleOutgoingText : themeManager.palette.bubbleIncomingText)
+                        .foregroundStyle(
+                            msg.isOutgoing
+                                ? themeManager.palette.bubbleOutgoingText
+                                : themeManager.palette.bubbleIncomingText
+                        )
                         .multilineTextAlignment(.leading)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
@@ -322,50 +333,54 @@ private struct SMSMessageRowView: View {
                             RoundedRectangle(cornerRadius: 18, style: .continuous)
                                 .fill(
                                     msg.isOutgoing
-                                    ? LinearGradient(
-                                        colors: [
-                                            themeManager.palette.bubbleOutgoingStart,
-                                            themeManager.palette.bubbleOutgoingEnd
-                                        ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                    : LinearGradient(
-                                        colors: [
-                                            themeManager.palette.bubbleIncoming,
-                                            themeManager.palette.bubbleIncoming
-                                        ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
+                                        ? LinearGradient(
+                                            colors: [
+                                                themeManager.palette.bubbleOutgoingStart,
+                                                themeManager.palette.bubbleOutgoingEnd
+                                            ],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                        : LinearGradient(
+                                            colors: [
+                                                themeManager.palette.bubbleIncoming,
+                                                themeManager.palette.bubbleIncoming
+                                            ],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
                                 )
                         )
                 } else if msg.media.isEmpty {
                     Text("—")
                         .font(.body)
-                        .foregroundStyle(msg.isOutgoing ? themeManager.palette.bubbleOutgoingText : themeManager.palette.bubbleIncomingText)
+                        .foregroundStyle(
+                            msg.isOutgoing
+                                ? themeManager.palette.bubbleOutgoingText
+                                : themeManager.palette.bubbleIncomingText
+                        )
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
                         .background(
                             RoundedRectangle(cornerRadius: 18, style: .continuous)
                                 .fill(
                                     msg.isOutgoing
-                                    ? LinearGradient(
-                                        colors: [
-                                            themeManager.palette.bubbleOutgoingStart,
-                                            themeManager.palette.bubbleOutgoingEnd
-                                        ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                    : LinearGradient(
-                                        colors: [
-                                            themeManager.palette.bubbleIncoming,
-                                            themeManager.palette.bubbleIncoming
-                                        ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
+                                        ? LinearGradient(
+                                            colors: [
+                                                themeManager.palette.bubbleOutgoingStart,
+                                                themeManager.palette.bubbleOutgoingEnd
+                                            ],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                        : LinearGradient(
+                                            colors: [
+                                                themeManager.palette.bubbleIncoming,
+                                                themeManager.palette.bubbleIncoming
+                                            ],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
                                 )
                         )
                 }

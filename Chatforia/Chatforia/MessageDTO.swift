@@ -4,8 +4,18 @@ extension MessageDTO {
     static func merged(current: MessageDTO, incoming: MessageDTO) -> MessageDTO {
         MessageDTO(
             id: incoming.id,
-            contentCiphertext: incoming.contentCiphertext ?? current.contentCiphertext,
-            rawContent: incoming.rawContent ?? current.rawContent,
+            contentCiphertext: (incoming.deletedForAll == true)
+                ? nil
+                : (incoming.contentCiphertext ?? current.contentCiphertext),
+            rawContent: {
+                if incoming.deletedForAll == true {
+                    return nil
+                }
+                if incoming.editedAt != nil {
+                    return incoming.rawContent
+                }
+                return incoming.rawContent ?? current.rawContent
+            }(),
             translations: incoming.translations ?? current.translations,
             translatedFrom: incoming.translatedFrom ?? current.translatedFrom,
             translatedForMe: incoming.translatedForMe ?? current.translatedForMe,

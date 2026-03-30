@@ -94,8 +94,15 @@ struct SendMessageRequest: Encodable {
 struct MessageEnvelope: Decodable {
     let item: MessageDTO?
     let shaped: MessageDTO?
+    let messageField: MessageDTO?
 
-    var message: MessageDTO? { item ?? shaped }
+    enum CodingKeys: String, CodingKey {
+        case item
+        case shaped
+        case messageField = "message"
+    }
+
+    var message: MessageDTO? { item ?? shaped ?? messageField }
 }
 
 struct BlockUserRequest: Encodable {
@@ -113,6 +120,8 @@ struct ReportCreateRequest: Encodable {
 struct ReportCreateResponse: Decodable {
     let success: Bool
 }
+
+struct EmptyAPIResponse: Decodable {}
 
 @MainActor
 final class ChatThreadViewModel: ObservableObject {
@@ -441,19 +450,13 @@ final class ChatThreadViewModel: ObservableObject {
         senderUsername: String?,
         senderPublicKey: String?
     ) async -> Bool {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return false }
-
         guard let token, !token.isEmpty else {
             errorText = "Missing auth token."
             return false
         }
 
-        errorText = nil
-        stopTypingNow(roomId: roomId)
-
-        let clientMessageId = UUID().uuidString
-        let localId = -abs(clientMessageId.hashValue)
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
 
         let sender = SenderDTO(
             id: senderId,
@@ -462,21 +465,12 @@ final class ChatThreadViewModel: ObservableObject {
             avatarUrl: nil
         )
 
-        let optimistic = MessageDTO.optimistic(
-            roomId: roomId,
-            clientMessageId: clientMessageId,
-            localId: localId,
-            text: trimmed,
-            senderId: sender.id,
-            senderUsername: sender.username,
-            senderPublicKey: sender.publicKey
-        )
+        errorText = nil
+        stopTypingNow(roomId: roomId)
 
-        applyToStore(optimistic)
-        MessageStore.shared.setDeliveryState(clientMessageId: clientMessageId, state: DeliveryState.sending)
-        refreshFromMessageStore()
+        let clientMessageId = UUID().uuidString
+        let localId = -abs(clientMessageId.hashValue)
 
-        let bodyData: Data
         do {
             let recipients = try await fetchRecipientAccountKeysForRoom(
                 token: token,
@@ -490,7 +484,24 @@ final class ChatThreadViewModel: ObservableObject {
                 recipients: recipients
             )
 
-            let request = SendMessageRequest(
+            let optimistic = MessageDTO.optimistic(
+                roomId: roomId,
+                clientMessageId: clientMessageId,
+                localId: localId,
+                text: trimmed,
+                senderId: sender.id,
+                senderUsername: sender.username,
+                senderPublicKey: sender.publicKey
+            )
+
+            applyToStore(optimistic)
+            MessageStore.shared.setDeliveryState(
+                clientMessageId: clientMessageId,
+                state: .sending
+            )
+            refreshFromMessageStore()
+
+            let bodyRequest = SendMessageRequest(
                 chatRoomId: roomId,
                 content: nil,
                 contentCiphertext: encrypted.ciphertextBase64,
@@ -499,24 +510,26 @@ final class ChatThreadViewModel: ObservableObject {
                 attachmentsInline: nil
             )
 
-            bodyData = try JSONEncoder().encode(request)
+            let bodyData = try JSONEncoder().encode(bodyRequest)
+
+            let job = SendJob(
+                clientMessageId: clientMessageId,
+                localId: String(localId),
+                bodyJSON: bodyData,
+                attachmentsMeta: nil
+            )
+
+            SendQueueManager.shared.enqueue(job)
+            SendQueueManager.shared.startIfNeeded()
+            return true
         } catch {
-            MessageStore.shared.setDeliveryState(clientMessageId: clientMessageId, state: DeliveryState.failed)
-            errorText = "Couldn’t send message. You can retry."
-            print("❌ sendMessage encryption failed:", error)
+            MessageStore.shared.setDeliveryState(
+                clientMessageId: clientMessageId,
+                state: .failed
+            )
+            errorText = "Couldn’t send message. \(error.localizedDescription)"
             return false
         }
-
-        let job = SendJob(
-            clientMessageId: clientMessageId,
-            localId: String(localId),
-            bodyJSON: bodyData,
-            attachmentsMeta: nil
-        )
-
-        SendQueueManager.shared.enqueue(job)
-        SendQueueManager.shared.startIfNeeded()
-        return true
     }
 
     func sendImageMessage(
@@ -584,7 +597,7 @@ final class ChatThreadViewModel: ObservableObject {
             )
 
             applyToStore(optimistic)
-            MessageStore.shared.setDeliveryState(clientMessageId: clientMessageId, state: DeliveryState.sending)
+            MessageStore.shared.setDeliveryState(clientMessageId: clientMessageId, state: .sending)
             refreshFromMessageStore()
 
             let plaintextForEncryption = finalCaption ?? "[image]"
@@ -625,7 +638,7 @@ final class ChatThreadViewModel: ObservableObject {
         } catch {
             MessageStore.shared.setDeliveryState(
                 clientMessageId: clientMessageId,
-                state: DeliveryState.failed
+                state: .failed
             )
             errorText = "Couldn’t send image. \(error.localizedDescription)"
             return false
@@ -695,7 +708,7 @@ final class ChatThreadViewModel: ObservableObject {
             )
 
             applyToStore(optimistic)
-            MessageStore.shared.setDeliveryState(clientMessageId: clientMessageId, state: DeliveryState.sending)
+            MessageStore.shared.setDeliveryState(clientMessageId: clientMessageId, state: .sending)
             refreshFromMessageStore()
 
             let plaintextForEncryption = finalCaption ?? "[gif]"
@@ -734,7 +747,7 @@ final class ChatThreadViewModel: ObservableObject {
             SendQueueManager.shared.startIfNeeded()
             return true
         } catch {
-            MessageStore.shared.setDeliveryState(clientMessageId: clientMessageId, state: DeliveryState.failed)
+            MessageStore.shared.setDeliveryState(clientMessageId: clientMessageId, state: .failed)
             errorText = "Couldn’t send GIF. \(error.localizedDescription)"
             return false
         }
@@ -799,7 +812,7 @@ final class ChatThreadViewModel: ObservableObject {
             )
 
             applyToStore(optimistic)
-            MessageStore.shared.setDeliveryState(clientMessageId: clientMessageId, state: DeliveryState.sending)
+            MessageStore.shared.setDeliveryState(clientMessageId: clientMessageId, state: .sending)
             refreshFromMessageStore()
 
             let recipients = try await fetchRecipientAccountKeysForRoom(
@@ -838,7 +851,7 @@ final class ChatThreadViewModel: ObservableObject {
         } catch {
             MessageStore.shared.setDeliveryState(
                 clientMessageId: clientMessageId,
-                state: DeliveryState.failed
+                state: .failed
             )
             errorText = "Couldn’t send audio. \(error.localizedDescription)"
             return false
@@ -930,12 +943,24 @@ final class ChatThreadViewModel: ObservableObject {
             rawMessage = payload
         }
 
-        guard let message = decodeMessageDTO(from: rawMessage) else { return }
-        guard message.chatRoomId == configuredRoomId else { return }
+        guard let incoming = decodeMessageDTO(from: rawMessage) else { return }
+        guard incoming.chatRoomId == configuredRoomId else { return }
 
-        applyToStore(message)
+        if let index = messages.firstIndex(where: { $0.id == incoming.id }) {
+            messages[index] = MessageDTO.merged(current: messages[index], incoming: incoming)
+        } else if let clientId = incoming.clientMessageId,
+                  let index = messages.firstIndex(where: { $0.clientMessageId == clientId }) {
+            messages[index] = MessageDTO.merged(current: messages[index], incoming: incoming)
+        } else {
+            messages.append(incoming)
+            messages.sort {
+                if $0.createdAt != $1.createdAt { return $0.createdAt < $1.createdAt }
+                return $0.id < $1.id
+            }
+        }
+
+        applyToStore(incoming)
         batchSortDebouncer.flush()
-        refreshFromMessageStore()
         markVisibleMessagesRead()
     }
 
@@ -944,6 +969,34 @@ final class ChatThreadViewModel: ObservableObject {
     }
 
     private func handleMessageDeletedEvent(_ payload: [String: Any]) {
+        guard let configuredRoomId = roomId else { return }
+
+        let rawMessage: [String: Any]
+        if let item = payload["item"] as? [String: Any] {
+            rawMessage = item
+        } else if let message = payload["message"] as? [String: Any] {
+            rawMessage = message
+        } else if let shaped = payload["shaped"] as? [String: Any] {
+            rawMessage = shaped
+        } else {
+            rawMessage = payload
+        }
+
+        let msgRoomId = (rawMessage["chatRoomId"] as? Int)
+            ?? (rawMessage["roomId"] as? Int)
+            ?? 0
+
+        guard msgRoomId == configuredRoomId else { return }
+
+        let deletedForMe = (rawMessage["deletedForMe"] as? Bool)
+            ?? ((rawMessage["deletedForMe"] as? Int) == 1)
+
+        if deletedForMe, let id = rawMessage["id"] as? Int {
+            MessageStore.shared.removeMessage(id: id)
+            self.messages.removeAll { $0.id == id }
+            return
+        }
+
         handleSocketUpsert(payload)
     }
 
@@ -1091,5 +1144,236 @@ final class ChatThreadViewModel: ObservableObject {
         defer { isResyncing = false }
 
         await loadMessages(roomId: roomId, token: token)
+    }
+}
+
+extension ChatThreadViewModel {
+    func startSocket(roomId: Int, token: String?, myUsername: String?) {
+        _ = myUsername
+        guard let token, !token.isEmpty else { return }
+
+        SocketManager.shared.connect(token: token)
+        SocketManager.shared.joinRoom(roomId)
+    }
+
+    func stopSocket(roomId: Int) {
+        SocketManager.shared.leaveRoom(roomId)
+        clearTypingUsers()
+    }
+
+    func handleInputChanged(roomId: Int) {
+        typingStarted(roomId: roomId)
+    }
+
+    func submitReport(
+        targetMessage: MessageDTO,
+        roomId: Int,
+        reason: ReportReason,
+        details: String,
+        contextCount: Int,
+        blockAfterReport: Bool,
+        token: String?
+    ) async -> Bool {
+        _ = roomId
+
+        guard let token, !token.isEmpty else {
+            reportErrorText = "Missing auth token."
+            return false
+        }
+
+        isSubmittingReport = true
+        reportErrorText = nil
+        defer { isSubmittingReport = false }
+
+        let trimmedDetails = details.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let payload = ReportCreateRequest(
+            messageId: targetMessage.id,
+            reason: reason.rawValue,
+            details: trimmedDetails.isEmpty ? nil : trimmedDetails,
+            contextCount: contextCount,
+            blockAfterReport: blockAfterReport
+        )
+
+        do {
+            let bodyData = try JSONEncoder().encode(payload)
+
+            let _: ReportCreateResponse = try await APIClient.shared.send(
+                APIRequest(
+                    path: "reports/messages",
+                    method: .POST,
+                    body: bodyData,
+                    requiresAuth: true
+                ),
+                token: token
+            )
+
+            return true
+        } catch {
+            reportErrorText = error.localizedDescription
+            return false
+        }
+    }
+
+    func editMessage(
+        messageId: Int,
+        newText: String,
+        token: String?
+    ) async -> Bool {
+        guard let token, !token.isEmpty else {
+            errorText = "Missing auth token."
+            return false
+        }
+
+        let trimmed = newText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+
+        do {
+            let bodyData = try JSONSerialization.data(
+                withJSONObject: ["content": trimmed],
+                options: []
+            )
+
+            let envelope: MessageEnvelope = try await APIClient.shared.send(
+                APIRequest(
+                    path: "messages/\(messageId)",
+                    method: .PATCH,
+                    body: bodyData,
+                    requiresAuth: true
+                ),
+                token: token
+            )
+
+            guard let updated = envelope.message else {
+                errorText = "Couldn’t edit message."
+                return false
+            }
+
+            applyToStore(updated)
+            refreshFromMessageStore()
+            return true
+        } catch {
+            errorText = "Couldn’t edit message."
+            return false
+        }
+    }
+
+    func deleteMessage(
+        messageId: Int,
+        token: String?,
+        deleteForEveryone: Bool
+    ) async -> Bool {
+        guard let token, !token.isEmpty else {
+            errorText = "Missing auth token."
+            return false
+        }
+
+        if messageId <= 0 {
+            return true
+        }
+
+        do {
+            let path = deleteForEveryone
+                ? "messages/\(messageId)?scope=all"
+                : "messages/\(messageId)?scope=me"
+
+            let _: EmptyAPIResponse = try await APIClient.shared.send(
+                APIRequest(
+                    path: path,
+                    method: .DELETE,
+                    requiresAuth: true
+                ),
+                token: token
+            )
+
+            if !deleteForEveryone {
+                MessageStore.shared.removeMessage(id: messageId)
+                self.messages.removeAll { $0.id == messageId }
+            } else {
+                refreshFromMessageStore()
+            }
+
+            return true
+        } catch {
+            errorText = "Couldn’t delete message."
+            return false
+        }
+    }
+
+    func archiveConversation(
+        conversationId: Int,
+        kind: String,
+        token: String?
+    ) async -> Bool {
+        guard let token, !token.isEmpty else {
+            errorText = "Missing auth token."
+            return false
+        }
+
+        struct ArchiveConversationRequest: Encodable {
+            let archived: Bool
+        }
+
+        do {
+            let bodyData = try JSONEncoder().encode(
+                ArchiveConversationRequest(archived: true)
+            )
+
+            let path: String
+            if kind == "chat" {
+                path = "chatrooms/\(conversationId)/archive"
+            } else {
+                path = "conversations/\(conversationId)/archive"
+            }
+
+            let _: EmptyAPIResponse = try await APIClient.shared.send(
+                APIRequest(
+                    path: path,
+                    method: .PATCH,
+                    body: bodyData,
+                    requiresAuth: true
+                ),
+                token: token
+            )
+
+            return true
+        } catch {
+            errorText = "Couldn’t archive conversation."
+            return false
+        }
+    }
+
+    func deleteConversation(
+        conversationId: Int,
+        kind: String,
+        token: String?
+    ) async -> Bool {
+        guard let token, !token.isEmpty else {
+            errorText = "Missing auth token."
+            return false
+        }
+
+        let path: String
+        if kind == "chat" {
+            path = "chatrooms/\(conversationId)"
+        } else {
+            path = "conversations/\(conversationId)"
+        }
+
+        do {
+            let _: EmptyAPIResponse = try await APIClient.shared.send(
+                APIRequest(
+                    path: path,
+                    method: .DELETE,
+                    requiresAuth: true
+                ),
+                token: token
+            )
+
+            return true
+        } catch {
+            errorText = "Couldn’t delete conversation."
+            return false
+        }
     }
 }

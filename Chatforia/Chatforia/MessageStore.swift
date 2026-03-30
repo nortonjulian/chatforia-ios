@@ -159,15 +159,22 @@ final class MessageStore {
     }
 
     private func preferredMessage(current: MessageDTO, incoming: MessageDTO) -> MessageDTO {
+
+        // 🚨 HARD OVERRIDE: deletion always wins
+        if incoming.deletedForAll == true || incoming.deletedAt != nil {
+            return MessageDTO.merged(current: current, incoming: incoming)
+        }
+
+        // 🚨 HARD OVERRIDE: edits always win
+        if incoming.editedAt != nil {
+            return MessageDTO.merged(current: current, incoming: incoming)
+        }
+
         let currentScore = completenessScore(current)
         let incomingScore = completenessScore(incoming)
 
         if incomingScore > currentScore {
             return incoming
-        }
-
-        if incomingScore < currentScore {
-            return MessageDTO.merged(current: current, incoming: incoming)
         }
 
         return MessageDTO.merged(current: current, incoming: incoming)
@@ -294,7 +301,9 @@ final class MessageStore {
              $0.clientMessageId == incoming.clientMessageId)
         }) {
             let existing = self.messages[idx]
-            self.messages[idx] = self.preferredMessage(current: existing, incoming: incoming)
+            var updated = self.preferredMessage(current: existing, incoming: incoming)
+
+            self.messages[idx] = updated
         } else {
             self.messages.append(incoming)
         }
