@@ -301,7 +301,7 @@ final class MessageStore {
              $0.clientMessageId == incoming.clientMessageId)
         }) {
             let existing = self.messages[idx]
-            var updated = self.preferredMessage(current: existing, incoming: incoming)
+            let updated = self.preferredMessage(current: existing, incoming: incoming)
 
             self.messages[idx] = updated
         } else {

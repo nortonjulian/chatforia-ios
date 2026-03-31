@@ -66,11 +66,11 @@ struct ChatThreadView: View {
 
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Save") {
-                            Task {
+                            Task { @MainActor in
                                 guard let msg = editingMessage else { return }
 
                                 let ok = await vm.editMessage(
-                                    messageId: msg.id,
+                                    message: msg,
                                     newText: editDraft,
                                     token: TokenStore.shared.read()
                                 )
@@ -127,6 +127,7 @@ struct ChatThreadView: View {
 }
 
 extension ChatThreadView {
+    
     private var messagesSection: some View {
         Group {
             if vm.isLoading && vm.messages.isEmpty {
@@ -211,6 +212,7 @@ extension ChatThreadView {
 
         settingsVM.loadLocalAISettings()
 
+        // Load messages first, then start socket (avoids early emit races)
         await reload()
 
         vm.startSocket(

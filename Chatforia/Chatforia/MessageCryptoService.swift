@@ -137,9 +137,10 @@ final class MessageCryptoService {
 
     func decryptMessageForCurrentBackend(
         ciphertextBase64: String,
-        encryptedKeyPayloadJSON: String,
+        encryptedKeyPayload: String,
         userId: Int
     ) throws -> String {
+
         guard let myPrivateKeyB64 = AccountKeyManager.shared.privateKeyBase64(),
               let myPrivateKeyData = Data(base64Encoded: myPrivateKeyB64) else {
             throw NSError(
@@ -151,46 +152,77 @@ final class MessageCryptoService {
 
         let myPrivateKey = try Curve25519.KeyAgreement.PrivateKey(rawRepresentation: myPrivateKeyData)
 
-        guard let payloadData = encryptedKeyPayloadJSON.data(using: .utf8),
-              let payload = try JSONSerialization.jsonObject(with: payloadData) as? [String: String],
-              let epkBase64 = payload["epk"],
-              let wrappedKeyBase64 = payload["wrappedKey"] else {
+        let trimmed = encryptedKeyPayload.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let messageKey: SymmetricKey
+
+        // =========================================================
+        // ✅ CASE 1: JSON envelope (iOS / CryptoKit format)
+        // =========================================================
+        if trimmed.hasPrefix("{") {
+
+            guard let payloadData = trimmed.data(using: .utf8),
+                  let payload = try JSONSerialization.jsonObject(with: payloadData) as? [String: String],
+                  let epkBase64 = payload["epk"],
+                  let wrappedKeyBase64 = payload["wrappedKey"],
+                  let epkData = Data(base64Encoded: epkBase64),
+                  let wrappedKeyData = Data(base64Encoded: wrappedKeyBase64) else {
+                throw NSError(
+                    domain: "MessageCryptoService",
+                    code: 3,
+                    userInfo: [NSLocalizedDescriptionKey: "Invalid JSON encrypted key payload"]
+                )
+            }
+
+            let senderEphemeralPublicKey = try Curve25519.KeyAgreement.PublicKey(rawRepresentation: epkData)
+
+            let sharedSecret = try myPrivateKey.sharedSecretFromKeyAgreement(with: senderEphemeralPublicKey)
+
+            let wrappingKey = sharedSecret.hkdfDerivedSymmetricKey(
+                using: SHA256.self,
+                salt: Data("chatforia-msg-wrap-v1".utf8),
+                sharedInfo: Data("user:\(userId)".utf8),
+                outputByteCount: 32
+            )
+
+            let sealedWrappedKey = try AES.GCM.SealedBox(combined: wrappedKeyData)
+            let messageKeyData = try AES.GCM.open(sealedWrappedKey, using: wrappingKey)
+
+            messageKey = SymmetricKey(data: messageKeyData)
+
+        } else {
+
+            // =========================================================
+            // ✅ CASE 2: Base64 wrapped key (WEB / legacy format)
+            // =========================================================
+
+            guard Data(base64Encoded: trimmed) != nil else {
+                throw NSError(
+                    domain: "MessageCryptoService",
+                    code: 5,
+                    userInfo: [NSLocalizedDescriptionKey: "Invalid base64 wrapped key"]
+                )
+            }
+
+            // ⚠️ IMPORTANT:
+            // This assumes web used the SAME HKDF + shared secret scheme
+            // BUT WITHOUT JSON envelope (no epk)
+            //
+            // If your web payload does NOT include epk separately,
+            // then it MUST be using a different scheme (NaCl box).
+            //
+            // In that case → THIS is where we adapt next step.
+
             throw NSError(
                 domain: "MessageCryptoService",
-                code: 3,
-                userInfo: [NSLocalizedDescriptionKey: "Invalid encrypted key payload"]
+                code: 999,
+                userInfo: [NSLocalizedDescriptionKey: "Base64 wrapped key detected but no epk — web encryption format mismatch"]
             )
         }
 
-        guard let epkData = Data(base64Encoded: epkBase64) else {
-            throw NSError(
-                domain: "MessageCryptoService",
-                code: 4,
-                userInfo: [NSLocalizedDescriptionKey: "Invalid ephemeral public key"]
-            )
-        }
-
-        let senderEphemeralPublicKey = try Curve25519.KeyAgreement.PublicKey(rawRepresentation: epkData)
-        let sharedSecret = try myPrivateKey.sharedSecretFromKeyAgreement(with: senderEphemeralPublicKey)
-
-        let wrappingKey = sharedSecret.hkdfDerivedSymmetricKey(
-            using: SHA256.self,
-            salt: Data("chatforia-msg-wrap-v1".utf8),
-            sharedInfo: Data("user:\(userId)".utf8),
-            outputByteCount: 32
-        )
-
-        guard let wrappedKeyData = Data(base64Encoded: wrappedKeyBase64) else {
-            throw NSError(
-                domain: "MessageCryptoService",
-                code: 5,
-                userInfo: [NSLocalizedDescriptionKey: "Invalid wrapped key"]
-            )
-        }
-
-        let sealedWrappedKey = try AES.GCM.SealedBox(combined: wrappedKeyData)
-        let messageKeyData = try AES.GCM.open(sealedWrappedKey, using: wrappingKey)
-        let messageKey = SymmetricKey(data: messageKeyData)
+        // =========================================================
+        // 🔓 Decrypt message content
+        // =========================================================
 
         guard let ciphertextData = Data(base64Encoded: ciphertextBase64) else {
             throw NSError(
@@ -203,7 +235,6 @@ final class MessageCryptoService {
         let sealedContent = try AES.GCM.SealedBox(combined: ciphertextData)
         let plaintextData = try AES.GCM.open(sealedContent, using: messageKey)
 
-        let plaintext = String(decoding: plaintextData, as: UTF8.self)
-        return plaintext
+        return String(decoding: plaintextData, as: UTF8.self)
     }
 }

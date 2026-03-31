@@ -58,7 +58,7 @@ struct DecryptMessageTextView: View {
         do {
             let plaintext = try MessageCryptoService.shared.decryptMessageForCurrentBackend(
                 ciphertextBase64: ciphertext,
-                encryptedKeyPayloadJSON: encryptedKeyPayload,
+                encryptedKeyPayload: encryptedKeyPayload,
                 userId: currentUserId
             )
 

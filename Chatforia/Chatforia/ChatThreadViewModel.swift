@@ -133,13 +133,11 @@ final class ChatThreadViewModel: ObservableObject {
     @Published var isSendingImage: Bool = false
     @Published var randomSession: RandomSession? = nil
     @Published var isSendingAudio: Bool = false
-
     @Published var isSubmittingReport: Bool = false
     @Published var reportErrorText: String?
-
     @Published private(set) var nowTick: Date = Date()
-    private var expiryTask: Task<Void, Never>?
 
+    private var expiryTask: Task<Void, Never>?
     private var typingStopTask: Task<Void, Never>?
     private var hasSentTypingStart: Bool = false
 
@@ -151,8 +149,10 @@ final class ChatThreadViewModel: ObservableObject {
     private let typingTTL: TimeInterval = 4.0
 
     private let batchSortDebouncer = BatchSortDebouncer(debounceInterval: 0.03)
-
     private var cancellables = Set<AnyCancellable>()
+    
+    private var pendingReadMessageIds = Set<Int>()
+    private var readFlushTask: Task<Void, Never>?
 
     private var roomId: Int? = nil
     private var lastServerMessageId: Int = 0 {
@@ -249,6 +249,7 @@ final class ChatThreadViewModel: ObservableObject {
         expiryTask?.cancel()
         typingStopTask?.cancel()
         typingPruneTask?.cancel()
+        readFlushTask?.cancel()
     }
 
     func configureRandomSession(roomId: Int, myAlias: String, partnerAlias: String) {
@@ -298,6 +299,139 @@ final class ChatThreadViewModel: ObservableObject {
         }
     }
 
+    private func handleMessageEditedEvent(_ payload: [String: Any]) {
+        handleSocketUpsert(payload)
+    }
+
+    private func handleMessageDeletedEvent(_ payload: [String: Any]) {
+        handleSocketUpsert(payload)
+    }
+
+    private func startTypingPruneLoop() {
+        guard typingPruneTask == nil else { return }
+
+        typingPruneTask = Task { [weak self] in
+            guard let self else { return }
+
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+
+                await MainActor.run {
+                    let now = Date()
+
+                    self.typingLastSeen = self.typingLastSeen.filter {
+                        now.timeIntervalSince($0.value) < self.typingTTL
+                    }
+                    self.typingUsernames = self.typingLastSeen.keys.sorted()
+
+                    if self.typingLastSeen.isEmpty {
+                        self.typingPruneTask?.cancel()
+                        self.typingPruneTask = nil
+                    }
+                }
+            }
+        }
+    }
+
+    func receivedTyping(username: String) {
+        let trimmed = username.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        typingLastSeen[trimmed] = Date()
+        typingUsernames = typingLastSeen.keys.sorted()
+        startTypingPruneLoop()
+    }
+
+    func clearTypingUsers() {
+        typingLastSeen.removeAll()
+        typingUsernames = []
+        typingPruneTask?.cancel()
+        typingPruneTask = nil
+    }
+
+    private func fetchRecipientAccountKeysForRoom(
+        token: String,
+        roomId: Int,
+        senderUserId: Int
+    ) async throws -> [RecipientKeyContext] {
+        let response: RoomParticipantsResponse = try await APIClient.shared.send(
+            APIRequest(path: "chatrooms/\(roomId)/participants", method: .GET, requiresAuth: true),
+            token: token
+        )
+
+        let recipients = response.participants.compactMap { participant -> RecipientKeyContext? in
+            guard participant.userId != senderUserId else { return nil }
+            guard let publicKey = participant.user?.publicKey, !publicKey.isEmpty else { return nil }
+
+            return RecipientKeyContext(
+                userId: participant.userId,
+                publicKeyBase64: publicKey
+            )
+        }
+
+        if recipients.isEmpty {
+            throw NSError(
+                domain: "ChatThreadViewModel",
+                code: 1001,
+                userInfo: [NSLocalizedDescriptionKey: "No recipient public keys found for this room."]
+            )
+        }
+
+        return recipients
+    }
+
+    private func buildEncryptedEditPayload(
+        roomId: Int,
+        plaintext: String,
+        token: String,
+        senderUserId: Int
+    ) async throws -> EncryptedMessagePayload {
+        let recipients = try await fetchRecipientAccountKeysForRoom(
+            token: token,
+            roomId: roomId,
+            senderUserId: senderUserId
+        )
+
+        return try MessageCryptoService.shared.encryptMessageForRecipients(
+            plaintext: plaintext,
+            senderUserId: senderUserId,
+            recipients: recipients
+        )
+    }
+
+    func resyncIfNeeded(token: String?) async {
+        guard !isResyncing else { return }
+        guard let roomId else { return }
+        guard let token, !token.isEmpty else { return }
+
+        isResyncing = true
+        defer { isResyncing = false }
+
+        let sinceId = lastServerMessageId
+        guard sinceId > 0 else {
+            await loadMessages(roomId: roomId, token: token)
+            return
+        }
+
+        do {
+            let path = "messages/\(roomId)/deltas?sinceId=\(sinceId)"
+            let page: MessagesPageResponse = try await APIClient.shared.send(
+                APIRequest(path: path, method: .GET, requiresAuth: true),
+                token: token
+            )
+
+            guard !page.items.isEmpty else { return }
+
+            applyToStore(page.items)
+            batchSortDebouncer.flush()
+            refreshFromMessageStore()
+            scheduleMarkVisibleMessagesRead()
+        } catch {
+            print("❌ resyncIfNeeded delta error:", error)
+            await loadMessages(roomId: roomId, token: token)
+        }
+    }
+
     private func refreshFromMessageStore() {
         guard let roomId = self.roomId else { return }
 
@@ -324,7 +458,24 @@ final class ChatThreadViewModel: ObservableObject {
 
         guard !unread.isEmpty else { return }
 
-        APIClient.shared.readMessagesBulk(unread)
+        pendingReadMessageIds.formUnion(unread)
+        scheduleMarkVisibleMessagesRead()
+    }
+
+    private func scheduleMarkVisibleMessagesRead() {
+        readFlushTask?.cancel()
+
+        readFlushTask = Task { [weak self] in
+            guard let self else { return }
+
+            try? await Task.sleep(nanoseconds: 350_000_000)
+
+            let ids = Array(self.pendingReadMessageIds).sorted()
+            guard !ids.isEmpty else { return }
+
+            self.pendingReadMessageIds.removeAll()
+            APIClient.shared.readMessagesBulk(ids)
+        }
     }
 
     func startExpiryLoop() {
@@ -859,6 +1010,11 @@ final class ChatThreadViewModel: ObservableObject {
     }
 
     func typingStarted(roomId: Int) {
+        guard SocketManager.shared.isConnected else {
+            print("⚠️ [Socket] typingStarted skipped - not connected yet (room \(roomId))")
+            return
+        }
+
         guard !hasSentTypingStart else {
             scheduleTypingStop(roomId: roomId)
             return
@@ -929,75 +1085,65 @@ final class ChatThreadViewModel: ObservableObject {
         "chatforia.lastServerMessageId.\(roomId)"
     }
 
+    @MainActor
     private func handleSocketUpsert(_ payload: [String: Any]) {
-        guard let configuredRoomId = roomId else { return }
+        print("📨 [Socket] handleSocketUpsert - payload keys: \(Array(payload.keys))")
 
-        let rawMessage: [String: Any]
-        if let item = payload["item"] as? [String: Any] {
-            rawMessage = item
-        } else if let message = payload["message"] as? [String: Any] {
-            rawMessage = message
-        } else if let shaped = payload["shaped"] as? [String: Any] {
-            rawMessage = shaped
-        } else {
-            rawMessage = payload
-        }
-
-        guard let incoming = decodeMessageDTO(from: rawMessage) else { return }
-        guard incoming.chatRoomId == configuredRoomId else { return }
-
-        if let index = messages.firstIndex(where: { $0.id == incoming.id }) {
-            messages[index] = MessageDTO.merged(current: messages[index], incoming: incoming)
-        } else if let clientId = incoming.clientMessageId,
-                  let index = messages.firstIndex(where: { $0.clientMessageId == clientId }) {
-            messages[index] = MessageDTO.merged(current: messages[index], incoming: incoming)
-        } else {
-            messages.append(incoming)
-            messages.sort {
-                if $0.createdAt != $1.createdAt { return $0.createdAt < $1.createdAt }
-                return $0.id < $1.id
-            }
-        }
-
-        applyToStore(incoming)
-        batchSortDebouncer.flush()
-        markVisibleMessagesRead()
-    }
-
-    private func handleMessageEditedEvent(_ payload: [String: Any]) {
-        handleSocketUpsert(payload)
-    }
-
-    private func handleMessageDeletedEvent(_ payload: [String: Any]) {
-        guard let configuredRoomId = roomId else { return }
-
-        let rawMessage: [String: Any]
-        if let item = payload["item"] as? [String: Any] {
-            rawMessage = item
-        } else if let message = payload["message"] as? [String: Any] {
-            rawMessage = message
-        } else if let shaped = payload["shaped"] as? [String: Any] {
-            rawMessage = shaped
-        } else {
-            rawMessage = payload
-        }
-
-        let msgRoomId = (rawMessage["chatRoomId"] as? Int)
-            ?? (rawMessage["roomId"] as? Int)
-            ?? 0
-
-        guard msgRoomId == configuredRoomId else { return }
-
-        let deletedForMe = (rawMessage["deletedForMe"] as? Bool)
-            ?? ((rawMessage["deletedForMe"] as? Int) == 1)
-
-        if deletedForMe, let id = rawMessage["id"] as? Int {
-            MessageStore.shared.removeMessage(id: id)
-            self.messages.removeAll { $0.id == id }
+        guard let configuredRoomId = roomId else {
+            print("⚠️ [Socket] no active roomId")
             return
         }
 
-        handleSocketUpsert(payload)
+        var messageDict: [String: Any] = payload
+        if let item = payload["item"] as? [String: Any] {
+            messageDict = item
+        } else if let shaped = payload["shaped"] as? [String: Any] {
+            messageDict = shaped
+        } else if let msg = payload["message"] as? [String: Any] {
+            messageDict = msg
+        }
+
+        guard let incoming = decodeMessageDTOFromJSONObject(messageDict) else {
+            print("❌ [Socket] Failed to decode incoming message")
+            print("Payload was:", messageDict)
+            return
+        }
+
+        guard incoming.chatRoomId == configuredRoomId else {
+            print("⚠️ [Socket] room mismatch: \(incoming.chatRoomId ?? -1) vs \(configuredRoomId)")
+            return
+        }
+
+        print("✅ [Socket] decoded message id=\(incoming.id), clientMessageId=\(incoming.clientMessageId ?? "nil")")
+
+        let incomingId = incoming.id
+
+        if incomingId > 0 {
+            if let index = messages.firstIndex(where: { $0.id == incomingId }) {
+                messages[index] = MessageDTO.merged(current: messages[index], incoming: incoming)
+                print("🔄 [Socket] Updated existing message id=\(incomingId)")
+            } else if let clientId = incoming.clientMessageId,
+                      let index = messages.firstIndex(where: { $0.clientMessageId == clientId }) {
+                messages[index] = MessageDTO.merged(current: messages[index], incoming: incoming)
+                print("✅ [Socket] Replaced optimistic message with real id=\(incomingId)")
+            } else {
+                messages.append(incoming)
+                print("🆕 [Socket] Added new message id=\(incomingId)")
+            }
+        } else {
+            messages.append(incoming)
+            print("🆕 [Socket] Added new message (no id)")
+        }
+
+        messages.sort { lhs, rhs in
+            if lhs.createdAt != rhs.createdAt {
+                return lhs.createdAt < rhs.createdAt
+            }
+            return lhs.id < rhs.id
+        }
+
+        applyToStore(incoming)
+        scheduleMarkVisibleMessagesRead()
     }
 
     private func decodeMessageDTO(from payload: [String: Any]) -> MessageDTO? {
@@ -1063,88 +1209,6 @@ final class ChatThreadViewModel: ObservableObject {
             return nil
         }
     }
-
-    private func startTypingPruneLoop() {
-        guard typingPruneTask == nil else { return }
-
-        typingPruneTask = Task { [weak self] in
-            guard let self else { return }
-
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 1_000_000_000)
-
-                await MainActor.run {
-                    let now = Date()
-
-                    self.typingLastSeen = self.typingLastSeen.filter { now.timeIntervalSince($0.value) < self.typingTTL }
-                    self.typingUsernames = self.typingLastSeen.keys.sorted()
-
-                    if self.typingLastSeen.isEmpty {
-                        self.typingPruneTask?.cancel()
-                        self.typingPruneTask = nil
-                    }
-                }
-            }
-        }
-    }
-
-    func receivedTyping(username: String) {
-        let trimmed = username.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-
-        typingLastSeen[trimmed] = Date()
-        typingUsernames = typingLastSeen.keys.sorted()
-        startTypingPruneLoop()
-    }
-
-    func clearTypingUsers() {
-        typingLastSeen.removeAll()
-        typingUsernames = []
-        typingPruneTask?.cancel()
-        typingPruneTask = nil
-    }
-
-    private func fetchRecipientAccountKeysForRoom(
-        token: String,
-        roomId: Int,
-        senderUserId: Int
-    ) async throws -> [RecipientKeyContext] {
-        let response: RoomParticipantsResponse = try await APIClient.shared.send(
-            APIRequest(path: "chatrooms/\(roomId)/participants", method: .GET, requiresAuth: true),
-            token: token
-        )
-
-        let recipients = response.participants.compactMap { participant -> RecipientKeyContext? in
-            guard participant.userId != senderUserId else { return nil }
-            guard let publicKey = participant.user?.publicKey, !publicKey.isEmpty else { return nil }
-
-            return RecipientKeyContext(
-                userId: participant.userId,
-                publicKeyBase64: publicKey
-            )
-        }
-
-        if recipients.isEmpty {
-            throw NSError(
-                domain: "ChatThreadViewModel",
-                code: 1001,
-                userInfo: [NSLocalizedDescriptionKey: "No recipient public keys found for this room."]
-            )
-        }
-
-        return recipients
-    }
-
-    func resyncIfNeeded(token: String?) async {
-        guard !isResyncing else { return }
-        guard let roomId else { return }
-        guard let token, !token.isEmpty else { return }
-
-        isResyncing = true
-        defer { isResyncing = false }
-
-        await loadMessages(roomId: roomId, token: token)
-    }
 }
 
 extension ChatThreadViewModel {
@@ -1152,8 +1216,18 @@ extension ChatThreadViewModel {
         _ = myUsername
         guard let token, !token.isEmpty else { return }
 
-        SocketManager.shared.connect(token: token)
-        SocketManager.shared.joinRoom(roomId)
+        Task { @MainActor in
+            do {
+                try await SocketManager.shared.connectAsync(token: token, timeoutSecs: 12)
+                SocketManager.shared.joinRoom(roomId)
+                print("✅ [Socket] startSocket succeeded - connected + joined room \(roomId)")
+            } catch {
+                print("❌ [Socket] startSocket failed for room \(roomId):", error)
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                SocketManager.shared.connect(token: token)
+                SocketManager.shared.joinRoom(roomId)
+            }
+        }
     }
 
     func stopSocket(roomId: Int) {
@@ -1216,7 +1290,7 @@ extension ChatThreadViewModel {
     }
 
     func editMessage(
-        messageId: Int,
+        message: MessageDTO,
         newText: String,
         token: String?
     ) async -> Bool {
@@ -1229,14 +1303,37 @@ extension ChatThreadViewModel {
         guard !trimmed.isEmpty else { return false }
 
         do {
-            let bodyData = try JSONSerialization.data(
-                withJSONObject: ["content": trimmed],
-                options: []
-            )
+            let body: [String: Any]
+            let isEncrypted = (message.contentCiphertext?.isEmpty == false) || (message.encryptedKeyForMe?.isEmpty == false)
+
+            if isEncrypted {
+                guard let roomId = message.chatRoomId else {
+                    errorText = "Missing room id."
+                    return false
+                }
+
+                let encrypted = try await buildEncryptedEditPayload(
+                    roomId: roomId,
+                    plaintext: trimmed,
+                    token: token,
+                    senderUserId: message.sender.id
+                )
+
+                body = [
+                    "contentCiphertext": encrypted.ciphertextBase64,
+                    "encryptedKeys": encrypted.encryptedKeysByUserId
+                ]
+            } else {
+                body = [
+                    "content": trimmed
+                ]
+            }
+
+            let bodyData = try JSONSerialization.data(withJSONObject: body, options: [])
 
             let envelope: MessageEnvelope = try await APIClient.shared.send(
                 APIRequest(
-                    path: "messages/\(messageId)",
+                    path: "messages/\(message.id)/edit",
                     method: .PATCH,
                     body: bodyData,
                     requiresAuth: true
@@ -1245,7 +1342,7 @@ extension ChatThreadViewModel {
             )
 
             guard let updated = envelope.message else {
-                errorText = "Couldn’t edit message."
+                errorText = "Couldn't edit message."
                 return false
             }
 
@@ -1253,7 +1350,7 @@ extension ChatThreadViewModel {
             refreshFromMessageStore()
             return true
         } catch {
-            errorText = "Couldn’t edit message."
+            errorText = "Couldn't edit message."
             return false
         }
     }

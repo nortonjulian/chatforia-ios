@@ -109,7 +109,9 @@ struct MessagesListView: View {
                     isNearBottom = bottomMinY <= (viewportHeight + nearBottomThreshold)
                 }
                 .onAppear {
-                    scrollToBottom(proxy, animated: false)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                        scrollToBottom(proxy, animated: false)
+                    }
                 }
                 .onChange(of: sortedMessages.last?.id) { _, newNewest in
                     guard newNewest != lastMessageId else { return }
