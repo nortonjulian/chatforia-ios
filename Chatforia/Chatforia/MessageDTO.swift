@@ -48,8 +48,42 @@ extension MessageDTO {
         current: [AttachmentDTO]?,
         incoming: [AttachmentDTO]?
     ) -> [AttachmentDTO]? {
-        if let incoming, !incoming.isEmpty { return incoming }
-        return current
+        guard let incoming, !incoming.isEmpty else { return current }
+        guard let current, !current.isEmpty else { return incoming }
+
+        let merged = zipLongest(current, incoming).compactMap { currentAtt, incomingAtt -> AttachmentDTO? in
+            switch (currentAtt, incomingAtt) {
+            case let (nil, rhs):
+                return rhs
+            case let (lhs, nil):
+                return lhs
+            case let (lhs?, rhs?):
+                return AttachmentDTO(
+                    id: rhs.id ?? lhs.id,
+                    kind: rhs.kind ?? lhs.kind,
+                    url: rhs.url ?? lhs.url,
+                    mimeType: rhs.mimeType ?? lhs.mimeType,
+                    width: rhs.width ?? lhs.width,
+                    height: rhs.height ?? lhs.height,
+                    durationSec: rhs.durationSec ?? lhs.durationSec,
+                    caption: (rhs.caption?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false)
+                        ? rhs.caption
+                        : lhs.caption,
+                    thumbUrl: rhs.thumbUrl ?? lhs.thumbUrl
+                )
+            }
+        }
+
+        return merged.isEmpty ? incoming : merged
+    }
+
+    private static func zipLongest<T>(_ lhs: [T], _ rhs: [T]) -> [(T?, T?)] {
+        let count = max(lhs.count, rhs.count)
+        return (0..<count).map { index in
+            let left = index < lhs.count ? lhs[index] : nil
+            let right = index < rhs.count ? rhs[index] : nil
+            return (left, right)
+        }
     }
 
     private static func preferredReadBy(

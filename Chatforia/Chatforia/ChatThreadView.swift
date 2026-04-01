@@ -21,6 +21,13 @@ struct ChatThreadView: View {
 
     @State private var deletingMessage: MessageDTO? = nil
 
+    @State private var showAttachmentSheet = false
+    @State private var showGIFPicker = false
+    @State private var showPhotoPicker = false
+    @State private var selectedPhotoItem: PhotosPickerItem? = nil
+    
+    @State private var pendingGIFURL: URL? = nil
+
     var body: some View {
         VStack(spacing: 0) {
             if let err = vm.errorText, !err.isEmpty {
@@ -30,7 +37,6 @@ struct ChatThreadView: View {
             }
 
             messagesSection
-
             composer
         }
         .background(themeManager.palette.screenBackground.ignoresSafeArea())
@@ -85,6 +91,32 @@ struct ChatThreadView: View {
                 }
             }
         }
+        .sheet(isPresented: $showAttachmentSheet) {
+            AttachmentPickerSheet(
+                onPhoto: { presentPhotoPicker() },
+                onGIF: { presentGIFPicker() }
+            )
+        }
+        .sheet(isPresented: $showGIFPicker) {
+            GIFPickerView { url in
+                pendingGIFURL = url
+            }
+        }
+        .photosPicker(
+            isPresented: $showPhotoPicker,
+            selection: $selectedPhotoItem,
+            matching: .images
+        )
+        .onChange(of: selectedPhotoItem) { _, newItem in
+            guard let newItem else { return }
+
+            Task {
+                await sendSelectedPhoto(newItem)
+                await MainActor.run {
+                    selectedPhotoItem = nil
+                }
+            }
+        }
         .confirmationDialog(
             "Delete message?",
             isPresented: Binding(
@@ -127,7 +159,6 @@ struct ChatThreadView: View {
 }
 
 extension ChatThreadView {
-    
     private var messagesSection: some View {
         Group {
             if vm.isLoading && vm.messages.isEmpty {
@@ -165,19 +196,38 @@ extension ChatThreadView {
 
 extension ChatThreadView {
     private var composer: some View {
-        MessageComposerView(
-            draft: $draft,
-            isSending: vm.isSendingImage || vm.isSendingAudio,
-            onDraftChanged: {
-                vm.handleInputChanged(roomId: room.id)
-            },
-            onAttachmentTap: {},
-            onSend: {
-                Task { await send() }
+        VStack(spacing: 8) {
+            if let pendingGIFURL {
+                GIFWebView(url: pendingGIFURL)
+                    .frame(width: 140, height: 140)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .padding(.horizontal, 10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
-        )
-        .environmentObject(settingsVM)
-        .padding(.bottom, 6)
+
+            MessageComposerView(
+                draft: $draft,
+                isSending: vm.isSendingImage || vm.isSendingAudio,
+                onDraftChanged: {
+                    vm.handleInputChanged(roomId: room.id)
+                },
+                onAttachmentTap: {
+                    showAttachmentSheet = true
+                },
+                onSend: {
+                    Task {
+                        if let gifURL = pendingGIFURL {
+                            await sendGIFWithCaption(from: gifURL)
+                        } else {
+                            await send()
+                        }
+                    }
+                },
+                hasPendingAttachment: pendingGIFURL != nil
+            )
+            .environmentObject(settingsVM)
+            .padding(.bottom, 6)
+        }
     }
 }
 
@@ -200,6 +250,43 @@ extension ChatThreadView {
 }
 
 extension ChatThreadView {
+    private func sendGIFWithCaption(from url: URL) async {
+        guard let senderId = auth.currentUser?.id else { return }
+
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            guard !data.isEmpty else {
+                await MainActor.run {
+                    vm.errorText = "GIF data is empty."
+                }
+                return
+            }
+
+            let caption = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+            let effectiveCaption = caption.isEmpty ? nil : caption
+
+            let ok = await vm.sendGIFMessage(
+                roomId: room.id,
+                token: TokenStore.shared.read(),
+                gifData: data,
+                caption: effectiveCaption,
+                senderId: senderId,
+                senderUsername: auth.currentUser?.username,
+                senderPublicKey: nil
+            )
+
+            if ok {
+                draft = ""
+                pendingGIFURL = nil
+                vm.stopTypingNow(roomId: room.id)
+            }
+        } catch {
+            await MainActor.run {
+                vm.errorText = "Couldn’t send GIF. \(error.localizedDescription)"
+            }
+        }
+    }
+    
     private func onLoad() async {
         if let user = auth.currentUser {
             vm.configureCurrentUser(
@@ -212,7 +299,6 @@ extension ChatThreadView {
 
         settingsVM.loadLocalAISettings()
 
-        // Load messages first, then start socket (avoids early emit races)
         await reload()
 
         vm.startSocket(
@@ -246,6 +332,89 @@ extension ChatThreadView {
         if ok {
             draft = ""
             vm.stopTypingNow(roomId: room.id)
+        }
+    }
+
+    private func presentPhotoPicker() {
+        showAttachmentSheet = false
+
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 200_000_000)
+            showPhotoPicker = true
+        }
+    }
+
+    private func presentGIFPicker() {
+        showAttachmentSheet = false
+
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 200_000_000)
+            showGIFPicker = true
+        }
+    }
+
+    private func sendSelectedPhoto(_ item: PhotosPickerItem) async {
+        guard let senderId = auth.currentUser?.id else { return }
+
+        do {
+            guard let data = try await item.loadTransferable(type: Data.self), !data.isEmpty else {
+                await MainActor.run {
+                    vm.errorText = "Couldn’t load image."
+                }
+                return
+            }
+
+            let ok = await vm.sendImageMessage(
+                roomId: room.id,
+                token: TokenStore.shared.read(),
+                imageData: data,
+                caption: nil,
+                senderId: senderId,
+                senderUsername: auth.currentUser?.username,
+                senderPublicKey: nil
+            )
+
+            if ok {
+                draft = ""
+                vm.stopTypingNow(roomId: room.id)
+            }
+        } catch {
+            await MainActor.run {
+                vm.errorText = "Couldn’t load image. \(error.localizedDescription)"
+            }
+        }
+    }
+
+    private func sendGIF(from url: URL) async {
+        guard let senderId = auth.currentUser?.id else { return }
+
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            guard !data.isEmpty else {
+                await MainActor.run {
+                    vm.errorText = "GIF data is empty."
+                }
+                return
+            }
+
+            let ok = await vm.sendGIFMessage(
+                roomId: room.id,
+                token: TokenStore.shared.read(),
+                gifData: data,
+                caption: nil,
+                senderId: senderId,
+                senderUsername: auth.currentUser?.username,
+                senderPublicKey: nil
+            )
+
+            if ok {
+                draft = ""
+                vm.stopTypingNow(roomId: room.id)
+            }
+        } catch {
+            await MainActor.run {
+                vm.errorText = "Couldn’t send GIF. \(error.localizedDescription)"
+            }
         }
     }
 

@@ -7,8 +7,30 @@ final class ChatsViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var errorText: String?
     @Published var searchText: String = ""
+    
+    private var cancellables = Set<AnyCancellable>()
 
     static let conversationsBasePath = "conversations"
+
+    init() {
+        NotificationCenter.default.publisher(for: .socketMessageUpsert)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.resortConversations()
+            }
+            .store(in: &cancellables)
+
+        NotificationCenter.default.publisher(for: .MessagesChanged)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.resortConversations()
+            }
+            .store(in: &cancellables)
+    }
+    
+    private func resortConversations() {
+        conversations = sortedConversations(conversations)
+    }
 
     private func searchableTitle(for item: ConversationDTO) -> String {
         let title = item.title.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -28,10 +50,12 @@ final class ChatsViewModel: ObservableObject {
     }
 
     var filteredConversations: [ConversationDTO] {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !query.isEmpty else { return conversations }
+        let base = sortedConversations(conversations)
 
-        return conversations.filter { item in
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !query.isEmpty else { return base }
+
+        return base.filter { item in
             let title = searchableTitle(for: item).lowercased()
             let phone = item.phone?.lowercased() ?? ""
             let lastText = item.last?.text?.lowercased() ?? ""
@@ -59,13 +83,16 @@ final class ChatsViewModel: ObservableObject {
                 token: token
             )
 
+            let fetched: [ConversationDTO]
             if let conversations = response.conversations {
-                self.conversations = conversations
+                fetched = conversations
             } else if let items = response.items {
-                self.conversations = items
+                fetched = items
             } else {
-                self.conversations = []
+                fetched = []
             }
+
+            self.conversations = sortedConversations(fetched)
         } catch {
             errorText = error.localizedDescription
             #if DEBUG
@@ -73,7 +100,7 @@ final class ChatsViewModel: ObservableObject {
             #endif
         }
     }
-    
+
     func archiveConversation(_ conversation: ConversationDTO, token: String?) async -> Bool {
         guard let token, !token.isEmpty else {
             errorText = "Missing auth token."
@@ -102,6 +129,7 @@ final class ChatsViewModel: ObservableObject {
                 $0.kind.lowercased() == conversation.kind.lowercased()
             }
 
+            conversations = sortedConversations(conversations)
             errorText = nil
             return true
         } catch {
@@ -110,7 +138,7 @@ final class ChatsViewModel: ObservableObject {
             return false
         }
     }
-    
+
     func deleteConversation(_ conversation: ConversationDTO, token: String?) async {
         guard let token else {
             errorText = "Missing auth token."
@@ -132,11 +160,57 @@ final class ChatsViewModel: ObservableObject {
                 $0.kind.lowercased() == conversation.kind.lowercased()
             }
 
+            conversations = sortedConversations(conversations)
             errorText = nil
         } catch {
             errorText = "Failed to delete conversation."
             print("❌ deleteConversation failed:", error)
         }
+    }
+
+    private func sortedConversations(_ items: [ConversationDTO]) -> [ConversationDTO] {
+        items.sorted { lhs, rhs in
+            let lDate = conversationSortDate(lhs)
+            let rDate = conversationSortDate(rhs)
+
+            if lDate != rDate {
+                return lDate > rDate
+            }
+
+            if lhs.id != rhs.id {
+                return lhs.id > rhs.id
+            }
+
+            return lhs.kind.localizedCaseInsensitiveCompare(rhs.kind) == .orderedAscending
+        }
+    }
+
+    private func conversationSortDate(_ item: ConversationDTO) -> Date {
+        if let lastAt = parseISODate(item.last?.at) {
+            return lastAt
+        }
+        if let updated = parseISODate(item.updatedAt) {
+            return updated
+        }
+        return .distantPast
+    }
+
+    private func parseISODate(_ value: String?) -> Date? {
+        guard let value else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        let withFractional = ISO8601DateFormatter()
+        withFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        if let date = withFractional.date(from: trimmed) {
+            return date
+        }
+
+        let plain = ISO8601DateFormatter()
+        plain.formatOptions = [.withInternetDateTime]
+
+        return plain.date(from: trimmed)
     }
 }
 

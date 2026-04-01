@@ -34,6 +34,8 @@ struct MessagesListView: View {
     @State private var preservedAnchorMessageId: Int?
     @State private var isRestoringAfterPrepend = false
     @State private var viewportHeight: CGFloat = 0
+    
+    @State private var hasCompletedInitialBottomScroll = false
 
     private let pagingThrottleSeconds: TimeInterval = 0.8
     private let nearBottomThreshold: CGFloat = 140
@@ -64,6 +66,7 @@ struct MessagesListView: View {
                             .frame(height: 1)
                             .id("TOP_SENTINEL")
                             .onAppear {
+                                guard hasCompletedInitialBottomScroll else { return }
                                 triggerLoadOlderIfNeeded()
                             }
 
@@ -111,6 +114,7 @@ struct MessagesListView: View {
                 .onAppear {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                         scrollToBottom(proxy, animated: false)
+                        hasCompletedInitialBottomScroll = true
                     }
                 }
                 .onChange(of: sortedMessages.last?.id) { _, newNewest in

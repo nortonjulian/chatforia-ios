@@ -4,11 +4,13 @@ struct AttachmentPickerSheet: View {
     let onPhoto: () -> Void
     let onGIF: () -> Void
 
+    @EnvironmentObject private var themeManager: ThemeManager
+
     var body: some View {
         VStack(spacing: 20) {
             Capsule()
                 .frame(width: 40, height: 5)
-                .foregroundColor(.gray.opacity(0.4))
+                .foregroundStyle(themeManager.palette.border.opacity(0.8))
                 .padding(.top, 10)
 
             HStack(spacing: 30) {
@@ -27,7 +29,9 @@ struct AttachmentPickerSheet: View {
 
             Spacer()
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .padding()
+        .background(themeManager.palette.cardBackground)
         .presentationDetents([.height(180)])
     }
 
@@ -39,17 +43,19 @@ struct AttachmentPickerSheet: View {
         Button(action: action) {
             VStack(spacing: 8) {
                 Circle()
-                    .fill(Color.orange.opacity(0.15))
+                    .fill(themeManager.palette.accent.opacity(0.15))
                     .frame(width: 60, height: 60)
                     .overlay(
                         Image(systemName: icon)
                             .font(.title2)
-                            .foregroundColor(.orange)
+                            .foregroundStyle(themeManager.palette.accent)
                     )
 
                 Text(label)
                     .font(.caption)
+                    .foregroundStyle(themeManager.palette.primaryText)
             }
         }
+        .buttonStyle(.plain)
     }
 }

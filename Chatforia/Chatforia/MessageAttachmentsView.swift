@@ -122,8 +122,10 @@ struct MessageAttachmentsView: View {
 
             if let caption = attachment.caption?.nilIfBlank {
                 Text(caption)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(.black)
+                    .multilineTextAlignment(isMe ? .trailing : .leading)
+                    .frame(maxWidth: .infinity, alignment: isMe ? .trailing : .leading)
                     .padding(.horizontal, 2)
             }
         }
@@ -136,7 +138,7 @@ struct MessageAttachmentsView: View {
         let previewURLString = thumbURLString ?? fullURLString
         let fullURL = fullURLString.flatMap { URL(string: absoluteMediaURLString($0)) }
 
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: isMe ? .trailing : .leading, spacing: 6) {
             if let previewURLString,
                let url = URL(string: absoluteMediaURLString(previewURLString)) {
 
@@ -162,8 +164,11 @@ struct MessageAttachmentsView: View {
                                 .padding(6)
                         }
                     }
-                    .padding(10)
-                    .background(Color(uiColor: .secondarySystemBackground))
+                    .padding(6) 
+                    .background(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .fill(Color(uiColor: .secondarySystemBackground))
+                    )
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                 }
                 .buttonStyle(.plain)
@@ -175,6 +180,15 @@ struct MessageAttachmentsView: View {
                     systemImage: "photo"
                 )
                 .frame(width: min(maxWidth, 240))
+            }
+
+            if let caption = attachment.caption?.nilIfBlank {
+                Text(caption)
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(.black)
+                    .multilineTextAlignment(isMe ? .trailing : .leading)
+                    .frame(maxWidth: .infinity, alignment: isMe ? .trailing : .leading)
+                    .padding(.horizontal, 2)
             }
         }
     }
