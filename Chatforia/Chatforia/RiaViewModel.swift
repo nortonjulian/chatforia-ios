@@ -126,20 +126,19 @@ final class RiaViewModel: ObservableObject {
             print("🟣 Ria rewrite result count:", result.count)
             rewriteOptions = Array(result.prefix(3))
         } catch {
-            print("❌ Ria rewrite failed:", error)
+            await MainActor.run {
+                self.isLoadingSuggestions = false
+                self.suggestions = []
 
-            let message = error.localizedDescription.lowercased()
-            if message.contains("strict_e2ee") || message.contains("strict e2ee") {
-                aiDisabledReason = "Ria is unavailable while Strict E2EE is enabled."
-            } else {
                 let message = error.localizedDescription.lowercased()
-
                 if message.contains("strict_e2ee") || message.contains("strict e2ee") {
-                    aiDisabledReason = "Ria is unavailable while Strict E2EE is enabled."
+                    self.aiDisabledReason = "Ria is unavailable while Strict E2EE is enabled."
+                } else if (error as? URLError)?.code == .timedOut {
+                    self.lastError = nil
                 } else if message.contains("429") || message.contains("quota") || message.contains("billing") {
-                    lastError = "Ria isn’t available yet because AI billing hasn’t been set up."
+                    self.lastError = "Ria isn’t available right now because AI billing needs to be updated."
                 } else {
-                    lastError = error.localizedDescription
+                    self.lastError = error.localizedDescription
                 }
             }
         }

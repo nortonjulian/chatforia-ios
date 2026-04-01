@@ -136,9 +136,13 @@ final class ChatThreadViewModel: ObservableObject {
     @Published var isSubmittingReport: Bool = false
     @Published var reportErrorText: String?
     @Published private(set) var nowTick: Date = Date()
+    
+    @Published var smartReplies: [String] = []
+    @Published var isLoadingSmartReplies: Bool = false
 
     private var expiryTask: Task<Void, Never>?
     private var typingStopTask: Task<Void, Never>?
+    private var smartReplyTask: Task<Void, Never>?
     private var hasSentTypingStart: Bool = false
 
     private var socketListenerIDs: [UUID] = []
@@ -535,9 +539,10 @@ final class ChatThreadViewModel: ObservableObject {
             markVisibleMessagesRead()
 
             if self.messages.isEmpty {
-                self.errorText = "Loaded 0 messages for room \(roomId)."
-                print("⚠️ loadMessages: 0 messages for roomId:", roomId)
+                self.errorText = nil
+                print("ℹ️ loadMessages: 0 messages for roomId:", roomId)
             } else {
+                self.errorText = nil
                 print("✅ loadMessages: loaded \(self.messages.count) messages for roomId:", roomId)
             }
         } catch {
@@ -1235,10 +1240,94 @@ extension ChatThreadViewModel {
         clearTypingUsers()
     }
 
-    func handleInputChanged(roomId: Int) {
+    func handleInputChanged(roomId: Int, text: String) {
         typingStarted(roomId: roomId)
-    }
 
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmed.isEmpty else {
+            smartReplies = []
+            isLoadingSmartReplies = false
+            smartReplyTask?.cancel()
+            return
+        }
+
+        smartReplyTask?.cancel()
+
+        smartReplyTask = Task {
+            try? await Task.sleep(nanoseconds: 500_000_000)
+
+            if Task.isCancelled { return }
+
+            await generateSmartReplies(roomId: roomId, text: trimmed)
+        }
+    }
+    
+    func generateSmartReplies(roomId: Int, text: String) async {
+        _ = roomId
+
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmed.isEmpty else {
+            smartReplies = []
+            isLoadingSmartReplies = false
+            return
+        }
+
+        guard let token = TokenStore.shared.read(), !token.isEmpty else {
+            smartReplies = []
+            isLoadingSmartReplies = false
+            return
+        }
+
+        isLoadingSmartReplies = true
+        defer { isLoadingSmartReplies = false }
+
+        struct SmartRepliesRequest: Encodable {
+            let text: String
+        }
+
+        struct SmartRepliesResponse: Decodable {
+            let suggestions: [String]?
+            let replies: [String]?
+            let items: [String]?
+
+            var resolved: [String] {
+                if let suggestions, !suggestions.isEmpty { return suggestions }
+                if let replies, !replies.isEmpty { return replies }
+                if let items, !items.isEmpty { return items }
+                return []
+            }
+        }
+
+        do {
+            let bodyData = try JSONEncoder().encode(
+                SmartRepliesRequest(text: trimmed)
+            )
+
+            let response: SmartRepliesResponse = try await APIClient.shared.send(
+                APIRequest(
+                    path: "ai/suggest-replies",
+                    method: .POST,
+                    body: bodyData,
+                    requiresAuth: true
+                ),
+                token: token
+            )
+
+            let cleaned = response.resolved
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+
+            smartReplies = Array(cleaned.prefix(3))
+        } catch {
+            smartReplies = []
+            #if DEBUG
+            print("❌ generateSmartReplies failed:", error)
+            #endif
+        }
+    }
+    
     func submitReport(
         targetMessage: MessageDTO,
         roomId: Int,
@@ -1292,6 +1381,7 @@ extension ChatThreadViewModel {
     func editMessage(
         message: MessageDTO,
         newText: String,
+        gifURL: URL?,
         token: String?
     ) async -> Bool {
         guard let token, !token.isEmpty else {
@@ -1300,15 +1390,34 @@ extension ChatThreadViewModel {
         }
 
         let trimmed = newText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return false }
+
+        let hasText = !trimmed.isEmpty
+        let hasGIF = gifURL != nil
+
+        guard hasText || hasGIF else { return false }
 
         do {
-            let body: [String: Any]
-            let isEncrypted = (message.contentCiphertext?.isEmpty == false) || (message.encryptedKeyForMe?.isEmpty == false)
+            let isEncrypted =
+                (message.contentCiphertext?.isEmpty == false) ||
+                (message.encryptedKeyForMe?.isEmpty == false)
+
+            var body: [String: Any] = [:]
+
+            // ✅ Attachments
+            var attachments: [[String: Any]] = []
+
+            if let gifURL {
+                attachments.append([
+                    "kind": "GIF",
+                    "url": gifURL.absoluteString,
+                    "mimeType": "image/gif"
+                ])
+            }
 
             if isEncrypted {
-                guard let roomId = message.chatRoomId else {
-                    errorText = "Missing room id."
+                guard let roomId = message.chatRoomId,
+                      let senderId = currentUserId else {
+                    errorText = "Missing encryption context."
                     return false
                 }
 
@@ -1316,20 +1425,26 @@ extension ChatThreadViewModel {
                     roomId: roomId,
                     plaintext: trimmed,
                     token: token,
-                    senderUserId: message.sender.id
+                    senderUserId: senderId
                 )
 
-                body = [
-                    "contentCiphertext": encrypted.ciphertextBase64,
-                    "encryptedKeys": encrypted.encryptedKeysByUserId
-                ]
+                body["contentCiphertext"] = encrypted.ciphertextBase64
+                body["encryptedKeys"] = encrypted.encryptedKeysByUserId
+
+                if !attachments.isEmpty {
+                    body["attachments"] = attachments
+                }
             } else {
-                body = [
-                    "content": trimmed
-                ]
+                if hasText {
+                    body["newContent"] = trimmed
+                }
+
+                if !attachments.isEmpty {
+                    body["attachments"] = attachments
+                }
             }
 
-            let bodyData = try JSONSerialization.data(withJSONObject: body, options: [])
+            let bodyData = try JSONSerialization.data(withJSONObject: body)
 
             let envelope: MessageEnvelope = try await APIClient.shared.send(
                 APIRequest(
@@ -1342,15 +1457,16 @@ extension ChatThreadViewModel {
             )
 
             guard let updated = envelope.message else {
-                errorText = "Couldn't edit message."
+                errorText = "Couldn’t edit message."
                 return false
             }
 
             applyToStore(updated)
             refreshFromMessageStore()
+
             return true
         } catch {
-            errorText = "Couldn't edit message."
+            errorText = "Edit failed: \(error.localizedDescription)"
             return false
         }
     }

@@ -12,12 +12,18 @@ struct ChatThreadView: View {
 
     @StateObject private var vm = ChatThreadViewModel()
     @StateObject private var settingsVM = SettingsViewModel()
+    
+    @StateObject private var riaVM = RiaViewModel()
+    @State private var showingRewriteSheet = false
 
     @State private var draft = ""
     @State private var lastMessageId: Int? = nil
 
     @State private var editingMessage: MessageDTO? = nil
     @State private var editDraft: String = ""
+    
+    @State private var editPendingGIFURL: URL? = nil
+    @State private var showEditGIFPicker = false
 
     @State private var deletingMessage: MessageDTO? = nil
 
@@ -49,6 +55,27 @@ struct ChatThreadView: View {
         .sheet(item: $editingMessage) { msg in
             NavigationStack {
                 VStack(spacing: 16) {
+                    HStack(spacing: 12) {
+                        Button("GIF") {
+                            showEditGIFPicker = true
+                        }
+
+                        if editPendingGIFURL != nil {
+                            Button("Remove GIF", role: .destructive) {
+                                editPendingGIFURL = nil
+                            }
+                        }
+
+                        Spacer()
+                    }
+
+                    if let editPendingGIFURL {
+                        GIFWebView(url: editPendingGIFURL)
+                            .frame(width: 140, height: 140)
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
                     TextEditor(text: $editDraft)
                         .frame(minHeight: 180)
                         .padding(12)
@@ -67,6 +94,8 @@ struct ChatThreadView: View {
                         Button("Cancel") {
                             editingMessage = nil
                             editDraft = ""
+                            editPendingGIFURL = nil
+                            showEditGIFPicker = false
                         }
                     }
 
@@ -78,24 +107,70 @@ struct ChatThreadView: View {
                                 let ok = await vm.editMessage(
                                     message: msg,
                                     newText: editDraft,
+                                    gifURL: editPendingGIFURL,
                                     token: TokenStore.shared.read()
                                 )
 
                                 if ok {
                                     editingMessage = nil
                                     editDraft = ""
+                                    editPendingGIFURL = nil
+                                    showEditGIFPicker = false
                                 }
                             }
                         }
+                    }
+                }
+                .sheet(isPresented: $showEditGIFPicker) {
+                    GIFPickerView { url in
+                        editPendingGIFURL = url
+                        showEditGIFPicker = false
                     }
                 }
             }
         }
         .sheet(isPresented: $showAttachmentSheet) {
             AttachmentPickerSheet(
-                onPhoto: { presentPhotoPicker() },
-                onGIF: { presentGIFPicker() }
+                onPhoto: {
+                    showAttachmentSheet = false
+
+                    Task { @MainActor in
+                        try? await Task.sleep(nanoseconds: 200_000_000)
+                        presentPhotoPicker()
+                    }
+                },
+                onGIF: {
+                    showAttachmentSheet = false
+
+                    Task { @MainActor in
+                        try? await Task.sleep(nanoseconds: 200_000_000)
+                        presentGIFPicker()
+                    }
+                }
             )
+        }
+        .sheet(isPresented: $showingRewriteSheet) {
+            RiaRewriteSheet(
+                draft: draft,
+                isLoading: riaVM.isLoadingRewrite,
+                options: riaVM.rewriteOptions,
+                errorText: riaVM.lastError,
+                disabledReason: riaVM.aiDisabledReason,
+                onToneTap: { tone in
+                    Task {
+                        await riaVM.rewrite(
+                            token: auth.currentToken,
+                            text: draft,
+                            tone: tone,
+                            filterProfanity: settingsVM.maskAIProfanity
+                        )
+                    }
+                },
+                onSelectRewrite: { rewritten in
+                    draft = rewritten
+                }
+            )
+            .environmentObject(themeManager)
         }
         .sheet(isPresented: $showGIFPicker) {
             GIFPickerView { url in
@@ -169,9 +244,11 @@ extension ChatThreadView {
                     .foregroundStyle(themeManager.palette.secondaryText)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
+                let currentUserId = auth.currentUser?.id
+                
                 MessagesListView(
                     messages: vm.messages,
-                    currentUserId: auth.currentUser?.id,
+                    currentUserId: currentUserId,
                     isGroupRoom: room.isGroup == true,
                     isLoadingOlder: vm.isLoadingOlder,
                     deliveryStateForMessage: { _ in nil },
@@ -182,6 +259,18 @@ extension ChatThreadView {
                     onEdit: { msg in
                         editingMessage = msg
                         editDraft = msg.rawContent ?? ""
+
+                        if let gif = msg.attachments?.first(where: { att in
+                            let kind = (att.kind ?? "").uppercased()
+                            let mime = (att.mimeType ?? "").lowercased()
+                            return kind == "GIF" || mime == "image/gif"
+                        }),
+                        let urlString = gif.url,
+                        let url = URL(string: urlString) {
+                            editPendingGIFURL = url
+                        } else {
+                            editPendingGIFURL = nil
+                        }
                     },
                     onDelete: { msg in
                         deletingMessage = msg
@@ -209,7 +298,22 @@ extension ChatThreadView {
                 draft: $draft,
                 isSending: vm.isSendingImage || vm.isSendingAudio,
                 onDraftChanged: {
-                    vm.handleInputChanged(roomId: room.id)
+                    vm.typingStarted(roomId: room.id)
+
+                    riaVM.loadSuggestions(
+                        token: auth.currentToken,
+                        enabled: settingsVM.enableSmartReplies,
+                        filterProfanity: settingsVM.maskAIProfanity,
+                        draft: draft,
+                        messages: vm.messages.suffix(8).map {
+                            RiaContextMessageDTO(
+                                role: $0.sender.id == auth.currentUser?.id ? "user" : "assistant",
+                                content: $0.rawContent
+                                    ?? $0.translatedForMe
+                                    ?? ($0.contentCiphertext != nil ? "[encrypted]" : "")
+                            )
+                        }
+                    )
                 },
                 onAttachmentTap: {
                     showAttachmentSheet = true
@@ -222,6 +326,14 @@ extension ChatThreadView {
                             await send()
                         }
                     }
+                },
+                suggestions: riaVM.suggestions,
+                isLoadingSuggestions: riaVM.isLoadingSuggestions,
+                onSuggestionTap: { suggestion in
+                    draft = suggestion
+                },
+                onRewriteTap: {
+                    showingRewriteSheet = true
                 },
                 hasPendingAttachment: pendingGIFURL != nil
             )

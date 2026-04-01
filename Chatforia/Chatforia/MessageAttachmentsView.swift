@@ -64,7 +64,7 @@ struct MessageAttachmentsView: View {
         let previewURLString = thumbURLString ?? fullURLString
         let fullURL = fullURLString.flatMap { URL(string: absoluteMediaURLString($0)) }
 
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: isMe ? .trailing : .leading, spacing: 6) {
             if let previewURLString,
                let url = URL(string: absoluteMediaURLString(previewURLString)) {
                 Button {
@@ -123,7 +123,7 @@ struct MessageAttachmentsView: View {
             if let caption = attachment.caption?.nilIfBlank {
                 Text(caption)
                     .font(.caption.weight(.semibold))
-                    .foregroundColor(.black)
+                    .foregroundStyle(.primary)
                     .multilineTextAlignment(isMe ? .trailing : .leading)
                     .frame(maxWidth: .infinity, alignment: isMe ? .trailing : .leading)
                     .padding(.horizontal, 2)
@@ -164,7 +164,7 @@ struct MessageAttachmentsView: View {
                                 .padding(6)
                         }
                     }
-                    .padding(6) 
+                    .padding(6)
                     .background(
                         RoundedRectangle(cornerRadius: 18, style: .continuous)
                             .fill(Color(uiColor: .secondarySystemBackground))
@@ -185,7 +185,7 @@ struct MessageAttachmentsView: View {
             if let caption = attachment.caption?.nilIfBlank {
                 Text(caption)
                     .font(.caption.weight(.semibold))
-                    .foregroundColor(.black)
+                    .foregroundStyle(.primary)
                     .multilineTextAlignment(isMe ? .trailing : .leading)
                     .frame(maxWidth: .infinity, alignment: isMe ? .trailing : .leading)
                     .padding(.horizontal, 2)

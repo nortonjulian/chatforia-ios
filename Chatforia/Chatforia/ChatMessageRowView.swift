@@ -372,6 +372,18 @@ struct ChatMessageRowView: View {
     private var shouldShowBubble: Bool {
         if msg.deletedForAll == true { return true }
 
+        let mediaKinds = Set(
+            visibleAttachments.map { ($0.kind ?? "").uppercased() }
+        )
+
+        let hasImageOrGIFAttachment =
+            mediaKinds.contains("IMAGE") || mediaKinds.contains("GIF")
+
+        if hasImageOrGIFAttachment {
+            // For image/GIF messages, caption lives in MessageAttachmentsView
+            return false
+        }
+
         if let translated = msg.translatedForMe,
            !translated.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return true
@@ -380,12 +392,6 @@ struct ChatMessageRowView: View {
         if let raw = msg.rawContent,
            !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return true
-        }
-
-        // If this message is attachment-based and the only "text" is the encrypted placeholder,
-        // do not render a separate bubble.
-        if hasVisibleAttachments {
-            return false
         }
 
         if msg.contentCiphertext != nil {

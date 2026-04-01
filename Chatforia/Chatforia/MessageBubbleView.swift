@@ -37,6 +37,23 @@ struct MessageBubbleView: View {
             )
     }
     
+    private var gifAttachment: AttachmentDTO? {
+        msg.attachments?.first(where: { att in
+            let kind = (att.kind ?? "").uppercased()
+            let mime = (att.mimeType ?? "").lowercased()
+            return kind == "GIF" || mime == "image/gif"
+        })
+    }
+
+    private var gifURL: URL? {
+        guard let urlString = gifAttachment?.url else { return nil }
+        return URL(string: urlString)
+    }
+
+    private var hasRenderableGIF: Bool {
+        gifURL != nil
+    }
+    
     private var contentRenderKey: String {
         let edited = msg.editedAt?.timeIntervalSince1970 ?? 0
         let revision = msg.revision ?? 0
@@ -96,15 +113,6 @@ struct MessageBubbleView: View {
         } else if let raw = msg.rawContent,
                   !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             Text(raw)
-                .onAppear {
-                    print("RAW:", raw)
-                    print(
-                        "SCALARS:",
-                        raw.unicodeScalars
-                            .map { String(format: "U+%04X", $0.value) }
-                            .joined(separator: " ")
-                    )
-                }
         } else if let translated = msg.translatedForMe,
                   !translated.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             Text(translated)
