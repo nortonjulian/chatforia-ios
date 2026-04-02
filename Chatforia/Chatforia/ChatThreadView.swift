@@ -212,7 +212,7 @@ struct ChatThreadView: View {
                     }
                 }
 
-                if msg.sender.id == auth.currentUser?.id {
+                if canDeleteForEveryone(msg) {
                     Button("Delete for everyone", role: .destructive) {
                         Task {
                             let _ = await vm.deleteMessage(
@@ -445,6 +445,13 @@ extension ChatThreadView {
             draft = ""
             vm.stopTypingNow(roomId: room.id)
         }
+    }
+    
+    private var deleteForEveryoneWindowSec: TimeInterval { 900 }
+
+    private func canDeleteForEveryone(_ msg: MessageDTO) -> Bool {
+        guard msg.sender.id == auth.currentUser?.id else { return false }
+        return Date().timeIntervalSince(msg.createdAt) <= deleteForEveryoneWindowSec
     }
 
     private func presentPhotoPicker() {

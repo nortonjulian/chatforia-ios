@@ -15,8 +15,50 @@ final class ChatsViewModel: ObservableObject {
     init() {
         NotificationCenter.default.publisher(for: .socketMessageUpsert)
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.resortConversations()
+            .sink { [weak self] note in
+                guard let self else { return }
+                guard let payload = note.userInfo?["payload"] as? [String: Any] else { return }
+
+                let raw =
+                    (payload["item"] as? [String: Any]) ??
+                    (payload["shaped"] as? [String: Any]) ??
+                    (payload["message"] as? [String: Any]) ??
+                    payload
+
+                guard let roomId = raw["chatRoomId"] as? Int else { return }
+
+                // ❌ DO NOT bump for delete-for-me
+                if let deletedForMe = raw["deletedForMe"] as? Bool, deletedForMe == true {
+                    return
+                }
+
+                self.bumpConversation(roomId: roomId, payload: raw)
+            }
+            .store(in: &cancellables)
+        
+        NotificationCenter.default.publisher(for: .socketMessageEdited)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] note in
+                guard let self else { return }
+                guard let payload = note.userInfo?["payload"] as? [String: Any] else { return }
+
+                let raw =
+                    (payload["item"] as? [String: Any]) ??
+                    (payload["shaped"] as? [String: Any]) ??
+                    (payload["message"] as? [String: Any]) ??
+                    payload
+
+                guard
+                    let roomId = raw["chatRoomId"] as? Int,
+                    let messageId = raw["id"] as? Int,
+                    let index = self.conversations.firstIndex(where: { $0.id == roomId })
+                else { return }
+
+                // ✅ Only bump if this edit affects the latest visible message
+                let currentLastMessageId = self.conversations[index].last?.messageId
+                guard currentLastMessageId == messageId else { return }
+
+                self.bumpConversation(roomId: roomId, payload: raw)
             }
             .store(in: &cancellables)
 
@@ -26,6 +68,108 @@ final class ChatsViewModel: ObservableObject {
                 self?.resortConversations()
             }
             .store(in: &cancellables)
+    }
+    
+    private func bumpConversation(roomId: Int, payload: [String: Any]) {
+        guard let index = conversations.firstIndex(where: { $0.id == roomId }) else { return }
+
+        let convo = conversations[index]
+        let nowISO = ISO8601DateFormatter().string(from: Date())
+
+        let currentLast = convo.last
+
+        let newText: String? = {
+            if let text = payload["rawContent"] as? String,
+               !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return text
+            }
+
+            if let text = payload["translatedForMe"] as? String,
+               !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return text
+            }
+
+            if payload["deletedForAll"] as? Bool == true {
+                return "Message deleted"
+            }
+
+            if let attachments = payload["attachments"] as? [[String: Any]], !attachments.isEmpty {
+                return "[media]"
+            }
+
+            if currentLast?.hasMedia == true {
+                return currentLast?.text ?? "[media]"
+            }
+
+            return currentLast?.text
+        }()
+
+        let hasMedia: Bool = {
+            if let attachments = payload["attachments"] as? [[String: Any]] {
+                return !attachments.isEmpty
+            }
+            return currentLast?.hasMedia ?? false
+        }()
+
+        let mediaCount: Int? = {
+            if let attachments = payload["attachments"] as? [[String: Any]] {
+                return attachments.count
+            }
+            return currentLast?.mediaCount
+        }()
+
+        let mediaKinds: [String]? = {
+            if let attachments = payload["attachments"] as? [[String: Any]] {
+                let kinds = attachments.compactMap { $0["kind"] as? String }
+                return kinds.isEmpty ? currentLast?.mediaKinds : kinds
+            }
+            return currentLast?.mediaKinds
+        }()
+
+        let thumbUrl: String? = {
+            if let attachments = payload["attachments"] as? [[String: Any]] {
+                for att in attachments {
+                    if let thumb = att["thumbUrl"] as? String, !thumb.isEmpty {
+                        return thumb
+                    }
+                    if let url = att["url"] as? String, !url.isEmpty {
+                        return url
+                    }
+                }
+            }
+            return currentLast?.thumbUrl
+        }()
+
+        let messageId: Int? = {
+            if let id = payload["id"] as? Int, id > 0 {
+                return id
+            }
+            return currentLast?.messageId
+        }()
+
+        let newLast = ConversationLastDTO(
+            text: newText,
+            messageId: messageId,
+            at: nowISO,
+            hasMedia: hasMedia,
+            mediaCount: mediaCount,
+            mediaKinds: mediaKinds,
+            thumbUrl: thumbUrl
+        )
+
+        let updated = ConversationDTO(
+            kind: convo.kind,
+            id: convo.id,
+            title: convo.title,
+            updatedAt: nowISO,
+            isGroup: convo.isGroup,
+            phone: convo.phone,
+            unreadCount: convo.unreadCount,
+            last: newLast
+        )
+
+        conversations[index] = updated
+        resortConversations()
     }
     
     private func resortConversations() {

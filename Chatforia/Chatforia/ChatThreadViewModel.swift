@@ -308,9 +308,35 @@ final class ChatThreadViewModel: ObservableObject {
     }
 
     private func handleMessageDeletedEvent(_ payload: [String: Any]) {
-        handleSocketUpsert(payload)
-    }
+        guard let configuredRoomId = roomId else { return }
 
+        let payloadRoomId =
+            (payload["chatRoomId"] as? Int) ??
+            (payload["roomId"] as? Int) ??
+            ((payload["item"] as? [String: Any])?["chatRoomId"] as? Int) ??
+            ((payload["message"] as? [String: Any])?["chatRoomId"] as? Int) ??
+            ((payload["shaped"] as? [String: Any])?["chatRoomId"] as? Int)
+
+        guard payloadRoomId == configuredRoomId else { return }
+
+        let raw =
+            (payload["item"] as? [String: Any]) ??
+            (payload["shaped"] as? [String: Any]) ??
+            (payload["message"] as? [String: Any]) ??
+            payload
+
+        guard let deletedForMe = raw["deletedForMe"] as? Bool, deletedForMe == true else {
+            // Leave tombstones / full deletes alone — those already flow through upsert
+            return
+        }
+
+        guard let messageId = raw["id"] as? Int else { return }
+
+        messages.removeAll { $0.id == messageId }
+        MessageStore.shared.removeMessage(id: messageId)
+        refreshFromMessageStore()
+    }
+    
     private func startTypingPruneLoop() {
         guard typingPruneTask == nil else { return }
 
