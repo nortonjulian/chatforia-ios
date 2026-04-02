@@ -19,6 +19,12 @@ struct AttachmentPickerSheet: View {
                     label: "Photo",
                     action: onPhoto
                 )
+                
+                attachmentButton(
+                    icon: "video",
+                    label: "Video",
+                    action: onPhoto // reuse same picker
+                )
 
                 attachmentButton(
                     icon: "sparkles",

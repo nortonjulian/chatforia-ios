@@ -21,6 +21,7 @@ struct MessagesListView: View {
     let onEdit: (MessageDTO) -> Void
     let onDelete: (MessageDTO) -> Void
     let onReport: (MessageDTO) -> Void
+    let onVideoTap: ((URL) -> Void)?
 
     @Binding var lastMessageId: Int?
     @State private var expandedTimestampMessageId: Int?
@@ -211,7 +212,8 @@ struct MessagesListView: View {
             onBubbleTap: {
                 expandedTimestampMessageId = expandedTimestampMessageId == msg.id ? nil : msg.id
             },
-            bubbleMaxWidth: bubbleMaxWidth
+            bubbleMaxWidth: bubbleMaxWidth,
+            onVideoTap: onVideoTap
         )
         .id(rowRenderKey(for: msg))
         .transition(

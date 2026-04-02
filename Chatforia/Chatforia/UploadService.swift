@@ -61,4 +61,20 @@ final class UploadService {
             mimeType: "audio/m4a"
         )
     }
+    
+    func uploadVideo(
+        fileURL: URL,
+        token: String,
+        fileName: String,
+        mimeType: String
+    ) async throws -> UploadResultDTO {
+        let data = try Data(contentsOf: fileURL)
+
+        return try await uploadFile(
+            data: data,
+            token: token,
+            fileName: fileName,
+            mimeType: mimeType
+        )
+    }
 }

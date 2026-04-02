@@ -23,6 +23,7 @@ struct ChatMessageRowView: View {
     let isTimestampVisible: Bool
     let onBubbleTap: () -> Void
     let bubbleMaxWidth: CGFloat
+    let onVideoTap: ((URL) -> Void)?
 
     @EnvironmentObject private var themeManager: ThemeManager
     @State private var didAppear = false
@@ -60,7 +61,8 @@ struct ChatMessageRowView: View {
                     MessageAttachmentsView(
                         attachments: visibleAttachments,
                         isMe: isMe,
-                        maxWidth: bubbleMaxWidth
+                        maxWidth: bubbleMaxWidth,
+                        onVideoTap: onVideoTap
                     )
                     .transition(.opacity.combined(with: .scale(scale: 0.98)))
                     .contentShape(Rectangle())

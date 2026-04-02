@@ -1,6 +1,8 @@
 import SwiftUI
 import PhotosUI
 import UIKit
+import UniformTypeIdentifiers
+import AVFoundation
 
 struct ChatThreadView: View {
     let room: ChatRoomDTO
@@ -32,7 +34,17 @@ struct ChatThreadView: View {
     @State private var showPhotoPicker = false
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
     
+    @State private var isProcessingVideo = false
+    @State private var videoProcessingStatus: String? = nil
+    
+    @State private var selectedVideoURL: IdentifiableURL? = nil
+    
     @State private var pendingGIFURL: URL? = nil
+    
+    struct IdentifiableURL: Identifiable {
+        let id = UUID()
+        let url: URL
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -180,13 +192,31 @@ struct ChatThreadView: View {
         .photosPicker(
             isPresented: $showPhotoPicker,
             selection: $selectedPhotoItem,
-            matching: .images
+            matching: .any(of: [.images, .videos])
         )
         .onChange(of: selectedPhotoItem) { _, newItem in
             guard let newItem else { return }
 
             Task {
-                await sendSelectedPhoto(newItem)
+                if let type = newItem.supportedContentTypes.first, type.conforms(to: .movie) {
+                    do {
+                        guard let data = try await newItem.loadTransferable(type: Data.self), !data.isEmpty else {
+                            await MainActor.run {
+                                vm.errorText = "Couldn’t load video."
+                            }
+                            return
+                        }
+
+                        await sendSelectedVideo(data, contentType: type)
+                    } catch {
+                        await MainActor.run {
+                            vm.errorText = "Couldn’t load video. \(error.localizedDescription)"
+                        }
+                    }
+                } else {
+                    await sendSelectedPhoto(newItem)
+                }
+
                 await MainActor.run {
                     selectedPhotoItem = nil
                 }
@@ -229,6 +259,9 @@ struct ChatThreadView: View {
             Button("Cancel", role: .cancel) {
                 deletingMessage = nil
             }
+        }
+        .fullScreenCover(item: $selectedVideoURL) { item in
+            FullscreenVideoView(url: item.url)
         }
     }
 }
@@ -276,12 +309,16 @@ extension ChatThreadView {
                         deletingMessage = msg
                     },
                     onReport: { _ in },
+                    onVideoTap: { url in
+                        selectedVideoURL = IdentifiableURL(url: url)
+                    },
                     lastMessageId: $lastMessageId
                 )
             }
         }
     }
 }
+
 
 extension ChatThreadView {
     private var composer: some View {
@@ -293,10 +330,40 @@ extension ChatThreadView {
                     .padding(.horizontal, 10)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
+            
+            if isProcessingVideo {
+                HStack(spacing: 12) {
+                    ProgressView()
+                        .scaleEffect(0.9)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(videoProcessingStatus ?? "Processing video...")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(themeManager.palette.primaryText)
+
+                        Text("Please keep Chatforia open while this finishes.")
+                            .font(.caption)
+                            .foregroundStyle(themeManager.palette.secondaryText)
+                    }
+
+                    Spacer()
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(themeManager.palette.cardBackground)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(themeManager.palette.border, lineWidth: 1)
+                )
+                .padding(.horizontal, 10)
+            }
 
             MessageComposerView(
                 draft: $draft,
-                isSending: vm.isSendingImage || vm.isSendingAudio,
+                isSending: vm.isSendingImage || vm.isSendingAudio || isProcessingVideo,
                 onDraftChanged: {
                     vm.typingStarted(roomId: room.id)
 
@@ -395,6 +462,61 @@ extension ChatThreadView {
         } catch {
             await MainActor.run {
                 vm.errorText = "Couldn’t send GIF. \(error.localizedDescription)"
+            }
+        }
+    }
+    
+    private func sendSelectedVideo(_ data: Data, contentType: UTType) async {
+        guard let senderId = auth.currentUser?.id else { return }
+
+        await MainActor.run {
+            isProcessingVideo = true
+            videoProcessingStatus = "Compressing video..."
+        }
+
+        do {
+            let tempInputURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent("picked-video-\(UUID().uuidString).mov")
+
+            try data.write(to: tempInputURL, options: .atomic)
+
+            let compressedURL = try await VideoCompressionService.shared.compressVideo(at: tempInputURL)
+            let compressedData = try Data(contentsOf: compressedURL)
+
+            let fileName = "video-\(Int(Date().timeIntervalSince1970)).mp4"
+            let mimeType = "video/mp4"
+
+            await MainActor.run {
+                videoProcessingStatus = "Uploading video..."
+            }
+
+            let ok = await vm.sendVideoMessage(
+                roomId: room.id,
+                token: TokenStore.shared.read(),
+                videoData: compressedData,
+                fileName: fileName,
+                mimeType: mimeType,
+                senderId: senderId,
+                senderUsername: auth.currentUser?.username,
+                senderPublicKey: nil
+            )
+
+            await MainActor.run {
+                isProcessingVideo = false
+                videoProcessingStatus = nil
+            }
+
+            if ok {
+                vm.stopTypingNow(roomId: room.id)
+            }
+
+            try? FileManager.default.removeItem(at: tempInputURL)
+            try? FileManager.default.removeItem(at: compressedURL)
+        } catch {
+            await MainActor.run {
+                isProcessingVideo = false
+                videoProcessingStatus = nil
+                vm.errorText = "Couldn’t compress/send video. \(error.localizedDescription)"
             }
         }
     }

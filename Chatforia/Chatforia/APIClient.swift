@@ -267,6 +267,8 @@ final class APIClient {
         req.httpBody = body
 
         do {
+            print("📤 uploadMultipart fileName =", fileName)
+            print("📤 uploadMultipart mimeType =", mimeType)
             let (data, response) = try await URLSession.shared.data(for: req)
 
             guard let http = response as? HTTPURLResponse else {

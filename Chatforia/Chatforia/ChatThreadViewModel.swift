@@ -826,6 +826,120 @@ final class ChatThreadViewModel: ObservableObject {
             return false
         }
     }
+    
+    func sendVideoMessage(
+        roomId: Int,
+        token: String?,
+        videoData: Data,
+        fileName: String,
+        mimeType: String,
+        senderId: Int,
+        senderUsername: String?,
+        senderPublicKey: String?
+    ) async -> Bool {
+        guard let token, !token.isEmpty else {
+            errorText = "Missing auth token."
+            return false
+        }
+
+        guard !videoData.isEmpty else {
+            errorText = "Video data is empty."
+            return false
+        }
+
+        let sender = SenderDTO(
+            id: senderId,
+            username: senderUsername,
+            publicKey: senderPublicKey,
+            avatarUrl: nil
+        )
+
+        errorText = nil
+        stopTypingNow(roomId: roomId)
+        isSendingImage = true
+        defer { isSendingImage = false }
+
+        let clientMessageId = UUID().uuidString
+        let localId = -abs(clientMessageId.hashValue)
+
+        do {
+            let upload = try await UploadService.shared.uploadFile(
+                data: videoData,
+                token: token,
+                fileName: fileName,
+                mimeType: mimeType
+            )
+
+            let attachment = AttachmentDTO(
+                id: nil,
+                kind: "VIDEO",
+                url: upload.url,
+                mimeType: upload.contentType ?? "video/mp4",
+                width: nil,
+                height: nil,
+                durationSec: nil,
+                caption: nil,
+                thumbUrl: nil
+            )
+
+            let optimistic = MessageDTO.optimistic(
+                roomId: roomId,
+                clientMessageId: clientMessageId,
+                localId: localId,
+                text: "[video]",
+                attachments: [attachment],
+                imageUrl: nil,
+                senderId: sender.id,
+                senderUsername: sender.username,
+                senderPublicKey: sender.publicKey
+            )
+
+            applyToStore(optimistic)
+            MessageStore.shared.setDeliveryState(clientMessageId: clientMessageId, state: .sending)
+            refreshFromMessageStore()
+
+            let recipients = try await fetchRecipientAccountKeysForRoom(
+                token: token,
+                roomId: roomId,
+                senderUserId: senderId
+            )
+
+            let encrypted = try MessageCryptoService.shared.encryptMessageForRecipients(
+                plaintext: "[video]",
+                senderUserId: senderId,
+                recipients: recipients
+            )
+
+            let bodyRequest = SendMessageRequest(
+                chatRoomId: roomId,
+                content: nil,
+                contentCiphertext: encrypted.ciphertextBase64,
+                encryptedKeys: encrypted.encryptedKeysByUserId,
+                clientMessageId: clientMessageId,
+                attachmentsInline: [attachment]
+            )
+
+            let bodyData = try JSONEncoder().encode(bodyRequest)
+
+            let job = SendJob(
+                clientMessageId: clientMessageId,
+                localId: String(localId),
+                bodyJSON: bodyData,
+                attachmentsMeta: nil
+            )
+
+            SendQueueManager.shared.enqueue(job)
+            SendQueueManager.shared.startIfNeeded()
+            return true
+        } catch {
+            MessageStore.shared.setDeliveryState(
+                clientMessageId: clientMessageId,
+                state: .failed
+            )
+            errorText = "Couldn’t send video. \(error.localizedDescription)"
+            return false
+        }
+    }
 
     func sendGIFMessage(
         roomId: Int,

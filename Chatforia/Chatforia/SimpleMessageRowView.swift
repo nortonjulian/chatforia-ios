@@ -35,7 +35,8 @@ struct SimpleMessageRowView: View {
                         MessageAttachmentsView(
                             attachments: visibleAttachments,
                             isMe: isMe,
-                            maxWidth: maxBubbleWidth
+                            maxWidth: maxBubbleWidth,
+                            onVideoTap: nil
                         )
                     }
 

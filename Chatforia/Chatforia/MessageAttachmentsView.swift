@@ -1,9 +1,11 @@
 import SwiftUI
+import AVKit
 
 struct MessageAttachmentsView: View {
     let attachments: [AttachmentDTO]
     let isMe: Bool
     let maxWidth: CGFloat
+    let onVideoTap: ((URL) -> Void)?
 
     @State private var selectedImageURL: IdentifiableURL?
 
@@ -33,12 +35,7 @@ struct MessageAttachmentsView: View {
             case "AUDIO":
                 audioCard(attachment)
             case "VIDEO":
-                tappableFileCard(
-                    title: attachment.caption?.nilIfBlank ?? "Video",
-                    subtitle: attachment.mimeType?.nilIfBlank ?? "Video attachment",
-                    systemImage: "video.fill",
-                    urlString: attachment.url
-                )
+                videoCard(attachment)
             case "FILE":
                 tappableFileCard(
                     title: attachment.caption?.nilIfBlank ?? fileNameFromURL(attachment.url) ?? "File",
@@ -54,6 +51,50 @@ struct MessageAttachmentsView: View {
                     urlString: attachment.url
                 )
             }
+        }
+    }
+    
+    @ViewBuilder
+    private func videoCard(_ attachment: AttachmentDTO) -> some View {
+        let mime = (attachment.mimeType ?? "").lowercased()
+        let supportedInline = [
+            "video/mp4",
+            "video/quicktime",
+            "video/3gpp",
+            "video/3gpp2"
+        ].contains(mime)
+
+        if supportedInline, let url = resolvedURL(from: attachment.url) {
+            ZStack {
+                InlineVideoPlayerView(url: url)
+                    .frame(width: min(maxWidth, 240), height: 180)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+                Button {
+                    onVideoTap?(url)
+                } label: {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(.clear)
+
+                        Image(systemName: "arrow.up.left.and.arrow.down.right")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(.white)
+                            .padding(10)
+                            .background(Color.black.opacity(0.55))
+                            .clipShape(Circle())
+                    }
+                    .frame(width: min(maxWidth, 240), height: 180)
+                }
+                .buttonStyle(.plain)
+            }
+        } else {
+            tappableFileCard(
+                title: attachment.caption?.nilIfBlank ?? "Video",
+                subtitle: attachment.mimeType?.nilIfBlank ?? "Video attachment",
+                systemImage: "video.fill",
+                urlString: attachment.url
+            )
         }
     }
 
@@ -87,9 +128,8 @@ struct MessageAttachmentsView: View {
                         case .success(let image):
                             image
                                 .resizable()
-                                .scaledToFill()
-                                .frame(width: min(maxWidth, 240), height: 180)
-                                .clipped()
+                                .scaledToFit()
+                                .frame(maxWidth: min(maxWidth, 240), maxHeight: 240)
                                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
                         case .failure:
