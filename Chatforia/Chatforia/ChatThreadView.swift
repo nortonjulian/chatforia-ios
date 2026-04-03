@@ -289,7 +289,62 @@ extension ChatThreadView {
 extension ChatThreadView {
     private var pendingMediaBar: some View {
         Group {
-            if !isProcessingVideo && (pendingImageData != nil || pendingVideoURL != nil) {
+            if let gifURL = pendingGIFURL {
+                ZStack(alignment: .topTrailing) {
+                    AsyncImage(url: gifURL) { phase in
+                        switch phase {
+                        case .empty:
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .fill(themeManager.palette.composerFieldBackground)
+                                ProgressView()
+                            }
+                            .frame(height: 160)
+
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFit()
+                                .frame(maxHeight: 180)
+                                .frame(maxWidth: .infinity)
+                                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+                        case .failure:
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .fill(themeManager.palette.composerFieldBackground)
+
+                                VStack(spacing: 6) {
+                                    Image(systemName: "exclamationmark.triangle")
+                                    Text("Couldn’t load GIF")
+                                        .font(.caption)
+                                }
+                                .foregroundStyle(themeManager.palette.secondaryText)
+                            }
+                            .frame(height: 160)
+
+                        @unknown default:
+                            EmptyView()
+                        }
+                    }
+
+                    Button {
+                        pendingGIFURL = nil
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(8)
+                            .background(Color.black.opacity(0.7))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .padding(8)
+                }
+                .padding(.horizontal, 10)
+                .padding(.top, 8)
+
+            } else if !isProcessingVideo && (pendingImageData != nil || pendingVideoURL != nil) {
                 HStack(spacing: 10) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(pendingVideoURL != nil ? "Video ready" : "Photo ready")
@@ -337,7 +392,6 @@ extension ChatThreadView {
                                     let trimmedCaption = draft.trimmingCharacters(in: .whitespacesAndNewlines)
                                     let caption = trimmedCaption.isEmpty ? nil : trimmedCaption
 
-                                    // Hide the "Video ready" card immediately so only upload UI remains.
                                     pendingVideoURL = nil
 
                                     isProcessingVideo = true
@@ -364,7 +418,6 @@ extension ChatThreadView {
                                         draft = ""
                                         vm.stopTypingNow(roomId: room.id)
                                     } else {
-                                        // Restore the selected video so the user can try again.
                                         pendingVideoURL = videoURL
                                     }
 
@@ -417,14 +470,6 @@ extension ChatThreadView {
 extension ChatThreadView {
     private var composer: some View {
         VStack(spacing: 8) {
-            if let pendingGIFURL {
-                GIFWebView(url: pendingGIFURL)
-                    .frame(width: 140, height: 140)
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .padding(.horizontal, 10)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            
             if isProcessingVideo {
                 HStack(spacing: 12) {
                     ProgressView()
