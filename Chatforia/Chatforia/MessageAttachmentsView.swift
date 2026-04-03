@@ -64,37 +64,48 @@ struct MessageAttachmentsView: View {
             "video/3gpp2"
         ].contains(mime)
 
-        if supportedInline, let url = resolvedURL(from: attachment.url) {
-            ZStack {
-                InlineVideoPlayerView(url: url)
-                    .frame(width: min(maxWidth, 240), height: 180)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        VStack(alignment: isMe ? .trailing : .leading, spacing: 6) {
+            if supportedInline, let url = resolvedURL(from: attachment.url) {
+                ZStack {
+                    InlineVideoPlayerView(url: url)
+                        .frame(width: min(maxWidth, 240), height: 180)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
-                Button {
-                    onVideoTap?(url)
-                } label: {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(.clear)
+                    Button {
+                        onVideoTap?(url)
+                    } label: {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .fill(.clear)
 
-                        Image(systemName: "arrow.up.left.and.arrow.down.right")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.white)
-                            .padding(10)
-                            .background(Color.black.opacity(0.55))
-                            .clipShape(Circle())
+                            Image(systemName: "arrow.up.left.and.arrow.down.right")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.white)
+                                .padding(10)
+                                .background(Color.black.opacity(0.55))
+                                .clipShape(Circle())
+                        }
+                        .frame(width: min(maxWidth, 240), height: 180)
                     }
-                    .frame(width: min(maxWidth, 240), height: 180)
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
+            } else {
+                tappableFileCard(
+                    title: attachment.caption?.nilIfBlank ?? "Video",
+                    subtitle: attachment.mimeType?.nilIfBlank ?? "Video attachment",
+                    systemImage: "video.fill",
+                    urlString: attachment.url
+                )
             }
-        } else {
-            tappableFileCard(
-                title: attachment.caption?.nilIfBlank ?? "Video",
-                subtitle: attachment.mimeType?.nilIfBlank ?? "Video attachment",
-                systemImage: "video.fill",
-                urlString: attachment.url
-            )
+
+            if let caption = attachment.caption?.nilIfBlank {
+                Text(caption)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(isMe ? .trailing : .leading)
+                    .frame(maxWidth: .infinity, alignment: isMe ? .trailing : .leading)
+                    .padding(.horizontal, 2)
+            }
         }
     }
 

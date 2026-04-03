@@ -5,9 +5,10 @@ struct MessageBubbleView: View {
     let isMe: Bool
     let isGroupedWithPrevious: Bool
     let isGroupedWithNext: Bool
-
+    
     @EnvironmentObject private var themeManager: ThemeManager
-
+    @StateObject private var decryptedStore = DecryptedMessageTextStore.shared
+    
     var body: some View {
         content
             .id(contentRenderKey)
@@ -44,14 +45,26 @@ struct MessageBubbleView: View {
             return kind == "GIF" || mime == "image/gif"
         })
     }
-
+    
     private var gifURL: URL? {
         guard let urlString = gifAttachment?.url else { return nil }
         return URL(string: urlString)
     }
-
+    
     private var hasRenderableGIF: Bool {
         gifURL != nil
+    }
+    
+    private var decryptedText: String? {
+        let text = decryptedStore
+            .text(for: msg.id)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if let text, !text.isEmpty {
+            return text
+        }
+
+        return nil
     }
     
     private var contentRenderKey: String {
@@ -59,8 +72,9 @@ struct MessageBubbleView: View {
         let revision = msg.revision ?? 0
         let raw = msg.rawContent ?? ""
         let translated = msg.translatedForMe ?? ""
+        let decrypted = decryptedText ?? ""
         let deleted = (msg.deletedForAll == true || msg.deletedBySender == true) ? "deleted" : "live"
-        return "\(msg.id)|\(revision)|\(edited)|\(raw)|\(translated)|\(deleted)"
+        return "\(msg.id)|\(revision)|\(edited)|\(raw)|\(translated)|\(decrypted)|\(deleted)"
     }
     
     private var bubbleShape: ChatBubbleShape {
@@ -70,7 +84,7 @@ struct MessageBubbleView: View {
             groupedWithNext: isGroupedWithNext
         )
     }
-
+    
     private var bubbleFill: LinearGradient {
         if isMe {
             return LinearGradient(
@@ -92,9 +106,53 @@ struct MessageBubbleView: View {
             )
         }
     }
-
+    
     @ViewBuilder
     private var content: some View {
+        let decrypted = decryptedText
+        
+        let hasDecrypted: Bool = {
+            guard let decrypted else { return false }
+            return !decrypted.isEmpty
+        }()
+        
+        let attachments = msg.attachments ?? []
+        let hasAttachments = !attachments.isEmpty
+
+        let raw = msg.rawContent?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let translated = msg.translatedForMe?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let attachmentCaption = attachments
+            .compactMap { $0.caption?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .first { !$0.isEmpty }
+
+        let placeholderTexts: Set<String> = [
+            "[image]",
+            "[video]",
+            "[audio]",
+            "[file]",
+            "[attachment]",
+            "attachment"
+        ]
+
+        let normalizedRaw = raw?.lowercased()
+        let normalizedTranslated = translated?.lowercased()
+        let normalizedAttachmentCaption = attachmentCaption?.lowercased()
+
+        let hasRenderableRaw: Bool = {
+            guard let normalizedRaw else { return false }
+            return !normalizedRaw.isEmpty && !placeholderTexts.contains(normalizedRaw)
+        }()
+
+        let hasRenderableTranslated: Bool = {
+            guard let normalizedTranslated else { return false }
+            return !normalizedTranslated.isEmpty && !placeholderTexts.contains(normalizedTranslated)
+        }()
+
+        let hasRenderableAttachmentCaption: Bool = {
+            guard let normalizedAttachmentCaption else { return false }
+            return !normalizedAttachmentCaption.isEmpty && !placeholderTexts.contains(normalizedAttachmentCaption)
+        }()
+
         if msg.deletedForAll == true || msg.deletedBySender == true {
             Text("This message was deleted")
                 .italic()
@@ -103,6 +161,18 @@ struct MessageBubbleView: View {
                     ? themeManager.palette.bubbleOutgoingText.opacity(0.82)
                     : themeManager.palette.secondaryText
                 )
+        } else if hasDecrypted, let decrypted {
+            Text(decrypted)
+
+        } else if hasRenderableRaw, let raw {
+            Text(raw)
+
+        } else if hasRenderableTranslated, let translated {
+            Text(translated)
+
+        } else if hasRenderableAttachmentCaption, let attachmentCaption {
+            Text(attachmentCaption)
+
         } else if msg.contentCiphertext != nil, msg.encryptedKeyForMe != nil {
             DecryptMessageTextView(
                 msg: msg,
@@ -110,26 +180,13 @@ struct MessageBubbleView: View {
                     ? themeManager.palette.bubbleOutgoingText.opacity(0.82)
                     : themeManager.palette.secondaryText
             )
-        } else if let raw = msg.rawContent,
-                  !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            Text(raw)
-        } else if let translated = msg.translatedForMe,
-                  !translated.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            Text(translated)
-        } else if msg.contentCiphertext != nil {
+
+        } else if msg.contentCiphertext != nil, !hasAttachments {
             Text("🔒 Encrypted message")
-        } else if let attachments = msg.attachments, !attachments.isEmpty {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Attachment")
-                    .font(.subheadline.weight(.semibold))
-                Text("\(attachments.count) file\(attachments.count == 1 ? "" : "s")")
-                    .font(.caption)
-                    .foregroundStyle(
-                        isMe
-                        ? themeManager.palette.bubbleOutgoingText.opacity(0.82)
-                        : themeManager.palette.secondaryText
-                    )
-            }
+
+        } else if hasAttachments {
+            EmptyView()
+
         } else {
             Text("—")
         }

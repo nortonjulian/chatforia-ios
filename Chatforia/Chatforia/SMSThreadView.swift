@@ -15,6 +15,10 @@ struct SMSThreadView: View {
     @State private var showPhotoPicker = false
 
     @State private var showingAddContact = false
+    
+    @State private var showSearchSheet = false
+    @State private var searchText = ""
+    @State private var highlightedMessageID: Int? = nil
 
     var body: some View {
         VStack(spacing: 0) {
@@ -35,6 +39,12 @@ struct SMSThreadView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
+                Button {
+                    showSearchSheet = true
+                } label: {
+                    Image(systemName: "magnifyingglass")
+                }
+
                 Button {
                     showingAddContact = true
                 } label: {
@@ -72,6 +82,25 @@ struct SMSThreadView: View {
             } else {
                 stopPolling()
             }
+        }
+        .sheet(isPresented: $showSearchSheet) {
+            SMSThreadSearchSheet(
+                messages: vm.messages,
+                searchText: $searchText
+            ) { selected in
+                highlightedMessageID = selected.id
+                showSearchSheet = false
+
+                Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: 250_000_000)
+                    try? await Task.sleep(nanoseconds: 2_000_000_000)
+
+                    if highlightedMessageID == selected.id {
+                        highlightedMessageID = nil
+                    }
+                }
+            }
+            .environmentObject(themeManager)
         }
     }
 
@@ -121,10 +150,13 @@ struct SMSThreadView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
         } else {
-            SMSMessagesListView(messages: vm.messages)
+            SMSMessagesListView(
+                messages: vm.messages,
+                highlightedMessageID: highlightedMessageID
+            )
                 .refreshable {
                     await reload()
-                }
+            }
         }
     }
 
@@ -250,6 +282,7 @@ struct SMSThreadView: View {
 
 private struct SMSMessagesListView: View {
     let messages: [SMSMessageDTO]
+    let highlightedMessageID: Int?
 
     @EnvironmentObject private var themeManager: ThemeManager
 
@@ -263,7 +296,8 @@ private struct SMSMessagesListView: View {
                         ForEach(messages) { msg in
                             SMSMessageRowView(
                                 msg: msg,
-                                bubbleMaxWidth: bubbleMaxWidth
+                                bubbleMaxWidth: bubbleMaxWidth,
+                                isHighlighted: highlightedMessageID == msg.id
                             )
                             .id(msg.id)
                         }
@@ -280,6 +314,13 @@ private struct SMSMessagesListView: View {
                 }
                 .onChange(of: messages.map(\.id)) { _, _ in
                     scrollToBottom(proxy, animated: true)
+                }
+                .onChange(of: highlightedMessageID) { _, newValue in
+                    guard let id = newValue else { return }
+
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        proxy.scrollTo(id, anchor: .center)
+                    }
                 }
             }
         }
@@ -304,6 +345,7 @@ private struct SMSMessagesListView: View {
 private struct SMSMessageRowView: View {
     let msg: SMSMessageDTO
     let bubbleMaxWidth: CGFloat
+    let isHighlighted: Bool
 
     @EnvironmentObject private var themeManager: ThemeManager
 
@@ -407,6 +449,15 @@ private struct SMSMessageRowView: View {
         .frame(maxWidth: .infinity, alignment: msg.isOutgoing ? .trailing : .leading)
         .padding(.horizontal, 12)
         .padding(.vertical, 5)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(isHighlighted ? Color.yellow.opacity(0.18) : Color.clear)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(isHighlighted ? Color.yellow.opacity(0.45) : Color.clear, lineWidth: 2)
+        )
+        .animation(.easeInOut(duration: 0.2), value: isHighlighted)
     }
 
     private func timestampText(_ date: Date) -> String {

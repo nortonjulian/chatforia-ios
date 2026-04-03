@@ -14,6 +14,7 @@ struct ChatMessageRowView: View {
     let groupPosition: GroupPosition
     let showAvatar: Bool
     let showSenderName: Bool
+    let isHighlighted: Bool
     let deliveryState: DeliveryState?
     let onRetryTap: (() -> Void)?
     let onReceiptTap: (() -> Void)?
@@ -33,7 +34,6 @@ struct ChatMessageRowView: View {
         let retryAction = onRetryTap
         let editAction = onEdit
         let deleteAction = onDelete
-
 
         return HStack(alignment: .bottom, spacing: 8) {
             if !isMe {
@@ -67,6 +67,14 @@ struct ChatMessageRowView: View {
                     .transition(.opacity.combined(with: .scale(scale: 0.98)))
                     .contentShape(Rectangle())
                     .contextMenu {
+                        if let text = copyText {
+                            Button {
+                                UIPasteboard.general.string = text
+                            } label: {
+                                Label("Copy", systemImage: "doc.on.doc")
+                            }
+                        }
+                        
                         if isMe {
                             if canEditByRules {
                                 Button("Edit", systemImage: "pencil") {
@@ -105,7 +113,7 @@ struct ChatMessageRowView: View {
                     }
                 }
 
-                if shouldShowBubble {
+                if shouldShowBubble && !hasVisibleAttachments {
                     MessageBubbleView(
                         msg: msg,
                         isMe: isMe,
@@ -115,6 +123,14 @@ struct ChatMessageRowView: View {
                     .frame(maxWidth: bubbleMaxWidth, alignment: isMe ? .trailing : .leading)
                     .contentShape(Rectangle())
                     .contextMenu {
+                        if let text = copyText {
+                            Button {
+                                UIPasteboard.general.string = text
+                            } label: {
+                                Label("Copy", systemImage: "doc.on.doc")
+                            }
+                        }
+                        
                         if isMe {
                             if canEditByRules {
                                 Button("Edit", systemImage: "pencil") {
@@ -177,6 +193,15 @@ struct ChatMessageRowView: View {
         .padding(.horizontal, 12)
         .padding(.top, topPadding)
         .padding(.bottom, bottomPadding)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(isHighlighted ? Color.yellow.opacity(0.18) : Color.clear)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(isHighlighted ? Color.yellow.opacity(0.45) : Color.clear, lineWidth: 2)
+        )
+        .animation(.easeInOut(duration: 0.2), value: isHighlighted)
         .scaleEffect(didAppear ? 1 : 0.985)
         .opacity(didAppear ? 1 : 0)
         .offset(y: didAppear ? 0 : 4)
@@ -266,7 +291,14 @@ struct ChatMessageRowView: View {
     private var shouldShowMetadataLine: Bool {
         guard isMe else { return false }
         guard resolvedReceiptText != nil else { return false }
-        return groupPosition == .single || groupPosition == .bottom
+        guard groupPosition == .single || groupPosition == .bottom else { return false }
+
+        // Prevent duplicate upload-state text for media messages.
+        if hasVisibleAttachments && (deliveryState == .pending || deliveryState == .sending) {
+            return false
+        }
+
+        return true
     }
 
     private var metadataIsTappable: Bool {
@@ -294,7 +326,7 @@ struct ChatMessageRowView: View {
                 .minute()
         )
     }
-    
+
     private var deleteMenuTitle: String {
         if canDeleteForEveryoneByRules {
             return "Delete"
@@ -348,7 +380,6 @@ struct ChatMessageRowView: View {
         messageAge <= 15 * 60
     }
 
-
     private var visibleAttachments: [AttachmentDTO] {
         (msg.attachments ?? []).filter { attachment in
             let hasURL = !(attachment.url?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
@@ -374,36 +405,48 @@ struct ChatMessageRowView: View {
     private var shouldShowBubble: Bool {
         if msg.deletedForAll == true { return true }
 
-        let mediaKinds = Set(
-            visibleAttachments.map { ($0.kind ?? "").uppercased() }
-        )
+        let attachments = visibleAttachments
+        let hasAttachments = !attachments.isEmpty
 
-        let hasImageOrGIFAttachment =
-            mediaKinds.contains("IMAGE") || mediaKinds.contains("GIF")
+        let placeholderTexts: Set<String> = [
+            "[image]",
+            "[video]",
+            "[audio]",
+            "[file]",
+            "[attachment]",
+            "attachment"
+        ]
 
-        if hasImageOrGIFAttachment {
-            // For image/GIF messages, caption lives in MessageAttachmentsView
-            return false
-        }
+        let translated = msg.translatedForMe?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let raw = msg.rawContent?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let attachmentCaption = attachmentCaptionText?.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        if let translated = msg.translatedForMe,
-           !translated.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        let hasRenderableTranslated: Bool = {
+            guard let translated else { return false }
+            return !translated.isEmpty && !placeholderTexts.contains(translated.lowercased())
+        }()
+
+        let hasRenderableRaw: Bool = {
+            guard let raw else { return false }
+            return !raw.isEmpty && !placeholderTexts.contains(raw.lowercased())
+        }()
+
+        let hasRenderableAttachmentCaption: Bool = {
+            guard let attachmentCaption else { return false }
+            return !attachmentCaption.isEmpty && !placeholderTexts.contains(attachmentCaption.lowercased())
+        }()
+
+        if hasRenderableTranslated { return true }
+        if hasRenderableRaw { return true }
+        if hasRenderableAttachmentCaption { return true }
+
+        if msg.contentCiphertext != nil, !hasAttachments {
             return true
         }
 
-        if let raw = msg.rawContent,
-           !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return true
-        }
-
-        if msg.contentCiphertext != nil {
-            return true
-        }
-
-        return !hasVisibleAttachments
+        return !hasAttachments
     }
 
-    
     private var otherReaders: [UserSummaryDTO] {
         guard let readBy = msg.readBy else { return [] }
         return readBy.filter { $0.id != msg.sender.id }
@@ -423,7 +466,7 @@ struct ChatMessageRowView: View {
             withinEditWindow
         return result
     }
-    
+
     private var canDeleteForEveryoneByRules: Bool {
         guard isMe else { return false }
         guard !isPendingOrSending else { return false }
@@ -505,5 +548,33 @@ struct ChatMessageRowView: View {
         case .pending, .sending, .sent, .delivered, .read, .none:
             return themeManager.palette.secondaryText
         }
+    }
+    
+    private var copyText: String? {
+        // Priority: decrypted → translated → raw → attachment caption
+        let decrypted = DecryptedMessageTextStore.shared.text(for: msg.id)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if let decrypted, !decrypted.isEmpty {
+            return decrypted
+        }
+
+        if let translated = msg.translatedForMe?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+           !translated.isEmpty {
+            return translated
+        }
+
+        if let raw = msg.rawContent?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+           !raw.isEmpty {
+            return raw
+        }
+
+        let caption = msg.attachments?
+            .compactMap { $0.caption?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .first(where: { !$0.isEmpty })
+
+        return caption
     }
 }

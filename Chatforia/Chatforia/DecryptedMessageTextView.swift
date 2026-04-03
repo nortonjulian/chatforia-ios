@@ -23,6 +23,7 @@ struct DecryptMessageTextView: View {
         .task {
             await decryptIfNeeded()
         }
+        .onReceive(store.$values) { _ in } // 👈 THIS LINE
     }
 
     private func preferredVisibleText() -> String? {

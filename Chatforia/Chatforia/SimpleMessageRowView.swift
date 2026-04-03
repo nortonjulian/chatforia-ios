@@ -120,9 +120,24 @@ struct SimpleMessageRowView: View {
     private var hasVisibleAttachments: Bool {
         !visibleAttachments.isEmpty && msg.deletedForAll != true
     }
+    
+    private var decryptedText: String? {
+        let text = DecryptedMessageTextStore.shared.text(for: msg.id)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if let text, !text.isEmpty {
+            return text
+        }
+
+        return nil
+    }
 
     private var shouldShowBubble: Bool {
         if msg.deletedForAll == true { return true }
+
+        if let decryptedText, !decryptedText.isEmpty {
+            return true
+        }
 
         if let translated = msg.translatedForMe,
            !translated.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -144,6 +159,10 @@ struct SimpleMessageRowView: View {
     private var displayText: String {
         if msg.deletedForAll == true {
             return "This message was deleted"
+        }
+
+        if let decryptedText, !decryptedText.isEmpty {
+            return decryptedText
         }
 
         if let translated = msg.translatedForMe,

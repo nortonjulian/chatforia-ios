@@ -24,6 +24,8 @@ struct MessagesListView: View {
     let onVideoTap: ((URL) -> Void)?
 
     @Binding var lastMessageId: Int?
+    @Binding var highlightedMessageID: Int?
+    
     @State private var expandedTimestampMessageId: Int?
     @State private var selectedReceiptMessage: MessageDTO?
 
@@ -63,6 +65,8 @@ struct MessagesListView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 0) {
+                        Spacer(minLength: 0)
+
                         Color.clear
                             .frame(height: 1)
                             .id("TOP_SENTINEL")
@@ -93,6 +97,7 @@ struct MessagesListView: View {
                                 }
                             )
                     }
+                    .frame(minHeight: geo.size.height, alignment: .bottom)
                     .padding(.vertical, 14)
                     .animation(.spring(response: 0.28, dampingFraction: 0.88), value: sortedMessageIDs)
                 }
@@ -120,6 +125,14 @@ struct MessagesListView: View {
                 }
                 .onChange(of: sortedMessages.last?.id) { _, newNewest in
                     guard newNewest != lastMessageId else { return }
+
+                    // ✅ ADD THIS LINE
+                    if !hasCompletedInitialBottomScroll {
+                        scrollToBottom(proxy, animated: false)
+                        hasCompletedInitialBottomScroll = true
+                        lastMessageId = newNewest
+                        return
+                    }
 
                     if !isRestoringAfterPrepend && isNearBottom {
                         scrollToBottom(proxy)
@@ -149,6 +162,15 @@ struct MessagesListView: View {
                 }
                 .onChange(of: oldestMessageId) { _, _ in
                     isPagingTriggerInFlight = false
+                }
+                .onChange(of: highlightedMessageID) { _, newValue in
+                    guard let id = newValue else { return }
+
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            proxy.scrollTo(id, anchor: .center)
+                        }
+                    }
                 }
                 .sheet(item: $selectedReceiptMessage) { msg in
                     MessageReceiptSheet(message: msg, isGroupRoom: isGroupRoom)
@@ -192,6 +214,7 @@ struct MessagesListView: View {
             groupPosition: groupPosition,
             showAvatar: showAvatar,
             showSenderName: showSenderName,
+            isHighlighted: highlightedMessageID == msg.id,
             deliveryState: deliveryStateForMessage(msg),
             onRetryTap: {
                 onRetryTap(msg)
@@ -215,7 +238,7 @@ struct MessagesListView: View {
             bubbleMaxWidth: bubbleMaxWidth,
             onVideoTap: onVideoTap
         )
-        .id(rowRenderKey(for: msg))
+        .id(msg.id)
         .transition(
             .asymmetric(
                 insertion: .move(edge: .bottom)

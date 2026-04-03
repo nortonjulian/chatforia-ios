@@ -4,7 +4,8 @@ struct MessageComposerView: View {
     @Binding var draft: String
 
     @EnvironmentObject var settingsVM: SettingsViewModel
-    
+    @EnvironmentObject private var themeManager: ThemeManager
+
     let isSending: Bool
     let isSendingVoice: Bool
     let onDraftChanged: () -> Void
@@ -28,8 +29,7 @@ struct MessageComposerView: View {
     let isPlayingVoiceDraft: Bool
     let hasVoiceDraft: Bool
     let hasPendingAttachment: Bool
-
-    @EnvironmentObject private var themeManager: ThemeManager
+    let isCaptioningPendingMedia: Bool
 
     init(
         draft: Binding<String>,
@@ -53,7 +53,8 @@ struct MessageComposerView: View {
         onPlayVoiceDraftTap: @escaping () -> Void = {},
         isPlayingVoiceDraft: Bool = false,
         hasVoiceDraft: Bool = false,
-        hasPendingAttachment: Bool = false
+        hasPendingAttachment: Bool = false,
+        isCaptioningPendingMedia: Bool = false
     ) {
         self._draft = draft
         self.isSending = isSending
@@ -77,6 +78,7 @@ struct MessageComposerView: View {
         self.isPlayingVoiceDraft = isPlayingVoiceDraft
         self.hasVoiceDraft = hasVoiceDraft
         self.hasPendingAttachment = hasPendingAttachment
+        self.isCaptioningPendingMedia = isCaptioningPendingMedia
     }
 
     private var trimmedDraft: String {
@@ -84,7 +86,10 @@ struct MessageComposerView: View {
     }
 
     private var isTextSendDisabled: Bool {
-        isSending || isSendingVoice || (trimmedDraft.isEmpty && !hasPendingAttachment)
+        if isCaptioningPendingMedia {
+            return true
+        }
+        return isSending || isSendingVoice || (trimmedDraft.isEmpty && !hasPendingAttachment)
     }
 
     var body: some View {
@@ -92,7 +97,7 @@ struct MessageComposerView: View {
             if settingsVM.enableSmartReplies && !suggestions.isEmpty {
                 RiaSuggestionBar(
                     suggestions: suggestions,
-                    isLoading: false,
+                    isLoading: isLoadingSuggestions,
                     onTap: onSuggestionTap
                 )
             }
@@ -147,15 +152,19 @@ struct MessageComposerView: View {
                 .buttonStyle(.plain)
                 .disabled(isSending || isSendingVoice || trimmedDraft.isEmpty || hasVoiceDraft || isRecordingVoice)
 
-                TextField("Message", text: $draft, axis: .vertical)
-                    .textFieldStyle(.plain)
-                    .foregroundStyle(themeManager.palette.primaryText)
-                    .lineLimit(1...5)
-                    .padding(.vertical, 11)
-                    .disabled(isSending || isSendingVoice || hasVoiceDraft || isRecordingVoice)
-                    .onChange(of: draft) { _, _ in
-                        onDraftChanged()
-                    }
+                TextField(
+                    isCaptioningPendingMedia ? "Add a caption" : "Message",
+                    text: $draft,
+                    axis: .vertical
+                )
+                .textFieldStyle(.plain)
+                .foregroundStyle(themeManager.palette.primaryText)
+                .lineLimit(1...5)
+                .padding(.vertical, 11)
+                .disabled(isSending || isSendingVoice || hasVoiceDraft || isRecordingVoice)
+                .onChange(of: draft) { _, _ in
+                    onDraftChanged()
+                }
 
                 trailingAction
                     .padding(.trailing, 6)
@@ -181,6 +190,8 @@ struct MessageComposerView: View {
             }
             .buttonStyle(.plain)
             .disabled(isSending || isSendingVoice)
+        } else if isCaptioningPendingMedia {
+            EmptyView()
         } else if trimmedDraft.isEmpty && !hasPendingAttachment {
             Button {
                 onMicTap()
