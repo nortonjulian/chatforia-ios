@@ -139,6 +139,8 @@ final class ChatThreadViewModel: ObservableObject {
     
     @Published var smartReplies: [String] = []
     @Published var isLoadingSmartReplies: Bool = false
+    
+    @Published var isSendingGIF: Bool = false
 
     private var expiryTask: Task<Void, Never>?
     private var typingStopTask: Task<Void, Never>?
@@ -994,6 +996,10 @@ final class ChatThreadViewModel: ObservableObject {
         senderUsername: String?,
         senderPublicKey: String?
     ) async -> Bool {
+        
+        isSendingGIF = true
+        defer { isSendingGIF = false }
+        
         guard let token, !token.isEmpty else {
             errorText = "Missing auth token."
             return false
@@ -1083,7 +1089,7 @@ final class ChatThreadViewModel: ObservableObject {
             } else {
                 bodyRequest = SendMessageRequest(
                     chatRoomId: roomId,
-                    content: nil,
+                    content: "[gif]",
                     contentCiphertext: nil,
                     encryptedKeys: nil,
                     clientMessageId: clientMessageId,

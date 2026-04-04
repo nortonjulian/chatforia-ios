@@ -49,6 +49,9 @@ struct ChatThreadView: View {
     @State private var highlightedMessageID: Int? = nil
     @State private var showEditEmojiPicker = false
     
+    
+
+    
     @FocusState private var isEditEditorFocused: Bool
     
     struct IdentifiableURL: Identifiable {
@@ -502,7 +505,7 @@ extension ChatThreadView {
 
             MessageComposerView(
                 draft: $draft,
-                isSending: vm.isSendingImage || vm.isSendingAudio || isProcessingVideo,
+                isSending: vm.isSendingImage || vm.isSendingAudio || vm.isSendingGIF || isProcessingVideo,
                 onDraftChanged: {
                     vm.typingStarted(roomId: room.id)
 
@@ -525,6 +528,8 @@ extension ChatThreadView {
                     showAttachmentSheet = true
                 },
                 onSend: {
+                    guard !vm.isSendingGIF else { return }
+
                     Task {
                         if let gifURL = pendingGIFURL {
                             await sendGIFWithCaption(from: gifURL)

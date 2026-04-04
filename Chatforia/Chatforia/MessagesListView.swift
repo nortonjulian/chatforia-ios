@@ -294,13 +294,22 @@ struct MessagesListView: View {
     }
 
     private func scrollToBottom(_ proxy: ScrollViewProxy, animated: Bool = true) {
-        DispatchQueue.main.async {
+        func performScroll() {
             if animated {
                 withAnimation(.easeOut(duration: 0.22)) {
                     proxy.scrollTo("BOTTOM", anchor: .bottom)
                 }
             } else {
                 proxy.scrollTo("BOTTOM", anchor: .bottom)
+            }
+        }
+
+        DispatchQueue.main.async {
+            performScroll()
+
+            // Second pass for late layout changes (GIF/web/media settling)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+                performScroll()
             }
         }
     }
