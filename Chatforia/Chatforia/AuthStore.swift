@@ -12,10 +12,9 @@ final class AuthStore: ObservableObject {
 
     @Published var state: State = .loading
     @Published var needsOnboarding: Bool = false
-
-    // NEW
     @Published var needsKeyRestore: Bool = false
     @Published var keyRestoreMessage: String?
+    @Published var isPremium: Bool = false
 
     private let tokenStore = TokenStore.shared
     private(set) var socket = SocketManager.shared
@@ -64,6 +63,7 @@ final class AuthStore: ObservableObject {
             state = .loggedIn(response.user)
             evaluateOnboarding(for: response.user)
             evaluateKeyRestoreNeed(for: response.user)
+            isPremium = response.user.isPremium ?? false
 
             if needsKeyRestore {
                 print("🚨 KEY MISMATCH OR MISSING — forcing restore flow")
@@ -128,6 +128,7 @@ final class AuthStore: ObservableObject {
             state = .loggedIn(response.user)
             evaluateOnboarding(for: response.user)
             evaluateKeyRestoreNeed(for: response.user)
+            isPremium = response.user.isPremium ?? false
 
             if needsKeyRestore {
                 print("🚨 KEY MISMATCH OR MISSING — forcing restore flow")

@@ -33,6 +33,7 @@ struct ProfileRootView: View {
     
     @State private var hasRemoteBackup: Bool?
     @State private var isCheckingBackup = false
+    @State private var showUpgradeView = false
     
 
     var body: some View {
@@ -61,6 +62,37 @@ struct ProfileRootView: View {
                     }
 
                     headerSection
+                    
+                    if !(auth.currentUser?.isPremium ?? false) {
+                        Button {
+                            showUpgradeView = true
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "sparkles")
+                                    .foregroundStyle(themeManager.palette.accent)
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Go Premium")
+                                        .font(.body.weight(.semibold))
+                                        .foregroundStyle(themeManager.palette.primaryText)
+
+                                    Text("Remove ads and unlock more features")
+                                        .font(.subheadline)
+                                        .foregroundStyle(themeManager.palette.secondaryText)
+                                }
+
+                                Spacer()
+
+                                Image(systemName: "chevron.right")
+                                    .foregroundStyle(.tertiary)
+                            }
+                            .padding()
+                            .background(themeManager.palette.cardBackground)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    
                     accountSection
                     planSection
                     wirelessSection
@@ -87,6 +119,11 @@ struct ProfileRootView: View {
                 if let room = inviterRoom {
                     ChatThreadView(room: room, randomSession: nil)
                 }
+            }
+            .navigationDestination(isPresented: $showUpgradeView) {
+                UpgradeView()
+                    .environmentObject(auth)
+                    .environmentObject(themeManager)
             }
             
             .task {

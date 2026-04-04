@@ -36,6 +36,7 @@ struct UserDTO: Codable, Identifiable {
     let messageTone: String?
     let ringtone: String?
     let soundVolume: Int?
+    let isPremium: Bool?
 
     let enableSmartReplies: Bool?
 
@@ -70,6 +71,7 @@ struct UserDTO: Codable, Identifiable {
         messageTone: String? = nil,
         ringtone: String? = nil,
         soundVolume: Int? = nil,
+        isPremium: Bool? = nil,
         enableSmartReplies: Bool? = nil
     ) {
         self.id = id
@@ -109,5 +111,6 @@ struct UserDTO: Codable, Identifiable {
         self.soundVolume = soundVolume
 
         self.enableSmartReplies = enableSmartReplies
+        self.isPremium = isPremium
     }
 }

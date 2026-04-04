@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		472B4D132F818EC500B7A92F /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 472B4D122F818EC500B7A92F /* GoogleMobileAds */; };
 		475F9DFD2F418A78006B79D9 /* SocketIO in Frameworks */ = {isa = PBXBuildFile; productRef = 475F9DFC2F418A78006B79D9 /* SocketIO */; };
 		47D716242F72198B007F3F42 /* TwilioVoice in Frameworks */ = {isa = PBXBuildFile; productRef = 47D716232F72198B007F3F42 /* TwilioVoice */; };
 		47D716262F72198B007F3F42 /* TwilioVoice-static in Frameworks */ = {isa = PBXBuildFile; productRef = 47D716252F72198B007F3F42 /* TwilioVoice-static */; };
@@ -44,6 +45,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				472B4D132F818EC500B7A92F /* GoogleMobileAds in Frameworks */,
 				475F9DFD2F418A78006B79D9 /* SocketIO in Frameworks */,
 				47D7165F2F72F102007F3F42 /* TwilioVideo-static in Frameworks */,
 				47D716262F72198B007F3F42 /* TwilioVoice-static in Frameworks */,
@@ -96,6 +98,7 @@
 				47D716252F72198B007F3F42 /* TwilioVoice-static */,
 				47D7165C2F72F102007F3F42 /* TwilioVideo */,
 				47D7165E2F72F102007F3F42 /* TwilioVideo-static */,
+				472B4D122F818EC500B7A92F /* GoogleMobileAds */,
 			);
 			productName = Chatforia;
 			productReference = 474C11282F3A993100D958AB /* Chatforia.app */;
@@ -129,6 +132,7 @@
 				475F9DFB2F418A78006B79D9 /* XCRemoteSwiftPackageReference "socket.io-client-swift" */,
 				47D716222F72198B007F3F42 /* XCRemoteSwiftPackageReference "twilio-voice-ios" */,
 				47D7165B2F72F102007F3F42 /* XCRemoteSwiftPackageReference "twilio-video-ios" */,
+				472B4D112F818EC500B7A92F /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 474C11292F3A993100D958AB /* Products */;
@@ -380,6 +384,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		472B4D112F818EC500B7A92F /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/googleads/swift-package-manager-google-mobile-ads.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 13.2.0;
+			};
+		};
 		475F9DFB2F418A78006B79D9 /* XCRemoteSwiftPackageReference "socket.io-client-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/socketio/socket.io-client-swift.git";
@@ -407,6 +419,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		472B4D122F818EC500B7A92F /* GoogleMobileAds */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 472B4D112F818EC500B7A92F /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
+			productName = GoogleMobileAds;
+		};
 		475F9DFC2F418A78006B79D9 /* SocketIO */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 475F9DFB2F418A78006B79D9 /* XCRemoteSwiftPackageReference "socket.io-client-swift" */;

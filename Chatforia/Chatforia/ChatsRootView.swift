@@ -17,13 +17,14 @@ struct ChatsRootView: View {
 
     @State private var isMatching = false
     @State private var matchedRoom: ChatRoomDTO?
-    
     @State private var selectedRandomSession: RandomSession? = nil
-
     @State private var didSetupRandomMatchListener = false
-    
     @State private var showRiaChat = false
     @StateObject private var settingsVM = SettingsViewModel()
+
+    private var shouldShowAds: Bool {
+        !auth.isPremium
+    }
 
     var body: some View {
         NavigationStack {
@@ -31,91 +32,102 @@ struct ChatsRootView: View {
                 themeManager.palette.screenBackground
                     .ignoresSafeArea()
 
-                Group {
-                    if vm.isLoading && vm.conversations.isEmpty {
-                        LoadingStateView(
-                            title: "Loading chats…",
-                            subtitle: "Pulling in your latest conversations."
-                        )
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                VStack(spacing: 0) {
+                    Group {
+                        if vm.isLoading && vm.conversations.isEmpty {
+                            LoadingStateView(
+                                title: "Loading chats…",
+                                subtitle: "Pulling in your latest conversations."
+                            )
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                    } else if let err = vm.errorText, !err.isEmpty, vm.conversations.isEmpty {
-                        EmptyStateView(
-                            systemImage: "exclamationmark.bubble",
-                            title: "Couldn’t load chats",
-                            subtitle: err,
-                            buttonTitle: "Try Again",
-                            buttonAction: {
-                                Task { await reload() }
-                            }
-                        )
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                    } else if vm.filteredConversations.isEmpty &&
-                                !vm.searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        EmptyStateView(
-                            systemImage: "magnifyingglass",
-                            title: "No results",
-                            subtitle: "Try searching for a different name or message."
-                        )
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                    } else if vm.conversations.isEmpty {
-                        EmptyStateView(
-                            systemImage: "bubble.left.and.bubble.right",
-                            title: "No chats yet",
-                            subtitle: "Tap the plus button to start your first conversation."
-                        )
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                    } else {
-                        List {
-                            if let err = vm.errorText, !err.isEmpty {
-                                Section {
-                                    Text(err)
-                                        .font(.footnote)
-                                        .foregroundStyle(.red)
+                        } else if let err = vm.errorText, !err.isEmpty, vm.conversations.isEmpty {
+                            EmptyStateView(
+                                systemImage: "exclamationmark.bubble",
+                                title: "Couldn’t load chats",
+                                subtitle: err,
+                                buttonTitle: "Try Again",
+                                buttonAction: {
+                                    Task { await reload() }
                                 }
-                                .listRowBackground(themeManager.palette.cardBackground)
-                            }
+                            )
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                            ForEach(vm.filteredConversations, id: \.uniqueId) { conversation in
-                                NavigationLink {
-                                    destinationView(for: conversation)
-                                } label: {
-                                    ChatListRowView(
-                                        title: conversationTitle(conversation),
-                                        subtitle: conversationSubtitle(conversation),
-                                        timestamp: conversationTimestamp(conversation),
-                                        unreadCount: conversation.unreadCount ?? 0,
-                                        isPinned: false
-                                    )
+                        } else if vm.filteredConversations.isEmpty &&
+                                    !vm.searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            EmptyStateView(
+                                systemImage: "magnifyingglass",
+                                title: "No results",
+                                subtitle: "Try searching for a different name or message."
+                            )
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                        } else if vm.conversations.isEmpty {
+                            EmptyStateView(
+                                systemImage: "bubble.left.and.bubble.right",
+                                title: "No chats yet",
+                                subtitle: "Tap the plus button to start your first conversation."
+                            )
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                        } else {
+                            List {
+                                if let err = vm.errorText, !err.isEmpty {
+                                    Section {
+                                        Text(err)
+                                            .font(.footnote)
+                                            .foregroundStyle(.red)
+                                    }
+                                    .listRowBackground(themeManager.palette.cardBackground)
                                 }
-                                .swipeActions(edge: .trailing) {
-                                    Button {
-                                        Task {
-                                            let token = TokenStore.shared.read()
-                                            _ = await vm.archiveConversation(conversation, token: token)
+
+                                ForEach(vm.filteredConversations, id: \.uniqueId) { conversation in
+                                    NavigationLink {
+                                        destinationView(for: conversation)
+                                    } label: {
+                                        ChatListRowView(
+                                            title: conversationTitle(conversation),
+                                            subtitle: conversationSubtitle(conversation),
+                                            timestamp: conversationTimestamp(conversation),
+                                            unreadCount: conversation.unreadCount ?? 0,
+                                            isPinned: false
+                                        )
+                                    }
+                                    .swipeActions(edge: .trailing) {
+                                        Button {
+                                            Task {
+                                                let token = TokenStore.shared.read()
+                                                _ = await vm.archiveConversation(conversation, token: token)
+                                            }
+                                        } label: {
+                                            Label("Archive", systemImage: "archivebox")
                                         }
-                                    } label: {
-                                        Label("Archive", systemImage: "archivebox")
-                                    }
-                                    .tint(.blue)
+                                        .tint(.blue)
 
-                                    Button(role: .destructive) {
-                                        pendingConversation = conversation
-                                        showDeleteConfirm = true
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
+                                        Button(role: .destructive) {
+                                            pendingConversation = conversation
+                                            showDeleteConfirm = true
+                                        } label: {
+                                            Label("Delete", systemImage: "trash")
+                                        }
                                     }
+                                    .listRowBackground(themeManager.palette.cardBackground)
                                 }
-                                .listRowBackground(themeManager.palette.cardBackground)
                             }
+                            .scrollContentBackground(.hidden)
+                            .background(Color.clear)
+                            .listStyle(.insetGrouped)
+                            .animation(.easeInOut(duration: 0.2), value: vm.filteredConversations.map { "\($0.kind)-\($0.id)" })
                         }
-                        .scrollContentBackground(.hidden)
-                        .background(Color.clear)
-                        .listStyle(.insetGrouped)
-                        .animation(.easeInOut(duration: 0.2), value: vm.filteredConversations.map { "\($0.kind)-\($0.id)" })
+                    }
+
+                    if shouldShowAds {
+                        BannerAdView()
+                            .frame(height: 50)
+                            .frame(maxWidth: .infinity)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(themeManager.palette.screenBackground)
                     }
                 }
             }
@@ -178,11 +190,12 @@ struct ChatsRootView: View {
                     case .chat(let room):
                         selectedRoom = room
                         showSelectedRoom = true
-                        showSelectedRoom = true
+                        InterstitialAdManager.shared.recordChatOpenAndMaybeShow()
 
                     case .sms(let conversation):
                         selectedSMSConversation = conversation
                         showSelectedSMS = true
+                        InterstitialAdManager.shared.recordChatOpenAndMaybeShow()
                     }
                 }
                 .environmentObject(auth)
@@ -426,3 +439,4 @@ private struct UnsupportedConversationView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 }
+

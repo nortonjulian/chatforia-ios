@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import GoogleMobileAds
 
 final class AppDelegate: NSObject, UIApplicationDelegate {
     func application(
@@ -7,6 +8,13 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         NotificationCoordinator.shared.configure()
+
+        MobileAds.shared.start { initializationStatus in
+            #if DEBUG
+            print("✅ Google Mobile Ads SDK initialized: \(initializationStatus)")
+            #endif
+        }
+
         return true
     }
 
@@ -66,6 +74,8 @@ struct ChatforiaApp: App {
                 AppEnvironment.configureSendQueueHandlersIfNeeded()
                 SendQueueManager.shared.replayQueuedJobs()
                 await inviteFlow.redeemPendingInviteIfNeeded(auth: auth)
+                
+                InterstitialAdManager.shared.preloadIfNeeded()
             }
             .onOpenURL { url in
                 inviteFlow.handleIncomingURL(url)
@@ -91,6 +101,8 @@ struct ChatforiaApp: App {
             Task {
                 await inviteFlow.redeemPendingInviteIfNeeded(auth: auth)
             }
+            
+            InterstitialAdManager.shared.preloadIfNeeded()
         }
     }
 }
