@@ -37,7 +37,7 @@ struct RestoreEncryptionKeyView: View {
                         if isCheckingBackup {
                             ProgressView("Checking backup…")
                         } else if hasRemoteBackup == false || hasRemoteBackup == nil {
-                            Text("No encrypted backup was found for this account yet.")
+                            Text("No backup found. Create one to protect your messages.")
                                 .font(.footnote)
                                 .foregroundStyle(themeManager.palette.secondaryText)
 

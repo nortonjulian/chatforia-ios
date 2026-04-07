@@ -6,15 +6,21 @@ enum RemoteKeyBackupError: Error, LocalizedError {
     case invalidPassword
     case invalidKeyMaterial
     case encodingFailed
+    case decryptFailed
+    case keyMismatch
 
     var errorDescription: String? {
         switch self {
         case .invalidPassword:
             return "Invalid password."
         case .invalidKeyMaterial:
-            return "Missing or invalid key material."
+            return "Backup is incomplete or corrupted."
         case .encodingFailed:
             return "Failed to encode backup payload."
+        case .decryptFailed:
+            return "Could not decrypt backup with that password."
+        case .keyMismatch:
+            return "This backup does not match your current account key."
         }
     }
 }
@@ -233,7 +239,10 @@ final class RemoteKeyBackupService {
             throw RemoteKeyBackupError.invalidPassword
         }
 
-        guard let keys = try await fetchRemoteKeyBackup(token: token),
+        let fetchedKeys = try await fetchRemoteKeyBackup(token: token)
+        print("REMOTE KEYS:", fetchedKeys as Any)
+
+        guard let keys = fetchedKeys,
               let publicKey = keys.publicKey,
               let bundle = keys.encryptedPrivateKeyBundle,
               let saltB64 = keys.privateKeyWrapSalt,
@@ -242,12 +251,17 @@ final class RemoteKeyBackupService {
             throw RemoteKeyBackupError.invalidKeyMaterial
         }
 
-        let decrypted = try decryptKeyBundle(
-            encryptedBundle: bundle,
-            password: password,
-            saltB64: saltB64,
-            iterations: iterations
-        )
+        let decrypted: [String: String]
+        do {
+            decrypted = try decryptKeyBundle(
+                encryptedBundle: bundle,
+                password: password,
+                saltB64: saltB64,
+                iterations: iterations
+            )
+        } catch {
+            throw RemoteKeyBackupError.decryptFailed
+        }
 
         guard let restoredPublicKey = decrypted["publicKey"],
               let restoredPrivateKey = decrypted["privateKey"]
@@ -255,9 +269,11 @@ final class RemoteKeyBackupService {
             throw RemoteKeyBackupError.invalidKeyMaterial
         }
 
-        // Optional sanity check: restored public key should match server public key
+        print("RESTORED PUBLIC KEY:", restoredPublicKey)
+        print("SERVER PUBLIC KEY:", publicKey)
+
         guard restoredPublicKey == publicKey else {
-            throw RemoteKeyBackupError.invalidKeyMaterial
+            throw RemoteKeyBackupError.keyMismatch
         }
 
         try AccountKeyManager.shared.saveAccountKeys(

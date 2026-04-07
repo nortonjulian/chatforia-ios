@@ -106,6 +106,7 @@ struct ProfileRootView: View {
                     voicemailSection
                     forwardingSection
                     feedbackSection
+                    legalSection
                     saveButtonSection
                     logoutButtonSection
                 }
@@ -321,6 +322,47 @@ struct ProfileRootView: View {
                     title: "Plan",
                     value: plan
                 )
+            }
+        }
+    }
+    
+    private var legalSection: some View {
+        SectionCardView(title: "Legal & Support") {
+            VStack(spacing: 0) {
+
+                Button {
+                    openURL("https://chatforia.com/privacy")
+                } label: {
+                    legalRow("Privacy Policy")
+                }
+                .buttonStyle(.plain)
+
+                Divider()
+
+                Button {
+                    openURL("https://chatforia.com/legal/terms")
+                } label: {
+                    legalRow("Terms of Service")
+                }
+                .buttonStyle(.plain)
+
+                Divider()
+
+                Button {
+                    openURL("https://chatforia.com/legal/sms")
+                } label: {
+                    legalRow("SMS Messaging Policy")
+                }
+                .buttonStyle(.plain)
+
+                Divider()
+
+                Button {
+                    openURL("mailto:support@chatforia.com")
+                } label: {
+                    legalRow("Contact Support")
+                }
+                .buttonStyle(.plain)
             }
         }
     }
@@ -1186,6 +1228,24 @@ struct ProfileRootView: View {
         }
 
         vm.isSaving = false
+    }
+    
+    private func legalRow(_ title: String) -> some View {
+        HStack {
+            Text(title)
+                .foregroundStyle(themeManager.palette.primaryText)
+
+            Spacer()
+
+            Image(systemName: "arrow.up.right.square")
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.vertical, 10)
+    }
+    
+    private func openURL(_ string: String) {
+        guard let url = URL(string: string) else { return }
+        UIApplication.shared.open(url)
     }
     
     struct InviteAttributionBannerView: View {

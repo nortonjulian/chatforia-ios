@@ -9,7 +9,14 @@ final class AuthStore: ObservableObject {
         case loggedOut
         case loggedIn(UserDTO)
     }
+    
+    enum EncryptionState {
+        case ready
+        case missing
+        case mismatch
+    }
 
+    @Published var encryptionState: EncryptionState = .ready
     @Published var state: State = .loading
     @Published var needsOnboarding: Bool = false
     @Published var needsKeyRestore: Bool = false
@@ -102,6 +109,7 @@ final class AuthStore: ObservableObject {
         needsOnboarding = false
         needsKeyRestore = false
         keyRestoreMessage = nil
+        encryptionState = .ready
         state = .loggedOut
     }
 
@@ -149,13 +157,11 @@ final class AuthStore: ObservableObject {
         needsOnboarding = false
     }
 
-    // NEW
     func markKeyRestoreComplete() {
         needsKeyRestore = false
         keyRestoreMessage = nil
     }
 
-    // NEW
     func forceKeyRestore(message: String? = nil) {
         needsKeyRestore = true
         keyRestoreMessage = message
@@ -171,21 +177,21 @@ final class AuthStore: ObservableObject {
         let serverKey = user.publicKey?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let localKey = AccountKeyManager.shared.publicKeyBase64()?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 
-        // 🚨 Case 1: server has key but device has none
         if !serverKey.isEmpty && localKey.isEmpty {
+            encryptionState = .missing
             needsKeyRestore = true
             keyRestoreMessage = "This device is missing your encryption key. Restore it to read encrypted messages."
             return
         }
 
-        // 🚨 Case 2: KEY MISMATCH (THIS IS YOUR BUG)
         if !serverKey.isEmpty && !localKey.isEmpty && serverKey != localKey {
+            encryptionState = .mismatch
             needsKeyRestore = true
             keyRestoreMessage = "This device has a different encryption key. Restore the correct key to access your messages."
             return
         }
 
-        // ✅ All good
+        encryptionState = .ready
         needsKeyRestore = false
         keyRestoreMessage = nil
     }

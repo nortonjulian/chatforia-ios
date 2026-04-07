@@ -2,6 +2,16 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSContactsUsageDescription</key>
+	<string>Chatforia uses your contacts so you can find and connect with people you know.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Chatforia uses the microphone for voice messages and audio features.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Chatforia uses your photo library so you can select and share images in chats.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Chatforia can save images to your photo library when you choose to download media.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Chatforia uses the camera so you can take profile photos and share images in chats.</string>
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-8163977681153105~4737599234</string>
 	<key>TENOR_API_KEY</key>

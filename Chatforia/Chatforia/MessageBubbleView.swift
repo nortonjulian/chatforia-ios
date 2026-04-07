@@ -131,6 +131,7 @@ struct MessageBubbleView: View {
             "[audio]",
             "[file]",
             "[attachment]",
+            "[gif]",
             "attachment"
         ]
 

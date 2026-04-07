@@ -74,7 +74,7 @@ struct ChatMessageRowView: View {
                                 Label("Copy", systemImage: "doc.on.doc")
                             }
                         }
-                        
+
                         if isMe {
                             if canEditByRules {
                                 Button("Edit", systemImage: "pencil") {
@@ -393,9 +393,34 @@ struct ChatMessageRowView: View {
     }
 
     private var attachmentCaptionText: String? {
-        visibleAttachments
-            .compactMap { $0.caption?.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .first { !$0.isEmpty }
+        // 1. Try attachment caption first (iOS-native flow)
+        if let caption = visibleAttachments
+            .compactMap({ $0.caption?.trimmingCharacters(in: .whitespacesAndNewlines) })
+            .first(where: { !$0.isEmpty }) {
+            return caption
+        }
+
+        // 2. Fallback: use rawContent (web GIF caption case)
+        if let raw = msg.rawContent?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+           !raw.isEmpty {
+
+            let placeholders: Set<String> = [
+                "[image]",
+                "[video]",
+                "[audio]",
+                "[file]",
+                "[attachment]",
+                "[gif]",
+                "attachment"
+            ]
+
+            if !placeholders.contains(raw.lowercased()) {
+                return raw
+            }
+        }
+
+        return nil
     }
 
     private var hasAttachmentCaption: Bool {
@@ -414,6 +439,7 @@ struct ChatMessageRowView: View {
             "[audio]",
             "[file]",
             "[attachment]",
+            "[gif]",
             "attachment"
         ]
 

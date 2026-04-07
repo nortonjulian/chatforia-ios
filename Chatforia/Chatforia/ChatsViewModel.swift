@@ -25,9 +25,28 @@ final class ChatsViewModel: ObservableObject {
                     (payload["message"] as? [String: Any]) ??
                     payload
 
-                guard let roomId = raw["chatRoomId"] as? Int else { return }
+                let item = payload["item"] as? [String: Any]
+                let message = payload["message"] as? [String: Any]
+                let shaped = payload["shaped"] as? [String: Any]
 
-                // ❌ DO NOT bump for delete-for-me
+                let roomIdFromRawInt = raw["chatRoomId"] as? Int ?? raw["roomId"] as? Int
+                let roomIdFromRawString =
+                    (raw["chatRoomId"] as? String).flatMap(Int.init) ??
+                    (raw["roomId"] as? String).flatMap(Int.init)
+
+                let roomIdFromItem = item?["chatRoomId"] as? Int ?? item?["roomId"] as? Int
+                let roomIdFromMessage = message?["chatRoomId"] as? Int ?? message?["roomId"] as? Int
+                let roomIdFromShaped = shaped?["chatRoomId"] as? Int ?? shaped?["roomId"] as? Int
+
+                let roomId =
+                    roomIdFromRawInt ??
+                    roomIdFromRawString ??
+                    roomIdFromItem ??
+                    roomIdFromMessage ??
+                    roomIdFromShaped
+
+                guard let roomId else { return }
+
                 if let deletedForMe = raw["deletedForMe"] as? Bool, deletedForMe == true {
                     return
                 }
@@ -237,6 +256,13 @@ final class ChatsViewModel: ObservableObject {
             }
 
             self.conversations = sortedConversations(fetched)
+            
+            SocketManager.shared.connect(token: token)
+
+            for convo in fetched where convo.kind.lowercased() == "chat" {
+                SocketManager.shared.joinRoom(convo.id)
+            }
+            
         } catch {
             errorText = error.localizedDescription
             #if DEBUG

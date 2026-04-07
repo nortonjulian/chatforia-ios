@@ -1334,9 +1334,7 @@ final class ChatThreadViewModel: ObservableObject {
             print("⚠️ [Socket] room mismatch: \(incoming.chatRoomId ?? -1) vs \(configuredRoomId)")
             return
         }
-
-        print("✅ [Socket] decoded message id=\(incoming.id), clientMessageId=\(incoming.clientMessageId ?? "nil")")
-
+        
         let incomingId = incoming.id
 
         if incomingId > 0 {
