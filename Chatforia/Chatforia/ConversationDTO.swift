@@ -4,15 +4,24 @@ struct ConversationDTO: Codable, Identifiable {
     let kind: String
     let id: Int
     let title: String
+    let displayName: String?
     let updatedAt: String
     let isGroup: Bool?
     let phone: String?
     let unreadCount: Int?
+    let avatarUsers: [ConversationAvatarUserDTO]?
     let last: ConversationLastDTO?
 
     var uniqueId: String {
         "\(kind)-\(id)"
     }
+}
+
+struct ConversationAvatarUserDTO: Codable, Identifiable, Hashable {
+    let id: Int
+    let username: String?
+    let displayName: String?
+    let avatarUrl: String?
 }
 
 struct ConversationLastDTO: Codable {
@@ -23,13 +32,14 @@ struct ConversationLastDTO: Codable {
     let mediaCount: Int?
     let mediaKinds: [String]?
     let thumbUrl: String?
+    let senderName: String?
 }
 
 extension ConversationDTO {
     var asChatRoomDTO: ChatRoomDTO {
         ChatRoomDTO(
             id: id,
-            name: title,
+            name: displayName ?? title,
             isGroup: isGroup,
             updatedAt: updatedAt,
             phone: phone,
@@ -42,7 +52,12 @@ extension ConversationDTO {
                     sender: nil
                 )
             }(),
-            participants: nil
+            participants: avatarUsers?.map {
+                UserPreviewDTO(
+                    id: $0.id,
+                    username: $0.displayName ?? $0.username
+                )
+            }
         )
     }
 }

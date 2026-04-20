@@ -2,18 +2,24 @@ import Foundation
 import Combine
 
 @MainActor
-final class AuthStore: ObservableObject {
+final class AuthStore: NSObject, ObservableObject {
 
     enum State {
         case loading
         case loggedOut
         case loggedIn(UserDTO)
     }
-    
+
     enum EncryptionState {
         case ready
         case missing
         case mismatch
+    }
+
+    enum SubscriptionPlan: String {
+        case free = "FREE"
+        case plus = "PLUS"
+        case premium = "PREMIUM"
     }
 
     @Published var encryptionState: EncryptionState = .ready
@@ -21,10 +27,34 @@ final class AuthStore: ObservableObject {
     @Published var needsOnboarding: Bool = false
     @Published var needsKeyRestore: Bool = false
     @Published var keyRestoreMessage: String?
-    @Published var isPremium: Bool = false
+    @Published var subscriptionPlan: SubscriptionPlan = .free
 
     private let tokenStore = TokenStore.shared
     private(set) var socket = SocketManager.shared
+
+    var isPlus: Bool { subscriptionPlan == .plus }
+    var isPremium: Bool { subscriptionPlan == .premium }
+    var isPaid: Bool { isPlus || isPremium }
+
+    override init() {
+        super.init()
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleInvalidSessionNotification),
+            name: Notification.Name("auth.session.invalid"),
+            object: nil
+        )
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    @objc
+    private func handleInvalidSessionNotification() {
+        handleInvalidSession()
+    }
 
     var currentToken: String? {
         tokenStore.read()
@@ -41,6 +71,7 @@ final class AuthStore: ObservableObject {
         state = .loggedIn(user)
         evaluateOnboarding(for: user)
         evaluateKeyRestoreNeed(for: user)
+        syncPlan(from: user)
     }
 
     func bootstrap() async {
@@ -49,6 +80,7 @@ final class AuthStore: ObservableObject {
             needsOnboarding = false
             needsKeyRestore = false
             keyRestoreMessage = nil
+            subscriptionPlan = .free
             state = .loggedOut
             return
         }
@@ -58,24 +90,31 @@ final class AuthStore: ObservableObject {
                 APIRequest(path: "auth/me", method: .GET, requiresAuth: true),
                 token: token
             )
-
-            print("AUTH ME:", response.user.id, response.user.email ?? "nil")
             
-            print("SERVER user.publicKey =", response.user.publicKey ?? "nil")
-            print("ACCOUNT keychain publicKey =", AccountKeyManager.shared.publicKeyBase64() ?? "nil")
-            print("AFTER bootstrap local key =", AccountKeyManager.shared.publicKeyBase64() ?? "nil")
-            
-            print("DEVICE key publicKey =", (try? DeviceKeyManager.shared.publicKeyBase64()) ?? "nil")
+            print("📱 iPhone USER:", response.user.id, response.user.email ?? "no email")
 
             state = .loggedIn(response.user)
             evaluateOnboarding(for: response.user)
             evaluateKeyRestoreNeed(for: response.user)
-            isPremium = response.user.isPremium ?? false
+            syncPlan(from: response.user)
+            
+            await SubscriptionManager.shared.refreshEntitlements()
+
+            do {
+                let refreshed: MeResponse = try await APIClient.shared.send(
+                    APIRequest(path: "auth/me", method: .GET, requiresAuth: true),
+                    token: token
+                )
+                state = .loggedIn(refreshed.user)
+                evaluateOnboarding(for: refreshed.user)
+                evaluateKeyRestoreNeed(for: refreshed.user)
+                syncPlan(from: refreshed.user)
+            } catch {
+                print("⚠️ post-StoreKit auth refresh failed:", error.localizedDescription)
+            }
 
             if needsKeyRestore {
-                print("🚨 KEY MISMATCH OR MISSING — forcing restore flow")
-                socket.disconnect()
-                return
+                print("⚠️ KEY ISSUE — temporarily bypassing for TestFlight")
             }
 
             do {
@@ -89,12 +128,20 @@ final class AuthStore: ObservableObject {
                     keyRestoreMessage = nil
                 }
             } catch {
-                print("⚠️ key bootstrap failed:", error)
+                print("⚠️ key bootstrap failed:", error.localizedDescription)
             }
 
             socket.connect(token: token)
+
+        } catch let apiError as APIError {
+            switch apiError {
+            case .unauthorized:
+                handleInvalidSession()
+            default:
+                print("⚠️ bootstrap failed with non-auth error:", apiError.localizedDescription)
+            }
         } catch {
-            handleInvalidSession()
+            print("⚠️ bootstrap failed with unexpected error:", error.localizedDescription)
         }
     }
 
@@ -110,6 +157,7 @@ final class AuthStore: ObservableObject {
         needsKeyRestore = false
         keyRestoreMessage = nil
         encryptionState = .ready
+        subscriptionPlan = .free
         state = .loggedOut
     }
 
@@ -119,6 +167,7 @@ final class AuthStore: ObservableObject {
         needsOnboarding = false
         needsKeyRestore = false
         keyRestoreMessage = nil
+        subscriptionPlan = .free
         state = .loggedOut
     }
 
@@ -136,7 +185,7 @@ final class AuthStore: ObservableObject {
             state = .loggedIn(response.user)
             evaluateOnboarding(for: response.user)
             evaluateKeyRestoreNeed(for: response.user)
-            isPremium = response.user.isPremium ?? false
+            syncPlan(from: response.user)
 
             if needsKeyRestore {
                 print("🚨 KEY MISMATCH OR MISSING — forcing restore flow")
@@ -167,10 +216,24 @@ final class AuthStore: ObservableObject {
         keyRestoreMessage = message
     }
 
+    private func syncPlan(from user: UserDTO) {
+        let normalized = (user.plan ?? "FREE").uppercased()
+
+        switch normalized {
+        case "PREMIUM":
+            subscriptionPlan = .premium
+        case "PLUS":
+            subscriptionPlan = .plus
+        default:
+            subscriptionPlan = .free
+        }
+    }
+
     private func evaluateOnboarding(for user: UserDTO) {
         let languageMissing = (user.preferredLanguage?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
-        let completedLocally = UserDefaults.standard.bool(forKey: onboardingKey(for: user.id))
-        needsOnboarding = languageMissing || !completedLocally
+        let hasTemporaryUsername = user.username.lowercased().hasPrefix("user_") || user.username.lowercased().hasPrefix("pending_")
+
+        needsOnboarding = languageMissing || hasTemporaryUsername
     }
 
     private func evaluateKeyRestoreNeed(for user: UserDTO) {

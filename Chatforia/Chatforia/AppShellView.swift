@@ -41,5 +41,9 @@ struct AppShellView: View {
                 RestoreEncryptionKeyView()
             }
         }
+        .onAppear {
+            print("✅ APPSHELL APPEARED for user:", user.email ?? "nil")
+            print("🌍 iOS apiBaseURL =", AppEnvironment.apiBaseURL)
+        }
     }
 }

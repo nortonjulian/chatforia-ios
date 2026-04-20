@@ -11,6 +11,14 @@ extension AccountKeyManager {
             privateKeyBase64: privateKey.rawRepresentation.base64EncodedString()
         )
     }
+    
+    // NOTE:
+    // This fallback generates a brand-new local account keypair only when
+    // no local keys exist and no remote backup exists.
+    // This path is sensitive because the server may already have an account
+    // public key from an earlier provisioning step.
+    // Do not change this behavior without re-testing signup, login,
+    // restore, and new-device flows.
 
     func ensureLocalKeysExist(token: String) async throws -> Bool {
         if hasAccountKeys() {

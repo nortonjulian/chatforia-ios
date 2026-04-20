@@ -24,6 +24,9 @@ struct ContentView: View {
         .task(id: contentStateKey) {
             await inviteFlow.redeemPendingInviteIfNeeded(auth: auth)
         }
+        .onChange(of: contentStateKey) { _, newValue in
+            print("🧭 CONTENT STATE KEY:", newValue)
+        }
     }
 
     private var contentStateKey: String {

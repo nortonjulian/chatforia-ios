@@ -11,6 +11,9 @@ struct WirelessHomeView: View {
     @State private var activationPayload: ESIMActivationDTO?
 
     @State private var showActivation = false
+    @State private var isPurchasingPack = false
+    @State private var purchaseErrorMessage: String?
+    @State private var purchasingPackProduct: String?
 
     enum ESIMStatus {
         case none
@@ -24,6 +27,14 @@ struct WirelessHomeView: View {
                 heroSection
                 scopePickerSection
                 activationSection
+
+                if let purchaseErrorMessage {
+                    Text(purchaseErrorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
                 packsSection
                 actionsSection
                 disclaimerSection
@@ -113,6 +124,7 @@ struct WirelessHomeView: View {
         }
     }
 
+
     private var packsSection: some View {
         VStack(spacing: 16) {
             ForEach(WirelessCatalog.packs(for: selectedScope)) { pack in
@@ -145,30 +157,39 @@ struct WirelessHomeView: View {
                 Button {
                     handleGetPackTapped(pack)
                 } label: {
-                    Text("Get this data pack")
-                        .font(.headline)
-                        .foregroundStyle(themeManager.palette.buttonForeground)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(
-                            LinearGradient(
-                                colors: [
-                                    themeManager.palette.buttonStart,
-                                    themeManager.palette.buttonEnd
-                                ],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
+                    HStack {
+                        if isPurchasingPack {
+                            ProgressView()
+                                .tint(themeManager.palette.buttonForeground)
+                        }
+
+                        Text(isPurchasingPack ? "Starting activation..." : "Get this data pack")
+                            .font(.headline)
+                            .foregroundStyle(themeManager.palette.buttonForeground)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(
+                        LinearGradient(
+                            colors: [
+                                themeManager.palette.buttonStart,
+                                themeManager.palette.buttonEnd
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
                         )
-                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                        .shadow(
-                            color: themeManager.palette.buttonEnd.opacity(0.28),
-                            radius: 10,
-                            x: 0,
-                            y: 4
-                        )
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .shadow(
+                        color: themeManager.palette.buttonEnd.opacity(0.28),
+                        radius: 10,
+                        x: 0,
+                        y: 4
+                    )
                 }
                 .buttonStyle(.plain)
+                .disabled(isPurchasingPack)
+                .opacity(isPurchasingPack ? 0.7 : 1)
             }
             .padding(.vertical, 8)
         }
@@ -282,12 +303,18 @@ struct WirelessHomeView: View {
 
     private func handleGetPackTapped(_ pack: DataPackOption) {
         Task {
+            isPurchasingPack = true
+            purchaseErrorMessage = nil
+
+            defer { isPurchasingPack = false }
+
             do {
                 let payload = try await ESIMService.shared.purchaseAndProvision(pack: pack)
                 activationPayload = payload
                 activationStatus = .readyToInstall
                 showActivation = true
             } catch {
+                purchaseErrorMessage = "We couldn’t start your eSIM activation right now. Please try again."
                 print("Purchase/provision failed for product \(pack.product): \(error)")
             }
         }

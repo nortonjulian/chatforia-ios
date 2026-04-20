@@ -173,17 +173,20 @@ final class ChatsViewModel: ObservableObject {
             hasMedia: hasMedia,
             mediaCount: mediaCount,
             mediaKinds: mediaKinds,
-            thumbUrl: thumbUrl
+            thumbUrl: thumbUrl,
+            senderName: currentLast?.senderName
         )
 
         let updated = ConversationDTO(
             kind: convo.kind,
             id: convo.id,
             title: convo.title,
+            displayName: convo.displayName,
             updatedAt: nowISO,
             isGroup: convo.isGroup,
             phone: convo.phone,
             unreadCount: convo.unreadCount,
+            avatarUsers: convo.avatarUsers,
             last: newLast
         )
 

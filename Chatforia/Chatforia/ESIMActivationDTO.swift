@@ -7,4 +7,5 @@ struct ESIMActivationDTO: Codable {
     let confirmationCode: String?
     let planName: String?
     let status: String
+    let qrCodeURL: String?
 }

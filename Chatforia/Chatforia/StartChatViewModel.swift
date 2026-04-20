@@ -291,14 +291,25 @@ final class StartChatViewModel: ObservableObject {
                 token: token
             )
 
+            let resolvedTitle = thread.displayName ?? thread.contactName ?? thread.contactPhone ?? phone
+
             let conversation = ConversationDTO(
                 kind: "sms",
                 id: thread.id,
-                title: thread.displayName ?? thread.contactName ?? thread.contactPhone ?? phone,
+                title: resolvedTitle,
+                displayName: resolvedTitle,
                 updatedAt: thread.updatedAt ?? ISO8601DateFormatter().string(from: Date()),
                 isGroup: false,
                 phone: thread.contactPhone ?? phone,
                 unreadCount: 0,
+                avatarUsers: [
+                    ConversationAvatarUserDTO(
+                        id: 0,
+                        username: resolvedTitle,
+                        displayName: resolvedTitle,
+                        avatarUrl: nil
+                    )
+                ],
                 last: nil
             )
 
@@ -357,14 +368,25 @@ final class StartChatViewModel: ObservableObject {
             token: token
         )
 
+        let resolvedTitle = thread.displayName ?? thread.contactName ?? thread.contactPhone ?? normalized
+
         let conversation = ConversationDTO(
             kind: "sms",
             id: thread.id,
-            title: thread.displayName ?? thread.contactName ?? thread.contactPhone ?? normalized,
+            title: resolvedTitle,
+            displayName: resolvedTitle,
             updatedAt: thread.updatedAt ?? ISO8601DateFormatter().string(from: Date()),
             isGroup: false,
             phone: thread.contactPhone ?? normalized,
             unreadCount: 0,
+            avatarUsers: [
+                ConversationAvatarUserDTO(
+                    id: 0,
+                    username: resolvedTitle,
+                    displayName: resolvedTitle,
+                    avatarUrl: nil
+                )
+            ],
             last: nil
         )
 

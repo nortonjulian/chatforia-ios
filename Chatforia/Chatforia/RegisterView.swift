@@ -15,9 +15,10 @@ struct RegisterView: View {
     @State private var errorMessage: String?
     @State private var successMessage: String?
 
-    @State private var hasGoogle = false
-    @State private var hasApple = false
-
+    @State private var isOAuthLoading = false
+    
+    private let oauthService = OAuthService()
+    private let appleCoordinator = AppleSignInCoordinator()
     private let registrationService = RegistrationService()
 
     var body: some View {
@@ -43,17 +44,10 @@ struct RegisterView: View {
                     VStack(spacing: 16) {
                         HStack(spacing: 12) {
                             ThemedOutlineButton(title: "Google") {}
-                                .disabled(!hasGoogle)
+        
 
                             ThemedOutlineButton(title: "Apple") {}
-                                .disabled(!hasApple)
-                        }
-
-                        if !hasGoogle && !hasApple {
-                            Text("Single-sign-on is currently unavailable. Create your account with email instead.")
-                                .font(.footnote)
-                                .foregroundStyle(themeManager.palette.secondaryText)
-                                .multilineTextAlignment(.center)
+                               
                         }
 
                         HStack {
@@ -244,6 +238,21 @@ struct RegisterView: View {
             )
 
             if let token = response.token {
+                if let privateKey = response.privateKey,
+                   let publicKey = response.resolvedUser?.publicKey,
+                   !privateKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                   !publicKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    do {
+                        try AccountKeyManager.shared.saveAccountKeys(
+                            publicKeyBase64: publicKey,
+                            privateKeyBase64: privateKey
+                        )
+                    } catch {
+                        errorMessage = "Your account was created, but secure key setup failed on this device. Please try again."
+                        return
+                    }
+                }
+
                 await auth.setTokenAndLoadUser(token)
                 return
             }

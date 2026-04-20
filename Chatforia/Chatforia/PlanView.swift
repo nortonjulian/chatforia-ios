@@ -4,9 +4,9 @@ struct PlanView: View {
     @EnvironmentObject var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
 
-    @State private var plusQuote: PricingQuote?
-    @State private var premiumMonthlyQuote: PricingQuote?
-    @State private var premiumAnnualQuote: PricingQuote?
+    @State private var showUpgrade = false
+
+    private let manageSubscriptionsURL = URL(string: "https://apps.apple.com/account/subscriptions")!
 
     var body: some View {
         ScrollView {
@@ -20,14 +20,10 @@ struct PlanView: View {
         .background(themeManager.palette.screenBackground)
         .navigationTitle("Plan")
         .navigationBarTitleDisplayMode(.inline)
-        .task {
-            async let plus = PricingQuoteService.shared.getQuote(product: .plus)
-            async let premiumMonthly = PricingQuoteService.shared.getQuote(product: .premiumMonthly)
-            async let premiumAnnual = PricingQuoteService.shared.getQuote(product: .premiumAnnual)
-
-            plusQuote = await plus
-            premiumMonthlyQuote = await premiumMonthly
-            premiumAnnualQuote = await premiumAnnual
+        .navigationDestination(isPresented: $showUpgrade) {
+            UpgradeView()
+                .environmentObject(auth)
+                .environmentObject(themeManager)
         }
     }
 
@@ -59,94 +55,24 @@ struct PlanView: View {
                     .overlay(themeManager.palette.border)
                     .padding(.vertical, 6)
 
-                if currentPlan == .free {
-                    ThemedOutlineButton(title: plusButtonTitle) {
-                        handleUpgradeToPlusTapped()
+                switch currentPlan {
+                case .free:
+                    ThemedOutlineButton(title: "See Plus & Premium") {
+                        showUpgrade = true
                     }
 
-                    ThemedOutlineButton(title: premiumMonthlyButtonTitle) {
-                        handleUpgradeToPremiumMonthlyTapped()
+                case .plus:
+                    ThemedOutlineButton(title: "Upgrade to Premium") {
+                        showUpgrade = true
                     }
 
-                    Button {
-                        handleUpgradeToPremiumAnnualTapped()
-                    } label: {
-                        VStack(spacing: 4) {
-                            Text("BEST VALUE")
-                                .font(.caption2.weight(.bold))
-                                .foregroundStyle(themeManager.palette.primaryText)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 4)
-                                .background(themeManager.palette.highlightedSurface)
-                                .clipShape(Capsule())
-
-                            Text(premiumAnnualButtonTitle)
-                                .font(.headline)
-                                .foregroundStyle(themeManager.palette.buttonForeground)
-
-                            Text("Save 25% vs monthly")
-                                .font(.caption2)
-                                .foregroundStyle(themeManager.palette.buttonForeground.opacity(0.9))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 10)
-                        .background(
-                            LinearGradient(
-                                colors: [
-                                    themeManager.palette.buttonStart,
-                                    themeManager.palette.buttonEnd
-                                ],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                        .shadow(color: themeManager.palette.buttonEnd.opacity(0.28), radius: 10, x: 0, y: 4)
-                    }
-                    .buttonStyle(.plain)
-
-                } else if currentPlan == .plus {
-                    ThemedOutlineButton(title: premiumMonthlyButtonTitle) {
-                        handleUpgradeToPremiumMonthlyTapped()
+                    ThemedOutlineButton(title: "Manage Subscription") {
+                        openManageSubscriptions()
                     }
 
-                    Button {
-                        handleUpgradeToPremiumAnnualTapped()
-                    } label: {
-                        VStack(spacing: 4) {
-                            Text(premiumAnnualButtonTitle)
-                                .font(.headline)
-                                .foregroundStyle(themeManager.palette.buttonForeground)
-
-                            Text("Save 25% vs monthly")
-                                .font(.caption)
-                                .foregroundStyle(themeManager.palette.buttonForeground.opacity(0.9))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(
-                            LinearGradient(
-                                colors: [
-                                    themeManager.palette.buttonStart,
-                                    themeManager.palette.buttonEnd
-                                ],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                        .shadow(color: themeManager.palette.buttonEnd.opacity(0.28), radius: 10, x: 0, y: 4)
-                    }
-                    .buttonStyle(.plain)
-
-                    ThemedOutlineButton(title: "Manage Billing") {
-                        handleManageBillingTapped()
-                    }
-
-                } else {
-                    ThemedOutlineButton(title: "Manage Billing") {
-                        handleManageBillingTapped()
+                case .premium:
+                    ThemedOutlineButton(title: "Manage Subscription") {
+                        openManageSubscriptions()
                     }
                 }
             }
@@ -198,6 +124,8 @@ struct PlanView: View {
                 if currentPlan == .premium {
                     featureRow("Premium themes")
                     featureRow("Premium sounds")
+                    featureRow("AI tools")
+                    featureRow("Priority support")
                 }
             }
             .padding(.vertical, 8)
@@ -238,7 +166,7 @@ struct PlanView: View {
     }
 
     private var currentPlan: AppPlan {
-        AppPlan(serverValue: auth.currentUser?.plan)
+        AppPlan(serverValue: auth.currentUser?.normalizedPlan)
     }
 
     private var planDescription: String {
@@ -252,43 +180,8 @@ struct PlanView: View {
         }
     }
 
-    private var plusButtonTitle: String {
-        let price = PricingQuoteService.shared.formattedPrice(for: plusQuote, fallbackProduct: .plus) ?? "$4.99"
-        return "Upgrade to Plus — \(price)/mo"
-    }
-
-    private var premiumMonthlyButtonTitle: String {
-        let price = PricingQuoteService.shared.formattedPrice(
-            for: premiumMonthlyQuote,
-            fallbackProduct: .premiumMonthly
-        ) ?? "$24.99"
-
-        return "Upgrade to Premium Monthly — \(price)/mo"
-    }
-
-    private var premiumAnnualButtonTitle: String {
-        let price = PricingQuoteService.shared.formattedPrice(
-            for: premiumAnnualQuote,
-            fallbackProduct: .premiumAnnual
-        ) ?? "$225.00"
-
-        return "Upgrade to Premium Annual — \(price)/yr"
-    }
-
-    private func handleManageBillingTapped() {
-        print("TODO: Paddle billing portal")
-    }
-
-    private func handleUpgradeToPlusTapped() {
-        print("TODO: Paddle checkout - Plus")
-    }
-
-    private func handleUpgradeToPremiumMonthlyTapped() {
-        print("TODO: Paddle checkout - Premium Monthly")
-    }
-
-    private func handleUpgradeToPremiumAnnualTapped() {
-        print("TODO: Paddle checkout - Premium Annual")
+    private func openManageSubscriptions() {
+        UIApplication.shared.open(manageSubscriptionsURL)
     }
 }
 

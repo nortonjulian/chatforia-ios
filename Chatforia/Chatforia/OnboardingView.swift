@@ -10,8 +10,13 @@ struct OnboardingView: View {
     @State private var selectedLanguage: String = "en"
     @State private var isSaving = false
     @State private var errorText: String?
+    @State private var username: String = ""
 
-    private let totalSteps = 3
+    private let totalSteps = 4
+
+    private struct UsernameUpdateRequest: Encodable {
+        let username: String
+    }
 
     var body: some View {
         ZStack {
@@ -28,6 +33,8 @@ struct OnboardingView: View {
                     case 0:
                         welcomeStep
                     case 1:
+                        usernameStep
+                    case 2:
                         languageStep
                     default:
                         readyStep
@@ -43,6 +50,15 @@ struct OnboardingView: View {
         }
         .task {
             selectedLanguage = normalizedInitialLanguage
+
+            if username.isEmpty {
+                let currentUsername = user.username.trimmingCharacters(in: .whitespacesAndNewlines)
+                if currentUsername.lowercased().hasPrefix("user_") || currentUsername.lowercased().hasPrefix("pending_") {
+                    username = ""
+                } else {
+                    username = currentUsername
+                }
+            }
         }
     }
 
@@ -86,6 +102,32 @@ struct OnboardingView: View {
                 .foregroundStyle(themeManager.palette.secondaryText)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 420)
+        }
+    }
+
+    private var usernameStep: some View {
+        VStack(spacing: 18) {
+            Text("Choose your username")
+                .font(.system(size: 30, weight: .bold))
+                .foregroundStyle(themeManager.palette.primaryText)
+                .multilineTextAlignment(.center)
+
+            Text("This is how other people will see you.")
+                .font(.body)
+                .foregroundStyle(themeManager.palette.secondaryText)
+                .multilineTextAlignment(.center)
+
+            TextField("Username", text: $username)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled(true)
+                .padding()
+                .background(themeManager.palette.cardBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(themeManager.palette.border, lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .foregroundStyle(themeManager.palette.primaryText)
         }
     }
 
@@ -152,10 +194,16 @@ struct OnboardingView: View {
 
     private var buttonTitle: String {
         if isSaving { return "Saving..." }
+
         switch step {
-        case 0: return "Continue"
-        case 1: return "Save Language"
-        default: return "Start Chatting"
+        case 0:
+            return "Continue"
+        case 1:
+            return "Save Username"
+        case 2:
+            return "Save Language"
+        default:
+            return "Start Chatting"
         }
     }
 
@@ -174,10 +222,59 @@ struct OnboardingView: View {
             }
 
         case 1:
+            await saveUsernameAndContinue()
+
+        case 2:
             await saveLanguageAndContinue()
 
         default:
             auth.markOnboardingComplete()
+        }
+    }
+
+    private func saveUsernameAndContinue() async {
+        guard let token = auth.currentToken, !token.isEmpty else {
+            errorText = "Missing auth token."
+            return
+        }
+
+        let trimmed = username.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+
+        guard !trimmed.isEmpty else {
+            errorText = "Please choose a username."
+            return
+        }
+
+        guard trimmed.count >= 3 else {
+            errorText = "Username must be at least 3 characters."
+            return
+        }
+
+        isSaving = true
+        defer { isSaving = false }
+
+        do {
+            let body = try JSONEncoder().encode(
+                UsernameUpdateRequest(username: trimmed)
+            )
+
+            let updatedUser: UserDTO = try await APIClient.shared.send(
+                APIRequest(
+                    path: "users/me",
+                    method: .PATCH,
+                    body: body,
+                    requiresAuth: true
+                ),
+                token: token
+            )
+
+            auth.replaceCurrentUser(updatedUser)
+
+            withAnimation(.easeInOut(duration: 0.2)) {
+                step = 2
+            }
+        } catch {
+            errorText = error.localizedDescription
         }
     }
 
@@ -204,7 +301,7 @@ struct OnboardingView: View {
             auth.replaceCurrentUser(updatedUser)
 
             withAnimation(.easeInOut(duration: 0.2)) {
-                step = 2
+                step = 3
             }
         } catch {
             errorText = error.localizedDescription

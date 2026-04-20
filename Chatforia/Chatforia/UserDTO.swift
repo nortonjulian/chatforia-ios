@@ -36,6 +36,8 @@ struct UserDTO: Codable, Identifiable {
     let messageTone: String?
     let ringtone: String?
     let soundVolume: Int?
+
+    // Legacy compatibility while older code is migrated
     let isPremium: Bool?
 
     let enableSmartReplies: Bool?
@@ -110,7 +112,33 @@ struct UserDTO: Codable, Identifiable {
         self.ringtone = ringtone
         self.soundVolume = soundVolume
 
-        self.enableSmartReplies = enableSmartReplies
         self.isPremium = isPremium
+        self.enableSmartReplies = enableSmartReplies
+    }
+}
+
+extension UserDTO {
+    var normalizedPlan: String {
+        let trimmed = plan?.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        if let trimmed, !trimmed.isEmpty {
+            return trimmed
+        }
+        return (isPremium ?? false) ? "PREMIUM" : "FREE"
+    }
+
+    var isFreePlan: Bool {
+        normalizedPlan == "FREE"
+    }
+
+    var isPlusPlan: Bool {
+        normalizedPlan == "PLUS"
+    }
+
+    var isPremiumPlan: Bool {
+        normalizedPlan == "PREMIUM"
+    }
+
+    var isPaidPlan: Bool {
+        isPlusPlan || isPremiumPlan
     }
 }

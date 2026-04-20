@@ -203,14 +203,25 @@ struct ContactsRootView: View {
                         token: auth.currentToken
                     )
 
+                    let resolvedTitle = thread.displayName ?? thread.contactName ?? thread.contactPhone ?? externalPhone
+
                     selectedSMSConversation = ConversationDTO(
                         kind: "sms",
                         id: thread.id,
-                        title: thread.displayName ?? thread.contactName ?? thread.contactPhone ?? externalPhone,
+                        title: resolvedTitle,
+                        displayName: resolvedTitle,
                         updatedAt: thread.updatedAt ?? ISO8601DateFormatter().string(from: Date()),
                         isGroup: false,
                         phone: thread.contactPhone ?? externalPhone,
                         unreadCount: 0,
+                        avatarUsers: [
+                            ConversationAvatarUserDTO(
+                                id: 0,
+                                username: resolvedTitle,
+                                displayName: resolvedTitle,
+                                avatarUrl: nil
+                            )
+                        ],
                         last: nil
                     )
                     showSelectedSMS = true

@@ -2,8 +2,6 @@ import Foundation
 import Combine
 import SocketIO
 
-// MARK: - Notifications
-
 extension Notification.Name {
     static let socketMessageExpired = Notification.Name("socketMessageExpired")
     static let socketMessageEdited = Notification.Name("socketMessageEdited")
@@ -153,7 +151,7 @@ final class SocketManager: ObservableObject {
             .compress,
             .path("/socket.io"),
             .reconnects(true),
-            .reconnectAttempts(-1),
+            .reconnectAttempts(5),
             .reconnectWait(1),
             .forceWebsockets(true)
         ]
@@ -199,6 +197,15 @@ final class SocketManager: ObservableObject {
         // ERROR
         socket.on(clientEvent: .error) { data, _ in
             print("❌ socket error:", data)
+
+            let message = String(describing: data).lowercased()
+
+            if message.contains("unauthorized") || message.contains("no user found") {
+                NotificationCenter.default.post(
+                    name: Notification.Name("auth.session.invalid"),
+                    object: nil
+                )
+            }
         }
 
         // RECONNECT
@@ -294,6 +301,19 @@ final class SocketManager: ObservableObject {
     }
 
     // MARK: - Helpers
+    
+    private func handleInvalidSession() {
+        disconnect()
+
+        // 🔥 Clear token
+        TokenStore.shared.clear()
+
+        // 🔥 Reset app auth state
+        NotificationCenter.default.post(
+            name: Notification.Name("auth.session.invalid"),
+            object: nil
+        )
+    }
 
     private func normalizeFirstPayload(_ data: [Any]) -> [String: Any]? {
         guard let first = data.first else { return nil }

@@ -90,6 +90,7 @@ struct ChatsRootView: View {
                                             subtitle: conversationSubtitle(conversation),
                                             timestamp: conversationTimestamp(conversation),
                                             unreadCount: conversation.unreadCount ?? 0,
+                                            avatarUsers: conversation.avatarUsers ?? [],
                                             isPinned: false
                                         )
                                     }
@@ -361,6 +362,9 @@ struct ChatsRootView: View {
     }
 
     private func conversationTitle(_ item: ConversationDTO) -> String {
+        let display = item.displayName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !display.isEmpty { return display }
+
         let title = item.title.trimmingCharacters(in: .whitespacesAndNewlines)
         if !title.isEmpty { return title }
 
@@ -382,34 +386,41 @@ struct ChatsRootView: View {
         }
 
         let text = last.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
         if !text.isEmpty {
+            if (conversation.isGroup ?? false),
+               let sender = last.senderName?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !sender.isEmpty {
+                return "\(sender): \(text)"
+            }
             return text
         }
 
         if last.hasMedia == true {
             let kinds = (last.mediaKinds ?? []).map { $0.uppercased() }
+            let base: String
 
             if kinds.contains("GIF") {
-                return "🎞 GIF"
+                base = "🎞 GIF"
+            } else if kinds.contains("IMAGE") {
+                base = "📷 Photo"
+            } else if kinds.contains("AUDIO") {
+                base = "🎤 Voice message"
+            } else if kinds.contains("VIDEO") {
+                base = "🎥 Video"
+            } else if let mediaCount = last.mediaCount, mediaCount > 1 {
+                base = "📎 \(mediaCount) attachments"
+            } else {
+                base = "📎 Attachment"
             }
 
-            if kinds.contains("IMAGE") {
-                return "📷 Photo"
+            if (conversation.isGroup ?? false),
+               let sender = last.senderName?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !sender.isEmpty {
+                return "\(sender): \(base)"
             }
 
-            if kinds.contains("AUDIO") {
-                return "🎤 Voice message"
-            }
-
-            if kinds.contains("VIDEO") {
-                return "🎥 Video"
-            }
-
-            if let mediaCount = last.mediaCount, mediaCount > 1 {
-                return "📎 \(mediaCount) attachments"
-            }
-
-            return "📎 Attachment"
+            return base
         }
 
         return conversation.kind.lowercased() == "sms"

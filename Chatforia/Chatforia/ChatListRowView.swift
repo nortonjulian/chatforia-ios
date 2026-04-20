@@ -5,6 +5,7 @@ struct ChatListRowView: View {
     let subtitle: String
     let timestamp: String
     let unreadCount: Int
+    let avatarUsers: [ConversationAvatarUserDTO]
     var isPinned: Bool = false
 
     @EnvironmentObject private var themeManager: ThemeManager
@@ -71,22 +72,23 @@ struct ChatListRowView: View {
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(themeManager.palette.accent)
     }
-    
-    private var shouldUseGenericChatIcon: Bool {
-        let cleaned = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        if cleaned.isEmpty { return true }
-        if cleaned.lowercased().hasPrefix("chat #") { return true }
-        return false
-    }
 
     private var initials: String {
-        let cleaned = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let userInitials = avatarUsers
+            .prefix(2)
+            .compactMap { user -> String? in
+                let base = (user.displayName ?? user.username ?? "")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !base.isEmpty else { return nil }
+                return String(base.prefix(1)).uppercased()
+            }
 
-        guard !cleaned.isEmpty else { return "C" }
-
-        if cleaned.lowercased().hasPrefix("chat #") {
-            return "C"
+        if !userInitials.isEmpty {
+            return userInitials.joined()
         }
+
+        let cleaned = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleaned.isEmpty else { return "C" }
 
         let parts = cleaned
             .split(separator: " ")

@@ -29,9 +29,13 @@ struct ThemedGradientButton: View {
                         endPoint: .trailing
                     )
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .clipShape(Capsule())
+                .overlay(
+                    Capsule()
+                        .stroke(.white.opacity(isDisabled ? 0.08 : 0.16), lineWidth: 1)
+                )
                 .shadow(
-                    color: themeManager.palette.buttonEnd.opacity(isDisabled ? 0.10 : 0.28),
+                    color: themeManager.palette.buttonEnd.opacity(isDisabled ? 0.10 : 0.20),
                     radius: 10,
                     x: 0,
                     y: 4

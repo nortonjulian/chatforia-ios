@@ -203,14 +203,16 @@ final class CallManager: ObservableObject {
             isPhoneNumber = false
         }
 
+        print("📞 Requesting CallKit start. uuid=\(uuid) handle=\(destination.displayName) isPhoneNumber=\(isPhoneNumber)")
+
         callKit.startOutgoingCall(
             uuid: uuid,
             handle: destination.displayName,
             isPhoneNumber: isPhoneNumber
         )
     }
-
-    private func beginPendingOutgoingCall(uuid: UUID) {
+            
+        private func beginPendingOutgoingCall(uuid: UUID) {
         guard let auth = pendingAuth,
               let destination = pendingDestination else {
             failCall("Missing pending call context.")
@@ -397,7 +399,18 @@ final class CallManager: ObservableObject {
 
     func hangup() {
         guard let session = activeSession else { return }
-        callKit.endCall(uuid: session.id)
+
+        let sessionId = session.id
+        callKit.endCall(uuid: sessionId)
+
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 500_000_000)
+
+            if activeSession?.id == sessionId {
+                print("⚠️ Forcing call cleanup fallback")
+                completeCall(outcome: .localHangup)
+            }
+        }
     }
 
     func dismissEndedState() {

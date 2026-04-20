@@ -21,12 +21,53 @@ struct LoginView: View {
     @State private var errorText: String?
 
     @State private var hasLoggedInBefore = false
+    @State private var isOAuthLoading = false
 
-    @State private var hasGoogle = false
-    @State private var hasApple = false
+    private let oauth = OAuthService()
+    private let apple = AppleSignInCoordinator()
 
     private let loginFlagKey = "chatforiaHasLoggedIn"
     private let lastIdentifierKey = "chatforia.lastIdentifier"
+    
+    @MainActor
+    private func handleGoogle() async {
+        errorText = nil
+        isOAuthLoading = true
+        defer { isOAuthLoading = false }
+
+        do {
+            let idToken = try await oauth.signInWithGoogle()
+            let response = try await oauth.exchangeGoogleToken(idToken)
+
+            await auth.setTokenAndLoadUser(response.token)
+
+        } catch {
+            errorText = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    private func handleApple() async {
+        errorText = nil
+        isOAuthLoading = true
+        defer { isOAuthLoading = false }
+
+        do {
+            let result = try await apple.start()
+
+            let response = try await oauth.exchangeAppleToken(
+                identityToken: result.token,
+                nonce: result.nonce,
+                firstName: result.name?.givenName,
+                lastName: result.name?.familyName
+            )
+
+            await auth.setTokenAndLoadUser(response.token)
+
+        } catch {
+            errorText = error.localizedDescription
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -51,18 +92,16 @@ struct LoginView: View {
 
                         VStack(spacing: 16) {
                             HStack(spacing: 12) {
-                                ThemedOutlineButton(title: "Google") {}
-                                    .disabled(!hasGoogle)
+                                ThemedOutlineButton(title: "Google") {
+                                    Task { await handleGoogle() }
+                                }
+                                .disabled(isLoading || isOAuthLoading)
+                                    
 
-                                ThemedOutlineButton(title: "Apple") {}
-                                    .disabled(!hasApple)
-                            }
-
-                            if !hasGoogle && !hasApple {
-                                Text("Single-sign-on is currently unavailable. Use username and password instead.")
-                                    .font(.footnote)
-                                    .foregroundStyle(themeManager.palette.secondaryText)
-                                    .multilineTextAlignment(.center)
+                                ThemedOutlineButton(title: "Apple") {
+                                    Task { await handleApple() }
+                                }
+                                .disabled(isLoading || isOAuthLoading)
                             }
 
                             HStack {
@@ -92,20 +131,13 @@ struct LoginView: View {
                                 .foregroundStyle(themeManager.palette.accent)
                             }
 
-                            if let errorText {
+                            if let errorText, (!identifier.isEmpty || !password.isEmpty) {
                                 Text(errorText)
                                     .font(.footnote)
                                     .foregroundStyle(.red)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }
 
-                            ThemedGradientButton(
-                                title: isLoading ? "Logging in..." : "Log In",
-                                action: { Task { await login() } },
-                                isFullWidth: true,
-                                isDisabled: isLoading || identifier.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || password.isEmpty
-                            )
-                            
                             ThemedTextField(
                                 title: "Email or username",
                                 text: $identifier,
@@ -117,6 +149,13 @@ struct LoginView: View {
                                 title: "Password",
                                 text: $password,
                                 contentType: .password
+                            )
+
+                            ThemedGradientButton(
+                                title: isLoading ? "Logging in..." : "Log In",
+                                action: { Task { await login() } },
+                                isFullWidth: true,
+                                isDisabled: isLoading || identifier.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || password.isEmpty
                             )
 
                             VStack(spacing: 6) {
@@ -149,6 +188,13 @@ struct LoginView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)
             .onAppear {
+                errorText = nil
+                hasLoggedInBefore = UserDefaults.standard.bool(forKey: loginFlagKey)
+                identifier = UserDefaults.standard.string(forKey: lastIdentifierKey) ?? ""
+            }
+            .onAppear {
+                print("🔐 LOGINVIEW APPEARED")
+                errorText = nil
                 hasLoggedInBefore = UserDefaults.standard.bool(forKey: loginFlagKey)
                 identifier = UserDefaults.standard.string(forKey: lastIdentifierKey) ?? ""
             }
@@ -161,8 +207,8 @@ struct LoginView: View {
         defer { isLoading = false }
 
         do {
-            let enteredPassword = password
             let trimmedIdentifier = identifier.trimmingCharacters(in: .whitespacesAndNewlines)
+            let enteredPassword = password
 
             let body = try JSONEncoder().encode(
                 LoginRequest(identifier: trimmedIdentifier, password: enteredPassword)
@@ -178,11 +224,18 @@ struct LoginView: View {
                 token: nil
             )
 
+            // Clear any stale UI error once credential auth succeeds
+            errorText = nil
+
             UserDefaults.standard.set(true, forKey: loginFlagKey)
             UserDefaults.standard.set(trimmedIdentifier, forKey: lastIdentifierKey)
             hasLoggedInBefore = true
 
             await auth.setTokenAndLoadUser(resp.token)
+
+            // Clear again after bootstrap succeeds
+            errorText = nil
+
         } catch {
             errorText = error.localizedDescription
         }
