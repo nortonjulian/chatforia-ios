@@ -56,6 +56,21 @@ struct WirelessHomeView: View {
             }
         }
     }
+    
+    private var actionsSection: some View {
+        SectionCardView(title: "Manage") {
+            VStack(spacing: 12) {
+                ThemedOutlineButton(title: "Manage Wireless") {
+                    handleManageWirelessTapped()
+                }
+
+                ThemedOutlineButton(title: "Port My Number") {
+                    handlePortNumberTapped()
+                }
+            }
+            .padding(.vertical, 8)
+        }
+    }
 
     private var heroSection: some View {
         SectionCardView(title: "Chatforia Mobile") {
@@ -91,36 +106,6 @@ struct WirelessHomeView: View {
                     .foregroundStyle(themeManager.palette.secondaryText)
             }
             .padding(.vertical, 8)
-        }
-    }
-
-    @ViewBuilder
-    private var activationSection: some View {
-        if activationStatus != .none {
-            SectionCardView(title: "Your eSIM") {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(statusText)
-                        .font(.headline)
-                        .foregroundStyle(themeManager.palette.primaryText)
-
-                    if let payload = activationPayload?.planName, !payload.isEmpty {
-                        Text(payload)
-                            .font(.footnote)
-                            .foregroundStyle(themeManager.palette.secondaryText)
-                    }
-
-                    Button {
-                        openActivation()
-                    } label: {
-                        Text(buttonText)
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                    }
-                    .buttonStyle(.borderedProminent)
-                }
-                .padding(.vertical, 8)
-            }
         }
     }
 
@@ -195,18 +180,67 @@ struct WirelessHomeView: View {
         }
     }
 
-    private var actionsSection: some View {
-        SectionCardView(title: "Manage") {
-            VStack(spacing: 12) {
-                ThemedOutlineButton(title: "Manage Wireless") {
-                    handleManageWirelessTapped()
+    private var activationSection: some View {
+        SectionCardView(title: "Your eSIM") {
+            VStack(alignment: .leading, spacing: 12) {
+
+                Text(statusTextFull)
+                    .font(.headline)
+                    .foregroundStyle(themeManager.palette.primaryText)
+
+                if let plan = activationPayload?.planName, !plan.isEmpty {
+                    Text(plan)
+                        .font(.footnote)
+                        .foregroundStyle(themeManager.palette.secondaryText)
                 }
 
-                ThemedOutlineButton(title: "Port My Number") {
-                    handlePortNumberTapped()
+                Button {
+                    handleActivationTapped()
+                } label: {
+                    Text(buttonTextFull)
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
                 }
+                .buttonStyle(.borderedProminent)
             }
             .padding(.vertical, 8)
+        }
+    }
+
+    private var statusTextFull: String {
+        switch activationStatus {
+        case .none:
+            return "You don’t have an eSIM yet. Set one up to use mobile data."
+        case .readyToInstall:
+            return "Your eSIM is ready to install."
+        case .active:
+            return "Your eSIM is active."
+        }
+    }
+
+    private var buttonTextFull: String {
+        switch activationStatus {
+        case .none:
+            return "Set up eSIM"
+        case .readyToInstall:
+            return "Activate eSIM"
+        case .active:
+            return "Manage eSIM"
+        }
+    }
+
+    private func openActivation() {
+        guard activationPayload != nil else { return }
+        showActivation = true
+    }
+
+    private func handleActivationTapped() {
+        switch activationStatus {
+        case .none:
+            print("User should pick a pack first")
+        case .readyToInstall, .active:
+            openActivation()
         }
     }
 
@@ -231,45 +265,33 @@ struct WirelessHomeView: View {
             Spacer()
         }
     }
-
-    private var statusText: String {
-        switch activationStatus {
-        case .readyToInstall:
-            return "Ready to install"
-        case .active:
-            return "Service active"
-        case .none:
-            return ""
-        }
-    }
-
-    private var buttonText: String {
-        switch activationStatus {
-        case .readyToInstall:
-            return "Activate eSIM"
-        case .active:
-            return "Manage eSIM"
-        case .none:
-            return ""
-        }
-    }
-
+    
     private func loadQuotes() async {
         let products = pricingProducts(for: selectedScope)
         quotes = await PricingQuoteService.shared.getQuotes(products: products)
     }
 
     private func loadActivationIfExists() async {
-        // TODO: Replace with a real backend call when ready.
-        // Example future logic:
-        // if let payload = try? await ESIMService.shared.fetchCurrentActivation() {
-        //     activationPayload = payload
-        //     activationStatus = payload.status.lowercased() == "active" ? .active : .readyToInstall
-        // }
+        do {
+            if let payload = try await ESIMService.shared.fetchCurrentActivation() {
+                activationPayload = payload
 
-        // Temporary placeholder so the screen does not show stale state by accident.
-        activationPayload = nil
-        activationStatus = .none
+                let status = payload.status.lowercased()
+
+                if status == "active" {
+                    activationStatus = .active
+                } else {
+                    activationStatus = .readyToInstall
+                }
+            } else {
+                activationPayload = nil
+                activationStatus = .none
+            }
+        } catch {
+            print("Failed to load activation:", error)
+            activationPayload = nil
+            activationStatus = .none
+        }
     }
 
     private func pricingProducts(for scope: EsimScope) -> [PricingProduct] {
@@ -294,11 +316,6 @@ struct WirelessHomeView: View {
             for: quotes[product],
             fallbackProduct: product
         ) ?? "—"
-    }
-
-    private func openActivation() {
-        guard activationPayload != nil else { return }
-        showActivation = true
     }
 
     private func handleGetPackTapped(_ pack: DataPackOption) {

@@ -3,6 +3,7 @@ import SwiftUI
 struct ESIMActivationView: View {
     @StateObject var viewModel: ESIMActivationViewModel
     @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         ScrollView {
@@ -18,6 +19,11 @@ struct ESIMActivationView: View {
         .background(themeManager.palette.screenBackground.ignoresSafeArea())
         .navigationTitle("Activate eSIM")
         .navigationBarTitleDisplayMode(.inline)
+        .alert("Unable to install eSIM", isPresented: errorBinding) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(viewModel.errorMessage ?? "Please try again.")
+        }
     }
 
     private var heroSection: some View {
@@ -74,12 +80,15 @@ struct ESIMActivationView: View {
                 .font(.headline)
                 .foregroundStyle(themeManager.palette.primaryText)
 
-            Text("Use the details below to install your eSIM on this device or another supported device.")
+            Text("Install directly on this iPhone, or use the activation details below on another supported device.")
                 .font(.footnote)
                 .foregroundStyle(themeManager.palette.secondaryText)
 
             Button {
-                viewModel.markInstalled()
+                Task {
+                    guard let url = await viewModel.beginInstall() else { return }
+                    openURL(url)
+                }
             } label: {
                 Text(viewModel.installButtonTitle)
                     .font(.headline)
@@ -99,8 +108,14 @@ struct ESIMActivationView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             }
             .buttonStyle(.plain)
-            .disabled(!viewModel.canInstall || viewModel.isActive)
+            .disabled(!viewModel.canInstall || viewModel.isActive || viewModel.isInstalling)
             .opacity((!viewModel.canInstall || viewModel.isActive) ? 0.55 : 1)
+
+            if !viewModel.canInstall {
+                Text("Your carrier hasn’t provided a valid install link yet. You can still use the manual activation details below when available.")
+                    .font(.caption)
+                    .foregroundStyle(themeManager.palette.secondaryText)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
@@ -119,6 +134,7 @@ struct ESIMActivationView: View {
                 .foregroundStyle(themeManager.palette.primaryText)
 
             detailRow(title: "Plan", value: viewModel.payload.planName)
+            detailRow(title: "LPA URI", value: viewModel.explicitLpaText)
             detailRow(title: "Activation code", value: viewModel.installationCodeText)
             detailRow(title: "Confirmation code", value: viewModel.confirmationCodeText)
             detailRow(title: "SM-DP+ address", value: viewModel.smdpAddressText)
@@ -135,7 +151,7 @@ struct ESIMActivationView: View {
     }
 
     private var supportSection: some View {
-        Text("eSIM installation steps can vary by device. Make sure your phone is unlocked and eSIM-compatible before installing.")
+        Text("eSIM installation steps can vary by device. Make sure your iPhone is unlocked and eSIM-compatible before installing. If direct install is unavailable, use the activation details above in Settings > Cellular > Add eSIM.")
             .font(.caption)
             .foregroundStyle(themeManager.palette.secondaryText)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -155,5 +171,16 @@ struct ESIMActivationView: View {
                     .textSelection(.enabled)
             }
         }
+    }
+
+    private var errorBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.errorMessage != nil },
+            set: { newValue in
+                if !newValue {
+                    viewModel.errorMessage = nil
+                }
+            }
+        )
     }
 }
