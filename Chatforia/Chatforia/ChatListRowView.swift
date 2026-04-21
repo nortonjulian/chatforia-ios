@@ -6,10 +6,12 @@ struct ChatListRowView: View {
     let timestamp: String
     let unreadCount: Int
     let avatarUsers: [ConversationAvatarUserDTO]
+
     var isPinned: Bool = false
+    var isSMS: Bool = false   // 👈 ADD THIS
 
     @EnvironmentObject private var themeManager: ThemeManager
-
+    
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             avatar
@@ -25,6 +27,16 @@ struct ChatListRowView: View {
                         Image(systemName: "pin.fill")
                             .font(.caption2)
                             .foregroundStyle(themeManager.palette.secondaryText)
+                    }
+
+                    if isSMS {
+                        Text("SMS")
+                            .font(.caption2)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(themeManager.palette.accent.opacity(0.15))
+                            .foregroundStyle(themeManager.palette.accent)
+                            .clipShape(Capsule())
                     }
 
                     Spacer(minLength: 8)

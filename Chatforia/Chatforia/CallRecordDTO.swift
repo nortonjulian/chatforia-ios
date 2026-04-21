@@ -4,9 +4,10 @@ struct CallRecordDTO: Decodable, Identifiable, Equatable {
     let id: Int
     let roomId: Int?
     let callerId: Int
-    let calleeId: Int
+    let calleeId: Int?
     let mode: String
     let status: String
+    let externalPhone: String?
     let twilioCallSid: String?
     let durationSec: Int?
     let endReason: String?

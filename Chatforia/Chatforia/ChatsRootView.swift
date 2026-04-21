@@ -94,6 +94,14 @@ struct ChatsRootView: View {
                                             isPinned: false
                                         )
                                     }
+                                    .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                                        Button {
+                                            handleMessageFromChats(conversation)
+                                        } label: {
+                                            Label("Message", systemImage: "message.fill")
+                                        }
+                                        .tint(themeManager.palette.accent)
+                                    }
                                     .swipeActions(edge: .trailing) {
                                         Button {
                                             Task {
@@ -256,6 +264,21 @@ struct ChatsRootView: View {
         let token = TokenStore.shared.read()
         await vm.loadConversations(token: token)
     }
+    
+    private func handleMessageFromChats(_ conversation: ConversationDTO) {
+        switch conversation.kind.lowercased() {
+        case "chat":
+            selectedRoom = conversation.asChatRoomDTO
+            showSelectedRoom = true
+
+        case "sms":
+            selectedSMSConversation = conversation
+            showSelectedSMS = true
+
+        default:
+            break
+        }
+    }
 
     @ViewBuilder
     private func destinationView(for conversation: ConversationDTO) -> some View {
@@ -369,10 +392,18 @@ struct ChatsRootView: View {
         if !title.isEmpty { return title }
 
         if item.kind.lowercased() == "sms" {
-            if let phone = item.phone?.trimmingCharacters(in: .whitespacesAndNewlines), !phone.isEmpty {
+            let phone = item.phone?.trimmingCharacters(in: .whitespacesAndNewlines)
+
+            if let display = item.displayName?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !display.isEmpty {
+                return display
+            }
+
+            if let phone, !phone.isEmpty {
                 return phone
             }
-            return "SMS #\(item.id)"
+
+            return "Conversation"
         }
 
         return "Chat #\(item.id)"
@@ -423,9 +454,7 @@ struct ChatsRootView: View {
             return base
         }
 
-        return conversation.kind.lowercased() == "sms"
-            ? "Tap to open SMS thread"
-            : "Tap to open"
+        return "Tap to open"
     }
 
     private func conversationTimestamp(_ item: ConversationDTO) -> String {

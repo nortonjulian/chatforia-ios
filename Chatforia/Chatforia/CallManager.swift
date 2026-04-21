@@ -77,7 +77,9 @@ final class CallManager: ObservableObject {
     }
 
     func startCall(to destination: CallDestination, auth: AuthStore) {
-        beginOutgoingCall(to: destination, auth: auth, isVideo: false)
+        Task {
+            await beginOutgoingCall(to: destination, auth: auth, isVideo: false)
+        }
     }
 
     func startVideoCall(to destination: CallDestination, auth: AuthStore) {
@@ -85,20 +87,24 @@ final class CallManager: ObservableObject {
         case .phoneNumber:
             failCall("Video calling is only available for app users right now.")
         case .appUser, .videoRoom:
-            beginOutgoingCall(to: destination, auth: auth, isVideo: true)
+            Task {
+                await beginOutgoingCall(to: destination, auth: auth, isVideo: true)
+            }
         }
     }
 
     func startGroupVideoCall(roomId: Int, displayName: String?, auth: AuthStore) {
-        beginOutgoingCall(
-            to: .videoRoom(
-                roomId: roomId,
-                roomName: "chatroom_\(roomId)",
-                displayName: displayName
-            ),
-            auth: auth,
-            isVideo: true
-        )
+        Task {
+            await beginOutgoingCall(
+                to: .videoRoom(
+                    roomId: roomId,
+                    roomName: "chatroom_\(roomId)",
+                    displayName: displayName
+                ),
+                auth: auth,
+                isVideo: true
+            )
+        }
     }
 
     func handleIncomingCallPayload(_ payload: IncomingCallPayload, auth: AuthStore?) {
@@ -159,7 +165,7 @@ final class CallManager: ObservableObject {
         isVideoCameraEnabled = true
     }
 
-    private func beginOutgoingCall(to destination: CallDestination, auth: AuthStore, isVideo: Bool) {
+    private func beginOutgoingCall(to destination: CallDestination, auth: AuthStore, isVideo: Bool) async {
         lastError = nil
         pendingAuth = auth
         pendingEndOutcome = nil
@@ -193,21 +199,55 @@ final class CallManager: ObservableObject {
         pendingIsVideo = isVideo
         state = .dialing(destination)
 
+        // Create external call record BEFORE CallKit, but ONLY for phone numbers
+        if case .phoneNumber(let number, _) = destination {
+            guard let token = auth.currentToken, !token.isEmpty else {
+                failCall("Missing auth token.")
+                return
+            }
+
+            do {
+                print("📗 Creating external call BEFORE CallKit")
+
+                let callId = try await CallService.shared.startExternalCall(
+                    phoneNumber: number,
+                    token: token
+                )
+
+                updateSession {
+                    $0.backendCallId = callId
+                }
+
+                print("✅ External call created early:", callId)
+            } catch {
+                print("❌ Failed to create external call:", error)
+                failCall(error.localizedDescription)
+                return
+            }
+        }
+
+        let callKitHandle: String
         let isPhoneNumber: Bool
+
         switch destination {
-        case .phoneNumber:
+        case .phoneNumber(let number, _):
+            callKitHandle = number
             isPhoneNumber = true
+
         case .appUser:
+            callKitHandle = destination.displayName
             isPhoneNumber = false
+
         case .videoRoom:
+            callKitHandle = destination.displayName
             isPhoneNumber = false
         }
 
-        print("📞 Requesting CallKit start. uuid=\(uuid) handle=\(destination.displayName) isPhoneNumber=\(isPhoneNumber)")
+        print("📞 Requesting CallKit start. uuid=\(uuid) handle=\(callKitHandle) isPhoneNumber=\(isPhoneNumber)")
 
         callKit.startOutgoingCall(
             uuid: uuid,
-            handle: destination.displayName,
+            handle: callKitHandle,
             isPhoneNumber: isPhoneNumber
         )
     }
@@ -254,6 +294,21 @@ final class CallManager: ObservableObject {
             state = .dialing(destination)
 
             do {
+                // 🧠 STEP 1: CREATE BACKEND CALL RECORD
+                print("📗 About to create external call record")
+                
+                let callId = try await CallService.shared.startExternalCall(
+                    phoneNumber: number,
+                    token: token
+                )
+
+                updateSession {
+                    $0.backendCallId = callId
+                }
+
+                print("✅ External call created:", callId)
+
+                // 🧠 STEP 2: START TWILIO CALL
                 let result = try await pstnService.startCall(to: number, token: token)
 
                 updateSession {
@@ -262,6 +317,7 @@ final class CallManager: ObservableObject {
                 }
 
                 state = .connecting(displayName ?? number)
+
             } catch {
                 failCall(error.localizedDescription)
             }

@@ -46,6 +46,49 @@ final class CallService {
 
         return response.callId
     }
+    
+    func deleteCall(
+        callId: Int,
+        token: String
+    ) async throws {
+        let _: EmptyResponse = try await APIClient.shared.send(
+            APIRequest(
+                path: "calls/\(callId)",
+                method: .DELETE,
+                requiresAuth: true
+            ),
+            token: token
+        )
+    }
+
+    func startExternalCall(
+        phoneNumber: String,
+        token: String
+    ) async throws -> Int {
+        struct Body: Encodable {
+            let phoneNumber: String
+            let mode: String
+        }
+
+        let body = try JSONEncoder().encode(
+            Body(
+                phoneNumber: phoneNumber,
+                mode: "AUDIO"
+            )
+        )
+
+        let response: CreateCallResponse = try await APIClient.shared.send(
+            APIRequest(
+                path: "calls/start-external",
+                method: .POST,
+                body: body,
+                requiresAuth: true
+            ),
+            token: token
+        )
+
+        return response.callId
+    }
 
     func answerCall(
         callId: Int,
