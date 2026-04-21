@@ -28,6 +28,8 @@ struct DialerView: View {
                 VStack(spacing: metrics.stackSpacing) {
                     header
                     numberField
+                    
+                    suggestionRow
                 }
 
                 Spacer(minLength: 0)
@@ -133,13 +135,83 @@ struct DialerView: View {
         .animation(.easeOut(duration: 0.16), value: digits.isEmpty)
     }
     
+    private var suggestionRow: some View {
+        Group {
+            if let contact = primaryMatch, shouldShowSuggestionRow {
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Suggested")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(themeManager.palette.primaryText.opacity(0.55))
+
+                        Text(displayName(for: contact))
+                            .font(.headline.weight(.semibold))
+                            .foregroundStyle(themeManager.palette.primaryText)
+
+                        if !suggestionSubtitle.isEmpty {
+                            Text(suggestionSubtitle)
+                                .font(.subheadline)
+                                .foregroundStyle(themeManager.palette.primaryText.opacity(0.6))
+                        }
+                    }
+
+                    Spacer()
+
+                    Button {
+                        guard let phone = contact.externalPhone else { return }
+
+                        let normalizedDigits = phone.filter(\.isNumber)
+                        guard !normalizedDigits.isEmpty else { return }
+
+                        digits = normalizedDigits
+                        isCalling = true
+                        tapHaptic()
+
+                        callManager.startCall(
+                            to: .phoneNumber(normalizedDigits, displayName: displayName(for: contact)),
+                            auth: auth
+                        )
+
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            dismiss()
+                        }
+                    } label: {
+                        Image(systemName: "phone.fill")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(themeManager.palette.buttonForeground)
+                            .frame(width: 38, height: 38)
+                            .background(themeManager.palette.accent)
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(themeManager.palette.cardBackground)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(themeManager.palette.border.opacity(0.9), lineWidth: 1)
+                )
+                .shadow(
+                    color: .black.opacity(0.035),
+                    radius: 6,
+                    x: 0,
+                    y: 2
+                )
+            }
+        }
+    }
+    
     private var normalizedDialedNumber: String? {
         PhoneContactsService.normalizePhone(digits)
     }
 
     private var matchedContacts: [ContactDTO] {
         let typedDigits = digits.filter(\.isNumber)
-        guard !typedDigits.isEmpty else { return [] }
+        guard typedDigits.count >= 3 else { return [] }
 
         return savedContacts.filter { contact in
             guard let phone = contact.externalPhone else { return false }
@@ -188,11 +260,16 @@ struct DialerView: View {
         matchedContacts.first
     }
     
+    private var shouldShowSuggestionRow: Bool {
+        !digits.isEmpty && primaryMatch != nil
+    }
+
+    private var suggestionSubtitle: String {
+        primaryMatch?.externalPhone ?? ""
+    }
+    
     private var formattedDisplayDigits: String {
-        if let primaryMatch {
-            return displayName(for: primaryMatch)
-        }
-        return digits
+        digits
     }
     
     // MARK: - Keypad
