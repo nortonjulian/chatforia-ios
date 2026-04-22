@@ -15,6 +15,9 @@ struct ContactsRootView: View {
     @State private var showingImportContacts = false
     
     @State private var showingInviteFriends = false
+    @State private var selectedContact: ContactDTO? = nil
+    
+    @EnvironmentObject private var callManager: CallManager
 
     var body: some View {
         NavigationStack {
@@ -23,6 +26,15 @@ struct ContactsRootView: View {
                     .ignoresSafeArea()
 
                 content
+            }
+            .navigationDestination(item: $selectedContact) { contact in
+                ContactDetailView(contact: contact) { action in
+                    Task {
+                        await handleContactAction(action, for: contact)
+                    }
+                }
+                .environmentObject(auth)
+                .environmentObject(themeManager)
             }
             .navigationDestination(isPresented: $showSelectedSMS) {
                 if let conversation = selectedSMSConversation {
@@ -162,9 +174,7 @@ struct ContactsRootView: View {
                 List {
                     ForEach(vm.contacts) { contact in
                         Button {
-                            Task {
-                                await open(contact)
-                            }
+                            selectedContact = contact
                         } label: {
                             ContactRowView(
                                 title: vm.displayName(for: contact),
@@ -183,53 +193,37 @@ struct ContactsRootView: View {
             }
         }
     }
-
+    
     private func reload() async {
         await vm.loadContacts(token: auth.currentToken)
     }
-
+    
     private func open(_ contact: ContactDTO) async {
         do {
             if let externalPhone = contact.externalPhone, !externalPhone.isEmpty {
-                do {
-                    struct Request: Encodable {
-                        let phone: String
-                    }
+                let resolvedTitle = vm.displayName(for: contact)
 
-                    let body = try JSONEncoder().encode(Request(phone: externalPhone))
-
-                    let thread: SMSStartThreadResponseDTO = try await APIClient.shared.send(
-                        APIRequest(path: "sms/threads/start", method: .POST, body: body, requiresAuth: true),
-                        token: auth.currentToken
-                    )
-
-                    let resolvedTitle = thread.displayName ?? thread.contactName ?? thread.contactPhone ?? externalPhone
-
-                    selectedSMSConversation = ConversationDTO(
-                        kind: "sms",
-                        id: thread.id,
-                        title: resolvedTitle,
-                        displayName: resolvedTitle,
-                        updatedAt: thread.updatedAt ?? ISO8601DateFormatter().string(from: Date()),
-                        isGroup: false,
-                        phone: thread.contactPhone ?? externalPhone,
-                        unreadCount: 0,
-                        avatarUsers: [
-                            ConversationAvatarUserDTO(
-                                id: 0,
-                                username: resolvedTitle,
-                                displayName: resolvedTitle,
-                                avatarUrl: nil
-                            )
-                        ],
-                        last: nil
-                    )
-                    showSelectedSMS = true
-                    return
-                } catch {
-                    vm.errorText = error.localizedDescription
-                    return
-                }
+                selectedSMSConversation = ConversationDTO(
+                    kind: "sms",
+                    id: nil,
+                    title: resolvedTitle,
+                    displayName: resolvedTitle,
+                    updatedAt: ISO8601DateFormatter().string(from: Date()),
+                    isGroup: false,
+                    phone: externalPhone,
+                    unreadCount: 0,
+                    avatarUsers: [
+                        ConversationAvatarUserDTO(
+                            id: 0,
+                            username: resolvedTitle,
+                            displayName: resolvedTitle,
+                            avatarUrl: nil
+                        )
+                    ],
+                    last: nil
+                )
+                showSelectedSMS = true
+                return
             }
 
             let room = try await vm.openDirectChat(for: contact, token: auth.currentToken)
@@ -237,6 +231,26 @@ struct ContactsRootView: View {
             showSelectedRoom = true
         } catch {
             vm.errorText = error.localizedDescription
+        }
+    }
+    
+    private func handleContactAction(_ action: ContactDetailAction, for contact: ContactDTO) async {
+        switch action {
+        case .message:
+            await open(contact)
+
+        case .call:
+            guard let phone = contact.externalPhone?
+                .trimmingCharacters(in: .whitespacesAndNewlines),
+                  !phone.isEmpty else {
+                vm.errorText = "Invalid phone number"
+                return
+            }
+
+            callManager.startCall(
+                to: .phoneNumber(phone, displayName: vm.displayName(for: contact)),
+                auth: auth
+            )
         }
     }
 }

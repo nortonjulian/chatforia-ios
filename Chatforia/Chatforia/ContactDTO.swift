@@ -1,6 +1,6 @@
 import Foundation
 
-struct ContactDTO: Codable, Identifiable, Equatable {
+struct ContactDTO: Codable, Identifiable, Equatable, Hashable {
     let id: Int
     let alias: String?
     let favorite: Bool?
@@ -11,7 +11,7 @@ struct ContactDTO: Codable, Identifiable, Equatable {
     let user: ContactUserDTO?
 }
 
-struct ContactUserDTO: Codable, Identifiable, Equatable {
+struct ContactUserDTO: Codable, Identifiable, Equatable, Hashable {
     let id: Int
     let username: String?
     let avatarUrl: String?

@@ -271,13 +271,26 @@ struct StartChatView: View {
     }
 
     private func selectPhone() async {
-        do {
-            let destination = try await vm.createOrOpenSMSDestination()
-            dismiss()
-            onDestinationReady(destination)
-        } catch {
-            vm.errorText = error.localizedDescription
+        guard let phone = vm.normalizedPhoneCandidate else {
+            vm.errorText = "Invalid phone number"
+            return
         }
+
+        let conversation = ConversationDTO(
+            kind: "sms",
+            id: nil,
+            title: phone,
+            displayName: phone,
+            updatedAt: ISO8601DateFormatter().string(from: Date()),
+            isGroup: false,
+            phone: phone,
+            unreadCount: 0,
+            avatarUsers: nil,
+            last: nil
+        )
+
+        dismiss()
+        onDestinationReady(.sms(conversation))
     }
 
     @ViewBuilder

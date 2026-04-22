@@ -85,6 +85,6 @@ final class ContactsViewModel: ObservableObject {
             return externalPhone
         }
 
-        return "Tap to open chat"
+        return "Tap to view contact"
     }
 }

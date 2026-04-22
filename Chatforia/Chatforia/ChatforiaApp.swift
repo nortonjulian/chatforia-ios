@@ -42,6 +42,7 @@ struct ChatforiaApp: App {
     @StateObject private var notificationCoordinator = NotificationCoordinator.shared
     @StateObject private var callManager = CallManager()
     @StateObject private var inviteFlow = InviteFlowManager.shared
+    @StateObject private var settingsVM = SettingsViewModel()
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -61,12 +62,15 @@ struct ChatforiaApp: App {
             .environmentObject(notificationCoordinator)
             .environmentObject(callManager)
             .environmentObject(inviteFlow)
+            .environmentObject(settingsVM)
             .tint(themeManager.palette.accent)
             .task {
                 await auth.bootstrap()
 
                 if let user = auth.currentUser {
                     themeManager.apply(code: user.theme ?? "dawn")
+                    settingsVM.load(from: user)
+                    settingsVM.loadLocalAISettings()
                     await notificationCoordinator.requestAuthorization()
                     callManager.startVoIPIfNeeded(auth: auth)
                 }
@@ -74,7 +78,7 @@ struct ChatforiaApp: App {
                 AppEnvironment.configureSendQueueHandlersIfNeeded()
                 SendQueueManager.shared.replayQueuedJobs()
                 await inviteFlow.redeemPendingInviteIfNeeded(auth: auth)
-                
+
                 InterstitialAdManager.shared.preloadIfNeeded()
             }
             .onOpenURL { url in
@@ -101,7 +105,7 @@ struct ChatforiaApp: App {
             Task {
                 await inviteFlow.redeemPendingInviteIfNeeded(auth: auth)
             }
-            
+
             InterstitialAdManager.shared.preloadIfNeeded()
         }
     }

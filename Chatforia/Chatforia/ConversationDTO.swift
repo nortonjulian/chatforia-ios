@@ -2,10 +2,10 @@ import Foundation
 
 struct ConversationDTO: Codable, Identifiable {
     let kind: String
-    let id: Int
+    let id: Int?
     let title: String
     let displayName: String?
-    let updatedAt: String
+    let updatedAt: String?
     let isGroup: Bool?
     let phone: String?
     let unreadCount: Int?
@@ -13,7 +13,10 @@ struct ConversationDTO: Codable, Identifiable {
     let last: ConversationLastDTO?
 
     var uniqueId: String {
-        "\(kind)-\(id)"
+        if let id {
+            return "\(kind)-\(id)"
+        }
+        return "\(kind)-draft-\(phone ?? title)"
     }
 }
 
@@ -36,8 +39,10 @@ struct ConversationLastDTO: Codable {
 }
 
 extension ConversationDTO {
-    var asChatRoomDTO: ChatRoomDTO {
-        ChatRoomDTO(
+    var asChatRoomDTO: ChatRoomDTO? {
+        guard let id else { return nil }
+
+        return ChatRoomDTO(
             id: id,
             name: displayName ?? title,
             isGroup: isGroup,

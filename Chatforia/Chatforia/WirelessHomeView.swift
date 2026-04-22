@@ -14,6 +14,13 @@ struct WirelessHomeView: View {
     @State private var isPurchasingPack = false
     @State private var purchaseErrorMessage: String?
     @State private var purchasingPackProduct: String?
+    
+    @State private var wirelessStatus: WirelessStatusDTO?
+    @State private var isLoadingStatus = false
+    @State private var statusErrorMessage: String?
+    
+    @State private var selectedPackForCheckout: DataPackOption?
+    @State private var showCheckout = false
 
     enum ESIMStatus {
         case none
@@ -27,7 +34,9 @@ struct WirelessHomeView: View {
                 heroSection
                 scopePickerSection
                 activationSection
-
+                
+                usageSection
+                
                 if let purchaseErrorMessage {
                     Text(purchaseErrorMessage)
                         .font(.footnote)
@@ -47,6 +56,7 @@ struct WirelessHomeView: View {
         .task(id: selectedScope) {
             await loadQuotes()
             await loadActivationIfExists()
+            await loadWirelessStatus()
         }
         .navigationDestination(isPresented: $showActivation) {
             if let payload = activationPayload {
@@ -55,8 +65,183 @@ struct WirelessHomeView: View {
                 )
             }
         }
+        .sheet(isPresented: $showCheckout) {
+            if let pack = selectedPackForCheckout {
+                CheckoutSheetView(
+                    pack: pack,
+                    onConfirm: {
+                        Task {
+                            await handleCheckoutConfirmed(pack)
+                        }
+                    }
+                )
+                .environmentObject(themeManager)
+            }
+        }
     }
     
+    private var usageSection: some View {
+        SectionCardView(title: "Current Usage") {
+            VStack(alignment: .leading, spacing: 14) {
+                if isLoadingStatus {
+                    HStack(spacing: 10) {
+                        ProgressView()
+                        Text("Loading usage…")
+                            .font(.footnote)
+                            .foregroundStyle(themeManager.palette.secondaryText)
+                    }
+                    .padding(.vertical, 8)
+
+                } else if let statusErrorMessage {
+                    Text(statusErrorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                        .padding(.vertical, 8)
+
+                } else if let status = wirelessStatus,
+                          let source = status.source,
+                          let totalMb = source.totalDataMb,
+                          let remainingMb = source.remainingDataMb,
+                          totalMb > 0 {
+
+                    let usedMb = max(0, totalMb - remainingMb)
+                    let progress = min(max(Double(usedMb) / Double(totalMb), 0), 1)
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(alignment: .firstTextBaseline) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(formatGB(remainingMb))
+                                    .font(.title2.weight(.bold))
+                                    .foregroundStyle(themeManager.palette.primaryText)
+
+                                Text("remaining of \(formatGB(totalMb))")
+                                    .font(.footnote)
+                                    .foregroundStyle(themeManager.palette.secondaryText)
+                            }
+
+                            Spacer()
+
+                            statusBadge(status.state)
+                        }
+
+                        ProgressView(value: progress)
+                            .tint(statusColor(status.state))
+
+                        HStack {
+                            infoPill(title: "Used", value: formatGB(usedMb))
+                            Spacer()
+                            infoPill(title: "Left", value: formatGB(remainingMb))
+                            Spacer()
+                            infoPill(title: "Expires", value: expirationText(from: source))
+                        }
+                    }
+                    .padding(.vertical, 8)
+
+                } else if let status = wirelessStatus, status.mode == "NONE" {
+                    Text("No active data pack yet. Buy a pack below to start tracking usage.")
+                        .font(.footnote)
+                        .foregroundStyle(themeManager.palette.secondaryText)
+                        .padding(.vertical, 8)
+
+                } else {
+                    Text("Usage details will appear once your data pack is active.")
+                        .font(.footnote)
+                        .foregroundStyle(themeManager.palette.secondaryText)
+                        .padding(.vertical, 8)
+                }
+            }
+        }
+    }
+
+    private func loadWirelessStatus() async {
+        isLoadingStatus = true
+        statusErrorMessage = nil
+
+        defer { isLoadingStatus = false }
+
+        do {
+            let status = try await WirelessService.shared.fetchWirelessStatus()
+            print("✅ STATUS:", status)
+            wirelessStatus = status
+        } catch {
+            wirelessStatus = nil
+            print("❌ STATUS ERROR:", error)
+            statusErrorMessage = "We couldn’t load your usage right now."
+            print("Failed to load wireless status:", error)
+        }
+    }
+
+    private func statusBadge(_ state: String) -> some View {
+        Text(stateLabel(state))
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(statusColor(state))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(statusColor(state).opacity(0.12))
+            .clipShape(Capsule())
+    }
+
+    private func infoPill(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(themeManager.palette.secondaryText)
+
+            Text(value)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(themeManager.palette.primaryText)
+        }
+    }
+
+    private func statusColor(_ state: String) -> Color {
+        switch state.uppercased() {
+        case "LOW":
+            return .orange
+        case "EXHAUSTED", "EXPIRED":
+            return .red
+        default:
+            return themeManager.palette.accent
+        }
+    }
+
+    private func stateLabel(_ state: String) -> String {
+        switch state.uppercased() {
+        case "LOW":
+            return "Low"
+        case "EXHAUSTED":
+            return "Out"
+        case "EXPIRED":
+            return "Expired"
+        case "OK":
+            return "Active"
+        default:
+            return state.capitalized
+        }
+    }
+
+    private func formatGB(_ mb: Int) -> String {
+        let gb = Double(mb) / 1024.0
+        if gb >= 10 {
+            return String(format: "%.0f GB", gb)
+        } else {
+            return String(format: "%.1f GB", gb)
+        }
+    }
+
+    private func expirationText(from source: WirelessStatusSourceDTO) -> String {
+        if let days = source.daysRemaining {
+            if days <= 0 { return "Today" }
+            if days == 1 { return "1 day" }
+            return "\(days) days"
+        }
+
+        if let expiresAt = source.expiresAt {
+            return expiresAt.formatted(date: .abbreviated, time: .omitted)
+        }
+
+        return "—"
+    }
+
     private var actionsSection: some View {
         SectionCardView(title: "Manage") {
             VStack(spacing: 12) {
@@ -140,7 +325,8 @@ struct WirelessHomeView: View {
                 }
 
                 Button {
-                    handleGetPackTapped(pack)
+                    selectedPackForCheckout = pack
+                    showCheckout = true
                 } label: {
                     HStack {
                         if isPurchasingPack {
@@ -148,7 +334,7 @@ struct WirelessHomeView: View {
                                 .tint(themeManager.palette.buttonForeground)
                         }
 
-                        Text(isPurchasingPack ? "Starting activation..." : "Get this data pack")
+                        Text(isPurchasingPack ? "Processing..." : "Choose this pack")
                             .font(.headline)
                             .foregroundStyle(themeManager.palette.buttonForeground)
                     }
@@ -173,8 +359,8 @@ struct WirelessHomeView: View {
                     )
                 }
                 .buttonStyle(.plain)
-                .disabled(isPurchasingPack)
-                .opacity(isPurchasingPack ? 0.7 : 1)
+                .disabled(isPurchasingPack || showCheckout)
+                .opacity((isPurchasingPack || showCheckout) ? 0.7 : 1)
             }
             .padding(.vertical, 8)
         }
@@ -293,6 +479,29 @@ struct WirelessHomeView: View {
             activationStatus = .none
         }
     }
+    
+    private func handleCheckoutConfirmed(_ pack: DataPackOption) async {
+        isPurchasingPack = true
+        purchaseErrorMessage = nil
+
+        defer { isPurchasingPack = false }
+
+        do {
+            let payload = try await ESIMService.shared.purchaseAndProvision(pack: pack)
+
+            activationPayload = payload
+            activationStatus = .readyToInstall
+
+            await loadWirelessStatus()
+
+            showCheckout = false
+            showActivation = true
+
+        } catch {
+            purchaseErrorMessage = "We couldn’t start your eSIM activation right now. Please try again."
+            print("Purchase/provision failed for product \(pack.product): \(error)")
+        }
+    }
 
     private func pricingProducts(for scope: EsimScope) -> [PricingProduct] {
         switch scope {
@@ -327,9 +536,14 @@ struct WirelessHomeView: View {
 
             do {
                 let payload = try await ESIMService.shared.purchaseAndProvision(pack: pack)
+
                 activationPayload = payload
                 activationStatus = .readyToInstall
+
+                await loadWirelessStatus()
+
                 showActivation = true
+
             } catch {
                 purchaseErrorMessage = "We couldn’t start your eSIM activation right now. Please try again."
                 print("Purchase/provision failed for product \(pack.product): \(error)")

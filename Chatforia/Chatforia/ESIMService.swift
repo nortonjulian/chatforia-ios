@@ -9,7 +9,7 @@ final class ESIMService {
 
     /// Change this if you want to source it from AppEnvironment later.
     /// Must point to the API host, not the web app host.
-    private let baseURL = URL(string: "https://api.chatforia.com")!
+    private let baseURL = AppEnvironment.apiBaseURL
 
     private init(session: URLSession = .shared) {
         self.session = session
@@ -59,6 +59,19 @@ private extension ESIMService {
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("XMLHttpRequest", forHTTPHeaderField: "X-Requested-With")
+
+        guard let token = TokenStore.shared.read(), !token.isEmpty else {
+            throw ESIMServiceError.server(
+                statusCode: 401,
+                message: "Missing auth token"
+            )
+        }
+
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        
+        print("🔥 AUTH TOKEN:", token)
+        
+        print("🔥 HEADERS:", request.allHTTPHeaderFields ?? [:])
 
         if let body {
             request.httpBody = try encoder.encode(body)

@@ -340,7 +340,7 @@ final class StartChatViewModel: ObservableObject {
         return .chat(room.asChatRoomDTO)
     }
 
-    func createOrOpenSMSDestination() async throws -> StartDestination {
+    func createOrOpenExistingSMSThread() async throws -> StartDestination {
         guard let token = TokenStore.shared.read(), !token.isEmpty else {
             throw APIError.unauthorized
         }

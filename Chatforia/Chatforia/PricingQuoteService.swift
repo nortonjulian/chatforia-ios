@@ -34,6 +34,11 @@ enum PricingProduct: String, CaseIterable {
 
     case esimGlobal3 = "chatforia_esim_global_3"
     case esimGlobal5 = "chatforia_esim_global_5"
+    case esimGlobal10 = "chatforia_esim_global_10"
+    
+    case esimLocalUnlimited = "chatforia_esim_local_unlimited"
+    case esimEuropeUnlimited = "chatforia_esim_europe_unlimited"
+    case esimGlobalUnlimited = "chatforia_esim_global_unlimited"
 }
 
 enum PricingQuoteServiceError: Error {
@@ -49,18 +54,22 @@ final class PricingQuoteService {
         .premiumMonthly: ("USD", 2499),
         .premiumAnnual: ("USD", 22500),
 
-        .esimLocal3: ("USD", 999),
-        .esimLocal5: ("USD", 1499),
-        .esimLocal10: ("USD", 2499),
-        .esimLocal20: ("USD", 4499),
+        .esimLocalUnlimited: ("USD", 5999),
+        .esimLocal3: ("USD", 1499),
+        .esimLocal5: ("USD", 2299),
+        .esimLocal10: ("USD", 3499),
+        .esimLocal20: ("USD", 5499),
 
-        .esimEurope3: ("USD", 1499),
+        .esimEuropeUnlimited: ("USD", 6999),
+        .esimEurope3: ("USD", 1699),
         .esimEurope5: ("USD", 2499),
-        .esimEurope10: ("USD", 4499),
-        .esimEurope20: ("USD", 6699),
+        .esimEurope10: ("USD", 3699),
+        .esimEurope20: ("USD", 6499),
 
-        .esimGlobal3: ("USD", 1999),
-        .esimGlobal5: ("USD", 2999),
+        .esimGlobalUnlimited: ("USD", 7999),
+        .esimGlobal3: ("USD", 2199),
+        .esimGlobal5: ("USD", 3299),
+        .esimGlobal10: ("USD", 4999),
     ]
 
     func getQuote(

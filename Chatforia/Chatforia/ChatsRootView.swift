@@ -284,7 +284,11 @@ struct ChatsRootView: View {
     private func destinationView(for conversation: ConversationDTO) -> some View {
         switch conversation.kind.lowercased() {
         case "chat":
-            ChatThreadView(room: conversation.asChatRoomDTO, randomSession: nil)
+            if let room = conversation.asChatRoomDTO {
+                ChatThreadView(room: room, randomSession: nil)
+            } else {
+                UnsupportedConversationView(conversation: conversation)
+            }
         case "sms":
             SMSThreadView(conversation: conversation)
         default:
@@ -406,7 +410,7 @@ struct ChatsRootView: View {
             return "Conversation"
         }
 
-        return "Chat #\(item.id)"
+        return "Chat #\(item.id?.description ?? "draft")"
     }
 
     private func conversationSubtitle(_ conversation: ConversationDTO) -> String {

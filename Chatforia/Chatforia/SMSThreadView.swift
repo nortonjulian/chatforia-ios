@@ -1,6 +1,14 @@
 import SwiftUI
 import PhotosUI
 
+struct SendSMSResponseDTO: Decodable {
+    let ok: Bool
+    let threadId: Int
+    let provider: String?
+    let messageSid: String?
+    let clientRef: String?
+}
+
 struct SMSThreadView: View {
     let conversation: ConversationDTO
 
@@ -19,6 +27,13 @@ struct SMSThreadView: View {
     @State private var showSearchSheet = false
     @State private var searchText = ""
     @State private var highlightedMessageID: Int? = nil
+    
+    @State private var activeConversation: ConversationDTO
+    
+    init(conversation: ConversationDTO) {
+            self.conversation = conversation
+            _activeConversation = State(initialValue: conversation)
+        }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -32,8 +47,8 @@ struct SMSThreadView: View {
         .background(themeManager.palette.screenBackground.ignoresSafeArea())
         .navigationTitle(
             vm.resolvedTitle(
-                fallback: conversation.title,
-                fallbackPhone: conversation.phone
+                fallback: activeConversation.title,
+                fallbackPhone: activeConversation.phone
             )
         )
         .navigationBarTitleDisplayMode(.inline)
@@ -56,29 +71,44 @@ struct SMSThreadView: View {
                 } label: {
                     Image(systemName: "arrow.clockwise")
                 }
+                .disabled(activeConversation.id == nil)
             }
         }
         .sheet(isPresented: $showingAddContact) {
             AddContactView(
                 initialMode: .phone,
-                initialPhoneNumber: vm.resolvedPhone(fallback: conversation.phone) ?? "",
+                initialPhoneNumber: vm.resolvedPhone(fallback: activeConversation.phone) ?? "",
                 initialExternalName: inferredContactName
             ) { _ in
                 showingAddContact = false
             }
             .environmentObject(themeManager)
         }
-        .task(id: conversation.id) {
-            await reload()
-            startPolling()
+        .task(id: activeConversation.uniqueId) {
+            if activeConversation.id != nil {
+                await reload()
+                startPolling()
+            }
+        }
+        .task(id: activeConversation.uniqueId) {
+            if activeConversation.id != nil {
+                await reload()
+                startPolling()
+            } else {
+                vm.thread = nil
+                vm.messages = []
+                stopPolling()
+            }
         }
         .onDisappear {
             stopPolling()
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
-                Task { await reload() }
-                startPolling()
+                if activeConversation.id != nil {
+                    Task { await reload() }
+                    startPolling()
+                }
             } else {
                 stopPolling()
             }
@@ -105,8 +135,8 @@ struct SMSThreadView: View {
     }
 
     private var inferredContactName: String {
-        let title = conversation.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        let phone = (conversation.phone ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let title = activeConversation.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let phone = (activeConversation.phone ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
 
         if !title.isEmpty && title != phone {
             return title
@@ -183,14 +213,14 @@ struct SMSThreadView: View {
     }
 
     private func startPolling() {
+        guard activeConversation.id != nil else { return }
+
         stopPolling()
 
         pollingTask = Task {
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: 4_000_000_000)
-
                 if Task.isCancelled { break }
-
                 await reload()
             }
         }
@@ -202,14 +232,16 @@ struct SMSThreadView: View {
     }
 
     private func reload() async {
+        guard let threadId = activeConversation.id else { return }
         let token = TokenStore.shared.read()
-        await vm.loadThread(threadId: conversation.id, token: token)
+        await vm.loadThread(threadId: threadId, token: token)
     }
+
 
     private func send() async {
         let token = TokenStore.shared.read()
 
-        guard let to = vm.resolvedPhone(fallback: conversation.phone) else {
+        guard let to = vm.resolvedPhone(fallback: activeConversation.phone) else {
             vm.errorText = "Missing destination phone number."
             return
         }
@@ -225,14 +257,30 @@ struct SMSThreadView: View {
                 return
             }
 
-            let ok = await vm.sendMediaMessage(
-                threadId: conversation.id,
+            let threadId = await vm.sendMediaMessage(
+                existingThreadId: activeConversation.id,
                 to: to,
                 mediaUrls: urls,
                 token: token
             )
 
-            if ok {
+            if let threadId {
+                if activeConversation.id == nil {
+                    activeConversation = ConversationDTO(
+                        kind: activeConversation.kind,
+                        id: threadId,
+                        title: activeConversation.title,
+                        displayName: activeConversation.displayName,
+                        updatedAt: activeConversation.updatedAt,
+                        isGroup: activeConversation.isGroup,
+                        phone: activeConversation.phone,
+                        unreadCount: activeConversation.unreadCount,
+                        avatarUsers: activeConversation.avatarUsers,
+                        last: activeConversation.last
+                    )
+                    startPolling()
+                }
+
                 draft = ""
             }
 
@@ -242,14 +290,30 @@ struct SMSThreadView: View {
         let trimmed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
-        let ok = await vm.sendTextMessage(
-            threadId: conversation.id,
+        let threadId = await vm.sendTextMessage(
+            existingThreadId: activeConversation.id,
             to: to,
             text: trimmed,
             token: token
         )
 
-        if ok {
+        if let threadId {
+            if activeConversation.id == nil {
+                activeConversation = ConversationDTO(
+                    kind: activeConversation.kind,
+                    id: threadId,
+                    title: activeConversation.title,
+                    displayName: activeConversation.displayName,
+                    updatedAt: activeConversation.updatedAt,
+                    isGroup: activeConversation.isGroup,
+                    phone: activeConversation.phone,
+                    unreadCount: activeConversation.unreadCount,
+                    avatarUsers: activeConversation.avatarUsers,
+                    last: activeConversation.last
+                )
+                startPolling()
+            }
+
             draft = ""
         }
     }

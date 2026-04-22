@@ -35,23 +35,30 @@ final class SMSThreadViewModel: ObservableObject {
         }
     }
 
-    func sendTextMessage(threadId: Int, to: String, text: String, token: String?) async -> Bool {
+    func sendTextMessage(
+        existingThreadId: Int?,
+        to: String,
+        text: String,
+        token: String?
+    ) async -> Int? {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return false }
+        guard !trimmed.isEmpty else { return nil }
 
         guard let token else {
             errorText = "Missing auth token."
-            return false
+            return nil
         }
 
         isSending = true
         errorText = nil
 
+        let optimisticThreadId = existingThreadId ?? -1
         let optimistic = SMSMessageDTO.optimisticOutgoing(
-            threadId: threadId,
+            threadId: optimisticThreadId,
             to: to,
             body: trimmed
         )
+
         messages.append(optimistic)
         messages.sort {
             if $0.createdAt != $1.createdAt { return $0.createdAt < $1.createdAt }
@@ -68,38 +75,33 @@ final class SMSThreadViewModel: ObservableObject {
                 SendSMSRequest(to: to, body: trimmed)
             )
 
-            let _: EmptyResponse = try await APIClient.shared.send(
+            let response: SendSMSResponseDTO = try await APIClient.shared.send(
                 APIRequest(path: "sms/send", method: .POST, body: body, requiresAuth: true),
                 token: token
             )
 
             isSending = false
-            await loadThread(threadId: threadId, token: token)
-            return true
+            await loadThread(threadId: response.threadId, token: token)
+            return response.threadId
         } catch {
             isSending = false
             messages.removeAll { $0.id == optimistic.id }
             errorText = error.localizedDescription
-
-            #if DEBUG
-            print("❌ sendTextMessage error:", error)
-            #endif
-
-            return false
+            return nil
         }
     }
 
     func sendMediaMessage(
-        threadId: Int,
+        existingThreadId: Int?,
         to: String,
         mediaUrls: [String],
         token: String?
-    ) async -> Bool {
-        guard !mediaUrls.isEmpty else { return false }
+    ) async -> Int? {
+        guard !mediaUrls.isEmpty else { return nil }
 
         guard let token else {
             errorText = "Missing auth token."
-            return false
+            return nil
         }
 
         isSending = true
@@ -116,23 +118,18 @@ final class SMSThreadViewModel: ObservableObject {
                 SendSMSMediaRequest(to: to, body: nil, mediaUrls: mediaUrls)
             )
 
-            let _: EmptyResponse = try await APIClient.shared.send(
+            let response: SendSMSResponseDTO = try await APIClient.shared.send(
                 APIRequest(path: "sms/send", method: .POST, body: body, requiresAuth: true),
                 token: token
             )
 
             isSending = false
-            await loadThread(threadId: threadId, token: token)
-            return true
+            await loadThread(threadId: response.threadId, token: token)
+            return response.threadId
         } catch {
             isSending = false
             errorText = error.localizedDescription
-
-            #if DEBUG
-            print("❌ sendMediaMessage error:", error)
-            #endif
-
-            return false
+            return nil
         }
     }
 
