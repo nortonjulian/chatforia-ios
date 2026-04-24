@@ -3,6 +3,7 @@ import SwiftUI
 enum ContactDetailAction {
     case message
     case call
+    case video
 }
 
 struct ContactDetailView: View {
@@ -84,9 +85,19 @@ struct ContactDetailView: View {
                                 systemImage: "phone.fill"
                             )
                         }
-                        .buttonStyle(.plain)
-                    }
-                    .padding(.top, 8)
+                        if contact.user?.id != nil {
+                            Button {
+                                onAction(.video)
+                            } label: {
+                                actionRow(
+                                    title: "Video",
+                                    systemImage: "video.fill"
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        }
+                        .padding(.top, 8)
 
                     VStack(alignment: .leading, spacing: 14) {
                         detailLine(title: "Name", value: displayName)

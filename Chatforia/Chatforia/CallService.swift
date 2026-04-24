@@ -7,6 +7,33 @@ final class CallService {
     struct CreateCallResponse: Decodable {
         let callId: Int
     }
+    
+    struct StartVideoCallResponse: Decodable {
+        let ok: Bool
+        let callId: Int
+        let roomName: String
+    }
+
+    func startVideoCall(calleeId: Int, chatRoomId: Int?, token: String) async throws -> StartVideoCallResponse {
+        struct Body: Encodable {
+            let calleeId: Int
+            let chatRoomId: Int?
+        }
+
+        let body = try JSONEncoder().encode(
+            Body(calleeId: calleeId, chatRoomId: chatRoomId)
+        )
+
+        return try await APIClient.shared.send(
+            APIRequest(
+                path: "video/start",
+                method: .POST,
+                body: body,
+                requiresAuth: true
+            ),
+            token: token
+        )
+    }
 
     func createCall(
         calleeId: Int,

@@ -8,6 +8,14 @@ extension Notification.Name {
     static let socketMessageDeleted = Notification.Name("socketMessageDeleted")
     static let socketMessageUpsert = Notification.Name("socketMessageUpsert")
     static let socketDidReconnect = Notification.Name("socketDidReconnect")
+    static let socketVoicemailNew = Notification.Name("socketVoicemailNew")
+    static let socketVoicemailUpdated = Notification.Name("socketVoicemailUpdated")
+    static let socketVoicemailDeleted = Notification.Name("socketVoicemailDeleted")
+    static let socketCallIncoming = Notification.Name("socketCallIncoming")
+    static let socketCallEnded = Notification.Name("socketCallEnded")
+    static let socketSMSMessageNew = Notification.Name("socketSMSMessageNew")
+    static let socketVideoIncoming = Notification.Name("socketVideoIncoming")
+    static let socketVideoEnded = Notification.Name("socketVideoEnded")
 }
 
 @MainActor
@@ -185,6 +193,16 @@ final class SocketManager: ObservableObject {
                 NotificationCenter.default.post(name: .socketDidReconnect, object: nil)
             }
         }
+        
+        socket.on("sms:message:new") { [weak self] data, _ in
+            guard let payload = self?.normalizeFirstPayload(data) else { return }
+
+            NotificationCenter.default.post(
+                name: .socketSMSMessageNew,
+                object: nil,
+                userInfo: payload
+            )
+        }
 
         // DISCONNECT
         socket.on(clientEvent: .disconnect) { [weak self] data, _ in
@@ -213,7 +231,35 @@ final class SocketManager: ObservableObject {
             print("🔄 socket reconnect:", data)
         }
 
-        // MARK: - Realtime Message Events
+        socket.on("voicemail:new") { [weak self] data, _ in
+            guard let payload = self?.normalizeFirstPayload(data) else { return }
+
+            NotificationCenter.default.post(
+                name: .socketVoicemailNew,
+                object: nil,
+                userInfo: payload
+            )
+        }
+
+        socket.on("voicemail:updated") { [weak self] data, _ in
+            guard let payload = self?.normalizeFirstPayload(data) else { return }
+
+            NotificationCenter.default.post(
+                name: .socketVoicemailUpdated,
+                object: nil,
+                userInfo: payload
+            )
+        }
+
+        socket.on("voicemail:deleted") { [weak self] data, _ in
+            guard let payload = self?.normalizeFirstPayload(data) else { return }
+
+            NotificationCenter.default.post(
+                name: .socketVoicemailDeleted,
+                object: nil,
+                userInfo: payload
+            )
+        }
 
         socket.on("message:upsert") { [weak self] data, _ in
             guard let payload = self?.normalizeFirstPayload(data) else {
@@ -255,6 +301,46 @@ final class SocketManager: ObservableObject {
                 name: .socketMessageExpired,
                 object: nil,
                 userInfo: ["payload": payload]
+            )
+        }
+        
+        socket.on("call:incoming") { [weak self] data, _ in
+            guard let payload = self?.normalizeFirstPayload(data) else { return }
+
+            NotificationCenter.default.post(
+                name: .socketCallIncoming,
+                object: nil,
+                userInfo: payload
+            )
+        }
+
+        socket.on("call:ended") { [weak self] data, _ in
+            guard let payload = self?.normalizeFirstPayload(data) else { return }
+
+            NotificationCenter.default.post(
+                name: .socketCallEnded,
+                object: nil,
+                userInfo: payload
+            )
+        }
+        
+        socket.on("video:incoming") { [weak self] data, _ in
+            guard let payload = self?.normalizeFirstPayload(data) else { return }
+
+            NotificationCenter.default.post(
+                name: .socketVideoIncoming,
+                object: nil,
+                userInfo: payload
+            )
+        }
+
+        socket.on("video:ended") { [weak self] data, _ in
+            guard let payload = self?.normalizeFirstPayload(data) else { return }
+
+            NotificationCenter.default.post(
+                name: .socketVideoEnded,
+                object: nil,
+                userInfo: payload
             )
         }
     }

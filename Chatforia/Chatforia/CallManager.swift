@@ -47,6 +47,98 @@ final class CallManager: ObservableObject {
         twilioVideoService.delegate = self
         callKit.delegate = self
         voipPushManager.delegate = self
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleSocketIncomingCall(_:)),
+            name: .socketCallIncoming,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleSocketCallEnded(_:)),
+            name: .socketCallEnded,
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleSocketVideoIncoming(_:)),
+            name: .socketVideoIncoming,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleSocketVideoEnded(_:)),
+            name: .socketVideoEnded,
+            object: nil
+        )
+    }
+    
+    @objc private func handleSocketIncomingCall(_ notification: Notification) {
+        guard let data = notification.userInfo else { return }
+
+        let fromNumber = data["fromNumber"] as? String ?? "Unknown"
+        let callId = data["callId"] as? Int
+
+        let payload = IncomingCallPayload(
+            uuid: UUID(),
+            displayName: fromNumber,
+            remoteIdentity: fromNumber,
+            hasVideo: false,
+            backendCallId: callId
+        )
+
+        handleIncomingCallPayload(payload, auth: pendingAuth)
+    }
+    
+    @objc private func handleSocketCallEnded(_ notification: Notification) {
+        guard let data = notification.userInfo else { return }
+
+        let status = data["status"] as? String ?? "ENDED"
+
+        switch status {
+        case "MISSED":
+            markMissedCall()
+        case "FAILED":
+            failCall("Call failed")
+        case "DECLINED":
+            completeCall(outcome: .declined)
+        default:
+            completeCall(outcome: .remoteEnded)
+        }
+    }
+    
+    @objc private func handleSocketVideoIncoming(_ notification: Notification) {
+        guard let data = notification.userInfo else { return }
+
+        let callerName = data["callerName"] as? String ?? "Video Call"
+        let callerId = data["callerId"] as? Int ?? 0
+        let callId = data["callId"] as? Int
+        let roomName = data["roomName"] as? String ?? {
+            if let callId { return "call_\(callId)" }
+            return "video_call"
+        }()
+
+        let payload = IncomingCallPayload(
+            uuid: UUID(),
+            displayName: callerName,
+            remoteIdentity: String(callerId),
+            hasVideo: true,
+            backendCallId: callId
+        )
+
+        handleIncomingCallPayload(payload, auth: pendingAuth)
+
+        updateSession {
+            $0.remoteIdentity = roomName
+        }
+    }
+
+    @objc private func handleSocketVideoEnded(_ notification: Notification) {
+        completeCall(outcome: .remoteEnded)
     }
 
     func toggleVideoCamera() {
@@ -828,11 +920,14 @@ extension CallManager: CallKitManagerDelegate {
                 startedAt: Date()
             )
 
+            let roomName = activeSession?.remoteIdentity ?? "call_\(backendCallId)"
+
             try await twilioVideoService.connect(
                 authToken: token,
                 identity: String(currentUser.id),
-                roomName: "call_\(backendCallId)"
+                roomName: roomName
             )
+            
         } catch {
             failCall(error.localizedDescription)
         }

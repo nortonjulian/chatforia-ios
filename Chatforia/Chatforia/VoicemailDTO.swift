@@ -1,6 +1,6 @@
 import Foundation
 
-struct VoicemailDTO: Identifiable, Decodable, Equatable {
+struct VoicemailDTO: Codable, Identifiable, Equatable, Sendable  {
     let id: String
     let userId: Int?
     let phoneNumberId: Int?

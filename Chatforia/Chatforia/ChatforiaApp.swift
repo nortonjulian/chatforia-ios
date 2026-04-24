@@ -7,12 +7,18 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
+
+        print("🚀 AppDelegate didFinishLaunching CALLED")
+
         NotificationCoordinator.shared.configure()
 
-        MobileAds.shared.start { initializationStatus in
-            #if DEBUG
-            print("✅ Google Mobile Ads SDK initialized: \(initializationStatus)")
-            #endif
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            print("🔔 notification settings status:", settings.authorizationStatus.rawValue)
+
+            DispatchQueue.main.async {
+                print("📲 Registering for remote notifications...")
+                UIApplication.shared.registerForRemoteNotifications()
+            }
         }
 
         return true
@@ -22,6 +28,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
     ) {
+        print("🔥 didRegisterForRemoteNotificationsWithDeviceToken CALLED")
         NotificationCoordinator.shared.handleDeviceToken(deviceToken)
     }
 
@@ -71,7 +78,13 @@ struct ChatforiaApp: App {
                     themeManager.apply(code: user.theme ?? "dawn")
                     settingsVM.load(from: user)
                     settingsVM.loadLocalAISettings()
+
+                    // 🔔 Request permission + trigger APNs
                     await notificationCoordinator.requestAuthorization()
+
+                    // 🔁 Retry sending token AFTER auth exists
+                    await notificationCoordinator.retryPushRegistrationIfPossible()
+
                     callManager.startVoIPIfNeeded(auth: auth)
                 }
 
@@ -100,6 +113,11 @@ struct ChatforiaApp: App {
 
             if auth.currentUser != nil {
                 callManager.startVoIPIfNeeded(auth: auth)
+
+                // 🔁 Retry again when app becomes active
+                Task {
+                    await notificationCoordinator.retryPushRegistrationIfPossible()
+                }
             }
 
             Task {

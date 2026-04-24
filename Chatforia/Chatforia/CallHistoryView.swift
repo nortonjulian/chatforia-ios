@@ -90,13 +90,20 @@ struct CallHistoryView: View {
             } else {
                 List {
                     ForEach(items) { item in
+                        
+                        let otherUser = (item.callerId == auth.currentUser?.id)
+                            ? item.callee
+                            : item.caller
+                        
                         CallHistoryRowView(
                             item: item,
                             currentUserId: auth.currentUser?.id,
                             contacts: savedContacts,
+
                             onRedial: {
                                 if let phone = item.externalPhone,
                                    !phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+
                                     let displayName =
                                         resolvedContactName(for: phone) ??
                                         phone
@@ -107,10 +114,23 @@ struct CallHistoryView: View {
                                     )
                                 }
                             },
+
                             onMessage: {
                                 Task {
                                     await handleMessage(for: item)
                                 }
+                            },
+
+                            onVideo: otherUser == nil ? nil : {
+                                guard let otherUser else { return }
+
+                                callManager.startVideoCall(
+                                    to: .appUser(
+                                        userId: otherUser.id,
+                                        username: otherUser.displayName ?? otherUser.username ?? "User"
+                                    ),
+                                    auth: auth
+                                )
                             }
                         )
                         .listRowBackground(themeManager.palette.cardBackground)
@@ -294,6 +314,7 @@ struct CallHistoryView: View {
         let contacts: [ContactDTO]
         let onRedial: () -> Void
         let onMessage: () -> Void
+        let onVideo: (() -> Void)?
         
         private func normalizedDigits(_ value: String) -> String {
             value.filter(\.isNumber)
@@ -448,17 +469,33 @@ struct CallHistoryView: View {
                 
                 Spacer()
                 
-                Button(action: onRedial) {
-                    Image(systemName: "phone.fill")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(themeManager.palette.buttonForeground)
-                        .frame(width: 36, height: 36)
-                        .background(themeManager.palette.accent)
-                        .clipShape(Circle())
+                HStack(spacing: 10) {
+
+                    if let onVideo {
+                        Button(action: onVideo) {
+                            Image(systemName: "video.fill")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(themeManager.palette.buttonForeground)
+                                .frame(width: 36, height: 36)
+                                .background(themeManager.palette.accent)
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    // 📞 PHONE (existing)
+                    Button(action: onRedial) {
+                        Image(systemName: "phone.fill")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(themeManager.palette.buttonForeground)
+                            .frame(width: 36, height: 36)
+                            .background(themeManager.palette.accent)
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .opacity(item.externalPhone == nil ? 0.45 : 1.0)
+                    .disabled(item.externalPhone == nil)
                 }
-                .buttonStyle(.plain)
-                .opacity(item.externalPhone == nil ? 0.45 : 1.0)
-                .disabled(item.externalPhone == nil)
             }
             .padding(.vertical, 10)
         }

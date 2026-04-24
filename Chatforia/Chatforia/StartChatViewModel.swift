@@ -70,7 +70,7 @@ enum StartDestination: Identifiable {
         case .chat(let room):
             return "chat-\(room.id)"
         case .sms(let conversation):
-            return "sms-\(conversation.id)"
+            return "sms-\(conversation.id ?? 0)"
         }
     }
 }

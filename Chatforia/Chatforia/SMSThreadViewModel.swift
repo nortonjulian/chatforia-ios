@@ -9,6 +9,51 @@ final class SMSThreadViewModel: ObservableObject {
     @Published var isSending: Bool = false
     @Published var errorText: String?
 
+    private var observers: [NSObjectProtocol] = []
+
+    init() {
+        let observer = NotificationCenter.default.addObserver(
+            forName: .socketSMSMessageNew,
+            object: nil,
+            queue: nil
+        ) { [weak self] notification in
+            let threadId = notification.userInfo?["threadId"] as? Int
+            let messagePayload = notification.userInfo?["message"] as? [String: Any]
+
+            Task { @MainActor [weak self] in
+                guard
+                    let self,
+                    let threadId,
+                    let messagePayload,
+                    let data = try? JSONSerialization.data(withJSONObject: messagePayload),
+                    let message = try? JSONDecoder().decode(SMSMessageDTO.self, from: data)
+                else { return }
+
+                let currentThreadId = self.thread?.id ?? message.threadId
+                guard threadId == currentThreadId else { return }
+
+                if let index = self.messages.firstIndex(where: { $0.id == message.id }) {
+                    self.messages[index] = message
+                } else {
+                    self.messages.append(message)
+                }
+
+                self.messages.sort {
+                    if $0.createdAt != $1.createdAt { return $0.createdAt < $1.createdAt }
+                    return $0.id < $1.id
+                }
+            }
+        }
+
+        observers.append(observer)
+    }
+
+    deinit {
+        for observer in observers {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
+    
     func loadThread(threadId: Int, token: String?) async {
         guard let token else {
             errorText = "Missing auth token."

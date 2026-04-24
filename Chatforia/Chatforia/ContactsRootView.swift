@@ -251,6 +251,20 @@ struct ContactsRootView: View {
                 to: .phoneNumber(phone, displayName: vm.displayName(for: contact)),
                 auth: auth
             )
+
+        case .video:
+            guard let calleeId = contact.user?.id else {
+                vm.errorText = "This contact does not support video calls"
+                return
+            }
+
+            callManager.startVideoCall(
+                to: .appUser(
+                    userId: calleeId,
+                    username: vm.displayName(for: contact)
+                ),
+                auth: auth
+            )
         }
     }
 }

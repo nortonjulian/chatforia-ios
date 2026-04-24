@@ -6,6 +6,8 @@ struct AppShellView: View {
     @EnvironmentObject var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
 
+    @State private var hasRequestedNotifications = false
+
     var body: some View {
         ZStack {
             themeManager.palette.screenBackground
@@ -35,6 +37,9 @@ struct AppShellView: View {
                     }
             }
             .tint(themeManager.palette.tabSelected)
+            
+            CallOverlayHostView()
+                .environmentObject(themeManager)
         }
         .fullScreenCover(isPresented: $auth.needsKeyRestore) {
             NavigationStack {
@@ -44,6 +49,12 @@ struct AppShellView: View {
         .onAppear {
             print("✅ APPSHELL APPEARED for user:", user.email ?? "nil")
             print("🌍 iOS apiBaseURL =", AppEnvironment.apiBaseURL)
+        }
+        .task {
+            guard !hasRequestedNotifications else { return }
+            hasRequestedNotifications = true
+
+            await NotificationCoordinator.shared.requestAuthorization()
         }
     }
 }

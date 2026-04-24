@@ -9,6 +9,8 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
 
     @Published var pendingChatRoomId: Int?
 
+    private let apnsTokenDefaultsKey = "apns_token"
+
     private override init() {
         super.init()
     }
@@ -19,10 +21,14 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
 
     func requestAuthorization() async {
         do {
+            print("🔔 Requesting notification permission...")
             let granted = try await UNUserNotificationCenter.current()
                 .requestAuthorization(options: [.alert, .badge, .sound])
 
+            print("🔔 Notification permission granted:", granted)
+
             if granted {
+                print("📲 Registering AFTER permission granted")
                 UIApplication.shared.registerForRemoteNotifications()
             }
         } catch {
@@ -33,9 +39,21 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
     func handleDeviceToken(_ deviceToken: Data) {
         let token = deviceToken.map { String(format: "%02x", $0) }.joined()
         print("✅ APNs token:", token)
+
+        UserDefaults.standard.set(token, forKey: apnsTokenDefaultsKey)
+
         Task {
-            await registerPushTokenIfPossible(token)
+            await retryPushRegistrationIfPossible()
         }
+    }
+
+    func retryPushRegistrationIfPossible() async {
+        guard let pushToken = UserDefaults.standard.string(forKey: apnsTokenDefaultsKey),
+              !pushToken.isEmpty else {
+            return
+        }
+
+        await registerPushTokenIfPossible(pushToken)
     }
 
     func handleNotificationUserInfo(_ userInfo: [AnyHashable: Any]) {
@@ -51,13 +69,30 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
     }
 
     private func registerPushTokenIfPossible(_ pushToken: String) async {
-        guard let authToken = TokenStore.shared.read(), !authToken.isEmpty else { return }
+        print("🚀 Attempting push registration...")
+
+        guard let authToken = TokenStore.shared.read(), !authToken.isEmpty else {
+            print("❌ No auth token, skipping push registration")
+            return
+        }
+
+        print("🔑 Auth token exists")
 
         do {
+            // 🔥 STEP 1: Ensure device exists
+            _ = try await DeviceRegistrationService.shared.ensureCurrentDeviceRegistered(
+                userId: 0, // not used on backend, safe placeholder
+                token: authToken
+            )
+            print("✅ device registered (or already exists)")
+
+            // 🔥 STEP 2: Register push token
             try await DeviceRegistrationService.shared.registerPushToken(
                 pushToken,
                 token: authToken
             )
+
+            print("✅ push token registered with backend")
         } catch {
             print("❌ push token registration failed:", error)
         }

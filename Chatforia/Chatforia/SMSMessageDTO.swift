@@ -1,6 +1,6 @@
 import Foundation
 
-struct SMSMessageDTO: Decodable, Identifiable, Equatable {
+struct SMSMessageDTO: Decodable, Identifiable, Equatable, Sendable {
     let id: Int
     let threadId: Int?
     let direction: String
@@ -126,7 +126,7 @@ struct SMSMessageDTO: Decodable, Identifiable, Equatable {
     }
 }
 
-struct SMSMediaItemDTO: Decodable, Equatable {
+struct SMSMediaItemDTO: Codable, Equatable, Sendable {
     let url: String
     let contentType: String?
 

@@ -204,14 +204,16 @@ final class ChatsViewModel: ObservableObject {
     }
 
     private func fallbackTitle(for item: ConversationDTO) -> String {
+        let id = item.id ?? 0
+
         switch item.kind.lowercased() {
         case "sms":
             if let phone = item.phone?.trimmingCharacters(in: .whitespacesAndNewlines), !phone.isEmpty {
                 return phone
             }
-            return "SMS #\(item.id)"
+            return "SMS #\(id)"
         default:
-            return "Chat #\(item.id)"
+            return "Chat #\(id)"
         }
     }
 
@@ -263,7 +265,9 @@ final class ChatsViewModel: ObservableObject {
             SocketManager.shared.connect(token: token)
 
             for convo in fetched where convo.kind.lowercased() == "chat" {
-                SocketManager.shared.joinRoom(convo.id)
+                if let roomId = convo.id {
+                    SocketManager.shared.joinRoom(roomId)
+                }
             }
             
         } catch {
@@ -280,6 +284,11 @@ final class ChatsViewModel: ObservableObject {
             return false
         }
 
+        guard let conversationId = conversation.id else {
+            errorText = "Missing conversation id."
+            return false
+        }
+
         struct ArchiveRequest: Encodable {
             let archived: Bool
         }
@@ -289,7 +298,7 @@ final class ChatsViewModel: ObservableObject {
 
             let _: EmptyResponse = try await APIClient.shared.send(
                 APIRequest(
-                    path: "conversations/\(conversation.kind.lowercased())/\(conversation.id)/archive",
+                    path: "conversations/\(conversation.kind.lowercased())/\(conversationId)/archive",
                     method: .PATCH,
                     body: body,
                     requiresAuth: true
@@ -318,10 +327,15 @@ final class ChatsViewModel: ObservableObject {
             return
         }
 
+        guard let conversationId = conversation.id else {
+            errorText = "Missing conversation id."
+            return
+        }
+
         do {
             let _: EmptyResponse = try await APIClient.shared.send(
                 APIRequest(
-                    path: "conversations/\(conversation.kind.lowercased())/\(conversation.id)",
+                    path: "conversations/\(conversation.kind.lowercased())/\(conversationId)",
                     method: .DELETE,
                     requiresAuth: true
                 ),
@@ -351,7 +365,7 @@ final class ChatsViewModel: ObservableObject {
             }
 
             if lhs.id != rhs.id {
-                return lhs.id > rhs.id
+                return (lhs.id ?? 0) > (rhs.id ?? 0)
             }
 
             return lhs.kind.localizedCaseInsensitiveCompare(rhs.kind) == .orderedAscending
