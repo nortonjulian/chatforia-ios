@@ -257,7 +257,7 @@ struct RegisterView: View {
                 return
             }
 
-            successMessage = response.message ?? "Account created successfully. Please log in."
+            successMessage = "Account created. Please check your email to verify your account before logging in."
         } catch {
             errorMessage = friendlyRegistrationError(error)
         }

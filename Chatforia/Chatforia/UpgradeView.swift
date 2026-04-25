@@ -11,6 +11,9 @@ struct UpgradeView: View {
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.dismiss) private var dismiss
     
+    @State private var syncMessage: String?
+    @State private var retryCount = 0
+    
     let trigger: UpgradeTrigger
 
     init(trigger: UpgradeTrigger = .standard) {
@@ -43,6 +46,10 @@ struct UpgradeView: View {
         .background(themeManager.palette.screenBackground.ignoresSafeArea())
         .navigationTitle("Upgrade")
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            retryCount = 0
+            await refreshPurchaseStatus(autoRetry: true)
+        }
     }
     
     private var keepNumberAlert: some View {
@@ -183,11 +190,49 @@ struct UpgradeView: View {
     private var actionSection: some View {
         VStack(spacing: 12) {
             ThemedOutlineButton(
+                title: "Refresh purchase status",
+                action: {
+                    Task {
+                        retryCount = 0
+                        await refreshPurchaseStatus()
+                    }
+                }
+            )
+
+            if let syncMessage {
+                Text(syncMessage)
+                    .font(.footnote)
+                    .foregroundStyle(themeManager.palette.secondaryText)
+            }
+
+            ThemedOutlineButton(
                 title: "Maybe later",
                 action: {
                     dismiss()
                 }
             )
+        }
+    }
+    
+    private func refreshPurchaseStatus(autoRetry: Bool = false) async {
+        syncMessage = autoRetry ? "Finalizing your subscription…" : "Checking your subscription…"
+
+        await SubscriptionManager.shared.refreshEntitlements()
+        await auth.refreshCurrentUser()
+
+        if auth.isPaid {
+            syncMessage = "Your subscription is active."
+            retryCount = 0
+            return
+        }
+
+        if retryCount < 3 {
+            retryCount += 1
+
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            await refreshPurchaseStatus(autoRetry: true)
+        } else {
+            syncMessage = "Still syncing. Please try again in a moment."
         }
     }
 

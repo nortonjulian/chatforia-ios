@@ -1,5 +1,8 @@
 import SwiftUI
 
+private struct ResendEmailResponse: Decodable {
+    let ok: Bool?
+}
 struct LoginResponse: Decodable {
     let message: String
     let token: String
@@ -22,6 +25,11 @@ struct LoginView: View {
 
     @State private var hasLoggedInBefore = false
     @State private var isOAuthLoading = false
+    
+    @State private var showResendVerification = false
+    @State private var resendEmail: String = ""
+    @State private var resendLoading = false
+    @State private var resendSuccess: String?
 
     private let oauth = OAuthService()
     private let apple = AppleSignInCoordinator()
@@ -63,7 +71,6 @@ struct LoginView: View {
             )
 
             await auth.setTokenAndLoadUser(response.token)
-
         } catch {
             errorText = error.localizedDescription
         }
@@ -137,6 +144,24 @@ struct LoginView: View {
                                     .foregroundStyle(.red)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }
+                            
+                            if showResendVerification {
+                                Button {
+                                    Task { await resendVerificationEmail() }
+                                } label: {
+                                    Text(resendLoading ? "Sending..." : "Resend verification email")
+                                        .font(.footnote.weight(.semibold))
+                                        .foregroundStyle(themeManager.palette.accent)
+                                }
+                                .disabled(resendLoading)
+                            }
+
+                            if let resendSuccess {
+                                Text(resendSuccess)
+                                    .font(.footnote)
+                                    .foregroundStyle(.green)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
 
                             ThemedTextField(
                                 title: "Email or username",
@@ -200,10 +225,38 @@ struct LoginView: View {
             }
         }
     }
+        
+    private func resendVerificationEmail() async {
+        resendLoading = true
+        resendSuccess = nil
+        defer { resendLoading = false }
+
+        do {
+            let body = try JSONEncoder().encode([
+                "email": resendEmail
+            ])
+
+            let _: ResendEmailResponse = try await APIClient.shared.send(
+                APIRequest(
+                    path: "auth/resend-email",
+                    method: .POST,
+                    body: body,
+                    requiresAuth: false
+                ),
+                token: nil
+            )
+
+            resendSuccess = "Verification email sent. Check your inbox."
+        } catch {
+            errorText = "Failed to resend verification email."
+        }
+    }
 
     private func login() async {
         errorText = nil
         isLoading = true
+        showResendVerification = false
+        resendSuccess = nil
         defer { isLoading = false }
 
         do {
@@ -237,7 +290,16 @@ struct LoginView: View {
             errorText = nil
 
         } catch {
-            errorText = error.localizedDescription
+            let message = error.localizedDescription
+
+            if message.lowercased().contains("email_not_verified") {
+                errorText = "Please verify your email before logging in."
+                resendEmail = identifier
+                showResendVerification = true
+                return
+            }
+
+            errorText = message
         }
     }
 }

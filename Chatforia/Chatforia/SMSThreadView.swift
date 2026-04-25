@@ -30,6 +30,10 @@ struct SMSThreadView: View {
     
     @State private var activeConversation: ConversationDTO
     
+    @StateObject private var numberVM = PhoneNumberViewModel()
+    @State private var showNumberPicker = false
+    @EnvironmentObject private var auth: AuthStore
+    
     init(conversation: ConversationDTO) {
             self.conversation = conversation
             _activeConversation = State(initialValue: conversation)
@@ -131,6 +135,18 @@ struct SMSThreadView: View {
                 }
             }
             .environmentObject(themeManager)
+        }
+        .sheet(isPresented: $showNumberPicker) {
+            PhoneNumberManagementView()
+                .environmentObject(themeManager)
+                .environmentObject(auth)
+        }
+        .onChange(of: showNumberPicker) { _, isOpen in
+            if !isOpen {
+                Task {
+                    await numberVM.loadCurrentNumber(token: auth.currentToken)
+                }
+            }
         }
     }
 
@@ -240,6 +256,14 @@ struct SMSThreadView: View {
 
     private func send() async {
         let token = TokenStore.shared.read()
+        
+        await numberVM.loadCurrentNumber(token: token)
+
+        if numberVM.currentNumber == nil {
+            vm.errorText = "Choose a Chatforia number before sending SMS."
+            showNumberPicker = true
+            return
+        }
 
         guard let to = vm.resolvedPhone(fallback: activeConversation.phone) else {
             vm.errorText = "Missing destination phone number."
