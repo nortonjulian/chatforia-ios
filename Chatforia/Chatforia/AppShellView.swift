@@ -15,6 +15,9 @@ struct AppShellView: View {
 
             TabView {
                 ChatsRootView()
+                    .onAppear {
+                        Task { await refreshUserTheme() }
+                    }
                     .tabItem {
                         Label("Chats", systemImage: "bubble.left.and.bubble.right.fill")
                     }
@@ -22,26 +25,35 @@ struct AppShellView: View {
                 NavigationStack {
                     CallHistoryView()
                 }
+                .onAppear {
+                    Task { await refreshUserTheme() }
+                }
                 .tabItem {
                     Label("Calls", systemImage: "phone.fill")
                 }
 
                 ContactsRootView()
+                    .onAppear {
+                        Task { await refreshUserTheme() }
+                    }
                     .tabItem {
                         Label("Contacts", systemImage: "person.2.fill")
                     }
 
                 ProfileRootView(user: user)
+                    .onAppear {
+                        Task { await refreshUserTheme() }
+                    }
                     .tabItem {
                         Label("Profile", systemImage: "person.crop.circle.fill")
                     }
             }
             .tint(themeManager.palette.tabSelected)
-            
+
             CallOverlayHostView()
                 .environmentObject(themeManager)
         }
-        .fullScreenCover(isPresented: $auth.needsKeyRestore) {
+        .fullScreenCover(isPresented: .constant(false)) {
             NavigationStack {
                 RestoreEncryptionKeyView()
             }
@@ -55,6 +67,14 @@ struct AppShellView: View {
             hasRequestedNotifications = true
 
             await NotificationCoordinator.shared.requestAuthorization()
+        }
+    }
+
+    private func refreshUserTheme() async {
+        await auth.refreshCurrentUser()
+
+        if let theme = auth.currentUser?.theme {
+            themeManager.apply(code: theme)
         }
     }
 }

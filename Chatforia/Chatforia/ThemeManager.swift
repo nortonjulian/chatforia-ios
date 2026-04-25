@@ -335,14 +335,28 @@ enum ThemeCatalog {
 
 @MainActor
 final class ThemeManager: ObservableObject {
-    @Published var currentCode: String = "dawn"
+    private let storageKey = "chatforia.theme"
+
+    @Published private(set) var currentCode: String
+
+    init() {
+        self.currentCode = "dawn"
+    }
 
     var palette: AppThemePalette {
         ThemeCatalog.palette(for: currentCode)
     }
 
     func apply(code: String) {
-        currentCode = code.lowercased()
+        let normalized = Self.normalize(code)
+        currentCode = normalized
+        UserDefaults.standard.set(normalized, forKey: storageKey)
+    }
+
+    private static func normalize(_ code: String) -> String {
+        let value = code.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let allowed = ["dawn", "midnight", "amoled", "aurora", "neon", "sunset", "solarized", "velvet"]
+        return allowed.contains(value) ? value : "dawn"
     }
 }
 

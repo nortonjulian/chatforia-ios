@@ -459,7 +459,6 @@ final class ChatThreadViewModel: ObservableObject {
             refreshFromMessageStore()
             scheduleMarkVisibleMessagesRead()
         } catch {
-            print("❌ resyncIfNeeded delta error:", error)
             await loadMessages(roomId: roomId, token: token)
         }
     }
@@ -534,13 +533,11 @@ final class ChatThreadViewModel: ObservableObject {
     func loadMessages(roomId: Int, token: String?) async {
         guard roomId > 0 else {
             errorText = "Invalid roomId (client)."
-            print("❌ loadMessages called with invalid roomId:", roomId, "urlPath:", "messages/\(roomId)")
             return
         }
 
         guard let token else {
             errorText = "Missing auth token."
-            print("❌ loadMessages missing token for roomId:", roomId)
             return
         }
 
@@ -575,7 +572,6 @@ final class ChatThreadViewModel: ObservableObject {
             }
         } catch {
             errorText = "loadMessages: \(error.localizedDescription)"
-            print("❌ loadMessages error for roomId \(roomId):", error)
         }
     }
 
@@ -621,7 +617,6 @@ final class ChatThreadViewModel: ObservableObject {
 
             print("✅ loadOlderMessagesIfNeeded: inserted \(page.items.count) older messages")
         } catch {
-            print("❌ loadOlderMessagesIfNeeded error:", error)
             self.errorText = "loadOlderMessagesIfNeeded: \(error.localizedDescription)"
         }
     }
@@ -1325,7 +1320,6 @@ final class ChatThreadViewModel: ObservableObject {
         }
 
         guard let incoming = decodeMessageDTOFromJSONObject(messageDict) else {
-            print("❌ [Socket] Failed to decode incoming message")
             print("Payload was:", messageDict)
             return
         }
@@ -1423,8 +1417,6 @@ final class ChatThreadViewModel: ObservableObject {
 
             return try decoder.decode(MessageDTO.self, from: data)
         } catch {
-            print("❌ Failed to decode MessageDTO from socket payload:", error)
-            print("❌ Payload object:", object)
             return nil
         }
     }
@@ -1441,7 +1433,6 @@ extension ChatThreadViewModel {
                 SocketManager.shared.joinRoom(roomId)
                 print("✅ [Socket] startSocket succeeded - connected + joined room \(roomId)")
             } catch {
-                print("❌ [Socket] startSocket failed for room \(roomId):", error)
                 try? await Task.sleep(nanoseconds: 2_000_000_000)
                 SocketManager.shared.connect(token: token)
                 SocketManager.shared.joinRoom(roomId)
@@ -1536,9 +1527,6 @@ extension ChatThreadViewModel {
             smartReplies = Array(cleaned.prefix(3))
         } catch {
             smartReplies = []
-            #if DEBUG
-            print("❌ generateSmartReplies failed:", error)
-            #endif
         }
     }
     

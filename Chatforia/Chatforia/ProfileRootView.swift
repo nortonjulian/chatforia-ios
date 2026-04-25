@@ -134,7 +134,6 @@ struct ProfileRootView: View {
                 let plan = AppPlan(serverValue: sourceUser.plan)
                 let savedTheme = sourceUser.theme ?? "dawn"
                 let themeToApply = AppThemes.isAvailable(savedTheme, for: plan) ? savedTheme : "dawn"
-                themeManager.apply(code: themeToApply)
                 
                 if let token = auth.currentToken, !token.isEmpty {
                     await loadBackupStatus(token: token)
@@ -1108,18 +1107,41 @@ struct ProfileRootView: View {
     }
 
     private func attemptApplyTheme(_ code: String) {
-        if AppThemes.isAvailable(code, for: currentPlan) {
-            vm.theme = code
-            themeManager.apply(code: code)
-        } else {
+        guard AppThemes.isAvailable(code, for: currentPlan) else {
             presentUpgrade(
                 title: "Premium Theme",
                 message: "\(AppThemes.name(for: code)) is available on \(AppThemes.requiredPlan(for: code).displayName).",
                 requiredPlan: AppThemes.requiredPlan(for: code)
             )
+            return
+        }
+
+        vm.theme = code
+        themeManager.apply(code: code)
+
+        // 🔥 Immediately persist to backend
+        Task {
+            await saveTheme(code)
         }
     }
+    
+    private func saveTheme(_ code: String) async {
+        guard let token = auth.currentToken, !token.isEmpty else {
+            auth.handleInvalidSession()
+            return
+        }
 
+        do {
+            let updatedUser = try await SettingsService.shared.updateTheme(code, token: token)
+
+            auth.replaceCurrentUser(updatedUser)
+            vm.load(from: updatedUser)
+            themeManager.apply(code: updatedUser.theme ?? code)
+        } catch {
+            vm.saveError = error.localizedDescription
+        }
+    }
+    
     private func attemptApplyMessageTone(_ code: String) {
         if AppMessageTones.isAvailable(code, for: currentPlan) {
             vm.messageTone = code

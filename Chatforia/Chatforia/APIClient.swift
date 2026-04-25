@@ -310,7 +310,6 @@ final class APIClient {
         Task {
             do {
                 guard let token = TokenStore.shared.read() else {
-                    print("❌ readMessagesBulk: missing token")
                     return
                 }
 
@@ -328,7 +327,6 @@ final class APIClient {
                     token: token
                 )
 
-                print("✅ readMessagesBulk success: \(messageIds.count) messages")
             } catch {
                 print("❌ readMessagesBulk failed:", error)
             }

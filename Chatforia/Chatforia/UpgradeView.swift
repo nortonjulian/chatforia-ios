@@ -1,10 +1,21 @@
 import SwiftUI
 import StoreKit
 
+enum UpgradeTrigger {
+    case standard
+    case keepNumber
+}
+
 struct UpgradeView: View {
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.dismiss) private var dismiss
+    
+    let trigger: UpgradeTrigger
+
+    init(trigger: UpgradeTrigger = .standard) {
+        self.trigger = trigger
+    }
 
     // Replace with your real App Store Connect subscription group ID
     private let subscriptionGroupID = "22027546"
@@ -17,6 +28,11 @@ struct UpgradeView: View {
         ScrollView {
             VStack(spacing: 24) {
                 headerSection
+                
+                if trigger == .keepNumber {
+                    keepNumberAlert
+                }
+                
                 benefitsSection
                 subscriptionSection
                 legalSection
@@ -27,6 +43,32 @@ struct UpgradeView: View {
         .background(themeManager.palette.screenBackground.ignoresSafeArea())
         .navigationTitle("Upgrade")
         .navigationBarTitleDisplayMode(.inline)
+    }
+    
+    private var keepNumberAlert: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "lock.fill")
+                .foregroundStyle(themeManager.palette.accent)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Keep your number")
+                    .font(.headline)
+                    .foregroundStyle(themeManager.palette.primaryText)
+
+                Text("Don’t lose your number — upgrade to Premium to keep it protected from recycling.")
+                    .font(.subheadline)
+                    .foregroundStyle(themeManager.palette.secondaryText)
+            }
+
+            Spacer()
+        }
+        .padding()
+        .background(themeManager.palette.cardBackground)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(themeManager.palette.border, lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private var headerSection: some View {

@@ -72,7 +72,6 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
         print("🚀 Attempting push registration...")
 
         guard let authToken = TokenStore.shared.read(), !authToken.isEmpty else {
-            print("❌ No auth token, skipping push registration")
             return
         }
 

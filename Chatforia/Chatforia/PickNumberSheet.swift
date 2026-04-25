@@ -5,7 +5,8 @@ struct PickNumberSheet: View {
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.dismiss) private var dismiss
 
-    @ObservedObject var vm: PhoneNumberViewModel
+    @StateObject var vm: PhoneNumberViewModel
+    @State private var showUpgradeSheet = false
 
     var body: some View {
         NavigationStack {
@@ -36,6 +37,13 @@ struct PickNumberSheet: View {
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
+        .sheet(isPresented: $showUpgradeSheet) {
+            NavigationStack {
+                UpgradeView(trigger: .keepNumber)
+            }
+            .environmentObject(auth)
+            .environmentObject(themeManager)
+        }
     }
 
     private var modePicker: some View {
@@ -112,7 +120,13 @@ struct PickNumberSheet: View {
                 .frame(maxWidth: .infinity)
 
                 Button {
-                    Task { await vm.search(token: auth.currentToken) }
+                    print("🔎 Search tapped")
+                    Task {
+                        await MainActor.run {
+                            print("🚀 calling vm.search()")
+                        }
+                        await vm.search(token: auth.currentToken)
+                    }
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "magnifyingglass")
@@ -154,16 +168,11 @@ struct PickNumberSheet: View {
     }
 
     private var lockInfo: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 8) {
-                Image(systemName: "lock")
-                    .foregroundStyle(themeManager.palette.secondaryText)
-                Text("Lock this number (weekly add-on, coming soon)")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(themeManager.palette.primaryText)
-            }
+        HStack(spacing: 8) {
+            Image(systemName: "lock.fill")
+                .foregroundStyle(themeManager.palette.secondaryText)
 
-            Text("Locking will later prevent recycling and charge weekly (pricing TBD).")
+            Text("Premium numbers are protected from recycling while your Premium subscription is active.")
                 .font(.footnote)
                 .foregroundStyle(themeManager.palette.secondaryText)
         }
@@ -207,8 +216,14 @@ struct PickNumberSheet: View {
 
     private func numberCard(_ number: AvailableNumberDTO) -> some View {
         let e164 = number.e164 ?? number.number ?? "Unknown"
-        let locality = number.locality ?? number.local ?? number.display ?? ""
-        let caps = number.capabilities ?? []
+        let baseLocation = number.locality ?? number.local ?? number.display ?? ""
+
+        let location =
+            !baseLocation.isEmpty && !baseLocation.contains(",")
+            ? [baseLocation, number.region].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", ")
+            : baseLocation
+        
+        let caps = number.capabilities?.values ?? []
 
         return VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 12) {
@@ -218,27 +233,44 @@ struct PickNumberSheet: View {
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(e164)
-                        .font(.body.weight(.semibold))
+                        .font(.system(size: 17, weight: .semibold)) // slightly bigger & clearer
                         .foregroundStyle(themeManager.palette.primaryText)
-
-                    if !locality.isEmpty {
-                        Text(locality)
-                            .font(.footnote)
+                    
+                    if !location.isEmpty {
+                        Text(location)
+                            .font(.system(size: 14)) // was too small before
                             .foregroundStyle(themeManager.palette.secondaryText)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
                     }
 
                     if !caps.isEmpty {
                         Text(caps.joined(separator: " • ").uppercased())
-                            .font(.caption)
+                            .font(.system(size: 13, weight: .medium)) // slightly stronger
                             .foregroundStyle(themeManager.palette.secondaryText)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
                     }
                 }
 
                 Spacer()
 
-                Button("Select") {
+                Button(vm.mode == .premium ? "Keep" : "Select") {
+                    if vm.mode == .premium && !auth.isPremium {
+                        showUpgradeSheet = true
+                        return
+                    }
+
                     Task {
                         let ok = await vm.lease(number, token: auth.currentToken)
+
+                        if !ok,
+                           let error = vm.errorText?.lowercased(),
+                           error.contains("premium") {
+                            showUpgradeSheet = true
+                            return
+                        }
+
                         if ok { dismiss() }
                     }
                 }

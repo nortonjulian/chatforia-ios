@@ -23,8 +23,17 @@ struct PhoneNumberManagementView: View {
                             .foregroundStyle(themeManager.palette.primaryText)
                             .padding(.horizontal, 10)
                             .padding(.vertical, 4)
-                            .background(themeManager.palette.cardBackground)  
+                            .background(themeManager.palette.cardBackground)
                             .clipShape(Capsule())
+
+                        if let days = vm.daysUntilRelease,
+                           number.keepLocked != true {
+                            Text("Your number may be released in \(days) day\(days == 1 ? "" : "s"). Upgrade to Premium to keep it protected.")
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(.orange)
+                                .multilineTextAlignment(.center)
+                                .padding(.top, 4)
+                        }
                     }
 
                     Button("Replace Number") {
@@ -52,6 +61,7 @@ struct PhoneNumberManagementView: View {
         .sheet(isPresented: $showPicker) {
             PickNumberSheet(vm: vm)
                 .environmentObject(auth)
+                .environmentObject(themeManager)
         }
     }
 }

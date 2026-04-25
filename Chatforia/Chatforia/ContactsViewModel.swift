@@ -28,7 +28,6 @@ final class ContactsViewModel: ObservableObject {
         } catch {
             errorText = error.localizedDescription
             contacts = []
-            print("❌ loadContacts error:", error)
         }
     }
 

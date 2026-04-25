@@ -181,7 +181,6 @@ final class StartChatViewModel: ObservableObject {
             hadAnySuccess = true
         } catch {
             userSearchFailed = true
-            print("❌ user search error:", error)
         }
 
         do {
@@ -263,7 +262,6 @@ final class StartChatViewModel: ObservableObject {
         } catch {
             errorText = "Unable to fetch contacts."
             contactResults = []
-            print("❌ searchContactsOnly error:", error)
         }
     }
     

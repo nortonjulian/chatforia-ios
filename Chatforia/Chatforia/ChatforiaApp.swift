@@ -75,7 +75,9 @@ struct ChatforiaApp: App {
                 await auth.bootstrap()
 
                 if let user = auth.currentUser {
-                    themeManager.apply(code: user.theme ?? "dawn")
+                    if let theme = user.theme {
+                        themeManager.apply(code: theme)
+                    }
                     settingsVM.load(from: user)
                     settingsVM.loadLocalAISettings()
 
@@ -100,6 +102,11 @@ struct ChatforiaApp: App {
                     await inviteFlow.redeemPendingInviteIfNeeded(auth: auth)
                 }
             }
+            .onChange(of: auth.currentUser?.theme) { _, newTheme in
+                guard let newTheme else { return }
+                themeManager.apply(code: newTheme)
+                settingsVM.theme = newTheme
+            }
         }
         .onChange(of: scenePhase) { _, newPhase in
             guard newPhase == .active else { return }
@@ -112,6 +119,17 @@ struct ChatforiaApp: App {
             }
 
             if auth.currentUser != nil {
+                Task {
+                    await auth.refreshCurrentUser()
+
+                    print("🎨 refreshed theme =", auth.currentUser?.theme ?? "nil")
+
+                        if let theme = auth.currentUser?.theme {
+                            print("🎨 applying refreshed theme =", theme)
+                            themeManager.apply(code: theme)
+                            settingsVM.theme = theme
+                        }
+                }
                 callManager.startVoIPIfNeeded(auth: auth)
 
                 // 🔁 Retry again when app becomes active

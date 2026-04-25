@@ -244,7 +244,6 @@ final class CallManager: ObservableObject {
             hasVideo: payload.hasVideo
         ) { error in
             if let error {
-                print("❌ Failed to report incoming CallKit call:", error)
                 self.failCall(error.localizedDescription)
             }
         }
@@ -312,7 +311,6 @@ final class CallManager: ObservableObject {
 
                 print("✅ External call created early:", callId)
             } catch {
-                print("❌ Failed to create external call:", error)
                 failCall(error.localizedDescription)
                 return
             }
@@ -443,7 +441,6 @@ final class CallManager: ObservableObject {
 
                 print("✅ Backend call created:", callId)
             } catch {
-                print("❌ Failed to create backend call:", error)
                 failCall(error.localizedDescription)
                 return
             }

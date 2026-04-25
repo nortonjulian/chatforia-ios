@@ -230,7 +230,6 @@ final class SendQueueManager {
         print("📤 CALLING sendJobHandler for:", jobForSend.clientMessageId)
         handler(jobForSend) { result in
             self.stateQueue.async {
-                print("✅/❌ sendJobHandler completion for \(jobForSend.clientMessageId): \(result)")
                 switch result {
                 case .success(let serverMessage):
                     self.handleSuccessLocked(for: jobForSend, serverMessage: serverMessage)

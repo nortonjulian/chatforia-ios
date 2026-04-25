@@ -20,6 +20,21 @@ final class PhoneNumberViewModel: ObservableObject {
         SupportedCountries.options
     }
 
+    var releaseDateString: String? {
+        guard let number = currentNumber else { return nil }
+        return number.releaseAfter ?? number.holdUntil
+    }
+
+    var daysUntilRelease: Int? {
+        guard let dateString = releaseDateString,
+              let date = ISO8601DateFormatter().date(from: dateString) else {
+            return nil
+        }
+
+        let days = Int(ceil(date.timeIntervalSinceNow / (60 * 60 * 24)))
+        return max(days, 0)
+    }
+
     func loadCurrentNumber(token: String?) async {
         isLoadingCurrent = true
         errorText = nil
@@ -34,6 +49,7 @@ final class PhoneNumberViewModel: ObservableObject {
     }
 
     func search(token: String?) async {
+        print("🔎 PhoneNumberViewModel.search() started")
         isSearching = true
         errorText = nil
         availableNumbers = []
@@ -46,18 +62,20 @@ final class PhoneNumberViewModel: ObservableObject {
                 country: selectedCountry,
                 capability: selectedCapability,
                 areaCode: trimmed.isEmpty ? nil : trimmed,
+                limit: 25,
                 forSale: mode.forSale,
                 token: token
             )
 
             let items = response.numbers ?? []
+            
             availableNumbers = items
 
             if items.isEmpty {
                 errorText =
                     response.error ??
                     response.message ??
-                    (mode == .buy
+                    (mode == .premium
                         ? "No available inventory right now."
                         : "No free numbers in our pool for that area code right now.")
             }
@@ -75,7 +93,11 @@ final class PhoneNumberViewModel: ObservableObject {
         defer { isLeasing = false }
 
         do {
-            _ = try await PhoneNumberPoolService.shared.leaseNumber(e164: e164, token: token)
+            _ = try await PhoneNumberPoolService.shared.leaseNumber(
+                e164: e164,
+                purchaseIntent: mode == .premium,
+                token: token
+            )
             await loadCurrentNumber(token: token)
             return true
         } catch {

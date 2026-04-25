@@ -29,9 +29,6 @@ final class InterstitialAdManager: NSObject, FullScreenContentDelegate {
                 guard let self else { return }
 
                 if let error {
-                    #if DEBUG
-                    print("❌ Interstitial failed to load: \(error.localizedDescription)")
-                    #endif
                     return
                 }
 
@@ -77,9 +74,6 @@ final class InterstitialAdManager: NSObject, FullScreenContentDelegate {
     }
 
     func ad(_ ad: FullScreenPresentingAd, didFailToPresentFullScreenContentWithError error: Error) {
-        #if DEBUG
-        print("❌ Interstitial failed to present: \(error.localizedDescription)")
-        #endif
         showing = false
         interstitialAd = nil
         preloadIfNeeded()

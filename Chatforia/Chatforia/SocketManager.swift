@@ -214,7 +214,6 @@ final class SocketManager: ObservableObject {
 
         // ERROR
         socket.on(clientEvent: .error) { data, _ in
-            print("❌ socket error:", data)
 
             let message = String(describing: data).lowercased()
 

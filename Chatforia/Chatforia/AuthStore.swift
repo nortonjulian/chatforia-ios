@@ -90,8 +90,6 @@ final class AuthStore: NSObject, ObservableObject {
                 APIRequest(path: "auth/me", method: .GET, requiresAuth: true),
                 token: token
             )
-            
-            print("📱 iPhone USER:", response.user.id, response.user.email ?? "no email")
 
             state = .loggedIn(response.user)
             evaluateOnboarding(for: response.user)
@@ -188,7 +186,6 @@ final class AuthStore: NSObject, ObservableObject {
             syncPlan(from: response.user)
 
             if needsKeyRestore {
-                print("🚨 KEY MISMATCH OR MISSING — forcing restore flow")
                 socket.disconnect()
                 return
             }

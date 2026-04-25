@@ -266,6 +266,12 @@ struct ChatsRootView: View {
     }
 
     private func reload() async {
+        await auth.refreshCurrentUser()
+
+        if let theme = auth.currentUser?.theme {
+            themeManager.apply(code: theme)
+        }
+
         let token = TokenStore.shared.read()
         await vm.loadConversations(token: token)
     }

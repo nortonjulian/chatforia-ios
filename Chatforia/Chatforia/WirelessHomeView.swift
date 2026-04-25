@@ -165,7 +165,6 @@ struct WirelessHomeView: View {
             wirelessStatus = status
         } catch {
             wirelessStatus = nil
-            print("❌ STATUS ERROR:", error)
             statusErrorMessage = "We couldn’t load your usage right now."
             print("Failed to load wireless status:", error)
         }

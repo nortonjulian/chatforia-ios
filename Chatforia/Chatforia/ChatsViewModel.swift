@@ -272,9 +272,6 @@ final class ChatsViewModel: ObservableObject {
             
         } catch {
             errorText = error.localizedDescription
-            #if DEBUG
-            print("❌ loadConversations error:", error)
-            #endif
         }
     }
 
@@ -316,7 +313,6 @@ final class ChatsViewModel: ObservableObject {
             return true
         } catch {
             errorText = "Failed to archive conversation."
-            print("❌ archiveConversation failed:", error)
             return false
         }
     }
@@ -351,7 +347,6 @@ final class ChatsViewModel: ObservableObject {
             errorText = nil
         } catch {
             errorText = "Failed to delete conversation."
-            print("❌ deleteConversation failed:", error)
         }
     }
 

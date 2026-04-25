@@ -50,7 +50,6 @@ enum AppEnvironment {
             Task {
                 do {
                     guard let token = TokenStore.shared.read(), !token.isEmpty else {
-                        print("❌ sendJobHandler missing auth token")
                         completion(.permanentFailure)
                         return
                     }
@@ -92,11 +91,9 @@ enum AppEnvironment {
                         return
                     }
 
-                    print("❌ decode failed")
                     completion(.temporaryFailure)
 
                 } catch {
-                    print("❌ sendJobHandler error:", error)
 
                     let nsError = error as NSError
                     let isRetryable =
