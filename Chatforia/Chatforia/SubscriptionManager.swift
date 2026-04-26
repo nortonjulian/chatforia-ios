@@ -68,8 +68,49 @@ final class SubscriptionManager: ObservableObject {
             )
 
             UserDefaults.standard.set(true, forKey: transactionKey)
+
+            let planInfo = planInfo(for: transaction.productID)
+
+            AnalyticsManager.shared.capture("purchase_completed", properties: [
+                "platform": "ios",
+                "provider": "apple",
+                "productId": transaction.productID,
+                "plan": planInfo.plan,
+                "billingPeriod": planInfo.billingPeriod
+            ])
+
+            AnalyticsManager.shared.capture("purchase_sync_resolved", properties: [
+                "source": "ios",
+                "provider": "apple"
+            ])
+
         } catch {
+            AnalyticsManager.shared.capture("purchase_sync_failed", properties: [
+                "source": "ios",
+                "provider": "apple",
+                "productId": transaction.productID
+            ])
+
             print("❌ Failed to sync purchase:", error)
+        }
+    }
+
+    private func planInfo(for productId: String) -> (plan: String, billingPeriod: String) {
+        switch productId {
+        case "chatforia_plus_monthly":
+            return ("plus", "monthly")
+
+        case "chatforia_plus_yearly":
+            return ("plus", "yearly")
+
+        case "chatforia_premium_monthly":
+            return ("premium", "monthly")
+
+        case "chatforia_premium_yearly":
+            return ("premium", "yearly")
+
+        default:
+            return ("unknown", "unknown")
         }
     }
 }

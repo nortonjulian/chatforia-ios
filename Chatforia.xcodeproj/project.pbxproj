@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		472B4D132F818EC500B7A92F /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 472B4D122F818EC500B7A92F /* GoogleMobileAds */; };
+		474FB3782F9DA5EF0072137C /* PostHog in Frameworks */ = {isa = PBXBuildFile; productRef = 474FB3772F9DA5EF0072137C /* PostHog */; };
 		475F9DFD2F418A78006B79D9 /* SocketIO in Frameworks */ = {isa = PBXBuildFile; productRef = 475F9DFC2F418A78006B79D9 /* SocketIO */; };
 		47C9AB262F8C38D200AC6CF5 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 47C9AB252F8C38D200AC6CF5 /* GoogleSignIn */; };
 		47C9AB282F8C38D200AC6CF5 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 47C9AB272F8C38D200AC6CF5 /* GoogleSignInSwift */; };
@@ -53,6 +54,7 @@
 				47C9AB282F8C38D200AC6CF5 /* GoogleSignInSwift in Frameworks */,
 				47D716262F72198B007F3F42 /* TwilioVoice-static in Frameworks */,
 				47D7165D2F72F102007F3F42 /* TwilioVideo in Frameworks */,
+				474FB3782F9DA5EF0072137C /* PostHog in Frameworks */,
 				47D716242F72198B007F3F42 /* TwilioVoice in Frameworks */,
 				47C9AB262F8C38D200AC6CF5 /* GoogleSignIn in Frameworks */,
 			);
@@ -105,6 +107,7 @@
 				472B4D122F818EC500B7A92F /* GoogleMobileAds */,
 				47C9AB252F8C38D200AC6CF5 /* GoogleSignIn */,
 				47C9AB272F8C38D200AC6CF5 /* GoogleSignInSwift */,
+				474FB3772F9DA5EF0072137C /* PostHog */,
 			);
 			productName = Chatforia;
 			productReference = 474C11282F3A993100D958AB /* Chatforia.app */;
@@ -140,6 +143,7 @@
 				47D7165B2F72F102007F3F42 /* XCRemoteSwiftPackageReference "twilio-video-ios" */,
 				472B4D112F818EC500B7A92F /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
 				47C9AB242F8C38D200AC6CF5 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				474FB3762F9DA5EF0072137C /* XCRemoteSwiftPackageReference "posthog-ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 474C11292F3A993100D958AB /* Products */;
@@ -407,6 +411,14 @@
 				minimumVersion = 13.2.0;
 			};
 		};
+		474FB3762F9DA5EF0072137C /* XCRemoteSwiftPackageReference "posthog-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/PostHog/posthog-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.57.0;
+			};
+		};
 		475F9DFB2F418A78006B79D9 /* XCRemoteSwiftPackageReference "socket.io-client-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/socketio/socket.io-client-swift.git";
@@ -446,6 +458,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 472B4D112F818EC500B7A92F /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
 			productName = GoogleMobileAds;
+		};
+		474FB3772F9DA5EF0072137C /* PostHog */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 474FB3762F9DA5EF0072137C /* XCRemoteSwiftPackageReference "posthog-ios" */;
+			productName = PostHog;
 		};
 		475F9DFC2F418A78006B79D9 /* SocketIO */ = {
 			isa = XCSwiftPackageProductDependency;

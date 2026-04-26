@@ -54,6 +54,8 @@ struct ChatforiaApp: App {
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
+        AnalyticsManager.shared.configure()
+        AnalyticsManager.shared.capture("app_loaded")
         AppEnvironment.configureSendQueueHandlersIfNeeded()
         SendQueueManager.shared.startIfNeeded()
     }
@@ -63,6 +65,9 @@ struct ChatforiaApp: App {
             ZStack {
                 ContentView()
                 CallOverlayHostView()
+            }
+            .onAppear {
+                    AnalyticsManager.shared.capture("app_opened")
             }
             .environmentObject(auth)
             .environmentObject(themeManager)

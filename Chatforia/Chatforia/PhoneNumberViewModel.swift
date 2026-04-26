@@ -58,6 +58,14 @@ final class PhoneNumberViewModel: ObservableObject {
         do {
             let trimmed = areaCode.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
 
+            // 🔥 TRACK: user started searching
+            AnalyticsManager.shared.capture("number_search_started", properties: [
+                "country": selectedCountry,
+                "capability": selectedCapability,
+                "mode": mode == .premium ? "premium" : "free",
+                "has_area_code": !trimmed.isEmpty
+            ])
+
             let response = try await PhoneNumberPoolService.shared.searchPool(
                 country: selectedCountry,
                 capability: selectedCapability,
@@ -68,7 +76,6 @@ final class PhoneNumberViewModel: ObservableObject {
             )
 
             let items = response.numbers ?? []
-            
             availableNumbers = items
 
             if items.isEmpty {
@@ -98,6 +105,13 @@ final class PhoneNumberViewModel: ObservableObject {
                 purchaseIntent: mode == .premium,
                 token: token
             )
+
+            // 🔥 TRACK: user successfully selected / leased a number
+            AnalyticsManager.shared.capture("number_selected", properties: [
+                "type": mode == .premium ? "premium" : "free",
+                "country": selectedCountry
+            ])
+
             await loadCurrentNumber(token: token)
             return true
         } catch {

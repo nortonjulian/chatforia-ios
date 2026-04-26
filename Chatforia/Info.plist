@@ -15,6 +15,10 @@
 			</array>
 		</dict>
 	</array>
+	<key>POSTHOG_HOST</key>
+	<string>https://us.i.posthog.com</string>
+	<key>POSTHOG_API_KEY</key>
+	<string>phc_pgEUTqLhAEW3gyJvQ5UtikUSjmWrvwDm2WftgxEdYSxy</string>
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-8163977681153105~4737599234</string>
 	<key>GIDClientID</key>

@@ -126,6 +126,11 @@ final class SMSThreadViewModel: ObservableObject {
             )
 
             isSending = false
+            
+            AnalyticsManager.shared.capture("sms_sent", properties: [
+                "type": "text"
+            ])
+            
             await loadThread(threadId: response.threadId, token: token)
             return response.threadId
         } catch {
@@ -169,6 +174,11 @@ final class SMSThreadViewModel: ObservableObject {
             )
 
             isSending = false
+            
+            AnalyticsManager.shared.capture("sms_sent", properties: [
+                "type": "media"
+            ])
+            
             await loadThread(threadId: response.threadId, token: token)
             return response.threadId
         } catch {

@@ -82,6 +82,12 @@ struct UpgradePromptSheet: View {
             }
             .navigationTitle("Upgrade Required")
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                AnalyticsManager.shared.capture("upgrade_viewed", properties: [
+                    "source": "upgrade_prompt",
+                    "required_plan": requiredPlan.displayName
+                ])
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Close") {

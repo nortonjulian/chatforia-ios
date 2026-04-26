@@ -238,6 +238,13 @@ struct RegisterView: View {
             )
 
             if let token = response.token {
+                
+                AnalyticsManager.shared.capture("user_registered", properties: [
+                        "method": "email", 
+                        "hasPhone": !trimmedPhone.isEmpty,
+                        "plan": "FREE"
+                ])
+                
                 if let privateKey = response.privateKey,
                    let publicKey = response.resolvedUser?.publicKey,
                    !privateKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,

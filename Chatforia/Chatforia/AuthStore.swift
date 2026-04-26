@@ -92,6 +92,16 @@ final class AuthStore: NSObject, ObservableObject {
             )
 
             state = .loggedIn(response.user)
+            
+            let user = response.user
+
+            AnalyticsManager.shared.identify(user.id, properties: [
+                "email": user.email,
+                "plan": user.plan ?? "FREE"
+            ])
+            
+            AnalyticsManager.shared.capture("session_started")
+            
             evaluateOnboarding(for: response.user)
             evaluateKeyRestoreNeed(for: response.user)
             syncPlan(from: response.user)
@@ -146,9 +156,15 @@ final class AuthStore: NSObject, ObservableObject {
     func setTokenAndLoadUser(_ token: String) async {
         tokenStore.save(token)
         await bootstrap()
+
+        AnalyticsManager.shared.capture("login_succeeded", properties: [
+            "method": "token"
+        ])
     }
 
     func logout() {
+        AnalyticsManager.shared.reset()
+        
         socket.disconnect()
         tokenStore.clear()
         needsOnboarding = false
@@ -160,6 +176,8 @@ final class AuthStore: NSObject, ObservableObject {
     }
 
     func handleInvalidSession() {
+        AnalyticsManager.shared.reset()
+        
         socket.disconnect()
         tokenStore.clear()
         needsOnboarding = false
