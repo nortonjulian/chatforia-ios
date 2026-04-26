@@ -30,4 +30,6 @@ struct UserSettingsUpdateRequest: Encodable {
     let enableSmartReplies: Bool
 
     let maskAIProfanity: Bool?
+    
+    let soundVolume: Int?
 }

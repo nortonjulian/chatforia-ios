@@ -21,6 +21,7 @@ final class CallKitManager: NSObject, ObservableObject {
 
     override init() {
         let config = CXProviderConfiguration(localizedName: "Chatforia")
+        config.ringtoneSound = "Classic.mp3"
         config.supportsVideo = true
         config.maximumCallsPerCallGroup = 1
         config.maximumCallGroups = 1

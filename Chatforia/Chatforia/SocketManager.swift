@@ -197,6 +197,13 @@ final class SocketManager: ObservableObject {
         socket.on("sms:message:new") { [weak self] data, _ in
             guard let payload = self?.normalizeFirstPayload(data) else { return }
 
+            let senderId = self?.extractSenderId(payload)
+            let currentUserId = UserDefaults.standard.integer(forKey: "chatforia.currentUserId")
+
+            if senderId != currentUserId {
+                AudioPlayerService.shared.playCurrentMessageTone()
+            }
+
             NotificationCenter.default.post(
                 name: .socketSMSMessageNew,
                 object: nil,
@@ -261,9 +268,13 @@ final class SocketManager: ObservableObject {
         }
 
         socket.on("message:upsert") { [weak self] data, _ in
-            guard let payload = self?.normalizeFirstPayload(data) else {
-                print("[SocketManager] message:upsert missing payload")
-                return
+            guard let payload = self?.normalizeFirstPayload(data) else { return }
+
+            let senderId = self?.extractSenderId(payload)
+            let currentUserId = UserDefaults.standard.integer(forKey: "chatforia.currentUserId")
+
+            if senderId != currentUserId {
+                AudioPlayerService.shared.playCurrentMessageTone()
             }
 
             NotificationCenter.default.post(
@@ -399,7 +410,15 @@ final class SocketManager: ObservableObject {
             object: nil
         )
     }
-
+    
+    private func extractSenderId(_ payload: [String: Any]) -> Int? {
+        if let sender = payload["sender"] as? [String: Any],
+           let id = sender["id"] as? Int {
+            return id
+        }
+        return nil
+    }
+    
     private func normalizeFirstPayload(_ data: [Any]) -> [String: Any]? {
         guard let first = data.first else { return nil }
 

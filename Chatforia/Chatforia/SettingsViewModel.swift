@@ -68,6 +68,12 @@ final class SettingsViewModel: ObservableObject {
         messageTone = normalizedMessageTone(user.messageTone)
         ringtone = normalizedRingtone(user.ringtone)
         soundVolume = user.soundVolume ?? 70
+        
+        AudioPlayerService.shared.save(
+            messageTone: messageTone,
+            ringtone: ringtone,
+            soundVolume: soundVolume
+        )
 
         if let serverValue = user.enableSmartReplies {
             enableSmartReplies = serverValue
@@ -105,7 +111,8 @@ final class SettingsViewModel: ObservableObject {
             messageTone: messageTone,
             ringtone: ringtone,
             enableSmartReplies: enableSmartReplies,
-            maskAIProfanity: maskAIProfanity
+            maskAIProfanity: maskAIProfanity,
+            soundVolume: soundVolume
         )
     }
 
