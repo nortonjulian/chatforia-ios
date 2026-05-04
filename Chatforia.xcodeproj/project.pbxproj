@@ -10,6 +10,212 @@
 		472B4D132F818EC500B7A92F /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 472B4D122F818EC500B7A92F /* GoogleMobileAds */; };
 		474FB3782F9DA5EF0072137C /* PostHog in Frameworks */ = {isa = PBXBuildFile; productRef = 474FB3772F9DA5EF0072137C /* PostHog */; };
 		475F9DFD2F418A78006B79D9 /* SocketIO in Frameworks */ = {isa = PBXBuildFile; productRef = 475F9DFC2F418A78006B79D9 /* SocketIO */; };
+		47940EC42FA7CB1D007BF2D8 /* VoicemailRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940DF62FA7CB03007BF2D8 /* VoicemailRowView.swift */; };
+		47940EC52FA7CB1D007BF2D8 /* ChatsRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940DF72FA7CB03007BF2D8 /* ChatsRootView.swift */; };
+		47940EC62FA7CB1D007BF2D8 /* DeliveryState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940DF82FA7CB03007BF2D8 /* DeliveryState.swift */; };
+		47940EC72FA7CB1D007BF2D8 /* AppShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940DF92FA7CB03007BF2D8 /* AppShellView.swift */; };
+		47940EC82FA7CB1D007BF2D8 /* AddContactView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940DFA2FA7CB03007BF2D8 /* AddContactView.swift */; };
+		47940EC92FA7CB1D007BF2D8 /* SettingsRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940DFB2FA7CB03007BF2D8 /* SettingsRowView.swift */; };
+		47940ECA2FA7CB1D007BF2D8 /* ProfileRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940DFC2FA7CB03007BF2D8 /* ProfileRootView.swift */; };
+		47940ECB2FA7CB1D007BF2D8 /* SHA256Helper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940DFD2FA7CB03007BF2D8 /* SHA256Helper.swift */; };
+		47940ECC2FA7CB1D007BF2D8 /* CallHistoryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940DFE2FA7CB03007BF2D8 /* CallHistoryService.swift */; };
+		47940ECD2FA7CB1D007BF2D8 /* DevicePairingCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940DFF2FA7CB03007BF2D8 /* DevicePairingCrypto.swift */; };
+		47940ECE2FA7CB1D007BF2D8 /* VoicemailService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E002FA7CB03007BF2D8 /* VoicemailService.swift */; };
+		47940ECF2FA7CB1D007BF2D8 /* ConversationDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E012FA7CB03007BF2D8 /* ConversationDTO.swift */; };
+		47940ED02FA7CB1D007BF2D8 /* ContactRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E022FA7CB03007BF2D8 /* ContactRowView.swift */; };
+		47940ED12FA7CB1D007BF2D8 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E032FA7CB03007BF2D8 /* OnboardingView.swift */; };
+		47940ED22FA7CB1D007BF2D8 /* MessageBubbleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E042FA7CB03007BF2D8 /* MessageBubbleView.swift */; };
+		47940ED32FA7CB1D007BF2D8 /* ReportReason.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E052FA7CB03007BF2D8 /* ReportReason.swift */; };
+		47940ED42FA7CB1D007BF2D8 /* VoiceTokenDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E062FA7CB03007BF2D8 /* VoiceTokenDTO.swift */; };
+		47940ED52FA7CB1D007BF2D8 /* MessageReceiptSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E072FA7CB03007BF2D8 /* MessageReceiptSheet.swift */; };
+		47940ED62FA7CB1D007BF2D8 /* RiaChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E082FA7CB03007BF2D8 /* RiaChatView.swift */; };
+		47940ED72FA7CB1D007BF2D8 /* ChatMessageRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E092FA7CB04007BF2D8 /* ChatMessageRowView.swift */; };
+		47940ED82FA7CB1D007BF2D8 /* RemoteKeyBackupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E0A2FA7CB04007BF2D8 /* RemoteKeyBackupService.swift */; };
+		47940ED92FA7CB1D007BF2D8 /* TypingUpdateDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E0B2FA7CB04007BF2D8 /* TypingUpdateDTO.swift */; };
+		47940EDA2FA7CB1D007BF2D8 /* AuthStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E0C2FA7CB04007BF2D8 /* AuthStore.swift */; };
+		47940EDB2FA7CB1D007BF2D8 /* CallLifecycleStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E0D2FA7CB04007BF2D8 /* CallLifecycleStatus.swift */; };
+		47940EDC2FA7CB1D007BF2D8 /* NumberPickMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E0E2FA7CB04007BF2D8 /* NumberPickMode.swift */; };
+		47940EDD2FA7CB1D007BF2D8 /* PremiumPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E0F2FA7CB04007BF2D8 /* PremiumPickerSheet.swift */; };
+		47940EDE2FA7CB1D007BF2D8 /* DecryptedMessageTextStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E102FA7CB04007BF2D8 /* DecryptedMessageTextStore.swift */; };
+		47940EDF2FA7CB1D007BF2D8 /* DeviceKeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E112FA7CB04007BF2D8 /* DeviceKeyManager.swift */; };
+		47940EE02FA7CB1D007BF2D8 /* ContactDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E122FA7CB04007BF2D8 /* ContactDTO.swift */; };
+		47940EE12FA7CB1D007BF2D8 /* AddContactViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E132FA7CB05007BF2D8 /* AddContactViewModel.swift */; };
+		47940EE22FA7CB1D007BF2D8 /* PendingInviteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E142FA7CB05007BF2D8 /* PendingInviteStore.swift */; };
+		47940EE32FA7CB1D007BF2D8 /* PSTNCallResponseDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E152FA7CB05007BF2D8 /* PSTNCallResponseDTO.swift */; };
+		47940EE42FA7CB1D007BF2D8 /* WirelessService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E162FA7CB05007BF2D8 /* WirelessService.swift */; };
+		47940EE52FA7CB1D007BF2D8 /* CallState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E172FA7CB05007BF2D8 /* CallState.swift */; };
+		47940EE62FA7CB1D007BF2D8 /* EditMessageTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E182FA7CB05007BF2D8 /* EditMessageTextView.swift */; };
+		47940EE72FA7CB1D007BF2D8 /* MessageDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E192FA7CB05007BF2D8 /* MessageDTO.swift */; };
+		47940EE82FA7CB1D007BF2D8 /* UserDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E1A2FA7CB05007BF2D8 /* UserDTO.swift */; };
+		47940EE92FA7CB1D007BF2D8 /* VoicemailDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E1B2FA7CB05007BF2D8 /* VoicemailDetailView.swift */; };
+		47940EEA2FA7CB1D007BF2D8 /* ThemedOutlineButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E1C2FA7CB05007BF2D8 /* ThemedOutlineButton.swift */; };
+		47940EEB2FA7CB1D007BF2D8 /* ChatsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E1D2FA7CB05007BF2D8 /* ChatsViewModel.swift */; };
+		47940EEC2FA7CB1D007BF2D8 /* ChatBubbleShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E1E2FA7CB06007BF2D8 /* ChatBubbleShape.swift */; };
+		47940EED2FA7CB1D007BF2D8 /* ThemedToggleRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E1F2FA7CB06007BF2D8 /* ThemedToggleRow.swift */; };
+		47940EEE2FA7CB1D007BF2D8 /* LanguageOption.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E202FA7CB06007BF2D8 /* LanguageOption.swift */; };
+		47940EEF2FA7CB1D007BF2D8 /* DateSeparatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E212FA7CB06007BF2D8 /* DateSeparatorView.swift */; };
+		47940EF02FA7CB1D007BF2D8 /* PSTNCallService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E222FA7CB06007BF2D8 /* PSTNCallService.swift */; };
+		47940EF12FA7CB1D007BF2D8 /* SMSMessageDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E232FA7CB06007BF2D8 /* SMSMessageDTO.swift */; };
+		47940EF22FA7CB1D007BF2D8 /* SMSThreadSearchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E242FA7CB06007BF2D8 /* SMSThreadSearchSheet.swift */; };
+		47940EF32FA7CB1D007BF2D8 /* VoIPPushManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E252FA7CB06007BF2D8 /* VoIPPushManager.swift */; };
+		47940EF42FA7CB1D007BF2D8 /* PortNumberView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E262FA7CB06007BF2D8 /* PortNumberView.swift */; };
+		47940EF52FA7CB1D007BF2D8 /* RiaChatMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E272FA7CB07007BF2D8 /* RiaChatMessage.swift */; };
+		47940EF62FA7CB1D007BF2D8 /* VoicemailInboxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E282FA7CB07007BF2D8 /* VoicemailInboxView.swift */; };
+		47940EF72FA7CB1D007BF2D8 /* SMSThreadDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E292FA7CB07007BF2D8 /* SMSThreadDTO.swift */; };
+		47940EF82FA7CB1D007BF2D8 /* InlineVideoPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E2A2FA7CB07007BF2D8 /* InlineVideoPlayerView.swift */; };
+		47940EF92FA7CB1D007BF2D8 /* PhoneContactDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E2B2FA7CB07007BF2D8 /* PhoneContactDTO.swift */; };
+		47940EFA2FA7CB1D007BF2D8 /* InviteFriendsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E2C2FA7CB07007BF2D8 /* InviteFriendsView.swift */; };
+		47940EFB2FA7CB1D007BF2D8 /* RiaDTOs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E2D2FA7CB08007BF2D8 /* RiaDTOs.swift */; };
+		47940EFC2FA7CB1D007BF2D8 /* RiaService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E2E2FA7CB08007BF2D8 /* RiaService.swift */; };
+		47940EFD2FA7CB1D007BF2D8 /* ChatThreadSearchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E2F2FA7CB08007BF2D8 /* ChatThreadSearchSheet.swift */; };
+		47940EFE2FA7CB1D007BF2D8 /* VoiceNoteDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E302FA7CB08007BF2D8 /* VoiceNoteDraft.swift */; };
+		47940EFF2FA7CB1D007BF2D8 /* BannerAdView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E312FA7CB08007BF2D8 /* BannerAdView.swift */; };
+		47940F002FA7CB1D007BF2D8 /* InviteFlowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E322FA7CB08007BF2D8 /* InviteFlowManager.swift */; };
+		47940F012FA7CB1D007BF2D8 /* TokenStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E332FA7CB08007BF2D8 /* TokenStore.swift */; };
+		47940F022FA7CB1D007BF2D8 /* PricingQuoteService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E342FA7CB08007BF2D8 /* PricingQuoteService.swift */; };
+		47940F032FA7CB1D007BF2D8 /* SoundSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E352FA7CB08007BF2D8 /* SoundSettingsView.swift */; };
+		47940F042FA7CB1D007BF2D8 /* ThemedGradientButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E362FA7CB09007BF2D8 /* ThemedGradientButton.swift */; };
+		47940F052FA7CB1D007BF2D8 /* RiaViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E372FA7CB09007BF2D8 /* RiaViewModel.swift */; };
+		47940F062FA7CB1D007BF2D8 /* SMSThreadViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E382FA7CB09007BF2D8 /* SMSThreadViewModel.swift */; };
+		47940F072FA7CB1D007BF2D8 /* TimestampFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E392FA7CB09007BF2D8 /* TimestampFormatter.swift */; };
+		47940F082FA7CB1D007BF2D8 /* DecryptedMessageTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E3A2FA7CB09007BF2D8 /* DecryptedMessageTextView.swift */; };
+		47940F092FA7CB1D007BF2D8 /* AudioPlaybackViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E3B2FA7CB09007BF2D8 /* AudioPlaybackViewModel.swift */; };
+		47940F0A2FA7CB1D007BF2D8 /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E3C2FA7CB09007BF2D8 /* SettingsViewModel.swift */; };
+		47940F0B2FA7CB1D007BF2D8 /* TwilioVideoService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E3D2FA7CB09007BF2D8 /* TwilioVideoService.swift */; };
+		47940F0C2FA7CB1D007BF2D8 /* ThemeOption.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E3E2FA7CB0A007BF2D8 /* ThemeOption.swift */; };
+		47940F0D2FA7CB1D007BF2D8 /* SearchBarPlaceholderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E3F2FA7CB0A007BF2D8 /* SearchBarPlaceholderView.swift */; };
+		47940F0E2FA7CB1D007BF2D8 /* GIFPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E402FA7CB0A007BF2D8 /* GIFPickerView.swift */; };
+		47940F0F2FA7CB1D007BF2D8 /* ImportPhoneContactsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E412FA7CB0A007BF2D8 /* ImportPhoneContactsViewModel.swift */; };
+		47940F102FA7CB1D007BF2D8 /* StartChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E422FA7CB0A007BF2D8 /* StartChatViewModel.swift */; };
+		47940F112FA7CB1D007BF2D8 /* InviteService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E432FA7CB0A007BF2D8 /* InviteService.swift */; };
+		47940F122FA7CB1D007BF2D8 /* ESIMActivationDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E442FA7CB0A007BF2D8 /* ESIMActivationDTO.swift */; };
+		47940F132FA7CB1D007BF2D8 /* UploadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E452FA7CB0B007BF2D8 /* UploadService.swift */; };
+		47940F142FA7CB1D007BF2D8 /* ThemedMenuField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E462FA7CB0B007BF2D8 /* ThemedMenuField.swift */; };
+		47940F152FA7CB1D007BF2D8 /* RegisterResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E472FA7CB0B007BF2D8 /* RegisterResponse.swift */; };
+		47940F162FA7CB1D007BF2D8 /* LoadingStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E482FA7CB0B007BF2D8 /* LoadingStateView.swift */; };
+		47940F172FA7CB1D007BF2D8 /* TwilioVoiceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E492FA7CB0B007BF2D8 /* TwilioVoiceService.swift */; };
+		47940F182FA7CB1D007BF2D8 /* AccountKeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E4A2FA7CB0B007BF2D8 /* AccountKeyManager.swift */; };
+		47940F192FA7CB1D007BF2D8 /* StartChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E4B2FA7CB0B007BF2D8 /* StartChatView.swift */; };
+		47940F1A2FA7CB1D007BF2D8 /* RandomMatchingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E4C2FA7CB0B007BF2D8 /* RandomMatchingView.swift */; };
+		47940F1B2FA7CB1D007BF2D8 /* VoicemailDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E4D2FA7CB0B007BF2D8 /* VoicemailDTO.swift */; };
+		47940F1C2FA7CB1D007BF2D8 /* UserSettingsUpdateRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E4E2FA7CB0C007BF2D8 /* UserSettingsUpdateRequest.swift */; };
+		47940F1D2FA7CB1D007BF2D8 /* DialerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E4F2FA7CB0C007BF2D8 /* DialerView.swift */; };
+		47940F1E2FA7CB1D007BF2D8 /* MediaPermissionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E502FA7CB0C007BF2D8 /* MediaPermissionManager.swift */; };
+		47940F1F2FA7CB1D007BF2D8 /* NotificationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E512FA7CB0C007BF2D8 /* NotificationCoordinator.swift */; };
+		47940F202FA7CB1D007BF2D8 /* UpgradePromptSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E522FA7CB0C007BF2D8 /* UpgradePromptSheet.swift */; };
+		47940F212FA7CB1D007BF2D8 /* WirelessCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E532FA7CB0C007BF2D8 /* WirelessCatalog.swift */; };
+		47940F222FA7CB1D007BF2D8 /* ChatListRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E542FA7CB0C007BF2D8 /* ChatListRowView.swift */; };
+		47940F232FA7CB1D007BF2D8 /* LaunchScreen.storyboard in Sources */ = {isa = PBXBuildFile; fileRef = 47940E552FA7CB0C007BF2D8 /* LaunchScreen.storyboard */; };
+		47940F242FA7CB1D007BF2D8 /* AvatarUploadResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E562FA7CB0C007BF2D8 /* AvatarUploadResponse.swift */; };
+		47940F252FA7CB1D007BF2D8 /* RiaRewriteSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E572FA7CB0D007BF2D8 /* RiaRewriteSheet.swift */; };
+		47940F262FA7CB1D007BF2D8 /* RiaSuggestionBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E582FA7CB0D007BF2D8 /* RiaSuggestionBar.swift */; };
+		47940F272FA7CB1D007BF2D8 /* DeviceDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E592FA7CB0D007BF2D8 /* DeviceDTO.swift */; };
+		47940F282FA7CB1D007BF2D8 /* UnreadBadgeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E5A2FA7CB0D007BF2D8 /* UnreadBadgeView.swift */; };
+		47940F292FA7CB1D007BF2D8 /* ReportMessageRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E5B2FA7CB0D007BF2D8 /* ReportMessageRequest.swift */; };
+		47940F2A2FA7CB1D007BF2D8 /* VideoCompressionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E5C2FA7CB0D007BF2D8 /* VideoCompressionService.swift */; };
+		47940F2B2FA7CB1D007BF2D8 /* WirelessHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E5D2FA7CB0D007BF2D8 /* WirelessHomeView.swift */; };
+		47940F2C2FA7CB1D007BF2D8 /* LanguageSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E5E2FA7CB0D007BF2D8 /* LanguageSelectionView.swift */; };
+		47940F2D2FA7CB1D007BF2D8 /* MessageStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E5F2FA7CB0E007BF2D8 /* MessageStore.swift */; };
+		47940F2E2FA7CB1D007BF2D8 /* ChatforiaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E602FA7CB0E007BF2D8 /* ChatforiaApp.swift */; };
+		47940F2F2FA7CB1D007BF2D8 /* ESIMActivationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E612FA7CB0E007BF2D8 /* ESIMActivationView.swift */; };
+		47940F302FA7CB1D007BF2D8 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E622FA7CB0E007BF2D8 /* LoginView.swift */; };
+		47940F312FA7CB1D007BF2D8 /* CheckoutSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E632FA7CB0F007BF2D8 /* CheckoutSheetView.swift */; };
+		47940F322FA7CB1D007BF2D8 /* AttachmentPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E642FA7CB0F007BF2D8 /* AttachmentPickerSheet.swift */; };
+		47940F332FA7CB1D007BF2D8 /* AudioRecorderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E652FA7CB0F007BF2D8 /* AudioRecorderService.swift */; };
+		47940F342FA7CB1D007BF2D8 /* WirelessStatusDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E662FA7CB0F007BF2D8 /* WirelessStatusDTO.swift */; };
+		47940F352FA7CB1D007BF2D8 /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E672FA7CB0F007BF2D8 /* EmptyStateView.swift */; };
+		47940F362FA7CB1D007BF2D8 /* SocketManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E682FA7CB0F007BF2D8 /* SocketManager.swift */; };
+		47940F372FA7CB1D007BF2D8 /* PickNumberSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E692FA7CB10007BF2D8 /* PickNumberSheet.swift */; };
+		47940F382FA7CB1D007BF2D8 /* CallsSegment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E6A2FA7CB10007BF2D8 /* CallsSegment.swift */; };
+		47940F392FA7CB1D007BF2D8 /* InvitePhoneContactsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E6B2FA7CB10007BF2D8 /* InvitePhoneContactsView.swift */; };
+		47940F3A2FA7CB1D007BF2D8 /* ActiveCallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E6C2FA7CB10007BF2D8 /* ActiveCallView.swift */; };
+		47940F3B2FA7CB1D007BF2D8 /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E6D2FA7CB10007BF2D8 /* ThemeManager.swift */; };
+		47940F3C2FA7CB1D007BF2D8 /* ContactDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E6E2FA7CB10007BF2D8 /* ContactDetailView.swift */; };
+		47940F3D2FA7CB1D007BF2D8 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E6F2FA7CB11007BF2D8 /* APIClient.swift */; };
+		47940F3E2FA7CB1D007BF2D8 /* ChatThreadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E702FA7CB11007BF2D8 /* ChatThreadView.swift */; };
+		47940F3F2FA7CB1D007BF2D8 /* MessageAttachmentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E712FA7CB11007BF2D8 /* MessageAttachmentsView.swift */; };
+		47940F402FA7CB1D007BF2D8 /* UpgradeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E722FA7CB11007BF2D8 /* UpgradeView.swift */; };
+		47940F412FA7CB1D007BF2D8 /* ChatThreadViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E732FA7CB11007BF2D8 /* ChatThreadViewModel.swift */; };
+		47940F422FA7CB1D007BF2D8 /* RingtoneOption.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E742FA7CB11007BF2D8 /* RingtoneOption.swift */; };
+		47940F432FA7CB1D007BF2D8 /* AnalyticsManager..swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E752FA7CB11007BF2D8 /* AnalyticsManager..swift */; };
+		47940F442FA7CB1D007BF2D8 /* CallSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E762FA7CB12007BF2D8 /* CallSession.swift */; };
+		47940F452FA7CB1D007BF2D8 /* ContactsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E772FA7CB12007BF2D8 /* ContactsViewModel.swift */; };
+		47940F462FA7CB1D007BF2D8 /* PhoneNumberViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E782FA7CB12007BF2D8 /* PhoneNumberViewModel.swift */; };
+		47940F472FA7CB1D007BF2D8 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E792FA7CB12007BF2D8 /* SplashView.swift */; };
+		47940F482FA7CB1D007BF2D8 /* GIFWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E7A2FA7CB12007BF2D8 /* GIFWebView.swift */; };
+		47940F492FA7CB1D007BF2D8 /* RandomSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E7B2FA7CB12007BF2D8 /* RandomSession.swift */; };
+		47940F4A2FA7CB1D007BF2D8 /* CallService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E7C2FA7CB13007BF2D8 /* CallService.swift */; };
+		47940F4B2FA7CB1D007BF2D8 /* ForwardingSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E7D2FA7CB13007BF2D8 /* ForwardingSettingsView.swift */; };
+		47940F4C2FA7CB1D007BF2D8 /* RotateEncryptionKeyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E7E2FA7CB13007BF2D8 /* RotateEncryptionKeyView.swift */; };
+		47940F4D2FA7CB1D007BF2D8 /* VoicemailInboxViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E7F2FA7CB13007BF2D8 /* VoicemailInboxViewModel.swift */; };
+		47940F4E2FA7CB1D007BF2D8 /* CallRecordDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E802FA7CB13007BF2D8 /* CallRecordDTO.swift */; };
+		47940F4F2FA7CB1D007BF2D8 /* SubscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E812FA7CB13007BF2D8 /* SubscriptionManager.swift */; };
+		47940F502FA7CB1D007BF2D8 /* ProfileHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E822FA7CB13007BF2D8 /* ProfileHeaderView.swift */; };
+		47940F512FA7CB1D007BF2D8 /* AppPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E832FA7CB14007BF2D8 /* AppPlan.swift */; };
+		47940F522FA7CB1D007BF2D8 /* PhoneContactsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E842FA7CB14007BF2D8 /* PhoneContactsService.swift */; };
+		47940F532FA7CB1D007BF2D8 /* MessagesListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E852FA7CB14007BF2D8 /* MessagesListView.swift */; };
+		47940F542FA7CB1D007BF2D8 /* CallKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E862FA7CB14007BF2D8 /* CallKitManager.swift */; };
+		47940F552FA7CB1D007BF2D8 /* ContactsRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E872FA7CB14007BF2D8 /* ContactsRootView.swift */; };
+		47940F562FA7CB1D007BF2D8 /* ContactsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E882FA7CB14007BF2D8 /* ContactsService.swift */; };
+		47940F572FA7CB1D007BF2D8 /* AppleSignInCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E892FA7CB14007BF2D8 /* AppleSignInCoordinator.swift */; };
+		47940F582FA7CB1D007BF2D8 /* VoicemailTranscriptStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E8A2FA7CB15007BF2D8 /* VoicemailTranscriptStatus.swift */; };
+		47940F592FA7CB1D007BF2D8 /* ImportPhoneContactsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E8B2FA7CB15007BF2D8 /* ImportPhoneContactsView.swift */; };
+		47940F5A2FA7CB1D007BF2D8 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E8C2FA7CB15007BF2D8 /* ContentView.swift */; };
+		47940F5B2FA7CB1D007BF2D8 /* RestoreEncryptionKeyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E8D2FA7CB15007BF2D8 /* RestoreEncryptionKeyView.swift */; };
+		47940F5C2FA7CB1D007BF2D8 /* JSONValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E8E2FA7CB15007BF2D8 /* JSONValue.swift */; };
+		47940F5D2FA7CB1D007BF2D8 /* SafariView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E8F2FA7CB15007BF2D8 /* SafariView.swift */; };
+		47940F5E2FA7CB1D007BF2D8 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E902FA7CB15007BF2D8 /* KeychainHelper.swift */; };
+		47940F5F2FA7CB1D007BF2D8 /* IncomingCallPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E912FA7CB16007BF2D8 /* IncomingCallPayload.swift */; };
+		47940F602FA7CB1D007BF2D8 /* TypingIndicatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E922FA7CB16007BF2D8 /* TypingIndicatorView.swift */; };
+		47940F612FA7CB1D007BF2D8 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E932FA7CB16007BF2D8 /* AppEnvironment.swift */; };
+		47940F622FA7CB1D007BF2D8 /* CallHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E942FA7CB16007BF2D8 /* CallHistoryView.swift */; };
+		47940F632FA7CB1D007BF2D8 /* SimpleMessageRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E952FA7CB16007BF2D8 /* SimpleMessageRowView.swift */; };
+		47940F642FA7CB1D007BF2D8 /* BackupEncryptionKeyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E962FA7CB16007BF2D8 /* BackupEncryptionKeyView.swift */; };
+		47940F652FA7CB1D007BF2D8 /* DataPacksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E972FA7CB16007BF2D8 /* DataPacksView.swift */; };
+		47940F662FA7CB1D007BF2D8 /* CallManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E982FA7CB16007BF2D8 /* CallManager.swift */; };
+		47940F672FA7CB1D007BF2D8 /* InviteDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E992FA7CB16007BF2D8 /* InviteDTO.swift */; };
+		47940F682FA7CB1D007BF2D8 /* DeviceRegistrationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E9A2FA7CB17007BF2D8 /* DeviceRegistrationService.swift */; };
+		47940F692FA7CB1D007BF2D8 /* SupportedCountries.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E9B2FA7CB17007BF2D8 /* SupportedCountries.swift */; };
+		47940F6A2FA7CB1D007BF2D8 /* GIFService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E9C2FA7CB17007BF2D8 /* GIFService.swift */; };
+		47940F6C2FA7CB1D007BF2D8 /* RiaChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E9E2FA7CB17007BF2D8 /* RiaChatViewModel.swift */; };
+		47940F6D2FA7CB1D007BF2D8 /* BatchSortDebouncer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940E9F2FA7CB17007BF2D8 /* BatchSortDebouncer.swift */; };
+		47940F6E2FA7CB1D007BF2D8 /* VideoRendererView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EA02FA7CB18007BF2D8 /* VideoRendererView.swift */; };
+		47940F6F2FA7CB1D007BF2D8 /* VideoCallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EA12FA7CB18007BF2D8 /* VideoCallView.swift */; };
+		47940F702FA7CB1D007BF2D8 /* ForwardingSettingsDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EA22FA7CB18007BF2D8 /* ForwardingSettingsDTO.swift */; };
+		47940F712FA7CB1D007BF2D8 /* ForwardingSettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EA32FA7CB18007BF2D8 /* ForwardingSettingsViewModel.swift */; };
+		47940F722FA7CB1D007BF2D8 /* AudioAttachmentCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EA42FA7CB18007BF2D8 /* AudioAttachmentCardView.swift */; };
+		47940F732FA7CB1D007BF2D8 /* SettingsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EA52FA7CB18007BF2D8 /* SettingsService.swift */; };
+		47940F742FA7CB1D007BF2D8 /* SMSThreadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EA62FA7CB18007BF2D8 /* SMSThreadView.swift */; };
+		47940F752FA7CB1D007BF2D8 /* AudioPlayerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EA72FA7CB18007BF2D8 /* AudioPlayerService.swift */; };
+		47940F762FA7CB1D007BF2D8 /* MessageCryptoService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EA82FA7CB19007BF2D8 /* MessageCryptoService.swift */; };
+		47940F772FA7CB1D007BF2D8 /* RegisterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EA92FA7CB19007BF2D8 /* RegisterView.swift */; };
+		47940F782FA7CB1D007BF2D8 /* CallOverlayHostView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EAA2FA7CB19007BF2D8 /* CallOverlayHostView.swift */; };
+		47940F792FA7CB1D007BF2D8 /* RegisterRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EAB2FA7CB19007BF2D8 /* RegisterRequest.swift */; };
+		47940F7A2FA7CB1D007BF2D8 /* ForwardingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EAC2FA7CB19007BF2D8 /* ForwardingService.swift */; };
+		47940F7B2FA7CB1D007BF2D8 /* InviteLinkHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EAD2FA7CB1A007BF2D8 /* InviteLinkHandler.swift */; };
+		47940F7C2FA7CB1D007BF2D8 /* PlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EAE2FA7CB1A007BF2D8 /* PlanView.swift */; };
+		47940F7D2FA7CB1D007BF2D8 /* ReportMessageSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EAF2FA7CB1A007BF2D8 /* ReportMessageSheet.swift */; };
+		47940F7E2FA7CB1D007BF2D8 /* InterstitialAdManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EB02FA7CB1A007BF2D8 /* InterstitialAdManager.swift */; };
+		47940F7F2FA7CB1D007BF2D8 /* CallDirection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EB12FA7CB1A007BF2D8 /* CallDirection.swift */; };
+		47940F802FA7CB1D007BF2D8 /* OAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EB22FA7CB1A007BF2D8 /* OAuthService.swift */; };
+		47940F812FA7CB1D007BF2D8 /* ThemedSecureField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EB32FA7CB1A007BF2D8 /* ThemedSecureField.swift */; };
+		47940F822FA7CB1D007BF2D8 /* ThemedTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EB42FA7CB1B007BF2D8 /* ThemedTextField.swift */; };
+		47940F832FA7CB1D007BF2D8 /* ESIMService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EB52FA7CB1B007BF2D8 /* ESIMService.swift */; };
+		47940F842FA7CB1D007BF2D8 /* SendQueueManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EB62FA7CB1B007BF2D8 /* SendQueueManager.swift */; };
+		47940F852FA7CB1D007BF2D8 /* ThemedNavigationTitle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EB72FA7CB1B007BF2D8 /* ThemedNavigationTitle.swift */; };
+		47940F862FA7CB1D007BF2D8 /* ESIMActivationViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EB82FA7CB1B007BF2D8 /* ESIMActivationViewModel.swift */; };
+		47940F872FA7CB1D007BF2D8 /* PhoneNumberManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EB92FA7CB1B007BF2D8 /* PhoneNumberManagementView.swift */; };
+		47940F882FA7CB1D007BF2D8 /* MessageComposerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EBA2FA7CB1B007BF2D8 /* MessageComposerView.swift */; };
+		47940F892FA7CB1D007BF2D8 /* CallDestination.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EBB2FA7CB1B007BF2D8 /* CallDestination.swift */; };
+		47940F8A2FA7CB1D007BF2D8 /* MessageToneOption.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EBC2FA7CB1B007BF2D8 /* MessageToneOption.swift */; };
+		47940F8B2FA7CB1D007BF2D8 /* SectionCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EBD2FA7CB1C007BF2D8 /* SectionCardView.swift */; };
+		47940F8C2FA7CB1D007BF2D8 /* RegistrationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EBE2FA7CB1C007BF2D8 /* RegistrationService.swift */; };
+		47940F8D2FA7CB1D007BF2D8 /* FullscreenVideoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EBF2FA7CB1C007BF2D8 /* FullscreenVideoView.swift */; };
+		47940F8E2FA7CB1D007BF2D8 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EC02FA7CB1C007BF2D8 /* ShareSheet.swift */; };
+		47940F8F2FA7CB1D007BF2D8 /* UserAvatarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EC12FA7CB1C007BF2D8 /* UserAvatarView.swift */; };
+		47940F902FA7CB1D007BF2D8 /* CountryOption.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EC22FA7CB1C007BF2D8 /* CountryOption.swift */; };
+		47940F912FA7CB1D007BF2D8 /* PhoneNumberPoolService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940EC32FA7CB1C007BF2D8 /* PhoneNumberPoolService.swift */; };
+		47940F932FA7CDA6007BF2D8 /* JSONDecoder+Tolerant.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47940F922FA7CDA6007BF2D8 /* JSONDecoder+Tolerant.swift */; };
 		47C9AB262F8C38D200AC6CF5 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 47C9AB252F8C38D200AC6CF5 /* GoogleSignIn */; };
 		47C9AB282F8C38D200AC6CF5 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 47C9AB272F8C38D200AC6CF5 /* GoogleSignInSwift */; };
 		47D716242F72198B007F3F42 /* TwilioVoice in Frameworks */ = {isa = PBXBuildFile; productRef = 47D716232F72198B007F3F42 /* TwilioVoice */; };
@@ -18,8 +224,227 @@
 		47D7165F2F72F102007F3F42 /* TwilioVideo-static in Frameworks */ = {isa = PBXBuildFile; productRef = 47D7165E2F72F102007F3F42 /* TwilioVideo-static */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		4763D3492FA833A1007B2BBF /* Copy Files */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			name = "Copy Files";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		474C11282F3A993100D958AB /* Chatforia.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Chatforia.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		47940DF62FA7CB03007BF2D8 /* VoicemailRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = VoicemailRowView.swift; path = Chatforia/Chatforia/VoicemailRowView.swift; sourceTree = "<group>"; };
+		47940DF72FA7CB03007BF2D8 /* ChatsRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ChatsRootView.swift; path = Chatforia/Chatforia/ChatsRootView.swift; sourceTree = "<group>"; };
+		47940DF82FA7CB03007BF2D8 /* DeliveryState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DeliveryState.swift; path = Chatforia/Chatforia/DeliveryState.swift; sourceTree = "<group>"; };
+		47940DF92FA7CB03007BF2D8 /* AppShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppShellView.swift; path = Chatforia/Chatforia/AppShellView.swift; sourceTree = "<group>"; };
+		47940DFA2FA7CB03007BF2D8 /* AddContactView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AddContactView.swift; path = Chatforia/Chatforia/AddContactView.swift; sourceTree = "<group>"; };
+		47940DFB2FA7CB03007BF2D8 /* SettingsRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SettingsRowView.swift; path = Chatforia/Chatforia/SettingsRowView.swift; sourceTree = "<group>"; };
+		47940DFC2FA7CB03007BF2D8 /* ProfileRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ProfileRootView.swift; path = Chatforia/Chatforia/ProfileRootView.swift; sourceTree = "<group>"; };
+		47940DFD2FA7CB03007BF2D8 /* SHA256Helper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SHA256Helper.swift; path = Chatforia/Chatforia/SHA256Helper.swift; sourceTree = "<group>"; };
+		47940DFE2FA7CB03007BF2D8 /* CallHistoryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CallHistoryService.swift; path = Chatforia/Chatforia/CallHistoryService.swift; sourceTree = "<group>"; };
+		47940DFF2FA7CB03007BF2D8 /* DevicePairingCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DevicePairingCrypto.swift; path = Chatforia/Chatforia/DevicePairingCrypto.swift; sourceTree = "<group>"; };
+		47940E002FA7CB03007BF2D8 /* VoicemailService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = VoicemailService.swift; path = Chatforia/Chatforia/VoicemailService.swift; sourceTree = "<group>"; };
+		47940E012FA7CB03007BF2D8 /* ConversationDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ConversationDTO.swift; path = Chatforia/Chatforia/ConversationDTO.swift; sourceTree = "<group>"; };
+		47940E022FA7CB03007BF2D8 /* ContactRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContactRowView.swift; path = Chatforia/Chatforia/ContactRowView.swift; sourceTree = "<group>"; };
+		47940E032FA7CB03007BF2D8 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = OnboardingView.swift; path = Chatforia/Chatforia/OnboardingView.swift; sourceTree = "<group>"; };
+		47940E042FA7CB03007BF2D8 /* MessageBubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MessageBubbleView.swift; path = Chatforia/Chatforia/MessageBubbleView.swift; sourceTree = "<group>"; };
+		47940E052FA7CB03007BF2D8 /* ReportReason.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ReportReason.swift; path = Chatforia/Chatforia/ReportReason.swift; sourceTree = "<group>"; };
+		47940E062FA7CB03007BF2D8 /* VoiceTokenDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = VoiceTokenDTO.swift; path = Chatforia/Chatforia/VoiceTokenDTO.swift; sourceTree = "<group>"; };
+		47940E072FA7CB03007BF2D8 /* MessageReceiptSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MessageReceiptSheet.swift; path = Chatforia/Chatforia/MessageReceiptSheet.swift; sourceTree = "<group>"; };
+		47940E082FA7CB03007BF2D8 /* RiaChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RiaChatView.swift; path = Chatforia/Chatforia/RiaChatView.swift; sourceTree = "<group>"; };
+		47940E092FA7CB04007BF2D8 /* ChatMessageRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ChatMessageRowView.swift; path = Chatforia/Chatforia/ChatMessageRowView.swift; sourceTree = "<group>"; };
+		47940E0A2FA7CB04007BF2D8 /* RemoteKeyBackupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RemoteKeyBackupService.swift; path = Chatforia/Chatforia/RemoteKeyBackupService.swift; sourceTree = "<group>"; };
+		47940E0B2FA7CB04007BF2D8 /* TypingUpdateDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TypingUpdateDTO.swift; path = Chatforia/Chatforia/TypingUpdateDTO.swift; sourceTree = "<group>"; };
+		47940E0C2FA7CB04007BF2D8 /* AuthStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AuthStore.swift; path = Chatforia/Chatforia/AuthStore.swift; sourceTree = "<group>"; };
+		47940E0D2FA7CB04007BF2D8 /* CallLifecycleStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CallLifecycleStatus.swift; path = Chatforia/Chatforia/CallLifecycleStatus.swift; sourceTree = "<group>"; };
+		47940E0E2FA7CB04007BF2D8 /* NumberPickMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NumberPickMode.swift; path = Chatforia/Chatforia/NumberPickMode.swift; sourceTree = "<group>"; };
+		47940E0F2FA7CB04007BF2D8 /* PremiumPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PremiumPickerSheet.swift; path = Chatforia/Chatforia/PremiumPickerSheet.swift; sourceTree = "<group>"; };
+		47940E102FA7CB04007BF2D8 /* DecryptedMessageTextStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DecryptedMessageTextStore.swift; path = Chatforia/Chatforia/DecryptedMessageTextStore.swift; sourceTree = "<group>"; };
+		47940E112FA7CB04007BF2D8 /* DeviceKeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DeviceKeyManager.swift; path = Chatforia/Chatforia/DeviceKeyManager.swift; sourceTree = "<group>"; };
+		47940E122FA7CB04007BF2D8 /* ContactDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContactDTO.swift; path = Chatforia/Chatforia/ContactDTO.swift; sourceTree = "<group>"; };
+		47940E132FA7CB05007BF2D8 /* AddContactViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AddContactViewModel.swift; path = Chatforia/Chatforia/AddContactViewModel.swift; sourceTree = "<group>"; };
+		47940E142FA7CB05007BF2D8 /* PendingInviteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PendingInviteStore.swift; path = Chatforia/Chatforia/PendingInviteStore.swift; sourceTree = "<group>"; };
+		47940E152FA7CB05007BF2D8 /* PSTNCallResponseDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PSTNCallResponseDTO.swift; path = Chatforia/Chatforia/PSTNCallResponseDTO.swift; sourceTree = "<group>"; };
+		47940E162FA7CB05007BF2D8 /* WirelessService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WirelessService.swift; path = Chatforia/Chatforia/WirelessService.swift; sourceTree = "<group>"; };
+		47940E172FA7CB05007BF2D8 /* CallState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CallState.swift; path = Chatforia/Chatforia/CallState.swift; sourceTree = "<group>"; };
+		47940E182FA7CB05007BF2D8 /* EditMessageTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = EditMessageTextView.swift; path = Chatforia/Chatforia/EditMessageTextView.swift; sourceTree = "<group>"; };
+		47940E192FA7CB05007BF2D8 /* MessageDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MessageDTO.swift; path = Chatforia/Chatforia/MessageDTO.swift; sourceTree = "<group>"; };
+		47940E1A2FA7CB05007BF2D8 /* UserDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = UserDTO.swift; path = Chatforia/Chatforia/UserDTO.swift; sourceTree = "<group>"; };
+		47940E1B2FA7CB05007BF2D8 /* VoicemailDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = VoicemailDetailView.swift; path = Chatforia/Chatforia/VoicemailDetailView.swift; sourceTree = "<group>"; };
+		47940E1C2FA7CB05007BF2D8 /* ThemedOutlineButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ThemedOutlineButton.swift; path = Chatforia/Chatforia/ThemedOutlineButton.swift; sourceTree = "<group>"; };
+		47940E1D2FA7CB05007BF2D8 /* ChatsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ChatsViewModel.swift; path = Chatforia/Chatforia/ChatsViewModel.swift; sourceTree = "<group>"; };
+		47940E1E2FA7CB06007BF2D8 /* ChatBubbleShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ChatBubbleShape.swift; path = Chatforia/Chatforia/ChatBubbleShape.swift; sourceTree = "<group>"; };
+		47940E1F2FA7CB06007BF2D8 /* ThemedToggleRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ThemedToggleRow.swift; path = Chatforia/Chatforia/ThemedToggleRow.swift; sourceTree = "<group>"; };
+		47940E202FA7CB06007BF2D8 /* LanguageOption.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LanguageOption.swift; path = Chatforia/Chatforia/LanguageOption.swift; sourceTree = "<group>"; };
+		47940E212FA7CB06007BF2D8 /* DateSeparatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DateSeparatorView.swift; path = Chatforia/Chatforia/DateSeparatorView.swift; sourceTree = "<group>"; };
+		47940E222FA7CB06007BF2D8 /* PSTNCallService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PSTNCallService.swift; path = Chatforia/Chatforia/PSTNCallService.swift; sourceTree = "<group>"; };
+		47940E232FA7CB06007BF2D8 /* SMSMessageDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SMSMessageDTO.swift; path = Chatforia/Chatforia/SMSMessageDTO.swift; sourceTree = "<group>"; };
+		47940E242FA7CB06007BF2D8 /* SMSThreadSearchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SMSThreadSearchSheet.swift; path = Chatforia/Chatforia/SMSThreadSearchSheet.swift; sourceTree = "<group>"; };
+		47940E252FA7CB06007BF2D8 /* VoIPPushManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = VoIPPushManager.swift; path = Chatforia/Chatforia/VoIPPushManager.swift; sourceTree = "<group>"; };
+		47940E262FA7CB06007BF2D8 /* PortNumberView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PortNumberView.swift; path = Chatforia/Chatforia/PortNumberView.swift; sourceTree = "<group>"; };
+		47940E272FA7CB07007BF2D8 /* RiaChatMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RiaChatMessage.swift; path = Chatforia/Chatforia/RiaChatMessage.swift; sourceTree = "<group>"; };
+		47940E282FA7CB07007BF2D8 /* VoicemailInboxView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = VoicemailInboxView.swift; path = Chatforia/Chatforia/VoicemailInboxView.swift; sourceTree = "<group>"; };
+		47940E292FA7CB07007BF2D8 /* SMSThreadDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SMSThreadDTO.swift; path = Chatforia/Chatforia/SMSThreadDTO.swift; sourceTree = "<group>"; };
+		47940E2A2FA7CB07007BF2D8 /* InlineVideoPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = InlineVideoPlayerView.swift; path = Chatforia/Chatforia/InlineVideoPlayerView.swift; sourceTree = "<group>"; };
+		47940E2B2FA7CB07007BF2D8 /* PhoneContactDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PhoneContactDTO.swift; path = Chatforia/Chatforia/PhoneContactDTO.swift; sourceTree = "<group>"; };
+		47940E2C2FA7CB07007BF2D8 /* InviteFriendsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = InviteFriendsView.swift; path = Chatforia/Chatforia/InviteFriendsView.swift; sourceTree = "<group>"; };
+		47940E2D2FA7CB08007BF2D8 /* RiaDTOs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RiaDTOs.swift; path = Chatforia/Chatforia/RiaDTOs.swift; sourceTree = "<group>"; };
+		47940E2E2FA7CB08007BF2D8 /* RiaService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RiaService.swift; path = Chatforia/Chatforia/RiaService.swift; sourceTree = "<group>"; };
+		47940E2F2FA7CB08007BF2D8 /* ChatThreadSearchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ChatThreadSearchSheet.swift; path = Chatforia/Chatforia/ChatThreadSearchSheet.swift; sourceTree = "<group>"; };
+		47940E302FA7CB08007BF2D8 /* VoiceNoteDraft.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = VoiceNoteDraft.swift; path = Chatforia/Chatforia/VoiceNoteDraft.swift; sourceTree = "<group>"; };
+		47940E312FA7CB08007BF2D8 /* BannerAdView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BannerAdView.swift; path = Chatforia/Chatforia/BannerAdView.swift; sourceTree = "<group>"; };
+		47940E322FA7CB08007BF2D8 /* InviteFlowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = InviteFlowManager.swift; path = Chatforia/Chatforia/InviteFlowManager.swift; sourceTree = "<group>"; };
+		47940E332FA7CB08007BF2D8 /* TokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TokenStore.swift; path = Chatforia/Chatforia/TokenStore.swift; sourceTree = "<group>"; };
+		47940E342FA7CB08007BF2D8 /* PricingQuoteService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PricingQuoteService.swift; path = Chatforia/Chatforia/PricingQuoteService.swift; sourceTree = "<group>"; };
+		47940E352FA7CB08007BF2D8 /* SoundSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SoundSettingsView.swift; path = Chatforia/Chatforia/SoundSettingsView.swift; sourceTree = "<group>"; };
+		47940E362FA7CB09007BF2D8 /* ThemedGradientButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ThemedGradientButton.swift; path = Chatforia/Chatforia/ThemedGradientButton.swift; sourceTree = "<group>"; };
+		47940E372FA7CB09007BF2D8 /* RiaViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RiaViewModel.swift; path = Chatforia/Chatforia/RiaViewModel.swift; sourceTree = "<group>"; };
+		47940E382FA7CB09007BF2D8 /* SMSThreadViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SMSThreadViewModel.swift; path = Chatforia/Chatforia/SMSThreadViewModel.swift; sourceTree = "<group>"; };
+		47940E392FA7CB09007BF2D8 /* TimestampFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TimestampFormatter.swift; path = Chatforia/Chatforia/TimestampFormatter.swift; sourceTree = "<group>"; };
+		47940E3A2FA7CB09007BF2D8 /* DecryptedMessageTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DecryptedMessageTextView.swift; path = Chatforia/Chatforia/DecryptedMessageTextView.swift; sourceTree = "<group>"; };
+		47940E3B2FA7CB09007BF2D8 /* AudioPlaybackViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AudioPlaybackViewModel.swift; path = Chatforia/Chatforia/AudioPlaybackViewModel.swift; sourceTree = "<group>"; };
+		47940E3C2FA7CB09007BF2D8 /* SettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SettingsViewModel.swift; path = Chatforia/Chatforia/SettingsViewModel.swift; sourceTree = "<group>"; };
+		47940E3D2FA7CB09007BF2D8 /* TwilioVideoService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TwilioVideoService.swift; path = Chatforia/Chatforia/TwilioVideoService.swift; sourceTree = "<group>"; };
+		47940E3E2FA7CB0A007BF2D8 /* ThemeOption.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ThemeOption.swift; path = Chatforia/Chatforia/ThemeOption.swift; sourceTree = "<group>"; };
+		47940E3F2FA7CB0A007BF2D8 /* SearchBarPlaceholderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SearchBarPlaceholderView.swift; path = Chatforia/Chatforia/SearchBarPlaceholderView.swift; sourceTree = "<group>"; };
+		47940E402FA7CB0A007BF2D8 /* GIFPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = GIFPickerView.swift; path = Chatforia/Chatforia/GIFPickerView.swift; sourceTree = "<group>"; };
+		47940E412FA7CB0A007BF2D8 /* ImportPhoneContactsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ImportPhoneContactsViewModel.swift; path = Chatforia/Chatforia/ImportPhoneContactsViewModel.swift; sourceTree = "<group>"; };
+		47940E422FA7CB0A007BF2D8 /* StartChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StartChatViewModel.swift; path = Chatforia/Chatforia/StartChatViewModel.swift; sourceTree = "<group>"; };
+		47940E432FA7CB0A007BF2D8 /* InviteService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = InviteService.swift; path = Chatforia/Chatforia/InviteService.swift; sourceTree = "<group>"; };
+		47940E442FA7CB0A007BF2D8 /* ESIMActivationDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ESIMActivationDTO.swift; path = Chatforia/Chatforia/ESIMActivationDTO.swift; sourceTree = "<group>"; };
+		47940E452FA7CB0B007BF2D8 /* UploadService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = UploadService.swift; path = Chatforia/Chatforia/UploadService.swift; sourceTree = "<group>"; };
+		47940E462FA7CB0B007BF2D8 /* ThemedMenuField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ThemedMenuField.swift; path = Chatforia/Chatforia/ThemedMenuField.swift; sourceTree = "<group>"; };
+		47940E472FA7CB0B007BF2D8 /* RegisterResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RegisterResponse.swift; path = Chatforia/Chatforia/RegisterResponse.swift; sourceTree = "<group>"; };
+		47940E482FA7CB0B007BF2D8 /* LoadingStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LoadingStateView.swift; path = Chatforia/Chatforia/LoadingStateView.swift; sourceTree = "<group>"; };
+		47940E492FA7CB0B007BF2D8 /* TwilioVoiceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TwilioVoiceService.swift; path = Chatforia/Chatforia/TwilioVoiceService.swift; sourceTree = "<group>"; };
+		47940E4A2FA7CB0B007BF2D8 /* AccountKeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AccountKeyManager.swift; path = Chatforia/Chatforia/AccountKeyManager.swift; sourceTree = "<group>"; };
+		47940E4B2FA7CB0B007BF2D8 /* StartChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StartChatView.swift; path = Chatforia/Chatforia/StartChatView.swift; sourceTree = "<group>"; };
+		47940E4C2FA7CB0B007BF2D8 /* RandomMatchingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RandomMatchingView.swift; path = Chatforia/Chatforia/RandomMatchingView.swift; sourceTree = "<group>"; };
+		47940E4D2FA7CB0B007BF2D8 /* VoicemailDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = VoicemailDTO.swift; path = Chatforia/Chatforia/VoicemailDTO.swift; sourceTree = "<group>"; };
+		47940E4E2FA7CB0C007BF2D8 /* UserSettingsUpdateRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = UserSettingsUpdateRequest.swift; path = Chatforia/Chatforia/UserSettingsUpdateRequest.swift; sourceTree = "<group>"; };
+		47940E4F2FA7CB0C007BF2D8 /* DialerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DialerView.swift; path = Chatforia/Chatforia/DialerView.swift; sourceTree = "<group>"; };
+		47940E502FA7CB0C007BF2D8 /* MediaPermissionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MediaPermissionManager.swift; path = Chatforia/Chatforia/MediaPermissionManager.swift; sourceTree = "<group>"; };
+		47940E512FA7CB0C007BF2D8 /* NotificationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NotificationCoordinator.swift; path = Chatforia/Chatforia/NotificationCoordinator.swift; sourceTree = "<group>"; };
+		47940E522FA7CB0C007BF2D8 /* UpgradePromptSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = UpgradePromptSheet.swift; path = Chatforia/Chatforia/UpgradePromptSheet.swift; sourceTree = "<group>"; };
+		47940E532FA7CB0C007BF2D8 /* WirelessCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WirelessCatalog.swift; path = Chatforia/Chatforia/WirelessCatalog.swift; sourceTree = "<group>"; };
+		47940E542FA7CB0C007BF2D8 /* ChatListRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ChatListRowView.swift; path = Chatforia/Chatforia/ChatListRowView.swift; sourceTree = "<group>"; };
+		47940E552FA7CB0C007BF2D8 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = Chatforia/Chatforia/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		47940E562FA7CB0C007BF2D8 /* AvatarUploadResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AvatarUploadResponse.swift; path = Chatforia/Chatforia/AvatarUploadResponse.swift; sourceTree = "<group>"; };
+		47940E572FA7CB0D007BF2D8 /* RiaRewriteSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RiaRewriteSheet.swift; path = Chatforia/Chatforia/RiaRewriteSheet.swift; sourceTree = "<group>"; };
+		47940E582FA7CB0D007BF2D8 /* RiaSuggestionBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RiaSuggestionBar.swift; path = Chatforia/Chatforia/RiaSuggestionBar.swift; sourceTree = "<group>"; };
+		47940E592FA7CB0D007BF2D8 /* DeviceDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DeviceDTO.swift; path = Chatforia/Chatforia/DeviceDTO.swift; sourceTree = "<group>"; };
+		47940E5A2FA7CB0D007BF2D8 /* UnreadBadgeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = UnreadBadgeView.swift; path = Chatforia/Chatforia/UnreadBadgeView.swift; sourceTree = "<group>"; };
+		47940E5B2FA7CB0D007BF2D8 /* ReportMessageRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ReportMessageRequest.swift; path = Chatforia/Chatforia/ReportMessageRequest.swift; sourceTree = "<group>"; };
+		47940E5C2FA7CB0D007BF2D8 /* VideoCompressionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = VideoCompressionService.swift; path = Chatforia/Chatforia/VideoCompressionService.swift; sourceTree = "<group>"; };
+		47940E5D2FA7CB0D007BF2D8 /* WirelessHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WirelessHomeView.swift; path = Chatforia/Chatforia/WirelessHomeView.swift; sourceTree = "<group>"; };
+		47940E5E2FA7CB0D007BF2D8 /* LanguageSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LanguageSelectionView.swift; path = Chatforia/Chatforia/LanguageSelectionView.swift; sourceTree = "<group>"; };
+		47940E5F2FA7CB0E007BF2D8 /* MessageStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MessageStore.swift; path = Chatforia/Chatforia/MessageStore.swift; sourceTree = "<group>"; };
+		47940E602FA7CB0E007BF2D8 /* ChatforiaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ChatforiaApp.swift; path = Chatforia/Chatforia/ChatforiaApp.swift; sourceTree = "<group>"; };
+		47940E612FA7CB0E007BF2D8 /* ESIMActivationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ESIMActivationView.swift; path = Chatforia/Chatforia/ESIMActivationView.swift; sourceTree = "<group>"; };
+		47940E622FA7CB0E007BF2D8 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LoginView.swift; path = Chatforia/Chatforia/LoginView.swift; sourceTree = "<group>"; };
+		47940E632FA7CB0F007BF2D8 /* CheckoutSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CheckoutSheetView.swift; path = Chatforia/Chatforia/CheckoutSheetView.swift; sourceTree = "<group>"; };
+		47940E642FA7CB0F007BF2D8 /* AttachmentPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AttachmentPickerSheet.swift; path = Chatforia/Chatforia/AttachmentPickerSheet.swift; sourceTree = "<group>"; };
+		47940E652FA7CB0F007BF2D8 /* AudioRecorderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AudioRecorderService.swift; path = Chatforia/Chatforia/AudioRecorderService.swift; sourceTree = "<group>"; };
+		47940E662FA7CB0F007BF2D8 /* WirelessStatusDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WirelessStatusDTO.swift; path = Chatforia/Chatforia/WirelessStatusDTO.swift; sourceTree = "<group>"; };
+		47940E672FA7CB0F007BF2D8 /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = EmptyStateView.swift; path = Chatforia/Chatforia/EmptyStateView.swift; sourceTree = "<group>"; };
+		47940E682FA7CB0F007BF2D8 /* SocketManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SocketManager.swift; path = Chatforia/Chatforia/SocketManager.swift; sourceTree = "<group>"; };
+		47940E692FA7CB10007BF2D8 /* PickNumberSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PickNumberSheet.swift; path = Chatforia/Chatforia/PickNumberSheet.swift; sourceTree = "<group>"; };
+		47940E6A2FA7CB10007BF2D8 /* CallsSegment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CallsSegment.swift; path = Chatforia/Chatforia/CallsSegment.swift; sourceTree = "<group>"; };
+		47940E6B2FA7CB10007BF2D8 /* InvitePhoneContactsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = InvitePhoneContactsView.swift; path = Chatforia/Chatforia/InvitePhoneContactsView.swift; sourceTree = "<group>"; };
+		47940E6C2FA7CB10007BF2D8 /* ActiveCallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ActiveCallView.swift; path = Chatforia/Chatforia/ActiveCallView.swift; sourceTree = "<group>"; };
+		47940E6D2FA7CB10007BF2D8 /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ThemeManager.swift; path = Chatforia/Chatforia/ThemeManager.swift; sourceTree = "<group>"; };
+		47940E6E2FA7CB10007BF2D8 /* ContactDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContactDetailView.swift; path = Chatforia/Chatforia/ContactDetailView.swift; sourceTree = "<group>"; };
+		47940E6F2FA7CB11007BF2D8 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = APIClient.swift; path = Chatforia/Chatforia/APIClient.swift; sourceTree = "<group>"; };
+		47940E702FA7CB11007BF2D8 /* ChatThreadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ChatThreadView.swift; path = Chatforia/Chatforia/ChatThreadView.swift; sourceTree = "<group>"; };
+		47940E712FA7CB11007BF2D8 /* MessageAttachmentsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MessageAttachmentsView.swift; path = Chatforia/Chatforia/MessageAttachmentsView.swift; sourceTree = "<group>"; };
+		47940E722FA7CB11007BF2D8 /* UpgradeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = UpgradeView.swift; path = Chatforia/Chatforia/UpgradeView.swift; sourceTree = "<group>"; };
+		47940E732FA7CB11007BF2D8 /* ChatThreadViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ChatThreadViewModel.swift; path = Chatforia/Chatforia/ChatThreadViewModel.swift; sourceTree = "<group>"; };
+		47940E742FA7CB11007BF2D8 /* RingtoneOption.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RingtoneOption.swift; path = Chatforia/Chatforia/RingtoneOption.swift; sourceTree = "<group>"; };
+		47940E752FA7CB11007BF2D8 /* AnalyticsManager..swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AnalyticsManager..swift; path = Chatforia/Chatforia/AnalyticsManager..swift; sourceTree = "<group>"; };
+		47940E762FA7CB12007BF2D8 /* CallSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CallSession.swift; path = Chatforia/Chatforia/CallSession.swift; sourceTree = "<group>"; };
+		47940E772FA7CB12007BF2D8 /* ContactsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContactsViewModel.swift; path = Chatforia/Chatforia/ContactsViewModel.swift; sourceTree = "<group>"; };
+		47940E782FA7CB12007BF2D8 /* PhoneNumberViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PhoneNumberViewModel.swift; path = Chatforia/Chatforia/PhoneNumberViewModel.swift; sourceTree = "<group>"; };
+		47940E792FA7CB12007BF2D8 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SplashView.swift; path = Chatforia/Chatforia/SplashView.swift; sourceTree = "<group>"; };
+		47940E7A2FA7CB12007BF2D8 /* GIFWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = GIFWebView.swift; path = Chatforia/Chatforia/GIFWebView.swift; sourceTree = "<group>"; };
+		47940E7B2FA7CB12007BF2D8 /* RandomSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RandomSession.swift; path = Chatforia/Chatforia/RandomSession.swift; sourceTree = "<group>"; };
+		47940E7C2FA7CB13007BF2D8 /* CallService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CallService.swift; path = Chatforia/Chatforia/CallService.swift; sourceTree = "<group>"; };
+		47940E7D2FA7CB13007BF2D8 /* ForwardingSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ForwardingSettingsView.swift; path = Chatforia/Chatforia/ForwardingSettingsView.swift; sourceTree = "<group>"; };
+		47940E7E2FA7CB13007BF2D8 /* RotateEncryptionKeyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RotateEncryptionKeyView.swift; path = Chatforia/Chatforia/RotateEncryptionKeyView.swift; sourceTree = "<group>"; };
+		47940E7F2FA7CB13007BF2D8 /* VoicemailInboxViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = VoicemailInboxViewModel.swift; path = Chatforia/Chatforia/VoicemailInboxViewModel.swift; sourceTree = "<group>"; };
+		47940E802FA7CB13007BF2D8 /* CallRecordDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CallRecordDTO.swift; path = Chatforia/Chatforia/CallRecordDTO.swift; sourceTree = "<group>"; };
+		47940E812FA7CB13007BF2D8 /* SubscriptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SubscriptionManager.swift; path = Chatforia/Chatforia/SubscriptionManager.swift; sourceTree = "<group>"; };
+		47940E822FA7CB13007BF2D8 /* ProfileHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ProfileHeaderView.swift; path = Chatforia/Chatforia/ProfileHeaderView.swift; sourceTree = "<group>"; };
+		47940E832FA7CB14007BF2D8 /* AppPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppPlan.swift; path = Chatforia/Chatforia/AppPlan.swift; sourceTree = "<group>"; };
+		47940E842FA7CB14007BF2D8 /* PhoneContactsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PhoneContactsService.swift; path = Chatforia/Chatforia/PhoneContactsService.swift; sourceTree = "<group>"; };
+		47940E852FA7CB14007BF2D8 /* MessagesListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MessagesListView.swift; path = Chatforia/Chatforia/MessagesListView.swift; sourceTree = "<group>"; };
+		47940E862FA7CB14007BF2D8 /* CallKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CallKitManager.swift; path = Chatforia/Chatforia/CallKitManager.swift; sourceTree = "<group>"; };
+		47940E872FA7CB14007BF2D8 /* ContactsRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContactsRootView.swift; path = Chatforia/Chatforia/ContactsRootView.swift; sourceTree = "<group>"; };
+		47940E882FA7CB14007BF2D8 /* ContactsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContactsService.swift; path = Chatforia/Chatforia/ContactsService.swift; sourceTree = "<group>"; };
+		47940E892FA7CB14007BF2D8 /* AppleSignInCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppleSignInCoordinator.swift; path = Chatforia/Chatforia/AppleSignInCoordinator.swift; sourceTree = "<group>"; };
+		47940E8A2FA7CB15007BF2D8 /* VoicemailTranscriptStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = VoicemailTranscriptStatus.swift; path = Chatforia/Chatforia/VoicemailTranscriptStatus.swift; sourceTree = "<group>"; };
+		47940E8B2FA7CB15007BF2D8 /* ImportPhoneContactsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ImportPhoneContactsView.swift; path = Chatforia/Chatforia/ImportPhoneContactsView.swift; sourceTree = "<group>"; };
+		47940E8C2FA7CB15007BF2D8 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContentView.swift; path = Chatforia/Chatforia/ContentView.swift; sourceTree = "<group>"; };
+		47940E8D2FA7CB15007BF2D8 /* RestoreEncryptionKeyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RestoreEncryptionKeyView.swift; path = Chatforia/Chatforia/RestoreEncryptionKeyView.swift; sourceTree = "<group>"; };
+		47940E8E2FA7CB15007BF2D8 /* JSONValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = JSONValue.swift; path = Chatforia/Chatforia/JSONValue.swift; sourceTree = "<group>"; };
+		47940E8F2FA7CB15007BF2D8 /* SafariView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SafariView.swift; path = Chatforia/Chatforia/SafariView.swift; sourceTree = "<group>"; };
+		47940E902FA7CB15007BF2D8 /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KeychainHelper.swift; path = Chatforia/Chatforia/KeychainHelper.swift; sourceTree = "<group>"; };
+		47940E912FA7CB16007BF2D8 /* IncomingCallPayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = IncomingCallPayload.swift; path = Chatforia/Chatforia/IncomingCallPayload.swift; sourceTree = "<group>"; };
+		47940E922FA7CB16007BF2D8 /* TypingIndicatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TypingIndicatorView.swift; path = Chatforia/Chatforia/TypingIndicatorView.swift; sourceTree = "<group>"; };
+		47940E932FA7CB16007BF2D8 /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppEnvironment.swift; path = Chatforia/Chatforia/AppEnvironment.swift; sourceTree = "<group>"; };
+		47940E942FA7CB16007BF2D8 /* CallHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CallHistoryView.swift; path = Chatforia/Chatforia/CallHistoryView.swift; sourceTree = "<group>"; };
+		47940E952FA7CB16007BF2D8 /* SimpleMessageRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SimpleMessageRowView.swift; path = Chatforia/Chatforia/SimpleMessageRowView.swift; sourceTree = "<group>"; };
+		47940E962FA7CB16007BF2D8 /* BackupEncryptionKeyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BackupEncryptionKeyView.swift; path = Chatforia/Chatforia/BackupEncryptionKeyView.swift; sourceTree = "<group>"; };
+		47940E972FA7CB16007BF2D8 /* DataPacksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DataPacksView.swift; path = Chatforia/Chatforia/DataPacksView.swift; sourceTree = "<group>"; };
+		47940E982FA7CB16007BF2D8 /* CallManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CallManager.swift; path = Chatforia/Chatforia/CallManager.swift; sourceTree = "<group>"; };
+		47940E992FA7CB16007BF2D8 /* InviteDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = InviteDTO.swift; path = Chatforia/Chatforia/InviteDTO.swift; sourceTree = "<group>"; };
+		47940E9A2FA7CB17007BF2D8 /* DeviceRegistrationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DeviceRegistrationService.swift; path = Chatforia/Chatforia/DeviceRegistrationService.swift; sourceTree = "<group>"; };
+		47940E9B2FA7CB17007BF2D8 /* SupportedCountries.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SupportedCountries.swift; path = Chatforia/Chatforia/SupportedCountries.swift; sourceTree = "<group>"; };
+		47940E9C2FA7CB17007BF2D8 /* GIFService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = GIFService.swift; path = Chatforia/Chatforia/GIFService.swift; sourceTree = "<group>"; };
+		47940E9E2FA7CB17007BF2D8 /* RiaChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RiaChatViewModel.swift; path = Chatforia/Chatforia/RiaChatViewModel.swift; sourceTree = "<group>"; };
+		47940E9F2FA7CB17007BF2D8 /* BatchSortDebouncer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BatchSortDebouncer.swift; path = Chatforia/Chatforia/BatchSortDebouncer.swift; sourceTree = "<group>"; };
+		47940EA02FA7CB18007BF2D8 /* VideoRendererView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = VideoRendererView.swift; path = Chatforia/Chatforia/VideoRendererView.swift; sourceTree = "<group>"; };
+		47940EA12FA7CB18007BF2D8 /* VideoCallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = VideoCallView.swift; path = Chatforia/Chatforia/VideoCallView.swift; sourceTree = "<group>"; };
+		47940EA22FA7CB18007BF2D8 /* ForwardingSettingsDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ForwardingSettingsDTO.swift; path = Chatforia/Chatforia/ForwardingSettingsDTO.swift; sourceTree = "<group>"; };
+		47940EA32FA7CB18007BF2D8 /* ForwardingSettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ForwardingSettingsViewModel.swift; path = Chatforia/Chatforia/ForwardingSettingsViewModel.swift; sourceTree = "<group>"; };
+		47940EA42FA7CB18007BF2D8 /* AudioAttachmentCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AudioAttachmentCardView.swift; path = Chatforia/Chatforia/AudioAttachmentCardView.swift; sourceTree = "<group>"; };
+		47940EA52FA7CB18007BF2D8 /* SettingsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SettingsService.swift; path = Chatforia/Chatforia/SettingsService.swift; sourceTree = "<group>"; };
+		47940EA62FA7CB18007BF2D8 /* SMSThreadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SMSThreadView.swift; path = Chatforia/Chatforia/SMSThreadView.swift; sourceTree = "<group>"; };
+		47940EA72FA7CB18007BF2D8 /* AudioPlayerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AudioPlayerService.swift; path = Chatforia/Chatforia/AudioPlayerService.swift; sourceTree = "<group>"; };
+		47940EA82FA7CB19007BF2D8 /* MessageCryptoService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MessageCryptoService.swift; path = Chatforia/Chatforia/MessageCryptoService.swift; sourceTree = "<group>"; };
+		47940EA92FA7CB19007BF2D8 /* RegisterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RegisterView.swift; path = Chatforia/Chatforia/RegisterView.swift; sourceTree = "<group>"; };
+		47940EAA2FA7CB19007BF2D8 /* CallOverlayHostView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CallOverlayHostView.swift; path = Chatforia/Chatforia/CallOverlayHostView.swift; sourceTree = "<group>"; };
+		47940EAB2FA7CB19007BF2D8 /* RegisterRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RegisterRequest.swift; path = Chatforia/Chatforia/RegisterRequest.swift; sourceTree = "<group>"; };
+		47940EAC2FA7CB19007BF2D8 /* ForwardingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ForwardingService.swift; path = Chatforia/Chatforia/ForwardingService.swift; sourceTree = "<group>"; };
+		47940EAD2FA7CB1A007BF2D8 /* InviteLinkHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = InviteLinkHandler.swift; path = Chatforia/Chatforia/InviteLinkHandler.swift; sourceTree = "<group>"; };
+		47940EAE2FA7CB1A007BF2D8 /* PlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PlanView.swift; path = Chatforia/Chatforia/PlanView.swift; sourceTree = "<group>"; };
+		47940EAF2FA7CB1A007BF2D8 /* ReportMessageSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ReportMessageSheet.swift; path = Chatforia/Chatforia/ReportMessageSheet.swift; sourceTree = "<group>"; };
+		47940EB02FA7CB1A007BF2D8 /* InterstitialAdManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = InterstitialAdManager.swift; path = Chatforia/Chatforia/InterstitialAdManager.swift; sourceTree = "<group>"; };
+		47940EB12FA7CB1A007BF2D8 /* CallDirection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CallDirection.swift; path = Chatforia/Chatforia/CallDirection.swift; sourceTree = "<group>"; };
+		47940EB22FA7CB1A007BF2D8 /* OAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = OAuthService.swift; path = Chatforia/Chatforia/OAuthService.swift; sourceTree = "<group>"; };
+		47940EB32FA7CB1A007BF2D8 /* ThemedSecureField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ThemedSecureField.swift; path = Chatforia/Chatforia/ThemedSecureField.swift; sourceTree = "<group>"; };
+		47940EB42FA7CB1B007BF2D8 /* ThemedTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ThemedTextField.swift; path = Chatforia/Chatforia/ThemedTextField.swift; sourceTree = "<group>"; };
+		47940EB52FA7CB1B007BF2D8 /* ESIMService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ESIMService.swift; path = Chatforia/Chatforia/ESIMService.swift; sourceTree = "<group>"; };
+		47940EB62FA7CB1B007BF2D8 /* SendQueueManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SendQueueManager.swift; path = Chatforia/Chatforia/SendQueueManager.swift; sourceTree = "<group>"; };
+		47940EB72FA7CB1B007BF2D8 /* ThemedNavigationTitle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ThemedNavigationTitle.swift; path = Chatforia/Chatforia/ThemedNavigationTitle.swift; sourceTree = "<group>"; };
+		47940EB82FA7CB1B007BF2D8 /* ESIMActivationViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ESIMActivationViewModel.swift; path = Chatforia/Chatforia/ESIMActivationViewModel.swift; sourceTree = "<group>"; };
+		47940EB92FA7CB1B007BF2D8 /* PhoneNumberManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PhoneNumberManagementView.swift; path = Chatforia/Chatforia/PhoneNumberManagementView.swift; sourceTree = "<group>"; };
+		47940EBA2FA7CB1B007BF2D8 /* MessageComposerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MessageComposerView.swift; path = Chatforia/Chatforia/MessageComposerView.swift; sourceTree = "<group>"; };
+		47940EBB2FA7CB1B007BF2D8 /* CallDestination.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CallDestination.swift; path = Chatforia/Chatforia/CallDestination.swift; sourceTree = "<group>"; };
+		47940EBC2FA7CB1B007BF2D8 /* MessageToneOption.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MessageToneOption.swift; path = Chatforia/Chatforia/MessageToneOption.swift; sourceTree = "<group>"; };
+		47940EBD2FA7CB1C007BF2D8 /* SectionCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SectionCardView.swift; path = Chatforia/Chatforia/SectionCardView.swift; sourceTree = "<group>"; };
+		47940EBE2FA7CB1C007BF2D8 /* RegistrationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RegistrationService.swift; path = Chatforia/Chatforia/RegistrationService.swift; sourceTree = "<group>"; };
+		47940EBF2FA7CB1C007BF2D8 /* FullscreenVideoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FullscreenVideoView.swift; path = Chatforia/Chatforia/FullscreenVideoView.swift; sourceTree = "<group>"; };
+		47940EC02FA7CB1C007BF2D8 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ShareSheet.swift; path = Chatforia/Chatforia/ShareSheet.swift; sourceTree = "<group>"; };
+		47940EC12FA7CB1C007BF2D8 /* UserAvatarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = UserAvatarView.swift; path = Chatforia/Chatforia/UserAvatarView.swift; sourceTree = "<group>"; };
+		47940EC22FA7CB1C007BF2D8 /* CountryOption.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CountryOption.swift; path = Chatforia/Chatforia/CountryOption.swift; sourceTree = "<group>"; };
+		47940EC32FA7CB1C007BF2D8 /* PhoneNumberPoolService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PhoneNumberPoolService.swift; path = Chatforia/Chatforia/PhoneNumberPoolService.swift; sourceTree = "<group>"; };
+		47940F922FA7CDA6007BF2D8 /* JSONDecoder+Tolerant.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "JSONDecoder+Tolerant.swift"; path = "Chatforia/JSONDecoder+Tolerant.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -66,7 +491,214 @@
 		474C111F2F3A993100D958AB = {
 			isa = PBXGroup;
 			children = (
+				47940F922FA7CDA6007BF2D8 /* JSONDecoder+Tolerant.swift */,
+				47940E4A2FA7CB0B007BF2D8 /* AccountKeyManager.swift */,
+				47940E6C2FA7CB10007BF2D8 /* ActiveCallView.swift */,
+				47940DFA2FA7CB03007BF2D8 /* AddContactView.swift */,
+				47940E132FA7CB05007BF2D8 /* AddContactViewModel.swift */,
+				47940E752FA7CB11007BF2D8 /* AnalyticsManager..swift */,
+				47940E6F2FA7CB11007BF2D8 /* APIClient.swift */,
+				47940E932FA7CB16007BF2D8 /* AppEnvironment.swift */,
+				47940E892FA7CB14007BF2D8 /* AppleSignInCoordinator.swift */,
+				47940E832FA7CB14007BF2D8 /* AppPlan.swift */,
+				47940DF92FA7CB03007BF2D8 /* AppShellView.swift */,
+				47940E642FA7CB0F007BF2D8 /* AttachmentPickerSheet.swift */,
+				47940EA42FA7CB18007BF2D8 /* AudioAttachmentCardView.swift */,
+				47940E3B2FA7CB09007BF2D8 /* AudioPlaybackViewModel.swift */,
+				47940EA72FA7CB18007BF2D8 /* AudioPlayerService.swift */,
+				47940E652FA7CB0F007BF2D8 /* AudioRecorderService.swift */,
+				47940E0C2FA7CB04007BF2D8 /* AuthStore.swift */,
+				47940E562FA7CB0C007BF2D8 /* AvatarUploadResponse.swift */,
+				47940E962FA7CB16007BF2D8 /* BackupEncryptionKeyView.swift */,
+				47940E312FA7CB08007BF2D8 /* BannerAdView.swift */,
+				47940E9F2FA7CB17007BF2D8 /* BatchSortDebouncer.swift */,
+				47940EBB2FA7CB1B007BF2D8 /* CallDestination.swift */,
+				47940EB12FA7CB1A007BF2D8 /* CallDirection.swift */,
+				47940DFE2FA7CB03007BF2D8 /* CallHistoryService.swift */,
+				47940E942FA7CB16007BF2D8 /* CallHistoryView.swift */,
+				47940E862FA7CB14007BF2D8 /* CallKitManager.swift */,
+				47940E0D2FA7CB04007BF2D8 /* CallLifecycleStatus.swift */,
+				47940E982FA7CB16007BF2D8 /* CallManager.swift */,
+				47940EAA2FA7CB19007BF2D8 /* CallOverlayHostView.swift */,
+				47940E802FA7CB13007BF2D8 /* CallRecordDTO.swift */,
+				47940E7C2FA7CB13007BF2D8 /* CallService.swift */,
+				47940E762FA7CB12007BF2D8 /* CallSession.swift */,
+				47940E6A2FA7CB10007BF2D8 /* CallsSegment.swift */,
+				47940E172FA7CB05007BF2D8 /* CallState.swift */,
+				47940E1E2FA7CB06007BF2D8 /* ChatBubbleShape.swift */,
+				47940E602FA7CB0E007BF2D8 /* ChatforiaApp.swift */,
+				47940E542FA7CB0C007BF2D8 /* ChatListRowView.swift */,
+				47940E092FA7CB04007BF2D8 /* ChatMessageRowView.swift */,
+				47940DF72FA7CB03007BF2D8 /* ChatsRootView.swift */,
+				47940E1D2FA7CB05007BF2D8 /* ChatsViewModel.swift */,
+				47940E2F2FA7CB08007BF2D8 /* ChatThreadSearchSheet.swift */,
+				47940E702FA7CB11007BF2D8 /* ChatThreadView.swift */,
+				47940E732FA7CB11007BF2D8 /* ChatThreadViewModel.swift */,
+				47940E632FA7CB0F007BF2D8 /* CheckoutSheetView.swift */,
+				47940E6E2FA7CB10007BF2D8 /* ContactDetailView.swift */,
+				47940E122FA7CB04007BF2D8 /* ContactDTO.swift */,
+				47940E022FA7CB03007BF2D8 /* ContactRowView.swift */,
+				47940E872FA7CB14007BF2D8 /* ContactsRootView.swift */,
+				47940E882FA7CB14007BF2D8 /* ContactsService.swift */,
+				47940E772FA7CB12007BF2D8 /* ContactsViewModel.swift */,
+				47940E8C2FA7CB15007BF2D8 /* ContentView.swift */,
+				47940E012FA7CB03007BF2D8 /* ConversationDTO.swift */,
+				47940EC22FA7CB1C007BF2D8 /* CountryOption.swift */,
+				47940E972FA7CB16007BF2D8 /* DataPacksView.swift */,
+				47940E212FA7CB06007BF2D8 /* DateSeparatorView.swift */,
+				47940E102FA7CB04007BF2D8 /* DecryptedMessageTextStore.swift */,
+				47940E3A2FA7CB09007BF2D8 /* DecryptedMessageTextView.swift */,
+				47940DF82FA7CB03007BF2D8 /* DeliveryState.swift */,
+				47940E592FA7CB0D007BF2D8 /* DeviceDTO.swift */,
+				47940E112FA7CB04007BF2D8 /* DeviceKeyManager.swift */,
+				47940DFF2FA7CB03007BF2D8 /* DevicePairingCrypto.swift */,
+				47940E9A2FA7CB17007BF2D8 /* DeviceRegistrationService.swift */,
+				47940E4F2FA7CB0C007BF2D8 /* DialerView.swift */,
+				47940E182FA7CB05007BF2D8 /* EditMessageTextView.swift */,
+				47940E672FA7CB0F007BF2D8 /* EmptyStateView.swift */,
+				47940E442FA7CB0A007BF2D8 /* ESIMActivationDTO.swift */,
+				47940E612FA7CB0E007BF2D8 /* ESIMActivationView.swift */,
+				47940EB82FA7CB1B007BF2D8 /* ESIMActivationViewModel.swift */,
+				47940EB52FA7CB1B007BF2D8 /* ESIMService.swift */,
+				47940EAC2FA7CB19007BF2D8 /* ForwardingService.swift */,
+				47940EA22FA7CB18007BF2D8 /* ForwardingSettingsDTO.swift */,
+				47940E7D2FA7CB13007BF2D8 /* ForwardingSettingsView.swift */,
+				47940EA32FA7CB18007BF2D8 /* ForwardingSettingsViewModel.swift */,
+				47940EBF2FA7CB1C007BF2D8 /* FullscreenVideoView.swift */,
+				47940E402FA7CB0A007BF2D8 /* GIFPickerView.swift */,
+				47940E9C2FA7CB17007BF2D8 /* GIFService.swift */,
+				47940E7A2FA7CB12007BF2D8 /* GIFWebView.swift */,
+				47940E8B2FA7CB15007BF2D8 /* ImportPhoneContactsView.swift */,
+				47940E412FA7CB0A007BF2D8 /* ImportPhoneContactsViewModel.swift */,
+				47940E912FA7CB16007BF2D8 /* IncomingCallPayload.swift */,
+				47940E2A2FA7CB07007BF2D8 /* InlineVideoPlayerView.swift */,
+				47940EB02FA7CB1A007BF2D8 /* InterstitialAdManager.swift */,
+				47940E992FA7CB16007BF2D8 /* InviteDTO.swift */,
+				47940E322FA7CB08007BF2D8 /* InviteFlowManager.swift */,
+				47940E2C2FA7CB07007BF2D8 /* InviteFriendsView.swift */,
+				47940EAD2FA7CB1A007BF2D8 /* InviteLinkHandler.swift */,
+				47940E6B2FA7CB10007BF2D8 /* InvitePhoneContactsView.swift */,
+				47940E432FA7CB0A007BF2D8 /* InviteService.swift */,
+				47940E8E2FA7CB15007BF2D8 /* JSONValue.swift */,
+				47940E902FA7CB15007BF2D8 /* KeychainHelper.swift */,
+				47940E202FA7CB06007BF2D8 /* LanguageOption.swift */,
+				47940E5E2FA7CB0D007BF2D8 /* LanguageSelectionView.swift */,
+				47940E552FA7CB0C007BF2D8 /* LaunchScreen.storyboard */,
+				47940E482FA7CB0B007BF2D8 /* LoadingStateView.swift */,
+				47940E622FA7CB0E007BF2D8 /* LoginView.swift */,
+				47940E502FA7CB0C007BF2D8 /* MediaPermissionManager.swift */,
+				47940E712FA7CB11007BF2D8 /* MessageAttachmentsView.swift */,
+				47940E042FA7CB03007BF2D8 /* MessageBubbleView.swift */,
+				47940EBA2FA7CB1B007BF2D8 /* MessageComposerView.swift */,
+				47940EA82FA7CB19007BF2D8 /* MessageCryptoService.swift */,
+				47940E192FA7CB05007BF2D8 /* MessageDTO.swift */,
+				47940E072FA7CB03007BF2D8 /* MessageReceiptSheet.swift */,
+				47940E852FA7CB14007BF2D8 /* MessagesListView.swift */,
+				47940E5F2FA7CB0E007BF2D8 /* MessageStore.swift */,
+				47940EBC2FA7CB1B007BF2D8 /* MessageToneOption.swift */,
+				47940E512FA7CB0C007BF2D8 /* NotificationCoordinator.swift */,
+				47940E0E2FA7CB04007BF2D8 /* NumberPickMode.swift */,
+				47940EB22FA7CB1A007BF2D8 /* OAuthService.swift */,
+				47940E032FA7CB03007BF2D8 /* OnboardingView.swift */,
+				47940E142FA7CB05007BF2D8 /* PendingInviteStore.swift */,
+				47940E2B2FA7CB07007BF2D8 /* PhoneContactDTO.swift */,
+				47940E842FA7CB14007BF2D8 /* PhoneContactsService.swift */,
+				47940EB92FA7CB1B007BF2D8 /* PhoneNumberManagementView.swift */,
+				47940EC32FA7CB1C007BF2D8 /* PhoneNumberPoolService.swift */,
+				47940E782FA7CB12007BF2D8 /* PhoneNumberViewModel.swift */,
+				47940E692FA7CB10007BF2D8 /* PickNumberSheet.swift */,
+				47940EAE2FA7CB1A007BF2D8 /* PlanView.swift */,
+				47940E262FA7CB06007BF2D8 /* PortNumberView.swift */,
+				47940E0F2FA7CB04007BF2D8 /* PremiumPickerSheet.swift */,
+				47940E342FA7CB08007BF2D8 /* PricingQuoteService.swift */,
+				47940E822FA7CB13007BF2D8 /* ProfileHeaderView.swift */,
+				47940DFC2FA7CB03007BF2D8 /* ProfileRootView.swift */,
+				47940E152FA7CB05007BF2D8 /* PSTNCallResponseDTO.swift */,
+				47940E222FA7CB06007BF2D8 /* PSTNCallService.swift */,
+				47940E4C2FA7CB0B007BF2D8 /* RandomMatchingView.swift */,
+				47940E7B2FA7CB12007BF2D8 /* RandomSession.swift */,
+				47940EAB2FA7CB19007BF2D8 /* RegisterRequest.swift */,
+				47940E472FA7CB0B007BF2D8 /* RegisterResponse.swift */,
+				47940EA92FA7CB19007BF2D8 /* RegisterView.swift */,
+				47940EBE2FA7CB1C007BF2D8 /* RegistrationService.swift */,
+				47940E0A2FA7CB04007BF2D8 /* RemoteKeyBackupService.swift */,
+				47940E5B2FA7CB0D007BF2D8 /* ReportMessageRequest.swift */,
+				47940EAF2FA7CB1A007BF2D8 /* ReportMessageSheet.swift */,
+				47940E052FA7CB03007BF2D8 /* ReportReason.swift */,
+				47940E8D2FA7CB15007BF2D8 /* RestoreEncryptionKeyView.swift */,
+				47940E272FA7CB07007BF2D8 /* RiaChatMessage.swift */,
+				47940E082FA7CB03007BF2D8 /* RiaChatView.swift */,
+				47940E9E2FA7CB17007BF2D8 /* RiaChatViewModel.swift */,
+				47940E2D2FA7CB08007BF2D8 /* RiaDTOs.swift */,
+				47940E572FA7CB0D007BF2D8 /* RiaRewriteSheet.swift */,
+				47940E2E2FA7CB08007BF2D8 /* RiaService.swift */,
+				47940E582FA7CB0D007BF2D8 /* RiaSuggestionBar.swift */,
+				47940E372FA7CB09007BF2D8 /* RiaViewModel.swift */,
+				47940E742FA7CB11007BF2D8 /* RingtoneOption.swift */,
+				47940E7E2FA7CB13007BF2D8 /* RotateEncryptionKeyView.swift */,
+				47940E8F2FA7CB15007BF2D8 /* SafariView.swift */,
+				47940E3F2FA7CB0A007BF2D8 /* SearchBarPlaceholderView.swift */,
+				47940EBD2FA7CB1C007BF2D8 /* SectionCardView.swift */,
+				47940EB62FA7CB1B007BF2D8 /* SendQueueManager.swift */,
+				47940DFB2FA7CB03007BF2D8 /* SettingsRowView.swift */,
+				47940EA52FA7CB18007BF2D8 /* SettingsService.swift */,
+				47940E3C2FA7CB09007BF2D8 /* SettingsViewModel.swift */,
+				47940DFD2FA7CB03007BF2D8 /* SHA256Helper.swift */,
+				47940EC02FA7CB1C007BF2D8 /* ShareSheet.swift */,
+				47940E952FA7CB16007BF2D8 /* SimpleMessageRowView.swift */,
+				47940E232FA7CB06007BF2D8 /* SMSMessageDTO.swift */,
+				47940E292FA7CB07007BF2D8 /* SMSThreadDTO.swift */,
+				47940E242FA7CB06007BF2D8 /* SMSThreadSearchSheet.swift */,
+				47940EA62FA7CB18007BF2D8 /* SMSThreadView.swift */,
+				47940E382FA7CB09007BF2D8 /* SMSThreadViewModel.swift */,
+				47940E682FA7CB0F007BF2D8 /* SocketManager.swift */,
+				47940E352FA7CB08007BF2D8 /* SoundSettingsView.swift */,
+				47940E792FA7CB12007BF2D8 /* SplashView.swift */,
+				47940E4B2FA7CB0B007BF2D8 /* StartChatView.swift */,
+				47940E422FA7CB0A007BF2D8 /* StartChatViewModel.swift */,
+				47940E812FA7CB13007BF2D8 /* SubscriptionManager.swift */,
+				47940E9B2FA7CB17007BF2D8 /* SupportedCountries.swift */,
+				47940E362FA7CB09007BF2D8 /* ThemedGradientButton.swift */,
+				47940E462FA7CB0B007BF2D8 /* ThemedMenuField.swift */,
+				47940EB72FA7CB1B007BF2D8 /* ThemedNavigationTitle.swift */,
+				47940E1C2FA7CB05007BF2D8 /* ThemedOutlineButton.swift */,
+				47940EB32FA7CB1A007BF2D8 /* ThemedSecureField.swift */,
+				47940EB42FA7CB1B007BF2D8 /* ThemedTextField.swift */,
+				47940E1F2FA7CB06007BF2D8 /* ThemedToggleRow.swift */,
+				47940E6D2FA7CB10007BF2D8 /* ThemeManager.swift */,
+				47940E3E2FA7CB0A007BF2D8 /* ThemeOption.swift */,
+				47940E392FA7CB09007BF2D8 /* TimestampFormatter.swift */,
+				47940E332FA7CB08007BF2D8 /* TokenStore.swift */,
+				47940E3D2FA7CB09007BF2D8 /* TwilioVideoService.swift */,
+				47940E492FA7CB0B007BF2D8 /* TwilioVoiceService.swift */,
+				47940E922FA7CB16007BF2D8 /* TypingIndicatorView.swift */,
+				47940E0B2FA7CB04007BF2D8 /* TypingUpdateDTO.swift */,
+				47940E5A2FA7CB0D007BF2D8 /* UnreadBadgeView.swift */,
+				47940E522FA7CB0C007BF2D8 /* UpgradePromptSheet.swift */,
+				47940E722FA7CB11007BF2D8 /* UpgradeView.swift */,
+				47940E452FA7CB0B007BF2D8 /* UploadService.swift */,
+				47940EC12FA7CB1C007BF2D8 /* UserAvatarView.swift */,
+				47940E1A2FA7CB05007BF2D8 /* UserDTO.swift */,
+				47940E4E2FA7CB0C007BF2D8 /* UserSettingsUpdateRequest.swift */,
+				47940EA12FA7CB18007BF2D8 /* VideoCallView.swift */,
+				47940E5C2FA7CB0D007BF2D8 /* VideoCompressionService.swift */,
+				47940EA02FA7CB18007BF2D8 /* VideoRendererView.swift */,
+				47940E1B2FA7CB05007BF2D8 /* VoicemailDetailView.swift */,
+				47940E4D2FA7CB0B007BF2D8 /* VoicemailDTO.swift */,
+				47940E282FA7CB07007BF2D8 /* VoicemailInboxView.swift */,
+				47940E7F2FA7CB13007BF2D8 /* VoicemailInboxViewModel.swift */,
+				47940DF62FA7CB03007BF2D8 /* VoicemailRowView.swift */,
+				47940E002FA7CB03007BF2D8 /* VoicemailService.swift */,
+				47940E8A2FA7CB15007BF2D8 /* VoicemailTranscriptStatus.swift */,
+				47940E302FA7CB08007BF2D8 /* VoiceNoteDraft.swift */,
+				47940E062FA7CB03007BF2D8 /* VoiceTokenDTO.swift */,
+				47940E252FA7CB06007BF2D8 /* VoIPPushManager.swift */,
+				47940E532FA7CB0C007BF2D8 /* WirelessCatalog.swift */,
+				47940E5D2FA7CB0D007BF2D8 /* WirelessHomeView.swift */,
+				47940E162FA7CB05007BF2D8 /* WirelessService.swift */,
+				47940E662FA7CB0F007BF2D8 /* WirelessStatusDTO.swift */,
 				474C112A2F3A993100D958AB /* Chatforia */,
+				4763D34A2FA83922007B2BBF /* Frameworks */,
 				474C11292F3A993100D958AB /* Products */,
 			);
 			sourceTree = "<group>";
@@ -79,6 +711,13 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		4763D34A2FA83922007B2BBF /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -89,6 +728,7 @@
 				474C11242F3A993100D958AB /* Sources */,
 				474C11252F3A993100D958AB /* Frameworks */,
 				474C11262F3A993100D958AB /* Resources */,
+				4763D3492FA833A1007B2BBF /* Copy Files */,
 			);
 			buildRules = (
 			);
@@ -170,6 +810,212 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				47940F932FA7CDA6007BF2D8 /* JSONDecoder+Tolerant.swift in Sources */,
+				47940EC42FA7CB1D007BF2D8 /* VoicemailRowView.swift in Sources */,
+				47940EC52FA7CB1D007BF2D8 /* ChatsRootView.swift in Sources */,
+				47940EC62FA7CB1D007BF2D8 /* DeliveryState.swift in Sources */,
+				47940EC72FA7CB1D007BF2D8 /* AppShellView.swift in Sources */,
+				47940EC82FA7CB1D007BF2D8 /* AddContactView.swift in Sources */,
+				47940EC92FA7CB1D007BF2D8 /* SettingsRowView.swift in Sources */,
+				47940ECA2FA7CB1D007BF2D8 /* ProfileRootView.swift in Sources */,
+				47940ECB2FA7CB1D007BF2D8 /* SHA256Helper.swift in Sources */,
+				47940ECC2FA7CB1D007BF2D8 /* CallHistoryService.swift in Sources */,
+				47940ECD2FA7CB1D007BF2D8 /* DevicePairingCrypto.swift in Sources */,
+				47940ECE2FA7CB1D007BF2D8 /* VoicemailService.swift in Sources */,
+				47940ECF2FA7CB1D007BF2D8 /* ConversationDTO.swift in Sources */,
+				47940ED02FA7CB1D007BF2D8 /* ContactRowView.swift in Sources */,
+				47940ED12FA7CB1D007BF2D8 /* OnboardingView.swift in Sources */,
+				47940ED22FA7CB1D007BF2D8 /* MessageBubbleView.swift in Sources */,
+				47940ED32FA7CB1D007BF2D8 /* ReportReason.swift in Sources */,
+				47940ED42FA7CB1D007BF2D8 /* VoiceTokenDTO.swift in Sources */,
+				47940ED52FA7CB1D007BF2D8 /* MessageReceiptSheet.swift in Sources */,
+				47940ED62FA7CB1D007BF2D8 /* RiaChatView.swift in Sources */,
+				47940ED72FA7CB1D007BF2D8 /* ChatMessageRowView.swift in Sources */,
+				47940ED82FA7CB1D007BF2D8 /* RemoteKeyBackupService.swift in Sources */,
+				47940ED92FA7CB1D007BF2D8 /* TypingUpdateDTO.swift in Sources */,
+				47940EDA2FA7CB1D007BF2D8 /* AuthStore.swift in Sources */,
+				47940EDB2FA7CB1D007BF2D8 /* CallLifecycleStatus.swift in Sources */,
+				47940EDC2FA7CB1D007BF2D8 /* NumberPickMode.swift in Sources */,
+				47940EDD2FA7CB1D007BF2D8 /* PremiumPickerSheet.swift in Sources */,
+				47940EDE2FA7CB1D007BF2D8 /* DecryptedMessageTextStore.swift in Sources */,
+				47940EDF2FA7CB1D007BF2D8 /* DeviceKeyManager.swift in Sources */,
+				47940EE02FA7CB1D007BF2D8 /* ContactDTO.swift in Sources */,
+				47940EE12FA7CB1D007BF2D8 /* AddContactViewModel.swift in Sources */,
+				47940EE22FA7CB1D007BF2D8 /* PendingInviteStore.swift in Sources */,
+				47940EE32FA7CB1D007BF2D8 /* PSTNCallResponseDTO.swift in Sources */,
+				47940EE42FA7CB1D007BF2D8 /* WirelessService.swift in Sources */,
+				47940EE52FA7CB1D007BF2D8 /* CallState.swift in Sources */,
+				47940EE62FA7CB1D007BF2D8 /* EditMessageTextView.swift in Sources */,
+				47940EE72FA7CB1D007BF2D8 /* MessageDTO.swift in Sources */,
+				47940EE82FA7CB1D007BF2D8 /* UserDTO.swift in Sources */,
+				47940EE92FA7CB1D007BF2D8 /* VoicemailDetailView.swift in Sources */,
+				47940EEA2FA7CB1D007BF2D8 /* ThemedOutlineButton.swift in Sources */,
+				47940EEB2FA7CB1D007BF2D8 /* ChatsViewModel.swift in Sources */,
+				47940EEC2FA7CB1D007BF2D8 /* ChatBubbleShape.swift in Sources */,
+				47940EED2FA7CB1D007BF2D8 /* ThemedToggleRow.swift in Sources */,
+				47940EEE2FA7CB1D007BF2D8 /* LanguageOption.swift in Sources */,
+				47940EEF2FA7CB1D007BF2D8 /* DateSeparatorView.swift in Sources */,
+				47940EF02FA7CB1D007BF2D8 /* PSTNCallService.swift in Sources */,
+				47940EF12FA7CB1D007BF2D8 /* SMSMessageDTO.swift in Sources */,
+				47940EF22FA7CB1D007BF2D8 /* SMSThreadSearchSheet.swift in Sources */,
+				47940EF32FA7CB1D007BF2D8 /* VoIPPushManager.swift in Sources */,
+				47940EF42FA7CB1D007BF2D8 /* PortNumberView.swift in Sources */,
+				47940EF52FA7CB1D007BF2D8 /* RiaChatMessage.swift in Sources */,
+				47940EF62FA7CB1D007BF2D8 /* VoicemailInboxView.swift in Sources */,
+				47940EF72FA7CB1D007BF2D8 /* SMSThreadDTO.swift in Sources */,
+				47940EF82FA7CB1D007BF2D8 /* InlineVideoPlayerView.swift in Sources */,
+				47940EF92FA7CB1D007BF2D8 /* PhoneContactDTO.swift in Sources */,
+				47940EFA2FA7CB1D007BF2D8 /* InviteFriendsView.swift in Sources */,
+				47940EFB2FA7CB1D007BF2D8 /* RiaDTOs.swift in Sources */,
+				47940EFC2FA7CB1D007BF2D8 /* RiaService.swift in Sources */,
+				47940EFD2FA7CB1D007BF2D8 /* ChatThreadSearchSheet.swift in Sources */,
+				47940EFE2FA7CB1D007BF2D8 /* VoiceNoteDraft.swift in Sources */,
+				47940EFF2FA7CB1D007BF2D8 /* BannerAdView.swift in Sources */,
+				47940F002FA7CB1D007BF2D8 /* InviteFlowManager.swift in Sources */,
+				47940F012FA7CB1D007BF2D8 /* TokenStore.swift in Sources */,
+				47940F022FA7CB1D007BF2D8 /* PricingQuoteService.swift in Sources */,
+				47940F032FA7CB1D007BF2D8 /* SoundSettingsView.swift in Sources */,
+				47940F042FA7CB1D007BF2D8 /* ThemedGradientButton.swift in Sources */,
+				47940F052FA7CB1D007BF2D8 /* RiaViewModel.swift in Sources */,
+				47940F062FA7CB1D007BF2D8 /* SMSThreadViewModel.swift in Sources */,
+				47940F072FA7CB1D007BF2D8 /* TimestampFormatter.swift in Sources */,
+				47940F082FA7CB1D007BF2D8 /* DecryptedMessageTextView.swift in Sources */,
+				47940F092FA7CB1D007BF2D8 /* AudioPlaybackViewModel.swift in Sources */,
+				47940F0A2FA7CB1D007BF2D8 /* SettingsViewModel.swift in Sources */,
+				47940F0B2FA7CB1D007BF2D8 /* TwilioVideoService.swift in Sources */,
+				47940F0C2FA7CB1D007BF2D8 /* ThemeOption.swift in Sources */,
+				47940F0D2FA7CB1D007BF2D8 /* SearchBarPlaceholderView.swift in Sources */,
+				47940F0E2FA7CB1D007BF2D8 /* GIFPickerView.swift in Sources */,
+				47940F0F2FA7CB1D007BF2D8 /* ImportPhoneContactsViewModel.swift in Sources */,
+				47940F102FA7CB1D007BF2D8 /* StartChatViewModel.swift in Sources */,
+				47940F112FA7CB1D007BF2D8 /* InviteService.swift in Sources */,
+				47940F122FA7CB1D007BF2D8 /* ESIMActivationDTO.swift in Sources */,
+				47940F132FA7CB1D007BF2D8 /* UploadService.swift in Sources */,
+				47940F142FA7CB1D007BF2D8 /* ThemedMenuField.swift in Sources */,
+				47940F152FA7CB1D007BF2D8 /* RegisterResponse.swift in Sources */,
+				47940F162FA7CB1D007BF2D8 /* LoadingStateView.swift in Sources */,
+				47940F172FA7CB1D007BF2D8 /* TwilioVoiceService.swift in Sources */,
+				47940F182FA7CB1D007BF2D8 /* AccountKeyManager.swift in Sources */,
+				47940F192FA7CB1D007BF2D8 /* StartChatView.swift in Sources */,
+				47940F1A2FA7CB1D007BF2D8 /* RandomMatchingView.swift in Sources */,
+				47940F1B2FA7CB1D007BF2D8 /* VoicemailDTO.swift in Sources */,
+				47940F1C2FA7CB1D007BF2D8 /* UserSettingsUpdateRequest.swift in Sources */,
+				47940F1D2FA7CB1D007BF2D8 /* DialerView.swift in Sources */,
+				47940F1E2FA7CB1D007BF2D8 /* MediaPermissionManager.swift in Sources */,
+				47940F1F2FA7CB1D007BF2D8 /* NotificationCoordinator.swift in Sources */,
+				47940F202FA7CB1D007BF2D8 /* UpgradePromptSheet.swift in Sources */,
+				47940F212FA7CB1D007BF2D8 /* WirelessCatalog.swift in Sources */,
+				47940F222FA7CB1D007BF2D8 /* ChatListRowView.swift in Sources */,
+				47940F232FA7CB1D007BF2D8 /* LaunchScreen.storyboard in Sources */,
+				47940F242FA7CB1D007BF2D8 /* AvatarUploadResponse.swift in Sources */,
+				47940F252FA7CB1D007BF2D8 /* RiaRewriteSheet.swift in Sources */,
+				47940F262FA7CB1D007BF2D8 /* RiaSuggestionBar.swift in Sources */,
+				47940F272FA7CB1D007BF2D8 /* DeviceDTO.swift in Sources */,
+				47940F282FA7CB1D007BF2D8 /* UnreadBadgeView.swift in Sources */,
+				47940F292FA7CB1D007BF2D8 /* ReportMessageRequest.swift in Sources */,
+				47940F2A2FA7CB1D007BF2D8 /* VideoCompressionService.swift in Sources */,
+				47940F2B2FA7CB1D007BF2D8 /* WirelessHomeView.swift in Sources */,
+				47940F2C2FA7CB1D007BF2D8 /* LanguageSelectionView.swift in Sources */,
+				47940F2D2FA7CB1D007BF2D8 /* MessageStore.swift in Sources */,
+				47940F2E2FA7CB1D007BF2D8 /* ChatforiaApp.swift in Sources */,
+				47940F2F2FA7CB1D007BF2D8 /* ESIMActivationView.swift in Sources */,
+				47940F302FA7CB1D007BF2D8 /* LoginView.swift in Sources */,
+				47940F312FA7CB1D007BF2D8 /* CheckoutSheetView.swift in Sources */,
+				47940F322FA7CB1D007BF2D8 /* AttachmentPickerSheet.swift in Sources */,
+				47940F332FA7CB1D007BF2D8 /* AudioRecorderService.swift in Sources */,
+				47940F342FA7CB1D007BF2D8 /* WirelessStatusDTO.swift in Sources */,
+				47940F352FA7CB1D007BF2D8 /* EmptyStateView.swift in Sources */,
+				47940F362FA7CB1D007BF2D8 /* SocketManager.swift in Sources */,
+				47940F372FA7CB1D007BF2D8 /* PickNumberSheet.swift in Sources */,
+				47940F382FA7CB1D007BF2D8 /* CallsSegment.swift in Sources */,
+				47940F392FA7CB1D007BF2D8 /* InvitePhoneContactsView.swift in Sources */,
+				47940F3A2FA7CB1D007BF2D8 /* ActiveCallView.swift in Sources */,
+				47940F3B2FA7CB1D007BF2D8 /* ThemeManager.swift in Sources */,
+				47940F3C2FA7CB1D007BF2D8 /* ContactDetailView.swift in Sources */,
+				47940F3D2FA7CB1D007BF2D8 /* APIClient.swift in Sources */,
+				47940F3E2FA7CB1D007BF2D8 /* ChatThreadView.swift in Sources */,
+				47940F3F2FA7CB1D007BF2D8 /* MessageAttachmentsView.swift in Sources */,
+				47940F402FA7CB1D007BF2D8 /* UpgradeView.swift in Sources */,
+				47940F412FA7CB1D007BF2D8 /* ChatThreadViewModel.swift in Sources */,
+				47940F422FA7CB1D007BF2D8 /* RingtoneOption.swift in Sources */,
+				47940F432FA7CB1D007BF2D8 /* AnalyticsManager..swift in Sources */,
+				47940F442FA7CB1D007BF2D8 /* CallSession.swift in Sources */,
+				47940F452FA7CB1D007BF2D8 /* ContactsViewModel.swift in Sources */,
+				47940F462FA7CB1D007BF2D8 /* PhoneNumberViewModel.swift in Sources */,
+				47940F472FA7CB1D007BF2D8 /* SplashView.swift in Sources */,
+				47940F482FA7CB1D007BF2D8 /* GIFWebView.swift in Sources */,
+				47940F492FA7CB1D007BF2D8 /* RandomSession.swift in Sources */,
+				47940F4A2FA7CB1D007BF2D8 /* CallService.swift in Sources */,
+				47940F4B2FA7CB1D007BF2D8 /* ForwardingSettingsView.swift in Sources */,
+				47940F4C2FA7CB1D007BF2D8 /* RotateEncryptionKeyView.swift in Sources */,
+				47940F4D2FA7CB1D007BF2D8 /* VoicemailInboxViewModel.swift in Sources */,
+				47940F4E2FA7CB1D007BF2D8 /* CallRecordDTO.swift in Sources */,
+				47940F4F2FA7CB1D007BF2D8 /* SubscriptionManager.swift in Sources */,
+				47940F502FA7CB1D007BF2D8 /* ProfileHeaderView.swift in Sources */,
+				47940F512FA7CB1D007BF2D8 /* AppPlan.swift in Sources */,
+				47940F522FA7CB1D007BF2D8 /* PhoneContactsService.swift in Sources */,
+				47940F532FA7CB1D007BF2D8 /* MessagesListView.swift in Sources */,
+				47940F542FA7CB1D007BF2D8 /* CallKitManager.swift in Sources */,
+				47940F552FA7CB1D007BF2D8 /* ContactsRootView.swift in Sources */,
+				47940F562FA7CB1D007BF2D8 /* ContactsService.swift in Sources */,
+				47940F572FA7CB1D007BF2D8 /* AppleSignInCoordinator.swift in Sources */,
+				47940F582FA7CB1D007BF2D8 /* VoicemailTranscriptStatus.swift in Sources */,
+				47940F592FA7CB1D007BF2D8 /* ImportPhoneContactsView.swift in Sources */,
+				47940F5A2FA7CB1D007BF2D8 /* ContentView.swift in Sources */,
+				47940F5B2FA7CB1D007BF2D8 /* RestoreEncryptionKeyView.swift in Sources */,
+				47940F5C2FA7CB1D007BF2D8 /* JSONValue.swift in Sources */,
+				47940F5D2FA7CB1D007BF2D8 /* SafariView.swift in Sources */,
+				47940F5E2FA7CB1D007BF2D8 /* KeychainHelper.swift in Sources */,
+				47940F5F2FA7CB1D007BF2D8 /* IncomingCallPayload.swift in Sources */,
+				47940F602FA7CB1D007BF2D8 /* TypingIndicatorView.swift in Sources */,
+				47940F612FA7CB1D007BF2D8 /* AppEnvironment.swift in Sources */,
+				47940F622FA7CB1D007BF2D8 /* CallHistoryView.swift in Sources */,
+				47940F632FA7CB1D007BF2D8 /* SimpleMessageRowView.swift in Sources */,
+				47940F642FA7CB1D007BF2D8 /* BackupEncryptionKeyView.swift in Sources */,
+				47940F652FA7CB1D007BF2D8 /* DataPacksView.swift in Sources */,
+				47940F662FA7CB1D007BF2D8 /* CallManager.swift in Sources */,
+				47940F672FA7CB1D007BF2D8 /* InviteDTO.swift in Sources */,
+				47940F682FA7CB1D007BF2D8 /* DeviceRegistrationService.swift in Sources */,
+				47940F692FA7CB1D007BF2D8 /* SupportedCountries.swift in Sources */,
+				47940F6A2FA7CB1D007BF2D8 /* GIFService.swift in Sources */,
+				47940F6C2FA7CB1D007BF2D8 /* RiaChatViewModel.swift in Sources */,
+				47940F6D2FA7CB1D007BF2D8 /* BatchSortDebouncer.swift in Sources */,
+				47940F6E2FA7CB1D007BF2D8 /* VideoRendererView.swift in Sources */,
+				47940F6F2FA7CB1D007BF2D8 /* VideoCallView.swift in Sources */,
+				47940F702FA7CB1D007BF2D8 /* ForwardingSettingsDTO.swift in Sources */,
+				47940F712FA7CB1D007BF2D8 /* ForwardingSettingsViewModel.swift in Sources */,
+				47940F722FA7CB1D007BF2D8 /* AudioAttachmentCardView.swift in Sources */,
+				47940F732FA7CB1D007BF2D8 /* SettingsService.swift in Sources */,
+				47940F742FA7CB1D007BF2D8 /* SMSThreadView.swift in Sources */,
+				47940F752FA7CB1D007BF2D8 /* AudioPlayerService.swift in Sources */,
+				47940F762FA7CB1D007BF2D8 /* MessageCryptoService.swift in Sources */,
+				47940F772FA7CB1D007BF2D8 /* RegisterView.swift in Sources */,
+				47940F782FA7CB1D007BF2D8 /* CallOverlayHostView.swift in Sources */,
+				47940F792FA7CB1D007BF2D8 /* RegisterRequest.swift in Sources */,
+				47940F7A2FA7CB1D007BF2D8 /* ForwardingService.swift in Sources */,
+				47940F7B2FA7CB1D007BF2D8 /* InviteLinkHandler.swift in Sources */,
+				47940F7C2FA7CB1D007BF2D8 /* PlanView.swift in Sources */,
+				47940F7D2FA7CB1D007BF2D8 /* ReportMessageSheet.swift in Sources */,
+				47940F7E2FA7CB1D007BF2D8 /* InterstitialAdManager.swift in Sources */,
+				47940F7F2FA7CB1D007BF2D8 /* CallDirection.swift in Sources */,
+				47940F802FA7CB1D007BF2D8 /* OAuthService.swift in Sources */,
+				47940F812FA7CB1D007BF2D8 /* ThemedSecureField.swift in Sources */,
+				47940F822FA7CB1D007BF2D8 /* ThemedTextField.swift in Sources */,
+				47940F832FA7CB1D007BF2D8 /* ESIMService.swift in Sources */,
+				47940F842FA7CB1D007BF2D8 /* SendQueueManager.swift in Sources */,
+				47940F852FA7CB1D007BF2D8 /* ThemedNavigationTitle.swift in Sources */,
+				47940F862FA7CB1D007BF2D8 /* ESIMActivationViewModel.swift in Sources */,
+				47940F872FA7CB1D007BF2D8 /* PhoneNumberManagementView.swift in Sources */,
+				47940F882FA7CB1D007BF2D8 /* MessageComposerView.swift in Sources */,
+				47940F892FA7CB1D007BF2D8 /* CallDestination.swift in Sources */,
+				47940F8A2FA7CB1D007BF2D8 /* MessageToneOption.swift in Sources */,
+				47940F8B2FA7CB1D007BF2D8 /* SectionCardView.swift in Sources */,
+				47940F8C2FA7CB1D007BF2D8 /* RegistrationService.swift in Sources */,
+				47940F8D2FA7CB1D007BF2D8 /* FullscreenVideoView.swift in Sources */,
+				47940F8E2FA7CB1D007BF2D8 /* ShareSheet.swift in Sources */,
+				47940F8F2FA7CB1D007BF2D8 /* UserAvatarView.swift in Sources */,
+				47940F902FA7CB1D007BF2D8 /* CountryOption.swift in Sources */,
+				47940F912FA7CB1D007BF2D8 /* PhoneNumberPoolService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -308,8 +1154,9 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = 975B563V2R;
+				ENABLE_DEBUG_DYLIB = NO;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Chatforia/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Chatforia uses the camera so you can take profile photos and share images in chats.";
 				INFOPLIST_KEY_NSContactsUsageDescription = "Chatforia uses your contacts so you can find and connect with people you know.";
@@ -348,8 +1195,9 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = 975B563V2R;
+				ENABLE_DEBUG_DYLIB = NO;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Chatforia/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Chatforia uses the camera so you can take profile photos and share images in chats.";
 				INFOPLIST_KEY_NSContactsUsageDescription = "Chatforia uses your contacts so you can find and connect with people you know.";
