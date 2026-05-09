@@ -43,10 +43,19 @@ struct RegisterView: View {
 
                     VStack(spacing: 16) {
                         HStack(spacing: 12) {
-                            ThemedOutlineButton(title: "Google") {}
-        
+                            ThemedOutlineButton(
+                                title: isOAuthLoading ? "Continue with Google…" : "Google"
+                            ) {
+                                Task { await handleGoogle() }
+                            }
+                            .disabled(isSubmitting || isOAuthLoading)
 
-                            ThemedOutlineButton(title: "Apple") {}
+                            ThemedOutlineButton(
+                                title: isOAuthLoading ? "Continue with Apple…" : "Apple"
+                            ) {
+                                Task { await handleApple() }
+                            }
+                            .disabled(isSubmitting || isOAuthLoading)
                                
                         }
 
@@ -158,6 +167,43 @@ struct RegisterView: View {
         }
         .navigationTitle("Register")
         .navigationBarTitleDisplayMode(.inline)
+    }
+    
+    @MainActor
+    private func handleGoogle() async {
+        errorMessage = nil
+        successMessage = nil
+        isOAuthLoading = true
+        defer { isOAuthLoading = false }
+
+        do {
+            let idToken = try await oauthService.signInWithGoogle()
+            let response = try await oauthService.exchangeGoogleToken(idToken)
+            await auth.setTokenAndLoadUser(response.token)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    private func handleApple() async {
+        errorMessage = nil
+        successMessage = nil
+        isOAuthLoading = true
+        defer { isOAuthLoading = false }
+
+        do {
+            let result = try await appleCoordinator.start()
+            let response = try await oauthService.exchangeAppleToken(
+                identityToken: result.token,
+                nonce: result.nonce,
+                firstName: result.name?.givenName,
+                lastName: result.name?.familyName
+            )
+            await auth.setTokenAndLoadUser(response.token)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
     private func themedField(_ title: String, text: Binding<String>, keyboard: UIKeyboardType = .default) -> some View {

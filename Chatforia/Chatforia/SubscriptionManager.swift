@@ -97,14 +97,14 @@ final class SubscriptionManager: ObservableObject {
 
     private func planInfo(for productId: String) -> (plan: String, billingPeriod: String) {
         switch productId {
-        case "chatforia_plus_monthly":
+        case "plus.monthly":
             return ("plus", "monthly")
 
-        case "chatforia_premium_monthly":
+        case "premium.monthly":
             return ("premium", "monthly")
 
-        case "chatforia_premium_yearly":
-            return ("premium", "yearly")
+        case "premium.annual":
+            return ("premium", "annual")
 
         default:
             return ("unknown", "unknown")

@@ -1,6 +1,7 @@
 import SwiftUI
 import UIKit
 import GoogleMobileAds
+import GoogleSignIn
 
 final class AppDelegate: NSObject, UIApplicationDelegate {
     func application(

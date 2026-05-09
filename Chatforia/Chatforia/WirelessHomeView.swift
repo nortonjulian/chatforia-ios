@@ -504,12 +504,32 @@ struct WirelessHomeView: View {
 
     private func pricingProducts(for scope: EsimScope) -> [PricingProduct] {
         switch scope {
+
         case .local:
-            return [.esimLocal3, .esimLocal5, .esimLocal10, .esimLocal20]
+            return [
+                .esimLocal3,
+                .esimLocal5,
+                .esimLocal10,
+                .esimLocal20,
+                .esimLocalUnlimited
+            ]
+
         case .europe:
-            return [.esimEurope3, .esimEurope5, .esimEurope10, .esimEurope20]
+            return [
+                .esimEurope3,
+                .esimEurope5,
+                .esimEurope10,
+                .esimEurope20,
+                .esimEuropeUnlimited
+            ]
+
         case .global:
-            return [.esimGlobal3, .esimGlobal5]
+            return [
+                .esimGlobal3,
+                .esimGlobal5,
+                .esimGlobal10,
+                .esimGlobalUnlimited
+            ]
         }
     }
 

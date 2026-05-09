@@ -137,7 +137,7 @@ struct LoginView: View {
                                 .foregroundStyle(themeManager.palette.accent)
                             }
 
-                            if let errorText, (!identifier.isEmpty || !password.isEmpty) {
+                            if let errorText {
                                 Text(errorText)
                                     .font(.footnote)
                                     .foregroundStyle(.red)
