@@ -7,6 +7,17 @@ final class SettingsService {
     private struct ThemeUpdateRequest: Encodable {
         let theme: String
     }
+    
+    func deleteAccount(token: String) async throws {
+        let _: EmptyResponse = try await APIClient.shared.send(
+            APIRequest(
+                path: "users/me",
+                method: .DELETE,
+                requiresAuth: true
+            ),
+            token: token
+        )
+    }
 
     func updateSettings(_ request: UserSettingsUpdateRequest, token: String) async throws -> UserDTO {
         let body = try JSONEncoder().encode(request)

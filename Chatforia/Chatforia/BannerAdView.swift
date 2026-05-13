@@ -17,7 +17,7 @@ final class BannerAdViewController: UIViewController {
         super.viewDidLoad()
 
         bannerView = BannerView(adSize: AdSizeBanner)
-        bannerView.adUnitID = "ca-app-pub-3940256099942544/2435281174" // iOS test banner ID
+        bannerView.adUnitID = AdMobConfig.bannerHomeAdUnitID
         bannerView.rootViewController = self
 
         view.addSubview(bannerView)

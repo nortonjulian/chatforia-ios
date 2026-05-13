@@ -35,6 +35,10 @@ struct ProfileRootView: View {
     @State private var isCheckingBackup = false
     @State private var showUpgradeView = false
     
+    @State private var showingDeleteAccountAlert = false
+    @State private var isDeletingAccount = false
+    @State private var deleteAccountError: String?
+    
 
     var body: some View {
         NavigationStack {
@@ -108,6 +112,7 @@ struct ProfileRootView: View {
                     feedbackSection
                     legalSection
                     saveButtonSection
+                    deleteAccountSection
                     logoutButtonSection
                 }
                 .padding()
@@ -255,6 +260,10 @@ struct ProfileRootView: View {
             }
         }
     }
+    
+    struct AvatarRemoveResponse: Decodable {
+        let avatarUrl: String?
+    }
 
     private var headerSection: some View {
         VStack(spacing: 8) {
@@ -271,6 +280,18 @@ struct ProfileRootView: View {
                 Label("Change Photo", systemImage: "photo")
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(accent)
+            }
+            
+            if (auth.currentUser?.avatarUrl ?? user.avatarUrl) != nil {
+                Button(role: .destructive) {
+                    Task {
+                        await removeAvatar()
+                    }
+                } label: {
+                    Label("Remove Photo", systemImage: "trash")
+                        .font(.subheadline.weight(.medium))
+                }
+                .disabled(isUploadingAvatar)
             }
 
             if isUploadingAvatar {
@@ -947,6 +968,53 @@ struct ProfileRootView: View {
 
         hasRemoteBackup = await RemoteKeyBackupService.shared.hasRemoteBackup(token: token)
     }
+    
+    private var deleteAccountSection: some View {
+        VStack(spacing: 10) {
+
+            if let deleteAccountError, !deleteAccountError.isEmpty {
+                Text(deleteAccountError)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .multilineTextAlignment(.center)
+            }
+
+            Button(role: .destructive) {
+                showingDeleteAccountAlert = true
+            } label: {
+                HStack {
+                    if isDeletingAccount {
+                        ProgressView()
+                            .tint(.red)
+                    } else {
+                        Image(systemName: "trash")
+                        Text("Delete Account")
+                            .fontWeight(.semibold)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+            }
+            .disabled(isDeletingAccount)
+            .background(Color.red.opacity(0.08))
+            .foregroundStyle(.red)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+        }
+        .alert(
+            "Delete Account?",
+            isPresented: $showingDeleteAccountAlert
+        ) {
+            Button("Cancel", role: .cancel) {}
+
+            Button("Delete", role: .destructive) {
+                Task {
+                    await deleteAccount()
+                }
+            }
+        } message: {
+            Text("This permanently deletes your Chatforia account and associated data.")
+        }
+    }
 
     private var logoutButtonSection: some View {
         ThemedOutlineButton(
@@ -1212,6 +1280,35 @@ struct ProfileRootView: View {
             avatarUploadError = error.localizedDescription
         }
     }
+    
+    private func removeAvatar() async {
+        avatarUploadError = nil
+
+        guard let token = auth.currentToken, !token.isEmpty else {
+            avatarUploadError = "Missing auth token."
+            auth.handleInvalidSession()
+            return
+        }
+
+        do {
+            isUploadingAvatar = true
+
+            let _: AvatarRemoveResponse = try await APIClient.shared.send(
+                APIRequest(
+                    path: "users/me/avatar",
+                    method: .DELETE,
+                    requiresAuth: true
+                ),
+                token: token
+            )
+
+            await auth.refreshCurrentUser()
+            isUploadingAvatar = false
+        } catch {
+            isUploadingAvatar = false
+            avatarUploadError = error.localizedDescription
+        }
+    }
 
     private func saveSettings() async {
         guard let token = auth.currentToken, !token.isEmpty else {
@@ -1268,6 +1365,31 @@ struct ProfileRootView: View {
                 .foregroundStyle(.tertiary)
         }
         .padding(.vertical, 10)
+    }
+    
+    private func deleteAccount() async {
+        guard let token = auth.currentToken, !token.isEmpty else {
+            auth.handleInvalidSession()
+            return
+        }
+
+        do {
+            isDeletingAccount = true
+            deleteAccountError = nil
+
+            try await SettingsService.shared.deleteAccount(token: token)
+
+            TokenStore.shared.clear()
+
+            await MainActor.run {
+                auth.logout()
+            }
+
+        } catch {
+            deleteAccountError = error.localizedDescription
+        }
+
+        isDeletingAccount = false
     }
     
     private func openURL(_ string: String) {

@@ -33,7 +33,11 @@ final class TwilioVoiceService: NSObject {
 
     func fetchToken(authToken: String?) async throws -> VoiceTokenResponseDTO {
         try await APIClient.shared.send(
-            APIRequest(path: "voice/token", method: .GET, requiresAuth: true),
+            APIRequest(
+                path: "voice/client/token",
+                method: .POST,
+                requiresAuth: true
+            ),
             token: authToken
         )
     }

@@ -12,7 +12,7 @@ final class InterstitialAdManager: NSObject, FullScreenContentDelegate {
     private var openCount = 0
     private let showEveryNOpenings = 4
 
-    private let testAdUnitID = "ca-app-pub-3940256099942544/4411468910"
+    private let testAdUnitID = AdMobConfig.interstitialChatOpenAdUnitID
 
     override private init() {
         super.init()

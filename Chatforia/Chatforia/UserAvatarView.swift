@@ -62,7 +62,9 @@ struct UserAvatarView: View {
             absoluteString = raw
         } else {
             let base = AppEnvironment.apiBaseURL
-            let baseString = base.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            let baseString = base.absoluteString.hasSuffix("/")
+                ? String(base.absoluteString.dropLast())
+                : base.absoluteString
             let path = raw.hasPrefix("/") ? raw : "/\(raw)"
             absoluteString = baseString + path
         }

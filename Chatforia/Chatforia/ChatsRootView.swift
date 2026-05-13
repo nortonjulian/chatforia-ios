@@ -23,7 +23,7 @@ struct ChatsRootView: View {
     @StateObject private var settingsVM = SettingsViewModel()
 
     private var shouldShowAds: Bool {
-        !auth.isPremium
+        !auth.isPaid
     }
 
     var body: some View {

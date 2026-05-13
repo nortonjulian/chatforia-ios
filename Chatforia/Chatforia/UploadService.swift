@@ -10,6 +10,10 @@ struct UploadResultDTO: Decodable {
     let size: Int?
 }
 
+struct AvatarUploadResponse: Decodable {
+    let avatarUrl: String
+}
+
 private struct UploadIntentRequest: Encodable {
     let name: String
     let size: Int
@@ -175,6 +179,19 @@ final class UploadService {
             fileName: fileName,
             mimeType: mimeType
         )
+    }
+    
+    func uploadAvatar(data: Data, token: String) async throws -> AvatarUploadResponse {
+        let responseData = try await APIClient.shared.uploadMultipart(
+            path: "users/me/avatar",
+            token: token,
+            fieldName: "avatar",
+            fileData: data,
+            fileName: "avatar.jpg",
+            mimeType: "image/jpeg"
+        )
+
+        return try JSONDecoder().decode(AvatarUploadResponse.self, from: responseData)
     }
 
     private func putFile(
