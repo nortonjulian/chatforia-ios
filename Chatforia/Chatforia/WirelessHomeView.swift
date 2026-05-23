@@ -272,9 +272,9 @@ struct WirelessHomeView: View {
     }
 
     private var scopePickerSection: some View {
-        SectionCardView(title: "Coverage") {
+        SectionCardView(title: "wireless.coverage") {
             VStack(alignment: .leading, spacing: 14) {
-                Picker("Coverage", selection: $selectedScope) {
+                Picker("wireless.coverage", selection: $selectedScope) {
                     ForEach(EsimScope.allCases) { scope in
                         Text(scope.displayName).tag(scope)
                     }
@@ -333,7 +333,11 @@ struct WirelessHomeView: View {
                                 .tint(themeManager.palette.buttonForeground)
                         }
 
-                        Text(isPurchasingPack ? "Processing..." : "Choose this pack")
+                        Text(
+                            isPurchasingPack
+                            ? String(localized: "common.processing")
+                            : "Choose this pack"
+                        )
                             .font(.headline)
                             .foregroundStyle(themeManager.palette.buttonForeground)
                     }
@@ -407,11 +411,13 @@ struct WirelessHomeView: View {
     private var buttonTextFull: String {
         switch activationStatus {
         case .none:
-            return "Set up eSIM"
+            return "esim.setup"
+
         case .readyToInstall:
-            return "Activate eSIM"
+            return "esim.activate"
+
         case .active:
-            return "Manage eSIM"
+            return "esim.manage"
         }
     }
 

@@ -122,7 +122,7 @@ struct ContactDetailView: View {
                 .padding()
             }
         }
-        .navigationTitle("Contact")
+        .navigationTitle("contacts.contact")
         .navigationBarTitleDisplayMode(.inline)
     }
 

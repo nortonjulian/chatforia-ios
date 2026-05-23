@@ -81,7 +81,7 @@ struct LoginView: View {
                 ScrollView {
                     VStack(spacing: 20) {
                         VStack(spacing: 8) {
-                            Text(hasLoggedInBefore ? "Welcome back" : "Welcome to Chatforia")
+                            Text(hasLoggedInBefore ? "common.welcomeBack" : "common.welcomeToChatforia")
                                 .font(.system(size: 30, weight: .bold))
                                 .foregroundStyle(themeManager.palette.primaryText)
                                 .multilineTextAlignment(.center)
@@ -130,8 +130,8 @@ struct LoginView: View {
                                 Spacer()
 
                                 NavigationLink("Forgot password?") {
-                                    Text("Forgot Password")
-                                        .navigationTitle("Forgot Password")
+                                    Text("auth.forgotPassword")
+                                        .navigationTitle("auth.forgotPassword")
                                 }
                                 .font(.footnote)
                                 .foregroundStyle(themeManager.palette.accent)
@@ -183,14 +183,14 @@ struct LoginView: View {
                             )
 
                             VStack(spacing: 6) {
-                                Text("Don’t have an account yet?")
+                                Text("auth.dontHaveAnAccountYet")
                                     .font(.footnote)
                                     .foregroundStyle(themeManager.palette.secondaryText)
 
                                 NavigationLink {
                                     RegisterView()
                                 } label: {
-                                    Text("Create Account")
+                                    Text("auth.createAccount")
                                         .font(.footnote.weight(.semibold))
                                         .foregroundStyle(themeManager.palette.accent)
                                 }

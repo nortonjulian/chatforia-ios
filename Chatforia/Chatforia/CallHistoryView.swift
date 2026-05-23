@@ -20,7 +20,7 @@ struct CallHistoryView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            Picker("Calls Section", selection: $selectedSegment) {
+            Picker("calls.section", selection: $selectedSegment) {
                 ForEach(CallsSegment.allCases) { segment in
                     Text(segment.rawValue).tag(segment)
                 }
@@ -43,7 +43,7 @@ struct CallHistoryView: View {
                 }
             }
         }
-        .navigationTitle("Calls")
+        .navigationTitle(String(localized: "tab_calls"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -52,7 +52,7 @@ struct CallHistoryView: View {
                 } label: {
                     Image(systemName: "circle.grid.3x3.fill")
                 }
-                .accessibilityLabel("Open dial pad")
+                .accessibilityLabel(Text("dialer.openDialPad"))
             }
         }
         .sheet(isPresented: $showDialer) {
@@ -140,7 +140,7 @@ struct CallHistoryView: View {
                                     await delete(item)
                                 }
                             } label: {
-                                Label("Delete", systemImage: "trash")
+                                Label("common.delete", systemImage: "trash")
                             }
                         }
                         .swipeActions(edge: .leading, allowsFullSwipe: false) {

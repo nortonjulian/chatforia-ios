@@ -72,7 +72,7 @@ struct VoicemailDetailView: View {
     private var actionButtons: some View {
         if let onCallBack {
             Button(action: onCallBack) {
-                Label("Call Back", systemImage: "phone.fill")
+                Label("calls.callBack", systemImage: "phone.fill")
                     .font(.subheadline.weight(.semibold))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)

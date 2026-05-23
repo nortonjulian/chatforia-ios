@@ -8,6 +8,7 @@ struct UserDTO: Codable, Identifiable {
     let plan: String?
     let role: String?
     let preferredLanguage: String?
+    let uiLanguage: String?
     let theme: String?
     let avatarUrl: String?
 
@@ -52,6 +53,7 @@ struct UserDTO: Codable, Identifiable {
         preferredLanguage: String?,
         theme: String?,
         avatarUrl: String?,
+        uiLanguage: String?,
         autoTranslate: Bool? = nil,
         showOriginalWithTranslation: Bool? = nil,
         allowExplicitContent: Bool? = nil,
@@ -114,6 +116,8 @@ struct UserDTO: Codable, Identifiable {
 
         self.isPremium = isPremium
         self.enableSmartReplies = enableSmartReplies
+        
+        self.uiLanguage = uiLanguage
     }
 }
 

@@ -17,10 +17,10 @@ struct ESIMActivationView: View {
             .padding()
         }
         .background(themeManager.palette.screenBackground.ignoresSafeArea())
-        .navigationTitle("Activate eSIM")
+        .navigationTitle("esim.activate")
         .navigationBarTitleDisplayMode(.inline)
         .alert("Unable to install eSIM", isPresented: errorBinding) {
-            Button("OK", role: .cancel) {}
+            Button("common.ok", role: .cancel) {}
         } message: {
             Text(viewModel.errorMessage ?? "Please try again.")
         }
@@ -76,7 +76,7 @@ struct ESIMActivationView: View {
 
     private var installSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Install")
+            Text("common.install")
                 .font(.headline)
                 .foregroundStyle(themeManager.palette.primaryText)
 
@@ -129,16 +129,16 @@ struct ESIMActivationView: View {
 
     private var detailsSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Activation details")
+            Text("esim.activationDetails")
                 .font(.headline)
                 .foregroundStyle(themeManager.palette.primaryText)
 
-            detailRow(title: "Plan", value: viewModel.payload.planName)
-            detailRow(title: "LPA URI", value: viewModel.explicitLpaText)
-            detailRow(title: "Activation code", value: viewModel.installationCodeText)
-            detailRow(title: "Confirmation code", value: viewModel.confirmationCodeText)
-            detailRow(title: "SM-DP+ address", value: viewModel.smdpAddressText)
-            detailRow(title: "ICCID", value: viewModel.iccidText)
+            detailRow(title: "esim.plan", value: viewModel.payload.planName)
+            detailRow(title: "esim.lpaUri", value: viewModel.explicitLpaText)
+            detailRow(title: "esim.activationCode", value: viewModel.installationCodeText)
+            detailRow(title: "esim.confirmationCode", value: viewModel.confirmationCodeText)
+            detailRow(title: "esim.smdpAddress", value: viewModel.smdpAddressText)
+            detailRow(title: "esim.iccid", value: viewModel.iccidText)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()

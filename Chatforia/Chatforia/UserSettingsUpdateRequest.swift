@@ -24,6 +24,8 @@ struct UserSettingsUpdateRequest: Encodable {
     let voicemailForwardEmail: String
     let voicemailGreetingText: String
 
+    let uiLanguage: String?
+    
     let messageTone: String?
     let ringtone: String?
 

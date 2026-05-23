@@ -6,6 +6,7 @@ struct AppShellView: View {
     @EnvironmentObject var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
 
+
     @State private var hasRequestedNotifications = false
 
     var body: some View {
@@ -16,24 +17,36 @@ struct AppShellView: View {
             TabView {
                 ChatsRootView()
                     .tabItem {
-                        Label("Chats", systemImage: "bubble.left.and.bubble.right.fill")
+                        Label(
+                            String(localized: "tab_chats"),
+                            systemImage: "bubble.left.and.bubble.right.fill"
+                        )
                     }
 
                 NavigationStack {
                     CallHistoryView()
                 }
                 .tabItem {
-                    Label("Calls", systemImage: "phone.fill")
+                    Label(
+                        String(localized: "tab_calls"),
+                        systemImage: "phone.fill"
+                    )
                 }
 
                 ContactsRootView()
                     .tabItem {
-                        Label("Contacts", systemImage: "person.2.fill")
+                        Label(
+                            String(localized: "tab_contacts"),
+                            systemImage: "person.2.fill"
+                        )
                     }
 
                 ProfileRootView(user: user)
                     .tabItem {
-                        Label("Profile", systemImage: "person.crop.circle.fill")
+                        Label(
+                            String(localized: "tab_profile"),
+                            systemImage: "person.crop.circle.fill"
+                        )
                     }
             }
             .tint(themeManager.palette.tabSelected)
@@ -48,7 +61,7 @@ struct AppShellView: View {
                     ProgressView()
                         .tint(themeManager.palette.accent)
 
-                    Text("Setting things up…")
+                    Text(String(localized: "loading_setting_things_up"))
                         .font(.footnote)
                         .foregroundStyle(themeManager.palette.secondaryText)
                 }

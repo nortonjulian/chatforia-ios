@@ -33,7 +33,7 @@ struct RotateEncryptionKeyView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
+                    Button("common.done") {
                         dismiss()
                     }
                     .disabled(isRotating)
@@ -63,7 +63,7 @@ struct RotateEncryptionKeyView: View {
 
     private var warningCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Before you continue")
+            Text("common.beforeYouContinue")
                 .font(.headline)
                 .foregroundStyle(themeManager.palette.primaryText)
 
@@ -113,7 +113,11 @@ struct RotateEncryptionKeyView: View {
                     if isRotating {
                         ProgressView()
                     }
-                    Text(isRotating ? "Rotating..." : "Rotate Encryption Key")
+                    Text(
+                        isRotating
+                        ? String(localized: "encryptionRecovery.messages.rotating")
+                        : "Rotate Encryption Key"
+                    )
                         .fontWeight(.semibold)
                     Spacer()
                 }

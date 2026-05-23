@@ -28,7 +28,7 @@ struct ChatThreadSearchSheet: View {
                 }
                 .buttonStyle(.plain)
             }
-            .searchable(text: $searchText, prompt: "Search messages")
+            .searchable(text: $searchText, prompt: Text("messages.searchMessages"))
             .navigationTitle("Search in chat")
             .navigationBarTitleDisplayMode(.inline)
         }

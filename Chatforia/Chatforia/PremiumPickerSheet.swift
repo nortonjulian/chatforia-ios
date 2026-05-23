@@ -56,7 +56,7 @@ struct PremiumPickerSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
+                    Button("common.done") {
                         dismiss()
                     }
                     .foregroundStyle(themeManager.palette.accent)
@@ -72,7 +72,7 @@ struct PremiumPickerSheet: View {
                 .foregroundStyle(themeManager.palette.secondaryText)
 
             HStack(spacing: 8) {
-                Text("Current Plan")
+                Text("billing.currentPlan")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(themeManager.palette.secondaryText)
 
@@ -133,7 +133,11 @@ struct PremiumPickerSheet: View {
                                         : themeManager.palette.primaryText
                                     )
 
-                                Text(locked ? "Requires \(item.requiredPlan.displayName)" : "Available now")
+                                Text(
+                                    locked
+                                        ? String(format: NSLocalizedString("premium.requiresPlan", comment: ""), item.requiredPlan.displayName)
+                                        : NSLocalizedString("common.availableNow", comment: "")
+                                )
                                     .font(.caption)
                                     .foregroundStyle(themeManager.palette.secondaryText)
                             }

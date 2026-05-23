@@ -78,11 +78,11 @@ struct PickNumberSheet: View {
     private var searchControls: some View {
         VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Country")
+                Text("common.country")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(themeManager.palette.primaryText)
 
-                Picker("Country", selection: $vm.selectedCountry) {
+                Picker("common.country", selection: $vm.selectedCountry) {
                     ForEach(vm.countryOptions) { option in
                         Text(option.name).tag(option.code)
                     }
@@ -101,7 +101,7 @@ struct PickNumberSheet: View {
 
             HStack(alignment: .bottom, spacing: 12) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Area code")
+                    Text("phoneNumber.areaCode")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(themeManager.palette.primaryText)
 
@@ -130,7 +130,7 @@ struct PickNumberSheet: View {
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "magnifyingglass")
-                        Text("Search")
+                        Text("common.search")
                             .fontWeight(.semibold)
                     }
                     .padding(.horizontal, 18)
@@ -144,11 +144,11 @@ struct PickNumberSheet: View {
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Capability")
+                Text("phoneNumber.capability")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(themeManager.palette.primaryText)
 
-                Picker("Capability", selection: $vm.selectedCapability) {
+                Picker("phoneNumber.capability", selection: $vm.selectedCapability) {
                     Text("SMS").tag("sms")
                     Text("Voice").tag("voice")
                     Text("SMS + Voice").tag("both")
@@ -181,7 +181,7 @@ struct PickNumberSheet: View {
     private var availableHeader: some View {
         VStack(spacing: 8) {
             Divider()
-            Text("Available numbers")
+            Text("dialer.availableNumbers")
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(themeManager.palette.secondaryText)
                 .frame(maxWidth: .infinity)

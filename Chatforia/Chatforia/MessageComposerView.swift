@@ -153,7 +153,7 @@ struct MessageComposerView: View {
                 .disabled(isSending || isSendingVoice || trimmedDraft.isEmpty || hasVoiceDraft || isRecordingVoice)
 
                 TextField(
-                    isCaptioningPendingMedia ? "Add a caption" : "Message",
+                    isCaptioningPendingMedia ? "messages.addCaption" : "messages.message",
                     text: $draft,
                     axis: .vertical
                 )
@@ -322,7 +322,7 @@ struct MessageComposerView: View {
 
             Spacer(minLength: 0)
 
-            Button("Cancel") {
+            Button(String(localized: "button_cancel")) {
                 onCancelVoiceDraftTap()
             }
             .font(.subheadline.weight(.semibold))
@@ -333,7 +333,7 @@ struct MessageComposerView: View {
             Button {
                 onSendVoiceDraftTap()
             } label: {
-                Text("Send")
+                Text(String(localized: "common.send"))
                     .font(.subheadline.weight(.bold))
                     .foregroundStyle(themeManager.palette.composerButtonForeground)
                     .padding(.horizontal, 14)

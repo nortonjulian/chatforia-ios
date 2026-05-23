@@ -64,12 +64,18 @@ struct VoicemailRowView: View {
         .buttonStyle(.plain)
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             Button(role: .destructive, action: onDelete) {
-                Label("Delete", systemImage: "trash")
+                Label("common.delete", systemImage: "trash")
             }
 
             Button(action: onToggleRead) {
-                Label(voicemail.isRead ? "Unread" : "Read",
-                      systemImage: voicemail.isRead ? "envelope.badge" : "checkmark.circle")
+                Label(
+                    voicemail.isRead
+                        ? String(localized: "common.unread")
+                        : String(localized: "common.read"),
+                    systemImage: voicemail.isRead
+                        ? "envelope.badge"
+                        : "checkmark.circle"
+                )
             }
             .tint(voicemail.isRead ? .orange : .blue)
         }

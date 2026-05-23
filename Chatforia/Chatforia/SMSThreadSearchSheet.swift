@@ -20,7 +20,11 @@ struct SMSThreadSearchSheet: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
 
-                            Text(message.isOutgoing ? "Sent" : "Received")
+                            Text(
+                                message.isOutgoing
+                                ? String(localized: "common.sent")
+                                : String(localized: "common.received")
+                            )
                                 .font(.caption2.weight(.semibold))
                                 .foregroundStyle(.secondary)
                         }
@@ -34,7 +38,7 @@ struct SMSThreadSearchSheet: View {
                 }
                 .buttonStyle(.plain)
             }
-            .searchable(text: $searchText, prompt: "Search messages")
+            .searchable(text: $searchText, prompt: Text("messages.searchMessages"))
             .navigationTitle("Search in thread")
             .navigationBarTitleDisplayMode(.inline)
         }

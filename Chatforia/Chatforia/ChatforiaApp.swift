@@ -57,6 +57,10 @@ struct ChatforiaApp: App {
     @StateObject private var callManager = CallManager()
     @StateObject private var inviteFlow = InviteFlowManager.shared
     @StateObject private var settingsVM = SettingsViewModel()
+    
+    @AppStorage("chatforia_language")
+    private var appLanguage = "en"
+
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -83,6 +87,10 @@ struct ChatforiaApp: App {
             .environmentObject(inviteFlow)
             .environmentObject(settingsVM)
             .tint(themeManager.palette.accent)
+            .environment(
+                \.locale,
+                Locale(identifier: appLanguage)
+            )
             .task {
                 await auth.bootstrap()
 
@@ -91,6 +99,11 @@ struct ChatforiaApp: App {
                         themeManager.apply(code: theme)
                     }
                     settingsVM.load(from: user)
+                    
+                    appLanguage = user.uiLanguage ?? "en"
+                    print("🌍 appLanguage set to:", appLanguage)
+                    print("🌍 test common.welcome:", String(localized: "common.welcome", locale: Locale(identifier: appLanguage)))
+                    
                     settingsVM.loadLocalAISettings()
 
                     // 🔔 Request permission + trigger APNs
@@ -114,13 +127,13 @@ struct ChatforiaApp: App {
                     await inviteFlow.redeemPendingInviteIfNeeded(auth: auth)
                 }
             }
-            .onChange(of: auth.currentUser?.theme) { _, newTheme in
+            .onChange(of: auth.currentUser?.theme) { newTheme in
                 guard let newTheme else { return }
                 themeManager.apply(code: newTheme)
                 settingsVM.theme = newTheme
             }
         }
-        .onChange(of: scenePhase) { _, newPhase in
+        .onChange(of: scenePhase) { newPhase in
             guard newPhase == .active else { return }
 
             AppEnvironment.configureSendQueueHandlersIfNeeded()
@@ -133,6 +146,12 @@ struct ChatforiaApp: App {
             if auth.currentUser != nil {
                 Task {
                     await auth.refreshCurrentUser()
+                    
+                    if let uiLanguage = auth.currentUser?.uiLanguage {
+                        appLanguage = uiLanguage
+                        print("🌍 refreshed appLanguage:", appLanguage)
+                        print("🌍 refreshed test common.welcome:", String(localized: "common.welcome", locale: Locale(identifier: appLanguage)))
+                    }
 
                     print("🎨 refreshed theme =", auth.currentUser?.theme ?? "nil")
 

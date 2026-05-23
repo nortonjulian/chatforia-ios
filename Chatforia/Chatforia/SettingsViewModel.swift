@@ -108,6 +108,7 @@ final class SettingsViewModel: ObservableObject {
             voicemailAutoDeleteDays: voicemailAutoDeleteDays,
             voicemailForwardEmail: voicemailForwardEmail,
             voicemailGreetingText: voicemailGreetingText,
+            uiLanguage: preferredLanguage,
             messageTone: messageTone,
             ringtone: ringtone,
             enableSmartReplies: enableSmartReplies,

@@ -29,11 +29,11 @@ struct BackupEncryptionKeyView: View {
                     .padding(20)
                 }
             }
-            .navigationTitle("Back Up Encryption Key")
+            .navigationTitle("encryption.backUpKey")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
+                    Button("common.done") {
                         dismiss()
                     }
                     .foregroundStyle(themeManager.palette.accent)
@@ -63,7 +63,7 @@ struct BackupEncryptionKeyView: View {
 
     private var explanationCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("How this works")
+            Text("common.howThisWorks")
                 .font(.headline)
                 .foregroundStyle(themeManager.palette.primaryText)
 
@@ -96,17 +96,17 @@ struct BackupEncryptionKeyView: View {
 
     private var formCard: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Create backup")
+            Text(String(localized: "encryptionRecovery.actions.createBackup"))
                 .font(.headline)
                 .foregroundStyle(themeManager.palette.primaryText)
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Backup password")
+                Text("encryption.backupPassword")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(themeManager.palette.primaryText)
 
                 ThemedSecureField(
-                    title: "Backup password",
+                    title: "encryption.backupPassword",
                     text: $password
                 )
 
@@ -116,12 +116,12 @@ struct BackupEncryptionKeyView: View {
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Confirm password")
+                Text("auth.confirmPassword")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(themeManager.palette.primaryText)
 
                 ThemedSecureField(
-                    title: "Confirm password",
+                    title: "auth.confirmPassword",
                     text: $confirmPassword
                 )
             }
@@ -150,7 +150,11 @@ struct BackupEncryptionKeyView: View {
                         ProgressView()
                     }
 
-                    Text(isSaving ? "Creating Backup..." : "Create Backup")
+                    Text(
+                        isSaving
+                        ? String(localized: "encryptionRecovery.messages.creatingBackup")
+                        : String(localized: "encryptionRecovery.actions.createBackup")
+                    )
                         .fontWeight(.semibold)
 
                     Spacer()

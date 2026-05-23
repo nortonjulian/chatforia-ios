@@ -35,7 +35,7 @@ struct RestoreEncryptionKeyView: View {
                             .foregroundStyle(themeManager.palette.secondaryText)
 
                         if isCheckingBackup {
-                            ProgressView("Checking backup…")
+                            ProgressView("encryption.checkingBackup")
                         } else if hasRemoteBackup == false || hasRemoteBackup == nil {
                             Text("No backup found. Create one to protect your messages.")
                                 .font(.footnote)
@@ -53,7 +53,7 @@ struct RestoreEncryptionKeyView: View {
                                     .foregroundStyle(.green)
                             }
 
-                            Button("Done") {
+                            Button("common.done") {
                                 Task {
                                     await auth.refreshCurrentUser()
 
@@ -69,7 +69,7 @@ struct RestoreEncryptionKeyView: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
                         } else {
-                            SecureField("Backup password", text: $backupPassword)
+                            SecureField("encryption.backupPassword", text: $backupPassword)
 
                             if let errorMessage {
                                 Text(errorMessage)
@@ -136,7 +136,7 @@ struct RestoreEncryptionKeyView: View {
             Button("Reset Encryption", role: .destructive) {
                 Task { await resetEncryption() }
             }
-            Button("Cancel", role: .cancel) {}
+            Button(String(localized: "button_cancel"), role: .cancel) {}
         } message: {
             Text("This will replace your encryption key. Older encrypted messages may not be readable unless you restore your original key.")
         }

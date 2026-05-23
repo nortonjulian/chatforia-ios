@@ -39,6 +39,9 @@ struct ProfileRootView: View {
     @State private var isDeletingAccount = false
     @State private var deleteAccountError: String?
     
+    @AppStorage("chatforia_language")
+    private var appLanguage = "en"
+    
 
     var body: some View {
         NavigationStack {
@@ -49,7 +52,7 @@ struct ProfileRootView: View {
                         VStack(spacing: 12) {
                             InviteAttributionBannerView(text: message)
 
-                            Button("Message inviter") {
+                            Button(String(localized: "button_message_inviter")) {
                                 Task {
                                     if let room = await inviteFlow.openChatWithInviterIfPossible(
                                         auth: auth,
@@ -76,11 +79,11 @@ struct ProfileRootView: View {
                                     .foregroundStyle(themeManager.palette.accent)
 
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("Upgrade")
+                                    Text(String(localized: "button_upgrade"))
                                         .font(.body.weight(.semibold))
                                         .foregroundStyle(themeManager.palette.primaryText)
 
-                                    Text("Choose Plus or Premium")
+                                    Text(String(localized: "upgrade_choose_plus_or_premium"))
                                         .font(.subheadline)
                                         .foregroundStyle(themeManager.palette.secondaryText)
                                 }
@@ -118,7 +121,7 @@ struct ProfileRootView: View {
                 .padding()
             }
             .background(themeManager.palette.screenBackground)
-            .navigationTitle("Profile")
+            .navigationTitle(String(localized: "screen_profile"))
             .navigationBarTitleDisplayMode(.inline)
             
             .navigationDestination(isPresented: $showInviterChat) {
@@ -162,8 +165,8 @@ struct ProfileRootView: View {
             }
             .sheet(isPresented: $showingThemeSheet) {
                 PremiumPickerSheet(
-                    title: "Theme",
-                    subtitle: "Choose how Chatforia looks across the app.",
+                    title: String(localized: "sheet_theme_title"),
+                    subtitle: String(localized: "sheet_theme_subtitle"),
                     selectedCode: vm.theme,
                     currentPlan: currentPlan,
                     options: AppThemes.all.map {
@@ -179,8 +182,12 @@ struct ProfileRootView: View {
                     },
                     onLockedTap: { option in
                         presentUpgrade(
-                            title: "Premium Theme",
-                            message: "\(option.name) is available on \(option.requiredPlan.displayName).",
+                            title: String(localized: "premium_theme_title"),
+                            message: String(
+                                format: String(localized: "premium_feature_available_on_format"),
+                                option.name,
+                                option.requiredPlan.displayName
+                            ),
                             requiredPlan: option.requiredPlan
                         )
                     }
@@ -189,8 +196,8 @@ struct ProfileRootView: View {
             }
             .sheet(isPresented: $showingMessageToneSheet) {
                 PremiumPickerSheet(
-                    title: "Message Tone",
-                    subtitle: "Pick the sound used for incoming Chatforia messages.",
+                    title: String(localized: "sheet_message_tone_title"),
+                    subtitle: String(localized: "sheet_message_tone_subtitle"),
                     selectedCode: vm.messageTone,
                     currentPlan: currentPlan,
                     options: AppMessageTones.all.map {
@@ -206,8 +213,12 @@ struct ProfileRootView: View {
                     },
                     onLockedTap: { option in
                         presentUpgrade(
-                            title: "Premium Message Tone",
-                            message: "\(option.name) is available on \(option.requiredPlan.displayName).",
+                            title: String(localized: "premium_message_tone_title"),
+                            message: String(
+                                format: String(localized: "premium_feature_available_on_format"),
+                                option.name,
+                                option.requiredPlan.displayName
+                            ),
                             requiredPlan: option.requiredPlan
                         )
                     }
@@ -216,8 +227,8 @@ struct ProfileRootView: View {
             }
             .sheet(isPresented: $showingRingtoneSheet) {
                 PremiumPickerSheet(
-                    title: "Ringtone",
-                    subtitle: "Choose the ringtone used for Chatforia calling and alerts.",
+                    title: String(localized: "sheet_ringtone_title"),
+                    subtitle: String(localized: "sheet_ringtone_subtitle"),
                     selectedCode: vm.ringtone,
                     currentPlan: currentPlan,
                     options: AppRingtones.all.map {
@@ -233,8 +244,12 @@ struct ProfileRootView: View {
                     },
                     onLockedTap: { option in
                         presentUpgrade(
-                            title: "Premium Ringtone",
-                            message: "\(option.name) is available on \(option.requiredPlan.displayName).",
+                            title: String(localized: "premium_ringtone_title"),
+                            message: String(
+                                format: String(localized: "premium_feature_available_on_format"),
+                                option.name,
+                                option.requiredPlan.displayName
+                            ),
                             requiredPlan: option.requiredPlan
                         )
                     }
@@ -277,7 +292,7 @@ struct ProfileRootView: View {
             let accent = themeManager.palette.accent
 
             PhotosPicker(selection: $selectedAvatarItem, matching: .images) {
-                Label("Change Photo", systemImage: "photo")
+                Label(String(localized: "button_change_photo"), systemImage: "photo")
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(accent)
             }
@@ -288,14 +303,14 @@ struct ProfileRootView: View {
                         await removeAvatar()
                     }
                 } label: {
-                    Label("Remove Photo", systemImage: "trash")
+                    Label(String(localized: "button_remove_photo"), systemImage: "trash")
                         .font(.subheadline.weight(.medium))
                 }
                 .disabled(isUploadingAvatar)
             }
 
             if isUploadingAvatar {
-                ProgressView("Uploading…")
+                ProgressView(String(localized: "status_uploading"))
                     .font(.caption)
                     .tint(themeManager.palette.accent)
             }
@@ -316,10 +331,10 @@ struct ProfileRootView: View {
     }
 
     private var accountSection: some View {
-        SectionCardView(title: "Account") {
+        SectionCardView(title: String(localized: "section_account")) {
             SettingsRowView(
                 systemImage: "person.crop.circle",
-                title: "Username",
+                title: String(localized: "label_username"),
                 value: auth.currentUser?.username ?? user.username
             )
 
@@ -327,7 +342,7 @@ struct ProfileRootView: View {
 
             SettingsRowView(
                 systemImage: "envelope",
-                title: "Email",
+                title: String(localized: "label_email"),
                 value: displayValue(auth.currentUser?.email ?? user.email)
             )
 
@@ -335,7 +350,7 @@ struct ProfileRootView: View {
                 Divider()
                 SettingsRowView(
                     systemImage: "briefcase",
-                    title: "Role",
+                    title: String(localized: "label_role"),
                     value: role
                 )
             }
@@ -344,7 +359,7 @@ struct ProfileRootView: View {
                 Divider()
                 SettingsRowView(
                     systemImage: "star",
-                    title: "Plan",
+                    title: String(localized: "label_plan"),
                     value: plan
                 )
             }
@@ -352,13 +367,17 @@ struct ProfileRootView: View {
     }
     
     private var legalSection: some View {
-        SectionCardView(title: "Legal & Support") {
+        SectionCardView(
+            title: String(localized: "section_legal_support")
+        ) {
             VStack(spacing: 0) {
 
                 Button {
                     openURL("https://chatforia.com/privacy")
                 } label: {
-                    legalRow("Privacy Policy")
+                    legalRow(
+                        String(localized: "legal_privacy_policy")
+                    )
                 }
                 .buttonStyle(.plain)
 
@@ -367,7 +386,9 @@ struct ProfileRootView: View {
                 Button {
                     openURL("https://chatforia.com/legal/terms")
                 } label: {
-                    legalRow("Terms of Service")
+                    legalRow(
+                        String(localized: "legal_terms_of_service")
+                    )
                 }
                 .buttonStyle(.plain)
 
@@ -376,7 +397,9 @@ struct ProfileRootView: View {
                 Button {
                     openURL("https://chatforia.com/legal/sms")
                 } label: {
-                    legalRow("SMS Messaging Policy")
+                    legalRow(
+                        String(localized: "legal_sms_policy")
+                    )
                 }
                 .buttonStyle(.plain)
 
@@ -385,7 +408,9 @@ struct ProfileRootView: View {
                 Button {
                     openURL("mailto:support@chatforia.com")
                 } label: {
-                    legalRow("Contact Support")
+                    legalRow(
+                        String(localized: "legal_contact_support")
+                    )
                 }
                 .buttonStyle(.plain)
             }
@@ -393,7 +418,7 @@ struct ProfileRootView: View {
     }
 
     private var planSection: some View {
-        SectionCardView(title: "Plan") {
+        SectionCardView(title: String(localized: "section_plan")) {
             VStack(spacing: 0) {
                 NavigationLink {
                     PlanView()
@@ -405,11 +430,11 @@ struct ProfileRootView: View {
                             .frame(width: 22)
 
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Plan & Billing")
+                            Text(String(localized: "plan_billing"))
                                 .font(.body)
                                 .foregroundStyle(themeManager.palette.primaryText)
 
-                            Text("Current plan: \(currentPlan.displayName)")
+                            Text(String(format: String(localized: "current_plan_format"), currentPlan.displayName))
                                 .font(.subheadline)
                                 .foregroundStyle(themeManager.palette.secondaryText)
                         }
@@ -433,11 +458,11 @@ struct ProfileRootView: View {
                             .frame(width: 22)
 
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Manage Billing")
+                            Text(String(localized: "manage_billing"))
                                 .font(.body)
                                 .foregroundStyle(themeManager.palette.primaryText)
 
-                            Text("Available on your current plan.")
+                            Text(String(localized: "available_on_current_plan"))
                                 .font(.subheadline)
                                 .foregroundStyle(themeManager.palette.secondaryText)
                         }
@@ -451,7 +476,7 @@ struct ProfileRootView: View {
     }
 
     private var wirelessSection: some View {
-        SectionCardView(title: "Wireless") {
+        SectionCardView(title: String(localized: "section_wireless")) {
             NavigationLink {
                 WirelessHomeView()
             } label: {
@@ -462,11 +487,11 @@ struct ProfileRootView: View {
                         .frame(width: 22)
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Chatforia Mobile")
+                        Text(String(localized: "wireless_chatforia_mobile"))
                             .font(.body)
                             .foregroundStyle(themeManager.palette.primaryText)
 
-                        Text("Browse eSIM data packs and manage wireless features.")
+                        Text(String(localized: "wireless_esim_description"))
                             .font(.subheadline)
                             .foregroundStyle(themeManager.palette.secondaryText)
                     }
@@ -492,11 +517,11 @@ struct ProfileRootView: View {
                         .frame(width: 22)
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Phone Number")
+                        Text(String(localized: "wireless_phone_number"))
                             .font(.body)
                             .foregroundStyle(themeManager.palette.primaryText)
 
-                        Text("Pick, manage, and keep your Chatforia number.")
+                        Text(String(localized: "wireless_phone_number_description"))
                             .font(.subheadline)
                             .foregroundStyle(themeManager.palette.secondaryText)
                     }
@@ -513,50 +538,37 @@ struct ProfileRootView: View {
     }
 
     private var profileSettingsSection: some View {
-        SectionCardView(title: "Profile") {
+        SectionCardView(title: String(localized: "section_profile")) {
             VStack(alignment: .leading, spacing: 14) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Preferred Language")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(themeManager.palette.primaryText)
-
-                    Picker("Preferred Language", selection: $vm.preferredLanguage) {
-                        ForEach(AppLanguages.all) { language in
-                            Text(language.name).tag(language.code)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .tint(themeManager.palette.accent)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
+                LanguageSelectionView(selectedLanguage: $vm.preferredLanguage)
 
                 Divider()
 
                 ThemedToggleRow(
-                    title: "Auto-translate messages",
+                    title: String(localized: "setting_auto_translate_messages"),
                     isOn: $vm.autoTranslate
                 )
 
                 ThemedToggleRow(
-                    title: "Show original alongside translation",
+                    title: String(localized: "setting_show_original_with_translation"),
                     isOn: $vm.showOriginalWithTranslation
                 )
 
                 ThemedToggleRow(
-                    title: "Enable read receipts",
+                    title: String(localized: "setting_enable_read_receipts"),
                     isOn: $vm.showReadReceipts
                 )
                 
                 VStack(alignment: .leading, spacing: 6) {
                     ThemedToggleRow(
-                        title: "Smart reply suggestions",
+                        title: String(localized: "setting_smart_reply_suggestions"),
                         isOn: Binding(
                             get: { vm.enableSmartReplies },
                             set: { vm.setEnableSmartReplies($0) }
                         )
                     )
 
-                    Text("Show suggested replies above the message box.")
+                    Text(String(localized: "setting_smart_reply_description"))
                         .font(.caption)
                         .foregroundStyle(themeManager.palette.secondaryText)
                 }
@@ -565,16 +577,16 @@ struct ProfileRootView: View {
     }
 
     private var appearanceSection: some View {
-        SectionCardView(title: "Appearance") {
+        SectionCardView(title: String(localized: "section_appearance")) {
             VStack(alignment: .leading, spacing: 14) {
                 if !currentPlan.hasPremiumCustomization {
-                    Text("You’re on Free — premium themes are shown below and can be unlocked with Premium.")
+                    Text(String(localized: "appearance_free_theme_notice"))
                         .font(.footnote)
                         .foregroundStyle(themeManager.palette.secondaryText)
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Theme")
+                    Text(String(localized: "label_theme"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(themeManager.palette.primaryText)
 
@@ -587,7 +599,7 @@ struct ProfileRootView: View {
                                     .font(.body.weight(.medium))
                                     .foregroundStyle(themeManager.palette.primaryText)
 
-                                Text(AppThemes.requiredPlan(for: vm.theme) == .free ? "Free" : "Premium")
+                                Text(String(localized: AppThemes.requiredPlan(for: vm.theme) == .free ? "plan_free" : "plan_premium"))
                                     .font(.caption)
                                     .foregroundStyle(themeManager.palette.secondaryText)
                             }
@@ -613,16 +625,16 @@ struct ProfileRootView: View {
     }
 
     private var soundsSection: some View {
-        SectionCardView(title: "Sounds") {
+        SectionCardView(title: String(localized: "section_sounds")) {
             VStack(alignment: .leading, spacing: 14) {
                 if !currentPlan.hasPremiumSounds {
-                    Text("You’re on Free — premium tones and ringtones are shown below and unlock with Premium.")
+                    Text(String(localized: "sounds_free_notice"))
                         .font(.footnote)
                         .foregroundStyle(themeManager.palette.secondaryText)
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Message tone")
+                    Text(String(localized: "label_message_tone"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(themeManager.palette.primaryText)
 
@@ -635,7 +647,7 @@ struct ProfileRootView: View {
                                     .font(.body.weight(.medium))
                                     .foregroundStyle(themeManager.palette.primaryText)
 
-                                Text(AppMessageTones.requiredPlan(for: vm.messageTone) == .free ? "Free" : "Premium")
+                                Text(String(localized: AppMessageTones.requiredPlan(for: vm.messageTone) == .free ? "plan_free" : "plan_premium"))
                                     .font(.caption)
                                     .foregroundStyle(themeManager.palette.secondaryText)
                             }
@@ -658,7 +670,7 @@ struct ProfileRootView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Ringtone")
+                    Text(String(localized: "label_ringtone"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(themeManager.palette.primaryText)
 
@@ -671,7 +683,7 @@ struct ProfileRootView: View {
                                     .font(.body.weight(.medium))
                                     .foregroundStyle(themeManager.palette.primaryText)
 
-                                Text(AppRingtones.requiredPlan(for: vm.ringtone) == .free ? "Free" : "Premium")
+                                Text(String(localized: AppRingtones.requiredPlan(for: vm.ringtone) == .free ? "plan_free" : "plan_premium"))
                                     .font(.caption)
                                     .foregroundStyle(themeManager.palette.secondaryText)
                             }
@@ -695,7 +707,7 @@ struct ProfileRootView: View {
 
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
-                        Text("Volume")
+                        Text(String(localized: "label_volume"))
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(themeManager.palette.primaryText)
 
@@ -720,10 +732,14 @@ struct ProfileRootView: View {
     }
 
     private var disappearingMessagesSection: some View {
-        SectionCardView(title: "Disappearing Messages") {
+        SectionCardView(
+            title: String(localized: "section_disappearing_messages")
+        ) {
             VStack(alignment: .leading, spacing: 14) {
                 ThemedToggleRow(
-                    title: "Enable disappearing messages",
+                    title: String(
+                        localized: "setting_enable_disappearing_messages"
+                    ),
                     isOn: Binding(
                         get: { vm.autoDeleteSeconds > 0 },
                         set: { isOn in
@@ -738,7 +754,14 @@ struct ProfileRootView: View {
                         in: 1...604800,
                         step: 1
                     ) {
-                        Text("Delete after \(vm.autoDeleteSeconds) seconds")
+                        Text(
+                            String(
+                                format: String(
+                                    localized: "delete_after_seconds_format"
+                                ),
+                                vm.autoDeleteSeconds
+                            )
+                        )
                             .foregroundStyle(themeManager.palette.primaryText)
                     }
                     .tint(themeManager.palette.accent)
@@ -748,30 +771,42 @@ struct ProfileRootView: View {
     }
 
     private var privacySection: some View {
-        SectionCardView(title: "Privacy") {
+        SectionCardView(
+            title: String(localized: "section_privacy")
+        ) {
             VStack(alignment: .leading, spacing: 14) {
                 ThemedToggleRow(
-                    title: "Allow explicit content",
+                    title: String(
+                        localized: "setting_allow_explicit_content"
+                    ),
                     isOn: $vm.allowExplicitContent
                 )
 
                 ThemedToggleRow(
-                    title: "Blur messages by default",
+                    title: String(
+                        localized: "setting_blur_messages_default"
+                    ),
                     isOn: $vm.privacyBlurEnabled
                 )
 
                 ThemedToggleRow(
-                    title: "Blur when app is unfocused",
+                    title: String(
+                        localized: "setting_blur_when_unfocused"
+                    ),
                     isOn: $vm.privacyBlurOnUnfocus
                 )
 
                 ThemedToggleRow(
-                    title: "Hold to reveal",
+                    title: String(
+                        localized: "setting_hold_to_reveal"
+                    ),
                     isOn: $vm.privacyHoldToReveal
                 )
 
                 ThemedToggleRow(
-                    title: "Notify me if my message is copied",
+                    title: String(
+                        localized: "setting_notify_on_copy"
+                    ),
                     isOn: $vm.notifyOnCopy
                 )
             }
@@ -779,21 +814,21 @@ struct ProfileRootView: View {
     }
 
     private var randomChatSection: some View {
-        SectionCardView(title: "Random Chat") {
+        SectionCardView(title: String(localized: "section_random_chat")) {
             VStack(alignment: .leading, spacing: 14) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Your age range")
+                    Text(String(localized: "label_your_age_range"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(themeManager.palette.primaryText)
 
                     Picker(
-                        "Your age range",
+                        String(localized: "label_your_age_range"),
                         selection: Binding(
                             get: { vm.ageBand ?? "" },
                             set: { vm.ageBand = $0.isEmpty ? nil : $0 }
                         )
                     ) {
-                        Text("Select age range").tag("")
+                        Text(String(localized: "select_age_range")).tag("")
                         Text("13–17").tag("TEEN_13_17")
                         Text("18–24").tag("ADULT_18_24")
                         Text("25–34").tag("ADULT_25_34")
@@ -805,14 +840,14 @@ struct ProfileRootView: View {
                 }
 
                 ThemedToggleRow(
-                    title: "Use age-based matching",
+                    title: String(localized: "setting_use_age_based_matching"),
                     isOn: $vm.wantsAgeFilter
                 )
                 .opacity(vm.ageBand == nil ? 0.55 : 1.0)
                 .disabled(vm.ageBand == nil)
 
                 ThemedToggleRow(
-                    title: "Let Foria remember things you tell it",
+                    title: String(localized: "setting_foria_remember"),
                     isOn: $vm.foriaRemember
                 )
             }
@@ -820,20 +855,20 @@ struct ProfileRootView: View {
     }
 
     private var voicemailSection: some View {
-        SectionCardView(title: "Voicemail") {
+        SectionCardView(title: String(localized: "section_voicemail")) {
             VStack(alignment: .leading, spacing: 14) {
                 ThemedToggleRow(
-                    title: "Enable voicemail",
+                    title: String(localized: "setting_enable_voicemail"),
                     isOn: $vm.voicemailEnabled
                 )
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Auto-delete voicemails after (days)")
+                    Text(String(localized: "setting_auto_delete_voicemails_days"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(themeManager.palette.primaryText)
 
                     TextField(
-                        "Leave empty to keep forever",
+                        String(localized: "placeholder_keep_voicemails_forever"),
                         text: Binding(
                             get: { vm.voicemailAutoDeleteDays.map(String.init) ?? "" },
                             set: { vm.voicemailAutoDeleteDays = Int($0) }
@@ -844,42 +879,53 @@ struct ProfileRootView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Forward voicemail to email")
+                    Text(String(localized: "setting_forward_voicemail_email"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(themeManager.palette.primaryText)
 
-                    TextField("Email address", text: $vm.voicemailForwardEmail)
-                        .textInputAutocapitalization(.never)
-                        .keyboardType(.emailAddress)
-                        .textFieldStyle(.roundedBorder)
+                    TextField(
+                        String(localized: "placeholder_email_address"),
+                        text: $vm.voicemailForwardEmail
+                    )
+                    .textInputAutocapitalization(.never)
+                    .keyboardType(.emailAddress)
+                    .textFieldStyle(.roundedBorder)
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Text fallback greeting")
+                    Text(String(localized: "setting_text_fallback_greeting"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(themeManager.palette.primaryText)
 
-                    TextField("Greeting", text: $vm.voicemailGreetingText, axis: .vertical)
-                        .lineLimit(3...5)
-                        .textFieldStyle(.roundedBorder)
+                    TextField(
+                        String(localized: "placeholder_greeting"),
+                        text: $vm.voicemailGreetingText,
+                        axis: .vertical
+                    )
+                    .lineLimit(3...5)
+                    .textFieldStyle(.roundedBorder)
                 }
             }
         }
     }
 
     private var forwardingSection: some View {
-        SectionCardView(title: "Call & Text Forwarding") {
+        SectionCardView(
+            title: String(localized: "section_forwarding")
+        ) {
             if currentPlan.canUseForwarding {
                 NavigationLink {
                     ForwardingSettingsView()
                 } label: {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Manage Forwarding")
+                            Text(String(localized: "forwarding_manage"))
                                 .font(.body.weight(.semibold))
                                 .foregroundStyle(themeManager.palette.primaryText)
 
-                            Text("Forward incoming calls and texts to your verified phone or email.")
+                            Text(
+                                String(localized: "forwarding_description")
+                            )
                                 .font(.footnote)
                                 .foregroundStyle(themeManager.palette.secondaryText)
                         }
@@ -895,21 +941,23 @@ struct ProfileRootView: View {
             } else {
                 Button {
                     presentUpgrade(
-                        title: "Forwarding Requires Plus",
-                        message: "Call and text forwarding is available on Plus and Premium.",
+                        title: String(localized: "forwarding_requires_plus_title"),
+                        message: String(localized: "forwarding_requires_plus_message"),
                         requiredPlan: .plus
                     )
                 } label: {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
                             HStack(spacing: 6) {
-                                Text("Manage Forwarding")
+                                Text(String(localized: "forwarding_manage"))
                                 Image(systemName: "lock.fill")
                             }
                             .font(.body.weight(.semibold))
                             .foregroundStyle(themeManager.palette.primaryText)
 
-                            Text("Upgrade to Plus or Premium to enable forwarding.")
+                            Text(
+                                String(localized: "forwarding_upgrade_prompt")
+                            )
                                 .font(.footnote)
                                 .foregroundStyle(themeManager.palette.secondaryText)
                         }
@@ -949,7 +997,7 @@ struct ProfileRootView: View {
                     .padding(.vertical, 14)
             } else {
                 ThemedGradientButton(
-                    title: "Save Settings",
+                    title: String(localized: "button_save_settings"),
                     action: {
                         Task { await saveSettings() }
                     },
@@ -988,7 +1036,7 @@ struct ProfileRootView: View {
                             .tint(.red)
                     } else {
                         Image(systemName: "trash")
-                        Text("Delete Account")
+                        Text(String(localized: "button_delete_account"))
                             .fontWeight(.semibold)
                     }
                 }
@@ -1001,24 +1049,32 @@ struct ProfileRootView: View {
             .clipShape(RoundedRectangle(cornerRadius: 14))
         }
         .alert(
-            "Delete Account?",
+            String(localized: "alert_delete_account_title"),
             isPresented: $showingDeleteAccountAlert
         ) {
-            Button("Cancel", role: .cancel) {}
+            Button(
+                String(localized: "button_cancel"),
+                role: .cancel
+            ) {}
 
-            Button("Delete", role: .destructive) {
+            Button(
+                String(localized: "button_delete"),
+                role: .destructive
+            ) {
                 Task {
                     await deleteAccount()
                 }
             }
         } message: {
-            Text("This permanently deletes your Chatforia account and associated data.")
+            Text(
+                String(localized: "delete_account_warning")
+            )
         }
     }
 
     private var logoutButtonSection: some View {
         ThemedOutlineButton(
-            title: "Log out",
+            title: String(localized: "button_log_out"),
             action: {
                 auth.logout()
             }
@@ -1032,20 +1088,20 @@ struct ProfileRootView: View {
     
     private var encryptionStatusText: String {
         if !AccountKeyManager.shared.hasAccountKeys() {
-            return "Recovery needed on this device"
+            return String(localized: "security_status_recovery_needed")
         }
 
         if isCheckingBackup {
-            return "Protected on this device"
+            return String(localized: "security_status_protected")
         }
 
         if let hasRemoteBackup {
             return hasRemoteBackup
-                ? "Protected on this device • Recovery backup saved"
-                : "Protected on this device • No recovery backup yet"
+                ? String(localized: "security_status_backup_saved")
+                : String(localized: "security_status_no_backup")
         }
 
-        return "Protected on this device"
+        return String(localized: "security_status_protected")
     }
 
     private var encryptionStatusColor: Color {
@@ -1056,10 +1112,14 @@ struct ProfileRootView: View {
     }
     
     private var securitySection: some View {
-        SectionCardView(title: "Security") {
+        SectionCardView(
+            title: String(localized: "section_security")
+        ) {
             VStack(alignment: .leading, spacing: 8) {
 
-                Text("Protect your messages by saving a secure recovery backup. You’ll only need it if you switch devices or lose access to this one.")
+                Text(
+                    String(localized: "security_backup_description")
+                )
                     .font(.footnote)
                     .foregroundStyle(themeManager.palette.secondaryText)
                     .padding(.bottom, 4)
@@ -1074,7 +1134,7 @@ struct ProfileRootView: View {
                             .frame(width: 22)
 
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Encryption Key")
+                            Text(String(localized: "security_encryption_key"))
                                 .font(.body)
                                 .foregroundStyle(themeManager.palette.primaryText)
 
@@ -1090,7 +1150,9 @@ struct ProfileRootView: View {
                     if AccountKeyManager.shared.hasAccountKeys(),
                        hasRemoteBackup == false,
                        !isCheckingBackup {
-                        Text("Recommended: save a recovery backup in case you replace or reset this device.")
+                        Text(
+                            String(localized: "security_backup_recommended")
+                        )
                             .font(.caption)
                             .foregroundStyle(themeManager.palette.secondaryText)
                             .padding(.bottom, 6)
@@ -1103,8 +1165,8 @@ struct ProfileRootView: View {
                     } label: {
                         rowLabel(
                             icon: "icloud.and.arrow.up",
-                            title: "Back Up Encryption Key",
-                            subtitle: "Save a secure backup of your key"
+                            title: String(localized: "security_backup_key_title"),
+                            subtitle: String(localized: "security_backup_key_subtitle")
                         )
                     }
                     .buttonStyle(.plain)
@@ -1119,8 +1181,8 @@ struct ProfileRootView: View {
                         } label: {
                             rowLabel(
                                 icon: "icloud.and.arrow.down",
-                                title: "Restore Encryption Key",
-                                subtitle: "Recover your key on this device"
+                                title: String(localized: "security_restore_key_title"),
+                                subtitle: String(localized: "security_restore_key_subtitle")
                             )
                         }
                         .buttonStyle(.plain)
@@ -1133,10 +1195,10 @@ struct ProfileRootView: View {
                     } label: {
                         rowLabel(
                             icon: "arrow.triangle.2.circlepath",
-                            title: "Rotate Encryption Key",
+                            title: String(localized: "security_rotate_key_title"),
                             subtitle: hasRemoteBackup == true
-                                ? "Create a fresh encryption key for your account"
-                                : "Backup required to refresh your key"
+                                ? String(localized: "security_rotate_key_ready")
+                                : String(localized: "security_rotate_key_backup_required")
                         )
                     }
                     .buttonStyle(.plain)
@@ -1180,11 +1242,18 @@ struct ProfileRootView: View {
     }
 
     private func attemptApplyTheme(_ code: String) {
+        let requiredPlan = AppThemes.requiredPlan(for: code)
+        let themeName = AppThemes.name(for: code)
+
         guard AppThemes.isAvailable(code, for: currentPlan) else {
             presentUpgrade(
-                title: "Premium Theme",
-                message: "\(AppThemes.name(for: code)) is available on \(AppThemes.requiredPlan(for: code).displayName).",
-                requiredPlan: AppThemes.requiredPlan(for: code)
+                title: String(localized: "premium_theme_title"),
+                message: String(
+                    format: String(localized: "premium_feature_available_on_format"),
+                    themeName,
+                    requiredPlan.displayName
+                ),
+                requiredPlan: requiredPlan
             )
             return
         }
@@ -1192,7 +1261,6 @@ struct ProfileRootView: View {
         vm.theme = code
         themeManager.apply(code: code)
 
-        // 🔥 Immediately persist to backend
         Task {
             await saveTheme(code)
         }
@@ -1216,27 +1284,43 @@ struct ProfileRootView: View {
     }
     
     private func attemptApplyMessageTone(_ code: String) {
-        if AppMessageTones.isAvailable(code, for: currentPlan) {
-            vm.messageTone = code
-        } else {
+        let requiredPlan = AppMessageTones.requiredPlan(for: code)
+        let toneName = AppMessageTones.name(for: code)
+
+        guard AppMessageTones.isAvailable(code, for: currentPlan) else {
             presentUpgrade(
-                title: "Premium Message Tone",
-                message: "\(AppMessageTones.name(for: code)) is available on \(AppMessageTones.requiredPlan(for: code).displayName).",
-                requiredPlan: AppMessageTones.requiredPlan(for: code)
+                title: String(localized: "premium_message_tone_title"),
+                message: String(
+                    format: String(localized: "premium_feature_available_on_format"),
+                    toneName,
+                    requiredPlan.displayName
+                ),
+                requiredPlan: requiredPlan
             )
+            return
         }
+
+        vm.messageTone = code
     }
 
     private func attemptApplyRingtone(_ code: String) {
-        if AppRingtones.isAvailable(code, for: currentPlan) {
-            vm.ringtone = code
-        } else {
+        let requiredPlan = AppRingtones.requiredPlan(for: code)
+        let ringtoneName = AppRingtones.name(for: code)
+
+        guard AppRingtones.isAvailable(code, for: currentPlan) else {
             presentUpgrade(
-                title: "Premium Ringtone",
-                message: "\(AppRingtones.name(for: code)) is available on \(AppRingtones.requiredPlan(for: code).displayName).",
-                requiredPlan: AppRingtones.requiredPlan(for: code)
+                title: String(localized: "premium_ringtone_title"),
+                message: String(
+                    format: String(localized: "premium_feature_available_on_format"),
+                    ringtoneName,
+                    requiredPlan.displayName
+                ),
+                requiredPlan: requiredPlan
             )
+            return
         }
+
+        vm.ringtone = code
     }
 
     private func displayValue(_ value: String?) -> String {
@@ -1250,7 +1334,8 @@ struct ProfileRootView: View {
         avatarUploadError = nil
 
         guard let token = auth.currentToken, !token.isEmpty else {
-            avatarUploadError = "Missing auth token."
+            avatarUploadError =
+            String(localized: "error_missing_auth_token")
             auth.handleInvalidSession()
             return
         }
@@ -1259,7 +1344,8 @@ struct ProfileRootView: View {
             isUploadingAvatar = true
 
             guard let data = try await item.loadTransferable(type: Data.self) else {
-                avatarUploadError = "Could not read selected image."
+                avatarUploadError =
+                    String(localized: "error_could_not_read_image")
                 isUploadingAvatar = false
                 return
             }
@@ -1285,7 +1371,8 @@ struct ProfileRootView: View {
         avatarUploadError = nil
 
         guard let token = auth.currentToken, !token.isEmpty else {
-            avatarUploadError = "Missing auth token."
+            avatarUploadError =
+                String(localized: "error_missing_auth_token")
             auth.handleInvalidSession()
             return
         }
@@ -1340,13 +1427,16 @@ struct ProfileRootView: View {
 
             auth.replaceCurrentUser(updatedUser)
             vm.load(from: updatedUser)
-
+            
+            appLanguage = updatedUser.preferredLanguage ?? "en"
+            
             let updatedPlan = AppPlan(serverValue: updatedUser.plan)
             let updatedTheme = updatedUser.theme ?? "dawn"
             let themeToApply = AppThemes.isAvailable(updatedTheme, for: updatedPlan) ? updatedTheme : "dawn"
             themeManager.apply(code: themeToApply)
 
-            vm.saveSuccessMessage = "Settings saved."
+            vm.saveSuccessMessage =
+                String(localized: "settings_saved")
         } catch {
             vm.saveError = error.localizedDescription
         }

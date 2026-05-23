@@ -26,7 +26,7 @@ struct ImportPhoneContactsView: View {
                             systemImage: "person.crop.circle.badge.exclamationmark",
                             title: "Couldn’t load contacts",
                             subtitle: errorText,
-                            buttonTitle: "Try Again",
+                            buttonTitle: "common.tryAgain",
                             buttonAction: {
                                 Task { await vm.loadContacts() }
                             }
@@ -48,7 +48,7 @@ struct ImportPhoneContactsView: View {
 
                                     Spacer()
 
-                                    Button("Clear") {
+                                    Button(String(localized: "common.clear")) {
                                         vm.clearSelection()
                                     }
                                     .foregroundStyle(themeManager.palette.accent)
@@ -87,18 +87,18 @@ struct ImportPhoneContactsView: View {
                     }
                 }
             }
-            .navigationTitle("Import Contacts")
+            .navigationTitle("contacts.importContacts")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Close") {
+                    Button("common.close") {
                         dismiss()
                     }
                     .foregroundStyle(themeManager.palette.accent)
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(vm.isImporting ? "Importing..." : "Import") {
+                    Button(vm.isImporting ? "common.importing" : "common.import") {
                         Task { await importSelected() }
                     }
                     .disabled(vm.isImporting || vm.selectedIDs.isEmpty)

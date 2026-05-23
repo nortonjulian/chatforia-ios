@@ -39,7 +39,7 @@ struct MessageReceiptSheet: View {
                                         .font(.body)
                                         .foregroundStyle(themeManager.palette.primaryText)
 
-                                    Text("Read")
+                                    Text("common.read")
                                         .font(.caption)
                                         .foregroundStyle(themeManager.palette.secondaryText)
                                 }
@@ -57,11 +57,11 @@ struct MessageReceiptSheet: View {
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
             .background(themeManager.palette.screenBackground)
-            .navigationTitle("Message Info")
+            .navigationTitle("messages.messageInfo")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
+                    Button("common.done") {
                         dismiss()
                     }
                     .foregroundStyle(themeManager.palette.accent)

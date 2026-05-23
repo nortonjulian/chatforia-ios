@@ -27,7 +27,7 @@ struct ForwardingSettingsView: View {
 
                         Divider()
 
-                        Toggle("Enable text forwarding", isOn: $vm.forwardingEnabledSms)
+                        Toggle("forwarding.enableTextForwarding", isOn: $vm.forwardingEnabledSms)
 
                         if let smsError = vm.validationErrors["smsToggle"], vm.forwardingEnabledSms {
                             Text(smsError)
@@ -35,10 +35,10 @@ struct ForwardingSettingsView: View {
                                 .foregroundStyle(.red)
                         }
 
-                        Toggle("Forward texts to phone", isOn: $vm.forwardSmsToPhone)
+                        Toggle("forwarding.forwardTextsToPhone", isOn: $vm.forwardSmsToPhone)
 
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("Destination phone (E.164)")
+                            Text("forwarding.destinationPhoneE164")
                                 .font(.subheadline.weight(.semibold))
 
                             TextField("+15551234567", text: $vm.forwardPhoneNumber)
@@ -53,10 +53,10 @@ struct ForwardingSettingsView: View {
                             }
                         }
 
-                        Toggle("Forward texts to email", isOn: $vm.forwardSmsToEmail)
+                        Toggle("forwarding.forwardTextsToEmail", isOn: $vm.forwardSmsToEmail)
 
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("Destination email")
+                            Text("forwarding.destinationEmail")
                                 .font(.subheadline.weight(.semibold))
 
                             TextField("me@example.com", text: $vm.forwardEmail)
@@ -74,7 +74,7 @@ struct ForwardingSettingsView: View {
 
                         Divider()
 
-                        Toggle("Enable call forwarding", isOn: $vm.forwardingEnabledCalls)
+                        Toggle("forwarding.enableCallForwarding", isOn: $vm.forwardingEnabledCalls)
 
                         VStack(alignment: .leading, spacing: 6) {
                             Text("Destination (E.164) for calls")
@@ -96,7 +96,7 @@ struct ForwardingSettingsView: View {
 
                         HStack {
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("Start hour (0–23)")
+                                Text("settings.startHour")
                                     .font(.subheadline.weight(.semibold))
 
                                 TextField(
@@ -111,7 +111,7 @@ struct ForwardingSettingsView: View {
                             }
 
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("End hour (0–23)")
+                                Text("settings.endHour")
                                     .font(.subheadline.weight(.semibold))
 
                                 TextField(
@@ -147,7 +147,7 @@ struct ForwardingSettingsView: View {
                                 if vm.isSaving {
                                     ProgressView()
                                 } else {
-                                    Text("Save Forwarding")
+                                    Text("forwarding.saveForwarding")
                                 }
                             }
                             .buttonStyle(.borderedProminent)
@@ -159,7 +159,7 @@ struct ForwardingSettingsView: View {
             .padding()
         }
         .background(Color(uiColor: .systemGroupedBackground))
-        .navigationTitle("Forwarding")
+        .navigationTitle("forwarding.title")
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await load()

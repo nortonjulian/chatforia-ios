@@ -30,7 +30,7 @@ struct PlanView: View {
     private var currentPlanSection: some View {
         SectionCardView(title: "My Plan") {
             VStack(alignment: .leading, spacing: 14) {
-                Text("Current plan")
+                Text("billing.currentPlan")
                     .font(.subheadline)
                     .foregroundStyle(themeManager.palette.secondaryText)
 
@@ -57,7 +57,7 @@ struct PlanView: View {
 
                 switch currentPlan {
                 case .free:
-                    ThemedOutlineButton(title: "Upgrade") {
+                    ThemedOutlineButton(title: "common.upgrade") {
                         showUpgrade = true
                     }
 

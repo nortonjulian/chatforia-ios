@@ -25,7 +25,7 @@ struct ReportMessageSheet: View {
                 }
 
                 Section("Include previous messages") {
-                    Picker("Context", selection: $contextCount) {
+                    Picker("messages.context", selection: $contextCount) {
                         Text("Only this message").tag(0)
                         Text("This + previous 5").tag(5)
                         Text("This + previous 10").tag(10)
@@ -34,13 +34,13 @@ struct ReportMessageSheet: View {
                     .pickerStyle(.navigationLink)
                 }
 
-                Section("Additional details") {
+                Section("common.additionalDetails") {
                     TextEditor(text: $details)
                         .frame(minHeight: 120)
                 }
 
                 Section {
-                    Toggle("Block this user after reporting", isOn: $blockAfterReport)
+                    Toggle("report.blockUserAfterReporting", isOn: $blockAfterReport)
                 }
 
                 Section("Preview") {
@@ -65,7 +65,7 @@ struct ReportMessageSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel", role: .cancel) {
+                    Button(String(localized: "button_cancel"), role: .cancel) {
                         if !isSubmitting {
                             onCancel()
                         }
@@ -74,7 +74,7 @@ struct ReportMessageSheet: View {
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Submit") {
+                    Button("common.submit") {
                         onSubmit()
                     }
                     .disabled(isSubmitting)

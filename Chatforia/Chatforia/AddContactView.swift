@@ -128,11 +128,11 @@ struct AddContactView: View {
                     .padding()
                 }
             }
-            .navigationTitle("Add Contact")
+            .navigationTitle("contacts.addContact")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") {
+                    Button(String(localized: "button_cancel")) {
                         dismiss()
                     }
                     .foregroundStyle(themeManager.palette.accent)

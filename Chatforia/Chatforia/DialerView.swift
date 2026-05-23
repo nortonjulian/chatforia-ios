@@ -66,13 +66,13 @@ struct DialerView: View {
     
     private var header: some View {
         HStack {
-            Text("Dial")
+            Text(String(localized: "dialer.dial"))
                 .font(.title2.weight(.semibold))
                 .foregroundStyle(themeManager.palette.primaryText)
             
             Spacer()
             
-            Button("Done") {
+            Button("common.done") {
                 dismiss()
             }
             .font(.headline.weight(.semibold))
@@ -140,7 +140,7 @@ struct DialerView: View {
             if let contact = primaryMatch, shouldShowSuggestionRow {
                 HStack(spacing: 12) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Suggested")
+                        Text(String(localized: "common.suggested"))
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(themeManager.palette.primaryText.opacity(0.55))
 
@@ -365,7 +365,7 @@ struct DialerView: View {
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "phone.fill")
-                    Text(isCalling ? "Calling..." : "Call")
+                    Text(isCalling ? "calls.calling" : "calls.call")
                 }
                 .font(.headline.weight(.semibold))
                 .foregroundStyle(themeManager.palette.buttonForeground)

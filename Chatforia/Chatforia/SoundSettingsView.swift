@@ -58,7 +58,7 @@ struct SoundSettingsView: View {
                 }
             }
 
-            Section("Ringtone") {
+            Section(String(localized: "sheet_ringtone_title")) {
                 ForEach(AppRingtones.all) { tone in
                     toneRow(
                         title: tone.name,

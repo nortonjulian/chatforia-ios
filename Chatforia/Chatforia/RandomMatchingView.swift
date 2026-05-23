@@ -28,7 +28,7 @@ struct RandomMatchingView: View {
                 Button {
                     onCancel()
                 } label: {
-                    Text("Cancel")
+                    Text(String(localized: "button_cancel"))
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)

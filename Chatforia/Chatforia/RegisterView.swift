@@ -29,7 +29,7 @@ struct RegisterView: View {
             ScrollView {
                 VStack(spacing: 20) {
                     VStack(spacing: 8) {
-                        Text("Create your account")
+                        Text("auth.createYourAccount")
                             .font(.system(size: 30, weight: .bold))
                             .foregroundStyle(themeManager.palette.primaryText)
                             .multilineTextAlignment(.center)
@@ -98,7 +98,7 @@ struct RegisterView: View {
                         }
 
                         ThemedGradientButton(
-                            title: isSubmitting ? "Creating account..." : "Create Account",
+                            title: isSubmitting ? "auth.creatingAccount" : "auth.createAccount",
                             action: { Task { await submit() } },
                             isFullWidth: true,
                             isDisabled: isSubmitting
@@ -124,7 +124,7 @@ struct RegisterView: View {
                         )
 
                         ThemedSecureField(
-                            title: "Confirm Password",
+                            title: "auth.confirmPassword",
                             text: $confirmPassword,
                             contentType: .newPassword
                         )
@@ -137,7 +137,7 @@ struct RegisterView: View {
                         )
 
                         VStack(spacing: 6) {
-                            Text("Already have an account?")
+                            Text("auth.alreadyHaveAnAccount")
                                 .font(.footnote)
                                 .foregroundStyle(themeManager.palette.secondaryText)
 
@@ -165,7 +165,7 @@ struct RegisterView: View {
                 .padding()
             }
         }
-        .navigationTitle("Register")
+        .navigationTitle(String(localized: "common.register"))
         .navigationBarTitleDisplayMode(.inline)
     }
     

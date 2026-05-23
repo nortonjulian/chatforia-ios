@@ -29,7 +29,7 @@ struct RiaRewriteSheet: View {
                     .background(themeManager.palette.cardBackground)
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-                Text("Choose a tone")
+                Text("sounds.chooseTone")
                     .font(.headline)
                     .foregroundStyle(themeManager.palette.primaryText)
 

@@ -22,11 +22,11 @@ struct GIFPickerView: View {
 
                 Group {
                     if isLoading && results.isEmpty {
-                        ProgressView("Loading GIFs…")
+                        ProgressView("media.loadingGifs")
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else if let errorText, results.isEmpty {
                         ContentUnavailableView(
-                            "Couldn’t load GIFs",
+                            "gif.couldNotLoadPlural",
                             systemImage: "exclamationmark.triangle",
                             description: Text(errorText)
                         )
@@ -52,7 +52,7 @@ struct GIFPickerView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                    Button(String(localized: "button_cancel")) {
                         dismiss()
                     }
                 }

@@ -11,6 +11,9 @@ struct OnboardingView: View {
     @State private var isSaving = false
     @State private var errorText: String?
     @State private var username: String = ""
+    
+    @AppStorage("chatforia_language")
+    private var appLanguage = "en"
 
     private let totalSteps = 4
 
@@ -64,7 +67,7 @@ struct OnboardingView: View {
 
     private var progressHeader: some View {
         VStack(spacing: 12) {
-            Text("Welcome")
+            Text("common.welcome")
                 .font(.system(size: 28, weight: .bold))
                 .foregroundStyle(themeManager.palette.primaryText)
 
@@ -92,7 +95,7 @@ struct OnboardingView: View {
                 .font(.system(size: 44))
                 .foregroundStyle(themeManager.palette.accent)
 
-            Text("Welcome to Chatforia")
+            Text("common.welcomeToChatforia")
                 .font(.system(size: 32, weight: .bold))
                 .foregroundStyle(themeManager.palette.primaryText)
                 .multilineTextAlignment(.center)
@@ -107,7 +110,7 @@ struct OnboardingView: View {
 
     private var usernameStep: some View {
         VStack(spacing: 18) {
-            Text("Choose your username")
+            Text("auth.chooseUsername")
                 .font(.system(size: 30, weight: .bold))
                 .foregroundStyle(themeManager.palette.primaryText)
                 .multilineTextAlignment(.center)
@@ -133,7 +136,7 @@ struct OnboardingView: View {
 
     private var languageStep: some View {
         VStack(spacing: 18) {
-            Text("Choose your language")
+            Text("profile.chooseLanguage")
                 .font(.system(size: 30, weight: .bold))
                 .foregroundStyle(themeManager.palette.primaryText)
                 .multilineTextAlignment(.center)
@@ -299,6 +302,8 @@ struct OnboardingView: View {
             )
 
             auth.replaceCurrentUser(updatedUser)
+            
+            appLanguage = selectedLanguage
 
             withAnimation(.easeInOut(duration: 0.2)) {
                 step = 3

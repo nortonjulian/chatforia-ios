@@ -181,7 +181,7 @@ private extension VideoCallView {
                                     .font(.system(size: 22, weight: .medium))
                                     .foregroundStyle(.white)
 
-                                Text("Camera off")
+                                Text("calls.cameraOff")
                                     .font(.caption)
                                     .foregroundStyle(.white.opacity(0.9))
                             }

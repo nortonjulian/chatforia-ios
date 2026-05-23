@@ -46,7 +46,7 @@ struct ChatsRootView: View {
                                 systemImage: "exclamationmark.bubble",
                                 title: "Couldn’t load chats",
                                 subtitle: err,
-                                buttonTitle: "Try Again",
+                                buttonTitle: "common.tryAgain",
                                 buttonAction: {
                                     Task { await reload() }
                                 }
@@ -109,7 +109,7 @@ struct ChatsRootView: View {
                                                 _ = await vm.archiveConversation(conversation, token: token)
                                             }
                                         } label: {
-                                            Label("Archive", systemImage: "archivebox")
+                                            Label("common.archive", systemImage: "archivebox")
                                         }
                                         .tint(.blue)
 
@@ -117,7 +117,7 @@ struct ChatsRootView: View {
                                             pendingConversation = conversation
                                             showDeleteConfirm = true
                                         } label: {
-                                            Label("Delete", systemImage: "trash")
+                                            Label("common.delete", systemImage: "trash")
                                         }
                                     }
                                     .listRowBackground(themeManager.palette.cardBackground)
@@ -165,7 +165,7 @@ struct ChatsRootView: View {
                     .environmentObject(settingsVM)
             }
             .navigationBarTitleDisplayMode(.inline)
-            .navigationTitle("Chats")
+            .navigationTitle(String(localized: "tab_chats"))
             .searchable(text: $vm.searchText, prompt: "Search chats")
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
@@ -227,8 +227,8 @@ struct ChatsRootView: View {
                     }
                 )
             }
-            .alert("Delete Conversation?", isPresented: $showDeleteConfirm) {
-                Button("Delete", role: .destructive) {
+            .alert("messages.deleteConversationTitle", isPresented: $showDeleteConfirm) {
+                Button("common.delete", role: .destructive) {
                     if let convo = pendingConversation {
                         Task {
                             let token = TokenStore.shared.read()
@@ -237,7 +237,7 @@ struct ChatsRootView: View {
                         }
                     }
                 }
-                Button("Cancel", role: .cancel) {
+                Button(String(localized: "button_cancel"), role: .cancel) {
                     pendingConversation = nil
                 }
             } message: {
@@ -422,7 +422,7 @@ struct ChatsRootView: View {
                 return phone
             }
 
-            return "Conversation"
+            return "messages.conversation"
         }
 
         return "Chat #\(item.id?.description ?? "draft")"
@@ -494,7 +494,7 @@ private struct UnsupportedConversationView: View {
             title: "Unsupported conversation",
             subtitle: "Kind: \(conversation.kind)"
         )
-        .navigationTitle("Conversation")
+        .navigationTitle("messages.conversation")
         .navigationBarTitleDisplayMode(.inline)
     }
 }

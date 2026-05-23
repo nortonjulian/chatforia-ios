@@ -10,33 +10,38 @@ struct UpgradeView: View {
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.dismiss) private var dismiss
-    
+
     @State private var syncMessage: String?
     @State private var retryCount = 0
-    
+
     let trigger: UpgradeTrigger
 
     init(trigger: UpgradeTrigger = .standard) {
         self.trigger = trigger
     }
 
-    // Replace with your real App Store Connect subscription group ID
     private let subscriptionGroupID = "22027546"
 
     private let privacyURL = URL(string: "https://chatforia.com/privacy")!
     private let termsURL = URL(string: "https://chatforia.com/legal/terms")!
     private let manageSubscriptionsURL = URL(string: "https://apps.apple.com/account/subscriptions")!
 
+    private var currentPlan: AppPlan {
+        AppPlan(serverValue: auth.currentUser?.plan)
+    }
+
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
-                headerSection
-                
+            VStack(spacing: 22) {
+                heroSection
+
                 if trigger == .keepNumber {
                     keepNumberAlert
                 }
-                
-                benefitsSection
+
+                plusCard
+                premiumCard
+                customizationSection
                 subscriptionSection
                 legalSection
                 actionSection
@@ -44,99 +49,249 @@ struct UpgradeView: View {
             .padding()
         }
         .background(themeManager.palette.screenBackground.ignoresSafeArea())
-        .navigationTitle("Upgrade")
+        .navigationTitle("common.upgrade")
         .navigationBarTitleDisplayMode(.inline)
         .task {
             retryCount = 0
             await refreshPurchaseStatus(autoRetry: true)
         }
     }
-    
-    private var keepNumberAlert: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "lock.fill")
-                .foregroundStyle(themeManager.palette.accent)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Keep your number")
-                    .font(.headline)
+    private var heroSection: some View {
+        VStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                themeManager.palette.buttonStart.opacity(0.22),
+                                themeManager.palette.buttonEnd.opacity(0.14)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 92, height: 92)
+
+                Image(systemName: "sparkles")
+                    .font(.system(size: 34, weight: .bold))
+                    .foregroundStyle(themeManager.palette.accent)
+            }
+
+            VStack(spacing: 8) {
+                Text("Unlock more of Chatforia")
+                    .font(.largeTitle.weight(.bold))
+                    .foregroundStyle(themeManager.palette.primaryText)
+                    .multilineTextAlignment(.center)
+
+                Text("Choose a cleaner, more personal Chatforia experience.")
+                    .font(.body)
+                    .foregroundStyle(themeManager.palette.secondaryText)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .padding(.top, 8)
+    }
+
+    private var keepNumberAlert: some View {
+        featureCard(
+            icon: "lock.fill",
+            title: "Keep your number",
+            subtitle: "Upgrade to Premium to keep your number protected from recycling.",
+            accent: themeManager.palette.accent
+        )
+    }
+
+    private var plusCard: some View {
+        planCard(
+            badge: "PLUS",
+            icon: "checkmark.seal.fill",
+            title: "Cleaner communication",
+            subtitle: "Remove distractions and unlock practical communication tools.",
+            features: [
+                "No ads",
+                "Message forwarding",
+                "Longer message history",
+                "Faster support"
+            ],
+            highlighted: false
+        )
+    }
+
+    private var premiumCard: some View {
+        planCard(
+            badge: "PREMIUM",
+            icon: "sparkles",
+            title: "The full Chatforia experience",
+            subtitle: "Unlock personalization, AI tools, and advanced Chatforia features.",
+            features: [
+                "Everything in Plus",
+                "Additional Chatforia themes",
+                "Message tones & ringtones",
+                "AI tools",
+                "Priority features"
+            ],
+            highlighted: true
+        )
+    }
+
+    private func planCard(
+        badge: String,
+        icon: String,
+        title: String,
+        subtitle: String,
+        features: [String],
+        highlighted: Bool
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Label(badge, systemImage: icon)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(highlighted ? themeManager.palette.buttonForeground : themeManager.palette.accent)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(
+                        highlighted
+                        ? AnyShapeStyle(
+                            LinearGradient(
+                                colors: [themeManager.palette.buttonStart, themeManager.palette.buttonEnd],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        : AnyShapeStyle(themeManager.palette.accent.opacity(0.12))
+                    )
+                    .clipShape(Capsule())
+
+                Spacer()
+
+                if highlighted {
+                    Text("upgrade.bestExperience")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(themeManager.palette.accent)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title)
+                    .font(.title2.weight(.bold))
                     .foregroundStyle(themeManager.palette.primaryText)
 
-                Text("Don’t lose your number — upgrade to Premium to keep it protected from recycling.")
+                Text(subtitle)
                     .font(.subheadline)
                     .foregroundStyle(themeManager.palette.secondaryText)
             }
 
-            Spacer()
+            VStack(alignment: .leading, spacing: 10) {
+                ForEach(features, id: \.self) { feature in
+                    HStack(spacing: 10) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(themeManager.palette.accent)
+
+                        Text(feature)
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(themeManager.palette.primaryText)
+                    }
+                }
+            }
         }
-        .padding()
-        .background(themeManager.palette.cardBackground)
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(themeManager.palette.border, lineWidth: 1)
+        .padding(18)
+        .background(
+            highlighted
+            ? themeManager.palette.highlightedSurface.opacity(0.65)
+            : themeManager.palette.cardBackground
         )
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(
+                    highlighted ? themeManager.palette.accent.opacity(0.55) : themeManager.palette.border,
+                    lineWidth: highlighted ? 1.5 : 1
+                )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .shadow(
+            color: highlighted ? themeManager.palette.accent.opacity(0.12) : .clear,
+            radius: 14,
+            x: 0,
+            y: 8
+        )
     }
 
-    private var headerSection: some View {
-        VStack(spacing: 14) {
-            Circle()
-                .fill(themeManager.palette.accent.opacity(0.14))
-                .frame(width: 84, height: 84)
-                .overlay(
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 30, weight: .semibold))
-                        .foregroundStyle(themeManager.palette.accent)
+    private var customizationSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("profile.customization")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(themeManager.palette.primaryText)
+
+                Text("Unlock additional Chatforia themes, tones, and personalization features with Premium.")
+                    .font(.subheadline)
+                    .foregroundStyle(themeManager.palette.secondaryText)
+            }
+
+            HStack(spacing: 10) {
+
+                customizationPill(
+                    icon: "paintpalette.fill",
+                    title: "Themes"
                 )
 
-            Text("Upgrade Chatforia")
-                .font(.largeTitle.weight(.bold))
-                .foregroundStyle(themeManager.palette.primaryText)
-                .multilineTextAlignment(.center)
+                customizationPill(
+                    icon: "message.fill",
+                    title: "Message tones"
+                )
 
-            Text("Choose Plus, Premium Monthly, or Premium Annual.")
-                .font(.body)
-                .foregroundStyle(themeManager.palette.secondaryText)
-                .multilineTextAlignment(.center)
+                customizationPill(
+                    icon: "bell.fill",
+                    title: "Ringtones"
+                )
+            }
         }
     }
 
-    private var benefitsSection: some View {
-        VStack(spacing: 12) {
-            benefitRow(
-                icon: "nosign",
-                title: "Plus",
-                subtitle: "$6.99/mo • No ads, forwarding, longer message history, and faster support."
-            )
+    private func customizationPill(
+        icon: String,
+        title: String
+    ) -> some View {
 
-            benefitRow(
-                icon: "star",
-                title: "Premium Monthly",
-                subtitle: "$11.99/mo • Everything in Plus, plus premium themes, sounds, AI tools, and priority support."
-            )
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(themeManager.palette.accent)
 
-            benefitRow(
-                icon: "dollarsign.circle",
-                title: "Premium Annual",
-                subtitle: "$99/year • Best value. Includes everything in Premium Monthly, billed once per year."
-            )
+            Text(title)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(themeManager.palette.primaryText)
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(themeManager.palette.cardBackground)
+        .overlay(
+            Capsule()
+                .stroke(themeManager.palette.border, lineWidth: 1)
+        )
+        .clipShape(Capsule())
     }
 
     private var subscriptionSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Plans")
+            Text("upgrade.choosePlan")
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(themeManager.palette.primaryText)
                 .frame(maxWidth: .infinity, alignment: .leading)
+            
+            Text("Best value • Save almost 36% annually")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(themeManager.palette.accent)
 
             SubscriptionStoreView(groupID: subscriptionGroupID) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Choose the plan that fits you best.")
+                    Text("Upgrade with Apple")
                         .font(.headline)
                         .foregroundStyle(themeManager.palette.primaryText)
 
-                    Text("Plus removes ads. Premium unlocks full customization, AI tools, and priority features.")
+                    Text("Plus removes ads and adds forwarding. Premium unlocks additional themes, message tones, ringtones, AI tools, and the full Chatforia experience.")
                         .font(.subheadline)
                         .foregroundStyle(themeManager.palette.secondaryText)
                 }
@@ -148,9 +303,9 @@ struct UpgradeView: View {
             .storeButton(.visible, for: .restorePurchases)
             .storeButton(.visible, for: .redeemCode)
             .background(themeManager.palette.cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .stroke(themeManager.palette.border, lineWidth: 1)
             )
         }
@@ -207,39 +362,20 @@ struct UpgradeView: View {
             )
         }
     }
-    
-    private func refreshPurchaseStatus(autoRetry: Bool = false) async {
-        syncMessage = autoRetry ? "Finalizing your subscription…" : "Checking your subscription…"
 
-        await SubscriptionManager.shared.refreshEntitlements()
-        await auth.refreshCurrentUser()
-
-        if auth.isPaid {
-            syncMessage = "Your subscription is active."
-            retryCount = 0
-            return
-        }
-
-        if retryCount < 3 {
-            retryCount += 1
-
-            try? await Task.sleep(nanoseconds: 3_000_000_000)
-            await refreshPurchaseStatus(autoRetry: true)
-        } else {
-            syncMessage = "Still syncing. Please try again in a moment."
-        }
-    }
-
-    private func benefitRow(icon: String, title: String, subtitle: String) -> some View {
-        HStack(alignment: .top, spacing: 14) {
+    private func featureCard(
+        icon: String,
+        title: String,
+        subtitle: String,
+        accent: Color
+    ) -> some View {
+        HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
-                .font(.body.weight(.semibold))
-                .foregroundStyle(themeManager.palette.accent)
-                .frame(width: 24)
+                .foregroundStyle(accent)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.body.weight(.semibold))
+                    .font(.headline)
                     .foregroundStyle(themeManager.palette.primaryText)
 
                 Text(subtitle)
@@ -256,5 +392,26 @@ struct UpgradeView: View {
                 .stroke(themeManager.palette.border, lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private func refreshPurchaseStatus(autoRetry: Bool = false) async {
+        syncMessage = autoRetry ? "Finalizing your subscription…" : "Checking your subscription…"
+
+        await SubscriptionManager.shared.refreshEntitlements()
+        await auth.refreshCurrentUser()
+
+        if auth.isPaid {
+            syncMessage = "Your subscription is active."
+            retryCount = 0
+            return
+        }
+
+        if retryCount < 3 {
+            retryCount += 1
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            await refreshPurchaseStatus(autoRetry: true)
+        } else {
+            syncMessage = "Still syncing. Please try again in a moment."
+        }
     }
 }

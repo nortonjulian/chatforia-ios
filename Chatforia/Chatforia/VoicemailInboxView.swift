@@ -56,7 +56,7 @@ struct VoicemailInboxView: View {
             }
         }
         .alert("Voicemail Error", isPresented: errorBinding) {
-            Button("OK", role: .cancel) {
+            Button("common.ok", role: .cancel) {
                 viewModel.errorMessage = nil
             }
         } message: {
@@ -104,7 +104,7 @@ struct VoicemailInboxView: View {
     private var loadingView: some View {
         VStack(spacing: 12) {
             ProgressView()
-            Text("Loading voicemail…")
+            Text("voicemail.loading")
                 .font(.subheadline)
                 .foregroundStyle(themeManager.palette.secondaryText)
         }
@@ -117,7 +117,7 @@ struct VoicemailInboxView: View {
                 .font(.system(size: 28))
                 .foregroundStyle(themeManager.palette.accent)
 
-            Text("Couldn’t load voicemail")
+            Text("voicemail.couldNotLoad")
                 .font(.headline)
                 .foregroundStyle(themeManager.palette.primaryText)
 
@@ -127,7 +127,7 @@ struct VoicemailInboxView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
 
-            Button("Try Again") {
+            Button("common.tryAgain") {
                 guard let token = auth.currentToken, !token.isEmpty else { return }
                 Task {
                     await viewModel.load(token: token)
@@ -145,7 +145,7 @@ struct VoicemailInboxView: View {
                 .font(.system(size: 28))
                 .foregroundStyle(themeManager.palette.accent)
 
-            Text("No voicemail yet")
+            Text("voicemail.empty")
                 .font(.headline)
                 .foregroundStyle(themeManager.palette.primaryText)
 

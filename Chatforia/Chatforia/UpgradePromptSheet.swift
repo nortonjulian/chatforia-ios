@@ -80,7 +80,7 @@ struct UpgradePromptSheet: View {
                 }
                 .padding()
             }
-            .navigationTitle("Upgrade Required")
+            .navigationTitle("common.upgradeRequired")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 AnalyticsManager.shared.capture("upgrade_viewed", properties: [
@@ -90,7 +90,7 @@ struct UpgradePromptSheet: View {
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Close") {
+                    Button("common.close") {
                         dismiss()
                     }
                     .foregroundStyle(themeManager.palette.accent)

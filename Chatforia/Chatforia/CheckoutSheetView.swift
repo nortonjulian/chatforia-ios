@@ -9,7 +9,7 @@ struct CheckoutSheetView: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            Text("Confirm Purchase")
+            Text("upgrade.confirmPurchase")
                 .font(.title2.bold())
                 .foregroundStyle(themeManager.palette.primaryText)
 
@@ -41,7 +41,7 @@ struct CheckoutSheetView: View {
             Button {
                 onConfirm()
             } label: {
-                Text("Buy & Activate")
+                Text(String(localized: "upgrade.checkout.buyAndActivate"))
                     .font(.headline)
                     .foregroundStyle(themeManager.palette.buttonForeground)
                     .frame(maxWidth: .infinity)
@@ -60,7 +60,7 @@ struct CheckoutSheetView: View {
             }
             .buttonStyle(.plain)
 
-            Button("Cancel") {
+            Button(String(localized: "button_cancel")) {
                 dismiss()
             }
             .font(.footnote)

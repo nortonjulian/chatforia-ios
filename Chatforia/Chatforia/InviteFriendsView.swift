@@ -38,7 +38,7 @@ struct InviteFriendsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
+                    Button("common.done") { dismiss() }
                 }
             }
             .sheet(isPresented: $isShowingShareSheet) {

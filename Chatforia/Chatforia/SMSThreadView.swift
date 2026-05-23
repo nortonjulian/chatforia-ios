@@ -521,7 +521,7 @@ private struct SMSMessageRowView: View {
                         .foregroundStyle(themeManager.palette.secondaryText)
 
                     if msg.editedAt != nil {
-                        Text("Edited")
+                        Text(String(localized: "messages.edited"))
                             .font(.caption2)
                             .foregroundStyle(themeManager.palette.secondaryText)
                     }
@@ -620,7 +620,7 @@ private struct SMSAuthenticatedImageCard: View {
                             .font(.system(size: 28))
                             .foregroundStyle(.secondary)
 
-                        Text(failed ? "Could not load image" : title)
+                        Text(failed ? "media.couldNotLoadImage" : title)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -713,7 +713,7 @@ private struct SMSFullscreenImageView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
+                    Button("common.done") {
                         dismiss()
                     }
                     .foregroundStyle(.white)

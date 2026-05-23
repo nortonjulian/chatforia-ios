@@ -14,8 +14,13 @@ struct RegistrationResponseDTO: Decodable {
     let plan: String?
     let role: String?
     let preferredLanguage: String?
+    let uiLanguage: String?
     let theme: String?
     let avatarUrl: String?
+    
+    let messageTone: String?
+    let ringtone: String?
+    let soundVolume: Int?
 
     let autoTranslate: Bool?
     let showOriginalWithTranslation: Bool?
@@ -53,6 +58,7 @@ struct RegistrationResponseDTO: Decodable {
                 preferredLanguage: preferredLanguage,
                 theme: theme,
                 avatarUrl: avatarUrl,
+                uiLanguage: uiLanguage ?? preferredLanguage,
                 autoTranslate: autoTranslate,
                 showOriginalWithTranslation: showOriginalWithTranslation,
                 allowExplicitContent: allowExplicitContent,
@@ -70,7 +76,10 @@ struct RegistrationResponseDTO: Decodable {
                 voicemailAutoDeleteDays: voicemailAutoDeleteDays,
                 voicemailForwardEmail: voicemailForwardEmail,
                 voicemailGreetingText: voicemailGreetingText,
-                voicemailGreetingUrl: voicemailGreetingUrl
+                voicemailGreetingUrl: voicemailGreetingUrl,
+                messageTone: messageTone,
+                ringtone: ringtone,
+                soundVolume: soundVolume
             )
         }
 

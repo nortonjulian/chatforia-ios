@@ -71,13 +71,13 @@ struct ChatMessageRowView: View {
                             Button {
                                 UIPasteboard.general.string = text
                             } label: {
-                                Label("Copy", systemImage: "doc.on.doc")
+                                Label("common.copy", systemImage: "doc.on.doc")
                             }
                         }
 
                         if isMe {
                             if canEditByRules {
-                                Button("Edit", systemImage: "pencil") {
+                                Button("common.edit", systemImage: "pencil") {
                                     onEdit?()
                                 }
                             }
@@ -91,13 +91,18 @@ struct ChatMessageRowView: View {
                             }
 
                             if isMe && deliveryState == .failed {
-                                Button("Retry", systemImage: "arrow.clockwise") {
+                                Button {
                                     onRetryTap?()
+                                } label: {
+                                    Label(
+                                        String(localized: "common.retry"),
+                                        systemImage: "arrow.clockwise"
+                                    )
                                 }
                             }
                         } else {
                             if onReport != nil {
-                                Button("Report", systemImage: "flag") {
+                                Button("common.report", systemImage: "flag") {
                                     onReport?()
                                 }
                             }
@@ -106,7 +111,7 @@ struct ChatMessageRowView: View {
                                 Button(role: .destructive) {
                                     onDelete?()
                                 } label: {
-                                    Label("Delete for me", systemImage: "trash")
+                                    Label("messages.deleteForMe", systemImage: "trash")
                                 }
                             }
                         }
@@ -127,13 +132,13 @@ struct ChatMessageRowView: View {
                             Button {
                                 UIPasteboard.general.string = text
                             } label: {
-                                Label("Copy", systemImage: "doc.on.doc")
+                                Label("common.copy", systemImage: "doc.on.doc")
                             }
                         }
                         
                         if isMe {
                             if canEditByRules {
-                                Button("Edit", systemImage: "pencil") {
+                                Button("common.edit", systemImage: "pencil") {
                                     print("🟡 Edit tapped for message \(msg.id)")
                                     editAction?()
                                 }
@@ -149,13 +154,15 @@ struct ChatMessageRowView: View {
                             }
 
                             if canRetry {
-                                Button("Retry", systemImage: "arrow.clockwise") {
-                                    retryAction?()
+                                Button {
+                                    onRetryTap?()
+                                } label: {
+                                    Label("common.retry", systemImage: "arrow.clockwise")
                                 }
                             }
                         } else {
                             if onReport != nil {
-                                Button("Report", systemImage: "flag") {
+                                Button("common.report", systemImage: "flag") {
                                     onReport?()
                                 }
                             }
@@ -164,7 +171,7 @@ struct ChatMessageRowView: View {
                                 Button(role: .destructive) {
                                     deleteAction?()
                                 } label: {
-                                    Label("Delete for me", systemImage: "trash")
+                                    Label("messages.deleteForMe", systemImage: "trash")
                                 }
                             }
                         }
@@ -329,9 +336,9 @@ struct ChatMessageRowView: View {
 
     private var deleteMenuTitle: String {
         if canDeleteForEveryoneByRules {
-            return "Delete"
+            return String(localized: "common.delete")
         } else {
-            return "Delete for me"
+            return String(localized: "messages.deleteForMe")
         }
     }
 
@@ -507,7 +514,9 @@ struct ChatMessageRowView: View {
         guard isMe else { return nil }
 
         if deliveryState == .failed {
-            return editedText(prefix: "Failed · Tap to retry")
+            return editedText(
+                prefix: String(localized: "common.failedRetry")
+            )
         }
 
         if let readersText = groupAwareReadText {
@@ -517,17 +526,17 @@ struct ChatMessageRowView: View {
         let base: String? = {
             switch deliveryState {
             case .pending:
-                return "Pending"
+                return String(localized: "common.pending")
             case .sending:
-                return "Sending…"
+                return String(localized: "common.sending")
             case .sent:
-                return "Sent"
+                return String(localized: "common.sent")
             case .delivered:
-                return "Delivered"
+                return String(localized: "common.delivered")
             case .read:
-                return "Read"
+                return String(localized: "common.read")
             case .failed:
-                return "Failed · Tap to retry"
+                return String(localized: "common.failedRetry")
             case .none:
                 return nil
             }
@@ -538,12 +547,14 @@ struct ChatMessageRowView: View {
 
     private func editedText(prefix: String?) -> String? {
         guard let prefix else {
-            if msg.editedAt != nil { return "Edited" }
+            if msg.editedAt != nil {
+                return String(localized: "messages.edited")
+            }
             return nil
         }
 
         if msg.editedAt != nil {
-            return "\(prefix) · Edited"
+            return "\(prefix) · \(String(localized: "messages.edited"))"
         }
         return prefix
     }
@@ -553,7 +564,7 @@ struct ChatMessageRowView: View {
         guard !readers.isEmpty else { return nil }
 
         if !isGroupRoom {
-            return "Read"
+            return String(localized: "common.read")
         }
 
         if readers.count == 1 {
@@ -561,7 +572,7 @@ struct ChatMessageRowView: View {
             if let raw, !raw.isEmpty {
                 return "Read by \(raw)"
             }
-            return "Read"
+            return String(localized: "common.read")
         }
 
         return "Read by \(readers.count)"

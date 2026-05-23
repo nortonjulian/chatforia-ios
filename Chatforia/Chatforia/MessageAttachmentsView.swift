@@ -386,7 +386,7 @@ private struct AttachmentImageViewer: View {
                             VStack(spacing: 12) {
                                 Image(systemName: "exclamationmark.triangle")
                                     .font(.system(size: 28))
-                                Text("Could not load image")
+                                Text("media.couldNotLoadImage")
                                     .font(.headline)
                             }
                             .foregroundStyle(.white)
@@ -399,7 +399,7 @@ private struct AttachmentImageViewer: View {
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
+                    Button("common.done") {
                         dismiss()
                     }
                     .foregroundStyle(.white)

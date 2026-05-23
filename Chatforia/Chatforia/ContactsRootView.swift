@@ -41,7 +41,7 @@ struct ContactsRootView: View {
                     SMSThreadView(conversation: conversation)
                 }
             }
-            .navigationTitle("Contacts")
+            .navigationTitle(String(localized: "tab_contacts"))
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $vm.searchText, prompt: "Search contacts")
             .onChange(of: vm.searchText) { _, _ in
@@ -59,7 +59,8 @@ struct ContactsRootView: View {
                         Button {
                             showingAddContact = true
                         } label: {
-                            Label("Add Contact", systemImage: "person.badge.plus")
+                            Label("contacts.addContact", systemImage: "person.badge.plus")
+
                         }
 
                         Button {
@@ -143,7 +144,7 @@ struct ContactsRootView: View {
                     systemImage: "person.crop.circle.badge.exclamationmark",
                     title: "Couldn’t load contacts",
                     subtitle: errorText,
-                    buttonTitle: "Try Again",
+                    buttonTitle: "common.tryAgain",
                     buttonAction: {
                         Task { await reload() }
                     }

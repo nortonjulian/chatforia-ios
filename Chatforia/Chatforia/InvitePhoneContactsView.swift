@@ -52,7 +52,7 @@ struct InvitePhoneContactsView: View {
                 }
             }
         }
-        .navigationTitle("Invite Contacts")
+        .navigationTitle("contacts.inviteContacts")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -68,7 +68,7 @@ struct InvitePhoneContactsView: View {
                     if isCreatingInvite {
                         ProgressView()
                     } else {
-                        Text("Invite")
+                        Text("common.invite")
                     }
                 }
                 .disabled(isCreatingInvite || viewModel.selectedIDs.isEmpty)

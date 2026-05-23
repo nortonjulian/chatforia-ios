@@ -182,7 +182,7 @@ struct ChatThreadView: View {
             }
         }
         .confirmationDialog(
-            "Delete message?",
+            "messages.deleteMessageTitle",
             isPresented: Binding(
                 get: { deletingMessage != nil },
                 set: { if !$0 { deletingMessage = nil } }
@@ -190,7 +190,7 @@ struct ChatThreadView: View {
             titleVisibility: .visible
         ) {
             if let msg = deletingMessage {
-                Button("Delete for me", role: .destructive) {
+                Button("messages.deleteForMe", role: .destructive) {
                     Task {
                         let _ = await vm.deleteMessage(
                             messageId: msg.id,
@@ -202,7 +202,7 @@ struct ChatThreadView: View {
                 }
 
                 if canDeleteForEveryone(msg) {
-                    Button("Delete for everyone", role: .destructive) {
+                    Button("messages.deleteForEveryone", role: .destructive){
                         Task {
                             let _ = await vm.deleteMessage(
                                 messageId: msg.id,
@@ -215,7 +215,7 @@ struct ChatThreadView: View {
                 }
             }
 
-            Button("Cancel", role: .cancel) {
+            Button(String(localized: "button_cancel"), role: .cancel) {
                 deletingMessage = nil
             }
         }
@@ -319,7 +319,7 @@ extension ChatThreadView {
 
                                 VStack(spacing: 6) {
                                     Image(systemName: "exclamationmark.triangle")
-                                    Text("Couldn’t load GIF")
+                                    Text("gif.couldNotLoad")
                                         .font(.caption)
                                 }
                                 .foregroundStyle(themeManager.palette.secondaryText)
@@ -354,14 +354,14 @@ extension ChatThreadView {
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(themeManager.palette.primaryText)
 
-                        Text("Add a caption, then tap Send")
+                        Text("messages.addCaptionThenSend")
                             .font(.caption)
                             .foregroundStyle(themeManager.palette.secondaryText)
                     }
 
                     Spacer(minLength: 0)
 
-                    Button("Cancel") {
+                    Button(String(localized: "button_cancel")) {
                         pendingImageData = nil
                         pendingVideoURL = nil
                     }
@@ -433,7 +433,7 @@ extension ChatThreadView {
                             }
                         }
                     } label: {
-                        Text("Send")
+                        Text(String(localized: "common.send"))
                             .font(.subheadline.weight(.bold))
                             .foregroundStyle(themeManager.palette.composerButtonForeground)
                             .padding(.horizontal, 14)
@@ -786,7 +786,7 @@ extension ChatThreadView {
                         showEditGIFPicker = true
                     }
 
-                    Button("Emoji") {
+                    Button("messages.emoji") {
                         if !isEditEditorFocused {
                             isEditEditorFocused = true
                         }
@@ -824,11 +824,11 @@ extension ChatThreadView {
                 Spacer()
             }
             .padding()
-            .navigationTitle("Edit message")
+            .navigationTitle("messages.editMessage")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                    Button(String(localized: "button_cancel")) {
                         editingMessage = nil
                         editDraft = ""
                         editPendingGIFURL = nil
@@ -838,7 +838,7 @@ extension ChatThreadView {
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    Button(String(localized: "common.save")) {
                         Task { @MainActor in
                             guard let msg = editingMessage else { return }
 
