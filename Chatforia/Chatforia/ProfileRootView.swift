@@ -1428,7 +1428,7 @@ struct ProfileRootView: View {
             auth.replaceCurrentUser(updatedUser)
             vm.load(from: updatedUser)
             
-            appLanguage = updatedUser.preferredLanguage ?? "en"
+            appLanguage = updatedUser.uiLanguage ?? "en"
             
             let updatedPlan = AppPlan(serverValue: updatedUser.plan)
             let updatedTheme = updatedUser.theme ?? "dawn"

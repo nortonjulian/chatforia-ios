@@ -45,7 +45,7 @@ struct StartChatView: View {
                     } else {
                         List {
                             if vm.looksLikePhoneInput, let phone = vm.normalizedPhoneCandidate {
-                                Section("common.phoneNumber") {
+                                Section(String(localized: "common.phoneNumber")) {
                                     phoneRow(phone: phone)
                                         .listRowBackground(themeManager.palette.cardBackground)
                                 }
@@ -89,7 +89,7 @@ struct StartChatView: View {
                                 }
                             }
 
-                            Section("contacts.chatforiaUsers") {
+                            Section(String(localized: "contacts.chatforiaUsers")) {
                                 ForEach(vm.results) { user in
                                     Button {
                                         Task { await selectUser(user) }
@@ -145,7 +145,7 @@ struct StartChatView: View {
                 }
 
                 ToolbarItem(placement: .principal) {
-                    Text("New Conversation")
+                    Text(String(localized: "common.newConversation"))
                         .font(.headline)
                         .foregroundStyle(themeManager.palette.primaryText)
                 }
@@ -165,7 +165,7 @@ struct StartChatView: View {
 
     private func phoneCandidateRow(phone: String) -> some View {
         List {
-            Section("common.phoneNumber") {
+            Section(String(localized: "common.phoneNumber")) {
                 phoneRow(phone: phone)
                     .listRowBackground(themeManager.palette.cardBackground)
             }

@@ -84,8 +84,8 @@ struct CallHistoryView: View {
                 )
             } else if items.isEmpty {
                 contentUnavailable(
-                    title: "No calls yet",
-                    message: "Your recent calls will show up here."
+                    title: String(localized: "callHistory.emptyTitle"),
+                    message: String(localized: "callHistory.emptySubtitle")
                 )
             } else {
                 List {

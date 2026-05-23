@@ -232,7 +232,7 @@ extension ChatThreadView {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if vm.messages.isEmpty {
-                Text("No messages yet")
+                Text("messages.noMessagesYet")
                     .foregroundStyle(themeManager.palette.secondaryText)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {

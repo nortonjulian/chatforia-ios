@@ -190,8 +190,8 @@ struct SMSThreadView: View {
         } else if vm.messages.isEmpty {
             EmptyStateView(
                 systemImage: "message",
-                title: "No messages yet",
-                subtitle: "Send a text to start the conversation."
+                title: String(localized: "messages.noMessagesYet"),
+                subtitle: String(localized: "messages.sendTextToStartConversation")
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 

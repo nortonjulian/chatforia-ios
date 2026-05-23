@@ -16,19 +16,19 @@ struct AttachmentPickerSheet: View {
             HStack(spacing: 30) {
                 attachmentButton(
                     icon: "photo",
-                    label: "Photo",
+                    label: String(localized: "messages.mediaPhoto"),
                     action: onPhoto
                 )
                 
                 attachmentButton(
                     icon: "video",
-                    label: "Video",
+                    label: String(localized: "messages.mediaVideo"),
                     action: onPhoto // reuse same picker
                 )
 
                 attachmentButton(
                     icon: "sparkles",
-                    label: "GIF",
+                    label: String(localized: "media.gif"),
                     action: onGIF
                 )
             }

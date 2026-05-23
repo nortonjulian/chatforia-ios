@@ -53,7 +53,7 @@ struct ContactsRootView: View {
                         Button {
                             showingStartChat = true
                         } label: {
-                            Label("New Conversation", systemImage: "plus.bubble")
+                            Label(String(localized: "common.newConversation"), systemImage: "plus.bubble")
                         }
 
                         Button {
@@ -66,7 +66,7 @@ struct ContactsRootView: View {
                         Button {
                             showingImportContacts = true
                         } label: {
-                            Label("Import from Phone", systemImage: "square.and.arrow.down")
+                            Label(String(localized: "common.importFromPhone"), systemImage: "square.and.arrow.down")
                         }
                         
                         Button {
@@ -164,7 +164,7 @@ struct ContactsRootView: View {
                     systemImage: "person.2",
                     title: "No contacts yet",
                     subtitle: "Add contacts manually, import them from your phone, or start a new conversation.",
-                    buttonTitle: "New Conversation",
+                    buttonTitle: String(localized: "common.newConversation"),
                     buttonAction: {
                         showingStartChat = true
                     }
