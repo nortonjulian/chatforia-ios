@@ -13,9 +13,9 @@ struct InvitePhoneContactsView: View {
         List {
             Section {
                 if viewModel.isLoading {
-                    ProgressView("Loading contacts...")
+                    ProgressView(String(localized: "contacts.loadingContacts"))
                 } else if viewModel.contacts.isEmpty {
-                    Text("No phone contacts found.")
+                    Text(String(localized: "contacts.noPhoneContactsFound"))
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(viewModel.contacts) { contact in
@@ -52,12 +52,12 @@ struct InvitePhoneContactsView: View {
                 }
             }
         }
-        .navigationTitle("contacts.inviteContacts")
+        .navigationTitle(String(localized: "contacts.inviteContacts"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 if !viewModel.contacts.isEmpty {
-                    Button("All") { viewModel.selectAll() }
+                    Button(String(localized: "common.selectAll")) { viewModel.selectAll() }
                 }
             }
 
@@ -68,7 +68,7 @@ struct InvitePhoneContactsView: View {
                     if isCreatingInvite {
                         ProgressView()
                     } else {
-                        Text("common.invite")
+                        Text(String(localized: "common.invite"))
                     }
                 }
                 .disabled(isCreatingInvite || viewModel.selectedIDs.isEmpty)
@@ -86,13 +86,13 @@ struct InvitePhoneContactsView: View {
 
     private func inviteSelected() async {
         guard let token = auth.currentToken, !token.isEmpty else {
-            inviteErrorText = "You need to be logged in to create invites."
+            inviteErrorText = String(localized: "contacts.loginRequiredForInvites")
             return
         }
 
         let selectedContacts = viewModel.selectedContacts
         guard !selectedContacts.isEmpty else {
-            inviteErrorText = "Select at least one contact."
+            inviteErrorText = String(localized: "contacts.selectAtLeastOneContact")
             return
         }
 

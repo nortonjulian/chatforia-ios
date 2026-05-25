@@ -51,16 +51,16 @@ final class RiaChatViewModel: ObservableObject {
         } catch {
             let message = error.localizedDescription.lowercased()
             if message.contains("strict_e2ee") || message.contains("strict e2ee") {
-                aiDisabledReason = "Ria is unavailable while Strict E2EE is enabled."
+                aiDisabledReason = String(localized: "ios.ria_unavailable_strict_e2ee")
             } else if (error as? URLError)?.code == .timedOut {
-                lastError = "Ria took too long to respond."
+                lastError = String(localized: "ios.ria_took_too_long")
             } else {
                 let message = error.localizedDescription.lowercased()
 
                 if message.contains("strict_e2ee") || message.contains("strict e2ee") {
-                    aiDisabledReason = "Ria is unavailable while Strict E2EE is enabled."
+                    aiDisabledReason = String(localized: "ios.ria_unavailable_strict_e2ee")
                 } else if message.contains("429") || message.contains("quota") || message.contains("billing") {
-                    lastError = "Ria isn’t available yet because AI billing hasn’t been set up."
+                    lastError = String(localized: "ios.ria_billing_not_set_up")
                 } else {
                     lastError = error.localizedDescription
                 }

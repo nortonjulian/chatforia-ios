@@ -51,7 +51,7 @@ struct WirelessHomeView: View {
             .padding()
         }
         .background(themeManager.palette.screenBackground)
-        .navigationTitle("Wireless")
+        .navigationTitle(String(localized:"ios.wireless"))
         .navigationBarTitleDisplayMode(.inline)
         .task(id: selectedScope) {
             await loadQuotes()
@@ -81,12 +81,12 @@ struct WirelessHomeView: View {
     }
     
     private var usageSection: some View {
-        SectionCardView(title: "Current Usage") {
+        SectionCardView(title: String(localized:"ios.current_usage")) {
             VStack(alignment: .leading, spacing: 14) {
                 if isLoadingStatus {
                     HStack(spacing: 10) {
                         ProgressView()
-                        Text("Loading usage…")
+                        Text("ios.loading_usage")
                             .font(.footnote)
                             .foregroundStyle(themeManager.palette.secondaryText)
                     }
@@ -114,7 +114,12 @@ struct WirelessHomeView: View {
                                     .font(.title2.weight(.bold))
                                     .foregroundStyle(themeManager.palette.primaryText)
 
-                                Text("remaining of \(formatGB(totalMb))")
+                                Text(
+                                    String(
+                                        format: String(localized: "ios.remaining_of"),
+                                        formatGB(totalMb)
+                                    )
+                                )
                                     .font(.footnote)
                                     .foregroundStyle(themeManager.palette.secondaryText)
                             }
@@ -128,23 +133,32 @@ struct WirelessHomeView: View {
                             .tint(statusColor(status.state))
 
                         HStack {
-                            infoPill(title: "Used", value: formatGB(usedMb))
+                            infoPill(
+                                title: String(localized: "ios.used"),
+                                value: formatGB(usedMb)
+                            )
                             Spacer()
-                            infoPill(title: "Left", value: formatGB(remainingMb))
+                            infoPill(
+                                title: String(localized: "ios.left"),
+                                value: formatGB(remainingMb)
+                            )
                             Spacer()
-                            infoPill(title: "Expires", value: expirationText(from: source))
+                            infoPill(
+                                title: String(localized: "ios.expires"),
+                                value: expirationText(from: source)
+                            )
                         }
                     }
                     .padding(.vertical, 8)
 
                 } else if let status = wirelessStatus, status.mode == "NONE" {
-                    Text("No active data pack yet. Buy a pack below to start tracking usage.")
+                    Text("ios.no_active_data_pack_yet_buy_a_pack_below_to_start_tracking_usage")
                         .font(.footnote)
                         .foregroundStyle(themeManager.palette.secondaryText)
                         .padding(.vertical, 8)
 
                 } else {
-                    Text("Usage details will appear once your data pack is active.")
+                    Text("ios.usage_details_will_appear_once_your_data_pack_is_active")
                         .font(.footnote)
                         .foregroundStyle(themeManager.palette.secondaryText)
                         .padding(.vertical, 8)
@@ -165,7 +179,8 @@ struct WirelessHomeView: View {
             wirelessStatus = status
         } catch {
             wirelessStatus = nil
-            statusErrorMessage = "We couldn’t load your usage right now."
+            statusErrorMessage =
+            String(localized:"ios.we_couldnt_load_your_usage_right_now")
             print("Failed to load wireless status:", error)
         }
     }
@@ -206,15 +221,15 @@ struct WirelessHomeView: View {
     private func stateLabel(_ state: String) -> String {
         switch state.uppercased() {
         case "LOW":
-            return "Low"
+            return String(localized:"ios.low")
         case "EXHAUSTED":
-            return "Out"
+            return String(localized:"ios.out")
         case "EXPIRED":
-            return "Expired"
+            return String(localized:"ios.expired")
         case "OK":
-            return "Active"
+            return String(localized:"ios.active")
         default:
-            return state.capitalized
+            return String(localized: "ios.unknown")
         }
     }
 
@@ -229,26 +244,26 @@ struct WirelessHomeView: View {
 
     private func expirationText(from source: WirelessStatusSourceDTO) -> String {
         if let days = source.daysRemaining {
-            if days <= 0 { return "Today" }
-            if days == 1 { return "1 day" }
-            return "\(days) days"
+            if days <= 0 { return String(localized:"ios.today") }
+            if days == 1 { return String(localized:"ios.one_day") }
+            return "\(days) \(String(localized:"ios.days"))"
         }
 
         if let expiresAt = source.expiresAt {
             return expiresAt.formatted(date: .abbreviated, time: .omitted)
         }
 
-        return "—"
+        return String(localized: "common.emptyDash")
     }
 
     private var actionsSection: some View {
-        SectionCardView(title: "Manage") {
+        SectionCardView(title: String(localized:"ios.manage")) {
             VStack(spacing: 12) {
-                ThemedOutlineButton(title: "Manage Wireless") {
+                ThemedOutlineButton(title:String(localized:"ios.manage_wireless")) {
                     handleManageWirelessTapped()
                 }
 
-                ThemedOutlineButton(title: "Port My Number") {
+                ThemedOutlineButton(title:String(localized:"ios.port_my_number")) {
                     handlePortNumberTapped()
                 }
             }
@@ -257,13 +272,13 @@ struct WirelessHomeView: View {
     }
 
     private var heroSection: some View {
-        SectionCardView(title: "Chatforia Mobile") {
+        SectionCardView(title: String(localized:"ios.chatforia_mobile")) {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Stay connected when you’re traveling or away from Wi-Fi.")
+                Text("ios.stay_connected_when_youre_traveling_or_away_from_wifi")
                     .font(.headline)
                     .foregroundStyle(themeManager.palette.primaryText)
 
-                Text("Choose a one-time eSIM data pack for Local, Europe, or Global coverage.")
+                Text("ios.choose_a_one_time_esim_data_pack_for_local_europe_or_global_coverage")
                     .font(.footnote)
                     .foregroundStyle(themeManager.palette.secondaryText)
             }
@@ -285,7 +300,7 @@ struct WirelessHomeView: View {
                     .font(.footnote)
                     .foregroundStyle(themeManager.palette.secondaryText)
 
-                Text("We don’t sell data packs under 3 GB.")
+                Text("ios.we_dont_sell_data_packs_under_3_gb")
                     .font(.footnote)
                     .foregroundStyle(themeManager.palette.secondaryText)
             }
@@ -318,9 +333,9 @@ struct WirelessHomeView: View {
                     .foregroundStyle(themeManager.palette.secondaryText)
 
                 VStack(alignment: .leading, spacing: 10) {
-                    featureRow("Instant eSIM activation on supported devices")
-                    featureRow("One-time pack, no contract")
-                    featureRow("Top up anytime with another pack")
+                    featureRow(String(localized:"ios.instant_esim_activation"))
+                    featureRow(String(localized:"ios.one_time_pack_no_contract"))
+                    featureRow(String(localized:"ios.top_up_anytime"))
                 }
 
                 Button {
@@ -336,7 +351,7 @@ struct WirelessHomeView: View {
                         Text(
                             isPurchasingPack
                             ? String(localized: "common.processing")
-                            : "Choose this pack"
+                            : String(localized:"ios.choose_this_pack")
                         )
                             .font(.headline)
                             .foregroundStyle(themeManager.palette.buttonForeground)
@@ -370,7 +385,7 @@ struct WirelessHomeView: View {
     }
 
     private var activationSection: some View {
-        SectionCardView(title: "Your eSIM") {
+        SectionCardView(title: String(localized:"ios.your_esim")) {
             VStack(alignment: .leading, spacing: 12) {
 
                 Text(statusTextFull)
@@ -400,24 +415,25 @@ struct WirelessHomeView: View {
     private var statusTextFull: String {
         switch activationStatus {
         case .none:
-            return "You don’t have an eSIM yet. Set one up to use mobile data."
+            return String(localized:"ios.you_dont_have_an_esim_yet")
         case .readyToInstall:
-            return "Your eSIM is ready to install."
+            return String(localized:"ios.your_esim_is_ready_to_install")
         case .active:
-            return "Your eSIM is active."
+            return String(localized:"ios.your_esim_is_active")
         }
     }
 
     private var buttonTextFull: String {
         switch activationStatus {
+
         case .none:
-            return "esim.setup"
+            return String(localized: "esim.setup")
 
         case .readyToInstall:
-            return "esim.activate"
+            return String(localized: "esim.activate")
 
         case .active:
-            return "esim.manage"
+            return String(localized: "esim.manage")
         }
     }
 
@@ -436,7 +452,7 @@ struct WirelessHomeView: View {
     }
 
     private var disclaimerSection: some View {
-        Text("eSIM data packs require an eSIM-compatible and unlocked device. Availability varies by phone model, carrier, and country. Coverage and speeds vary by region.")
+        Text("ios.esim_data_packs_require_an_esim_compatible_and_unlocked_device")
             .font(.caption)
             .foregroundStyle(themeManager.palette.secondaryText)
             .multilineTextAlignment(.leading)
@@ -503,7 +519,8 @@ struct WirelessHomeView: View {
             showActivation = true
 
         } catch {
-            purchaseErrorMessage = "We couldn’t start your eSIM activation right now. Please try again."
+            purchaseErrorMessage =
+            String(localized:"ios.we_couldnt_start_your_esim_activation")
             print("Purchase/provision failed for product \(pack.product): \(error)")
         }
     }
@@ -544,7 +561,7 @@ struct WirelessHomeView: View {
     }
 
     private func priceLabel(for pack: DataPackOption) -> String {
-        guard let product = pricingProduct(for: pack) else { return "—" }
+        guard let product = pricingProduct(for: pack) else { return String(localized: "common.emptyDash") }
 
         return PricingQuoteService.shared.formattedPrice(
             for: quotes[product],
@@ -570,7 +587,8 @@ struct WirelessHomeView: View {
                 showActivation = true
 
             } catch {
-                purchaseErrorMessage = "We couldn’t start your eSIM activation right now. Please try again."
+                purchaseErrorMessage =
+                String(localized:"ios.we_couldnt_start_your_esim_activation")
                 print("Purchase/provision failed for product \(pack.product): \(error)")
             }
         }

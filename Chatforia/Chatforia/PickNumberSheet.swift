@@ -22,7 +22,9 @@ struct PickNumberSheet: View {
                 .padding(16)
             }
             .background(themeManager.palette.screenBackground.ignoresSafeArea())
-            .navigationTitle("Pick a Number")
+            .navigationTitle(
+                String(localized: "phoneNumber.pickNumber")
+            )
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -105,7 +107,10 @@ struct PickNumberSheet: View {
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(themeManager.palette.primaryText)
 
-                    TextField("e.g., 415", text: $vm.areaCode)
+                    TextField(
+                        String(localized: "phoneNumber.exampleAreaCode"),
+                        text: $vm.areaCode
+                    )
                         .keyboardType(.numberPad)
                         .textFieldStyle(.plain)
                         .padding(.horizontal, 14)
@@ -149,9 +154,14 @@ struct PickNumberSheet: View {
                     .foregroundStyle(themeManager.palette.primaryText)
 
                 Picker("phoneNumber.capability", selection: $vm.selectedCapability) {
-                    Text("SMS").tag("sms")
-                    Text("Voice").tag("voice")
-                    Text("SMS + Voice").tag("both")
+                    Text(String(localized: "phoneNumber.sms"))
+                        .tag("sms")
+
+                    Text(String(localized: "phoneNumber.voice"))
+                        .tag("voice")
+
+                    Text(String(localized: "phoneNumber.smsVoice"))
+                        .tag("both")
                 }
                 .pickerStyle(.menu)
                 .tint(themeManager.palette.primaryText)
@@ -172,7 +182,12 @@ struct PickNumberSheet: View {
             Image(systemName: "lock.fill")
                 .foregroundStyle(themeManager.palette.secondaryText)
 
-            Text("Premium numbers are protected from recycling while your Premium subscription is active.")
+            Text(
+                String(
+                    localized:
+                    "phoneNumber.premiumProtected"
+                )
+            )
                 .font(.footnote)
                 .foregroundStyle(themeManager.palette.secondaryText)
         }
@@ -196,11 +211,18 @@ struct PickNumberSheet: View {
                 .foregroundStyle(.red)
                 .frame(maxWidth: .infinity, alignment: .leading)
         } else if vm.isSearching {
-            ProgressView("Searching…")
+            ProgressView(
+                String(localized:"common.searching")
+            )
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.top, 16)
         } else if vm.availableNumbers.isEmpty {
-            Text("Enter a 3-digit area code (US/CA only), or leave blank, then search.")
+            Text(
+                String(
+                    localized:
+                    "phoneNumber.areaCodeSearchHint"
+                )
+            )
                 .font(.subheadline)
                 .foregroundStyle(themeManager.palette.secondaryText)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -215,7 +237,10 @@ struct PickNumberSheet: View {
     }
 
     private func numberCard(_ number: AvailableNumberDTO) -> some View {
-        let e164 = number.e164 ?? number.number ?? "Unknown"
+        let e164 =
+            number.e164
+            ?? number.number
+            ?? String(localized:"common.unknown")
         let baseLocation = number.locality ?? number.local ?? number.display ?? ""
 
         let location =
@@ -255,7 +280,11 @@ struct PickNumberSheet: View {
 
                 Spacer()
 
-                Button(vm.mode == .premium ? "Keep" : "Select") {
+                Button(
+                    vm.mode == .premium
+                        ? String(localized:"common.keep")
+                        : String(localized:"common.select")
+                ) {
                     if vm.mode == .premium && !auth.isPremium {
                         showUpgradeSheet = true
                         return

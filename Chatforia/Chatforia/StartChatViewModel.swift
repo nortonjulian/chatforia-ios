@@ -57,7 +57,7 @@ struct ContactSearchResultDTO: Codable, Identifiable, Equatable {
         if let externalPhone, !externalPhone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return externalPhone
         }
-        return "Unknown Contact"
+        return String(localized: "ios.unknown_contact")
     }
 }
 
@@ -143,7 +143,7 @@ final class StartChatViewModel: ObservableObject {
 
     func searchUsers(query: String, currentUserId: Int?) async {
         guard let token = TokenStore.shared.read(), !token.isEmpty else {
-            errorText = "Missing auth token."
+            errorText = String(localized: "ios.missing_auth_token")
             results = []
             contactResults = []
             return
@@ -221,7 +221,7 @@ final class StartChatViewModel: ObservableObject {
     
     func searchContactsOnly(query: String) async {
         guard let token = TokenStore.shared.read(), !token.isEmpty else {
-            errorText = "Missing auth token."
+            errorText = String(localized: "ios.missing_auth_token")
             contactResults = []
             return
         }

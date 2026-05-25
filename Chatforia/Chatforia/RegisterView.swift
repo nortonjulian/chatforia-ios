@@ -34,7 +34,9 @@ struct RegisterView: View {
                             .foregroundStyle(themeManager.palette.primaryText)
                             .multilineTextAlignment(.center)
 
-                        Text("Sign up to start messaging on Chatforia")
+                        Text(
+                            String(localized:"auth.signupSubtitle")
+                        )
                             .font(.subheadline)
                             .foregroundStyle(themeManager.palette.secondaryText)
                             .multilineTextAlignment(.center)
@@ -44,14 +46,18 @@ struct RegisterView: View {
                     VStack(spacing: 16) {
                         HStack(spacing: 12) {
                             ThemedOutlineButton(
-                                title: isOAuthLoading ? "Continue with Google…" : "Google"
+                                title: isOAuthLoading
+                                ? String(localized:"auth.continueWithGoogle")
+                                : String(localized:"auth.google")
                             ) {
                                 Task { await handleGoogle() }
                             }
                             .disabled(isSubmitting || isOAuthLoading)
 
                             ThemedOutlineButton(
-                                title: isOAuthLoading ? "Continue with Apple…" : "Apple"
+                                title: isOAuthLoading
+                                ? String(localized:"auth.continueWithApple")
+                                : String(localized:"auth.apple")
                             ) {
                                 Task { await handleApple() }
                             }
@@ -64,7 +70,7 @@ struct RegisterView: View {
                                 .fill(themeManager.palette.border)
                                 .frame(height: 1)
 
-                            Text("or")
+                            Text(String(localized:"common.or"))
                                 .font(.footnote)
                                 .foregroundStyle(themeManager.palette.secondaryText)
                                 .padding(.horizontal, 8)
@@ -77,8 +83,12 @@ struct RegisterView: View {
 
                         if !phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                             ThemedToggleRow(
-                                title: "SMS consent",
-                                subtitle: "I consent to receive SMS messages from Chatforia.",
+                                title: String(localized:"auth.smsConsent"),
+                                subtitle:
+                                String(
+                                    localized:
+                                    "auth.smsConsentSubtitle"
+                                ),
                                 isOn: $smsConsent
                             )
                         }
@@ -98,33 +108,36 @@ struct RegisterView: View {
                         }
 
                         ThemedGradientButton(
-                            title: isSubmitting ? "auth.creatingAccount" : "auth.createAccount",
+                            title:
+                            isSubmitting
+                             ? String(localized:"auth.creatingAccount")
+                             : String(localized:"auth.createAccount"),
                             action: { Task { await submit() } },
                             isFullWidth: true,
                             isDisabled: isSubmitting
                         )
                         
                         ThemedTextField(
-                            title: "Username",
+                            title: String(localized:"auth.username"),
                             text: $username,
                             contentType: .username
                         )
 
                         ThemedTextField(
-                            title: "Email",
+                            title: String(localized:"auth.email"),
                             text: $email,
                             keyboard: .emailAddress,
                             contentType: .emailAddress
                         )
 
                         ThemedSecureField(
-                            title: "Password",
+                            title: String(localized:"auth.password"),
                             text: $password,
                             contentType: .newPassword
                         )
 
                         ThemedSecureField(
-                            title: "auth.confirmPassword",
+                            title: String(localized:"auth.phoneOptional"),
                             text: $confirmPassword,
                             contentType: .newPassword
                         )
@@ -141,13 +154,17 @@ struct RegisterView: View {
                                 .font(.footnote)
                                 .foregroundStyle(themeManager.palette.secondaryText)
 
-                            Text("Log in from the previous screen")
+                            Text(
+                                String(localized:"auth.loginPreviousScreen")
+                            )
                                 .font(.footnote.weight(.semibold))
                                 .foregroundStyle(themeManager.palette.accent)
                         }
                         .padding(.top, 4)
 
-                        Text("By creating an account, you agree to our Terms of Service and Privacy Policy.")
+                        Text(
+                            String(localized:"auth.termsAgreement")
+                        )
                             .font(.footnote)
                             .foregroundStyle(themeManager.palette.secondaryText)
                             .multilineTextAlignment(.center)
@@ -242,32 +259,32 @@ struct RegisterView: View {
         let trimmedPhone = phone.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !trimmedUsername.isEmpty else {
-            errorMessage = "Username is required."
+            errorMessage = String(localized: "auth.usernameRequired")
             return
         }
 
         guard isValidEmail(trimmedEmail) else {
-            errorMessage = "Please enter a valid email address."
+            errorMessage = String(localized: "auth.validEmailRequired")
             return
         }
 
         guard !password.isEmpty else {
-            errorMessage = "Password is required."
+            errorMessage = String(localized: "auth.passwordRequired")
             return
         }
 
         guard password.count >= 6 else {
-            errorMessage = "Password must be at least 6 characters."
+            errorMessage = String(localized: "auth.passwordMinLength")
             return
         }
 
         guard password == confirmPassword else {
-            errorMessage = "Passwords do not match."
+            errorMessage = String(localized: "auth.passwordsDontMatch")
             return
         }
 
         if !trimmedPhone.isEmpty && !smsConsent {
-            errorMessage = "Please consent to SMS messages or remove the phone number."
+            errorMessage = String(localized: "auth.smsConsentRequired")
             return
         }
 
@@ -310,7 +327,8 @@ struct RegisterView: View {
                 return
             }
 
-            successMessage = "Account created. Please check your email to verify your account before logging in."
+            successMessage =
+                String(localized: "auth.verifyEmailAfterSignup")
         } catch {
             errorMessage = friendlyRegistrationError(error)
         }

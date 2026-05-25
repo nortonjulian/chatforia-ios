@@ -236,7 +236,7 @@ final class ChatsViewModel: ObservableObject {
 
     func loadConversations(token: String?) async {
         guard let token else {
-            errorText = "Missing auth token."
+            errorText = String(localized: "ios.missing_auth_token")
             conversations = []
             return
         }
@@ -277,7 +277,7 @@ final class ChatsViewModel: ObservableObject {
 
     func archiveConversation(_ conversation: ConversationDTO, token: String?) async -> Bool {
         guard let token, !token.isEmpty else {
-            errorText = "Missing auth token."
+            errorText = String(localized: "ios.missing_auth_token")
             return false
         }
 
@@ -319,7 +319,7 @@ final class ChatsViewModel: ObservableObject {
 
     func deleteConversation(_ conversation: ConversationDTO, token: String?) async {
         guard let token else {
-            errorText = "Missing auth token."
+            errorText = String(localized: "ios.missing_auth_token")
             return
         }
 

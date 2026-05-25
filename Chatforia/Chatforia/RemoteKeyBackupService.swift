@@ -12,15 +12,15 @@ enum RemoteKeyBackupError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidPassword:
-            return "Invalid password."
+            return String(localized: "encryptionRecovery.errors.invalidPassword")
         case .invalidKeyMaterial:
-            return "Backup is incomplete or corrupted."
+            return String(localized: "encryptionRecovery.errors.invalidKeyMaterial")
         case .encodingFailed:
-            return "Failed to encode backup payload."
+            return String(localized: "encryptionRecovery.errors.encodingFailed")
         case .decryptFailed:
-            return "Could not decrypt backup with that password."
+            return String(localized: "encryptionRecovery.errors.decryptFailed")
         case .keyMismatch:
-            return "This backup does not match your current account key."
+            return String(localized: "encryptionRecovery.errors.keyMismatch")
         }
     }
 }

@@ -49,7 +49,7 @@ struct UpgradeView: View {
             .padding()
         }
         .background(themeManager.palette.screenBackground.ignoresSafeArea())
-        .navigationTitle("common.upgrade")
+        .navigationTitle(String(localized: "common.upgrade"))
         .navigationBarTitleDisplayMode(.inline)
         .task {
             retryCount = 0
@@ -79,12 +79,12 @@ struct UpgradeView: View {
             }
 
             VStack(spacing: 8) {
-                Text("Unlock more of Chatforia")
+                Text(String(localized: "upgrade.heroTitle"))
                     .font(.largeTitle.weight(.bold))
                     .foregroundStyle(themeManager.palette.primaryText)
                     .multilineTextAlignment(.center)
 
-                Text("Choose a cleaner, more personal Chatforia experience.")
+                Text(String(localized: "upgrade.heroSubtitle"))
                     .font(.body)
                     .foregroundStyle(themeManager.palette.secondaryText)
                     .multilineTextAlignment(.center)
@@ -96,23 +96,23 @@ struct UpgradeView: View {
     private var keepNumberAlert: some View {
         featureCard(
             icon: "lock.fill",
-            title: "Keep your number",
-            subtitle: "Upgrade to Premium to keep your number protected from recycling.",
+            title: String(localized: "upgrade.keepNumberTitle"),
+            subtitle: String(localized: "upgrade.keepNumberSubtitle"),
             accent: themeManager.palette.accent
         )
     }
 
     private var plusCard: some View {
         planCard(
-            badge: "PLUS",
+            badge: String(localized: "upgrade.plusBadge"),
             icon: "checkmark.seal.fill",
-            title: "Cleaner communication",
-            subtitle: "Remove distractions and unlock practical communication tools.",
+            title: String(localized: "upgrade.plusTitle"),
+            subtitle: String(localized: "upgrade.plusSubtitle"),
             features: [
-                "No ads",
-                "Message forwarding",
-                "Longer message history",
-                "Faster support"
+                String(localized: "upgrade.feature.noAds"),
+                String(localized: "upgrade.feature.messageForwarding"),
+                String(localized: "upgrade.feature.longerHistory"),
+                String(localized: "upgrade.feature.fasterSupport")
             ],
             highlighted: false
         )
@@ -120,16 +120,16 @@ struct UpgradeView: View {
 
     private var premiumCard: some View {
         planCard(
-            badge: "PREMIUM",
+            badge: String(localized: "upgrade.premiumBadge"),
             icon: "sparkles",
-            title: "The full Chatforia experience",
-            subtitle: "Unlock personalization, AI tools, and advanced Chatforia features.",
+            title: String(localized: "upgrade.premiumTitle"),
+            subtitle: String(localized: "upgrade.premiumSubtitle"),
             features: [
-                "Everything in Plus",
-                "Additional Chatforia themes",
-                "Message tones & ringtones",
-                "AI tools",
-                "Priority features"
+                String(localized: "upgrade.feature.everythingInPlus"),
+                String(localized: "upgrade.feature.additionalThemes"),
+                String(localized: "upgrade.feature.tonesAndRingtones"),
+                String(localized: "upgrade.feature.aiTools"),
+                String(localized: "upgrade.feature.priorityFeatures")
             ],
             highlighted: true
         )
@@ -166,7 +166,7 @@ struct UpgradeView: View {
                 Spacer()
 
                 if highlighted {
-                    Text("upgrade.bestExperience")
+                    Text(String(localized: "upgrade.bestExperience"))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(themeManager.palette.accent)
                 }
@@ -219,32 +219,30 @@ struct UpgradeView: View {
 
     private var customizationSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-
             VStack(alignment: .leading, spacing: 6) {
-                Text("profile.customization")
+                Text(String(localized: "profile.customization"))
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(themeManager.palette.primaryText)
 
-                Text("Unlock additional Chatforia themes, tones, and personalization features with Premium.")
+                Text(String(localized: "upgrade.customizationSubtitle"))
                     .font(.subheadline)
                     .foregroundStyle(themeManager.palette.secondaryText)
             }
 
             HStack(spacing: 10) {
-
                 customizationPill(
                     icon: "paintpalette.fill",
-                    title: "Themes"
+                    title: String(localized: "upgrade.pill.themes")
                 )
 
                 customizationPill(
                     icon: "message.fill",
-                    title: "Message tones"
+                    title: String(localized: "upgrade.pill.messageTones")
                 )
 
                 customizationPill(
                     icon: "bell.fill",
-                    title: "Ringtones"
+                    title: String(localized: "upgrade.pill.ringtones")
                 )
             }
         }
@@ -254,7 +252,6 @@ struct UpgradeView: View {
         icon: String,
         title: String
     ) -> some View {
-
         HStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.subheadline.weight(.semibold))
@@ -276,22 +273,22 @@ struct UpgradeView: View {
 
     private var subscriptionSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("upgrade.choosePlan")
+            Text(String(localized: "upgrade.choosePlan"))
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(themeManager.palette.primaryText)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            
-            Text("Best value • Save almost 36% annually")
+
+            Text(String(localized: "upgrade.bestValueAnnual"))
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(themeManager.palette.accent)
 
             SubscriptionStoreView(groupID: subscriptionGroupID) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Upgrade with Apple")
+                    Text(String(localized: "common.upgradeWithApple"))
                         .font(.headline)
                         .foregroundStyle(themeManager.palette.primaryText)
 
-                    Text("Plus removes ads and adds forwarding. Premium unlocks additional themes, message tones, ringtones, AI tools, and the full Chatforia experience.")
+                    Text(String(localized: "upgrade.appleDescription"))
                         .font(.subheadline)
                         .foregroundStyle(themeManager.palette.secondaryText)
                 }
@@ -313,16 +310,16 @@ struct UpgradeView: View {
 
     private var legalSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Link("Privacy Policy", destination: privacyURL)
+            Link(String(localized: "legal_privacy_policy"), destination: privacyURL)
                 .font(.footnote.weight(.semibold))
 
-            Link("Terms of Use", destination: termsURL)
+            Link(String(localized: "legal_terms_of_service"), destination: termsURL)
                 .font(.footnote.weight(.semibold))
 
-            Link("Manage Subscription", destination: manageSubscriptionsURL)
+            Link(String(localized: "common.manageSubscription"), destination: manageSubscriptionsURL)
                 .font(.footnote.weight(.semibold))
 
-            Text("Auto-renewable subscription. Payment is charged to your Apple Account at confirmation of purchase. Subscription automatically renews unless canceled at least 24 hours before the end of the current period. You can manage and cancel your subscription in your Apple account settings.")
+            Text(String(localized: "upgrade.autoRenewNotice"))
                 .font(.footnote)
                 .foregroundStyle(themeManager.palette.secondaryText)
         }
@@ -339,7 +336,7 @@ struct UpgradeView: View {
     private var actionSection: some View {
         VStack(spacing: 12) {
             ThemedOutlineButton(
-                title: "Refresh purchase status",
+                title: String(localized: "upgrade.refreshPurchaseStatus"),
                 action: {
                     Task {
                         retryCount = 0
@@ -355,7 +352,7 @@ struct UpgradeView: View {
             }
 
             ThemedOutlineButton(
-                title: "Maybe later",
+                title: String(localized: "upgrade.maybeLater"),
                 action: {
                     dismiss()
                 }
@@ -395,13 +392,15 @@ struct UpgradeView: View {
     }
 
     private func refreshPurchaseStatus(autoRetry: Bool = false) async {
-        syncMessage = autoRetry ? "Finalizing your subscription…" : "Checking your subscription…"
+        syncMessage = autoRetry
+            ? String(localized: "upgrade.finalizingSubscription")
+            : String(localized: "upgrade.checkingSubscription")
 
         await SubscriptionManager.shared.refreshEntitlements()
         await auth.refreshCurrentUser()
 
         if auth.isPaid {
-            syncMessage = "Your subscription is active."
+            syncMessage = String(localized: "upgrade.subscriptionActive")
             retryCount = 0
             return
         }
@@ -411,7 +410,7 @@ struct UpgradeView: View {
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             await refreshPurchaseStatus(autoRetry: true)
         } else {
-            syncMessage = "Still syncing. Please try again in a moment."
+            syncMessage = String(localized: "upgrade.stillSyncing")
         }
     }
 }

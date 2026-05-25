@@ -24,7 +24,7 @@ struct ImportPhoneContactsView: View {
                     } else if let errorText = vm.errorText, !errorText.isEmpty, vm.contacts.isEmpty {
                         EmptyStateView(
                             systemImage: "person.crop.circle.badge.exclamationmark",
-                            title: "Couldn’t load contacts",
+                            title: String(localized: "ios.couldn_t_load_contacts"),
                             subtitle: errorText,
                             buttonTitle: "common.tryAgain",
                             buttonAction: {

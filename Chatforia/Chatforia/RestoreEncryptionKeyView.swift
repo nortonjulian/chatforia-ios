@@ -24,20 +24,20 @@ struct RestoreEncryptionKeyView: View {
 
             ScrollView {
                 VStack(spacing: 20) {
-                    Text("Restore Encryption Key")
+                    Text(String(localized: "encryption.restore.title"))
                         .font(.system(size: 28, weight: .bold))
                         .foregroundStyle(themeManager.palette.primaryText)
                         .padding(.top, 24)
 
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Enter the backup password you created when you saved your encryption key.")
+                        Text(String(localized: "encryption.restore.instructions"))
                             .font(.subheadline)
                             .foregroundStyle(themeManager.palette.secondaryText)
 
                         if isCheckingBackup {
                             ProgressView("encryption.checkingBackup")
                         } else if hasRemoteBackup == false || hasRemoteBackup == nil {
-                            Text("No backup found. Create one to protect your messages.")
+                            Text(String(localized: "encryption.restore.noBackup"))
                                 .font(.footnote)
                                 .foregroundStyle(themeManager.palette.secondaryText)
 
@@ -89,7 +89,7 @@ struct RestoreEncryptionKeyView: View {
                                 if isRestoring {
                                     ProgressView()
                                 } else {
-                                    Text("Restore Key")
+                                    Text(String(localized: "encryption.restore.restoreKey"))
                                 }
                             }
                             .disabled(isRestoring || backupPassword.isEmpty)
@@ -99,11 +99,11 @@ struct RestoreEncryptionKeyView: View {
                     Divider()
 
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Reset Encryption")
+                        Text(String(localized: "encryption.reset.title"))
                             .font(.headline)
                             .foregroundStyle(themeManager.palette.primaryText)
 
-                        Text("This will generate a new encryption key for your account. Older encrypted messages may become unreadable unless you restore your original key.")
+                        Text(String(localized: "encryption.reset.description"))
                             .font(.footnote)
                             .foregroundStyle(themeManager.palette.secondaryText)
 
@@ -129,22 +129,29 @@ struct RestoreEncryptionKeyView: View {
             isCheckingBackup = false
         }
         .confirmationDialog(
-            "Reset encryption?",
+            String(localized: "encryption.reset.confirmationTitle"),
             isPresented: $showResetConfirm,
             titleVisibility: .visible
         ) {
-            Button("Reset Encryption", role: .destructive) {
+            Button(
+                String(localized: "encryption.reset.title"),
+                role: .destructive
+            ) {
                 Task { await resetEncryption() }
             }
             Button(String(localized: "button_cancel"), role: .cancel) {}
         } message: {
-            Text("This will replace your encryption key. Older encrypted messages may not be readable unless you restore your original key.")
+            Text(
+                String(
+                    localized: "encryption.reset.confirmationMessage"
+                )
+            )
         }
     }
     
     private func resetEncryption() async {
         guard let token = auth.currentToken, !token.isEmpty else {
-            errorMessage = "Your session expired. Please sign in again."
+            errorMessage = String(localized: "auth.sessionExpired")
             return
         }
 
@@ -158,11 +165,11 @@ struct RestoreEncryptionKeyView: View {
             try? await Task.sleep(nanoseconds: 500_000_000)
 
             if hasMatchingAccountKey() {
-                successMessage = "Encryption was reset successfully."
+                successMessage = String(localized: "encryption.reset.success")
                 auth.markKeyRestoreComplete()
                 dismiss()
             } else {
-                auth.forceKeyRestore(message: "Encryption reset did not complete correctly on this device.")
+                auth.forceKeyRestore(message: String(localized: "encryption.reset.deviceMismatch"))
                 errorMessage = "Encryption reset did not complete correctly on this device."
             }
         } catch {
@@ -184,7 +191,7 @@ struct RestoreEncryptionKeyView: View {
 
     private func restoreKey() async {
         guard hasRemoteBackup == true else {
-            errorMessage = "No backup found. Please create a backup first."
+            errorMessage = String(localized: "encryption.restore.noBackupFirst")
             return
         }
 
@@ -204,7 +211,7 @@ struct RestoreEncryptionKeyView: View {
                 password: backupPassword
             )
 
-            successMessage = "Your encryption key was restored successfully."
+            successMessage = String(localized: "encryption.restore.success")
             backupPassword = ""
 
             await onCompleted?()
@@ -215,7 +222,7 @@ struct RestoreEncryptionKeyView: View {
                 auth.markKeyRestoreComplete()
                 dismiss()
             } else {
-                auth.forceKeyRestore(message: "Key restore did not complete correctly on this device.")
+                auth.forceKeyRestore(message: String(localized: "encryption.restore.deviceMismatch"))
                 errorMessage = "Key restore did not complete correctly on this device."
             }
         } catch {

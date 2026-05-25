@@ -17,7 +17,7 @@ struct RiaRewriteSheet: View {
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 16) {
-                Text("Original")
+                Text(String(localized: "ria.rewrite.original"))
                     .font(.headline)
                     .foregroundStyle(themeManager.palette.primaryText)
 
@@ -29,13 +29,13 @@ struct RiaRewriteSheet: View {
                     .background(themeManager.palette.cardBackground)
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-                Text("sounds.chooseTone")
+                Text(String(localized: "ria.rewrite.choose_tone"))
                     .font(.headline)
                     .foregroundStyle(themeManager.palette.primaryText)
 
                 HStack(spacing: 8) {
                     ForEach(tones, id: \.self) { tone in
-                        Button(tone.capitalized) {
+                        Button(String(localized: "ria.rewrite.tone.\(tone)")) {
                             onToneTap(tone)
                         }
                         .buttonStyle(.bordered)
@@ -44,7 +44,7 @@ struct RiaRewriteSheet: View {
                 }
 
                 if isLoading {
-                    ProgressView("Rewriting…")
+                    ProgressView(String(localized: "ria.rewrite.rewriting"))
                         .padding(.top, 8)
                 } else if let disabledReason, !disabledReason.isEmpty {
                     Text(disabledReason)
@@ -57,7 +57,7 @@ struct RiaRewriteSheet: View {
                         .foregroundStyle(.red)
                         .padding(.top, 8)
                 } else if !options.isEmpty {
-                    Text("Suggestions")
+                    Text(String(localized: "ria.rewrite.suggestions"))
                         .font(.headline)
                         .foregroundStyle(themeManager.palette.primaryText)
 
@@ -81,7 +81,7 @@ struct RiaRewriteSheet: View {
                         }
                     }
                 } else {
-                    Text("No rewrite suggestions came back. Try another tone.")
+                    Text(String(localized: "ria.rewrite.empty"))
                         .font(.subheadline)
                         .foregroundStyle(themeManager.palette.secondaryText)
                         .padding(.top, 8)
@@ -91,7 +91,7 @@ struct RiaRewriteSheet: View {
             }
             .padding()
             .background(themeManager.palette.screenBackground)
-            .navigationTitle("Rewrite with Ria")
+            .navigationTitle(String(localized: "ria.rewrite.title"))
             .navigationBarTitleDisplayMode(.inline)
         }
     }

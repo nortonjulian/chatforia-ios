@@ -56,7 +56,7 @@ final class SMSThreadViewModel: ObservableObject {
     
     func loadThread(threadId: Int, token: String?) async {
         guard let token else {
-            errorText = "Missing auth token."
+            errorText = String(localized: "ios.missing_auth_token")
             return
         }
 
@@ -90,7 +90,7 @@ final class SMSThreadViewModel: ObservableObject {
         guard !trimmed.isEmpty else { return nil }
 
         guard let token else {
-            errorText = "Missing auth token."
+            errorText = String(localized: "ios.missing_auth_token")
             return nil
         }
 
@@ -150,7 +150,7 @@ final class SMSThreadViewModel: ObservableObject {
         guard !mediaUrls.isEmpty else { return nil }
 
         guard let token else {
-            errorText = "Missing auth token."
+            errorText = String(localized: "ios.missing_auth_token")
             return nil
         }
 

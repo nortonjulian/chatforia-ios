@@ -37,7 +37,7 @@ struct UpgradePromptSheet: View {
                                 .foregroundStyle(themeManager.palette.secondaryText)
                                 .multilineTextAlignment(.center)
 
-                            Text("Requires \(requiredPlan.displayName)")
+                            Text(String(format: String(localized: "upgrade.requires_plan_format"), requiredPlan.displayName))
                                 .font(.footnote.weight(.semibold))
                                 .foregroundStyle(themeManager.palette.accent)
                                 .padding(.horizontal, 10)
@@ -58,7 +58,9 @@ struct UpgradePromptSheet: View {
 
                     VStack(spacing: 12) {
                         ThemedGradientButton(
-                            title: requiredPlan == .plus ? "Upgrade to Plus" : "Upgrade to Premium",
+                            title: requiredPlan == .plus
+                                ? String(localized: "upgrade.to_plus")
+                                : String(localized: "upgrade.to_premium"),
                             action: {
                                 onUpgradeTapped()
                             },
@@ -69,7 +71,7 @@ struct UpgradePromptSheet: View {
                         .frame(maxWidth: .infinity)
 
                         ThemedOutlineButton(
-                            title: "Not now",
+                            title: String(localized: "common.notNow"),
                             action: {
                                 dismiss()
                             }
@@ -80,7 +82,7 @@ struct UpgradePromptSheet: View {
                 }
                 .padding()
             }
-            .navigationTitle("common.upgradeRequired")
+            .navigationTitle(String(localized: "common.upgradeRequired"))
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 AnalyticsManager.shared.capture("upgrade_viewed", properties: [
@@ -90,7 +92,7 @@ struct UpgradePromptSheet: View {
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("common.close") {
+                    Button(String(localized: "common.close")) {
                         dismiss()
                     }
                     .foregroundStyle(themeManager.palette.accent)

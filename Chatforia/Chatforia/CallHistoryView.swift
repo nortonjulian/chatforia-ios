@@ -22,7 +22,8 @@ struct CallHistoryView: View {
         VStack(spacing: 0) {
             Picker("calls.section", selection: $selectedSegment) {
                 ForEach(CallsSegment.allCases) { segment in
-                    Text(segment.rawValue).tag(segment)
+                    Text(segment.localizedTitle)
+                        .tag(segment)
                 }
             }
             .pickerStyle(.segmented)
@@ -52,7 +53,9 @@ struct CallHistoryView: View {
                 } label: {
                     Image(systemName: "circle.grid.3x3.fill")
                 }
-                .accessibilityLabel(Text("dialer.openDialPad"))
+                .accessibilityLabel(
+                    Text(String(localized:"dialer.openDialPad"))
+                )
             }
         }
         .sheet(isPresented: $showDialer) {
@@ -76,10 +79,12 @@ struct CallHistoryView: View {
     private var recentsContent: some View {
         Group {
             if isLoading && items.isEmpty {
-                ProgressView("Loading calls…")
+                ProgressView(
+                    String(localized: "calls.loadingCalls")
+                )
             } else if let errorMessage, items.isEmpty {
                 contentUnavailable(
-                    title: "Couldn’t load call history",
+                    title: String(localized: "calls.couldntLoadHistory"),
                     message: errorMessage
                 )
             } else if items.isEmpty {
@@ -140,7 +145,10 @@ struct CallHistoryView: View {
                                     await delete(item)
                                 }
                             } label: {
-                                Label("common.delete", systemImage: "trash")
+                                Label(
+                                    String(localized:"common.delete"),
+                                    systemImage:"trash"
+                                )
                             }
                         }
                         .swipeActions(edge: .leading, allowsFullSwipe: false) {
@@ -149,7 +157,10 @@ struct CallHistoryView: View {
                                     await handleMessage(for: item)
                                 }
                             } label: {
-                                Label("Message", systemImage: "message.fill")
+                                Label(
+                                    String(localized: "ios.message"),
+                                    systemImage: "message.fill"
+                                )
                             }
                             .tint(themeManager.palette.accent)
                         }
@@ -255,7 +266,8 @@ struct CallHistoryView: View {
     private func load() async {
         guard !isLoading else { return }
         guard let token = auth.currentToken, !token.isEmpty else {
-            errorMessage = "You need to be signed in."
+            errorMessage =
+                String(localized:"auth.youNeedToBeSignedIn")
             items = []
             return
         }
@@ -368,23 +380,31 @@ struct CallHistoryView: View {
                 return external
             }
 
-            return isOutgoing ? "Outgoing Call" : "Incoming Call"
+            return isOutgoing
+                ? String(localized:"calls.outgoingCall")
+                : String(localized:"calls.incomingCall")
         }
         
         private var directionLabel: String {
-            isOutgoing ? "Outgoing" : "Incoming"
+            isOutgoing
+             ? String(localized:"calls.outgoing")
+             : String(localized:"calls.incoming")
         }
         
         private var statusLabel: String {
             switch item.status.uppercased() {
             case "MISSED":
-                return "Missed"
+                return String(localized:"calls.missed")
+
             case "DECLINED":
-                return "Declined"
+                return String(localized:"calls.declined")
+
             case "FAILED":
-                return "Failed"
+                return String(localized:"calls.failed")
+
             case "ENDED":
-                return "Completed"
+                return String(localized:"calls.completed")
+
             default:
                 return directionLabel
             }

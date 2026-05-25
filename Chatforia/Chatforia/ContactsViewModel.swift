@@ -10,7 +10,7 @@ final class ContactsViewModel: ObservableObject {
 
     func loadContacts(token: String?) async {
         guard let token, !token.isEmpty else {
-            errorText = "Missing auth token."
+            errorText = String(localized: "ios.missing_auth_token")
             contacts = []
             return
         }
@@ -36,7 +36,7 @@ final class ContactsViewModel: ObservableObject {
             throw NSError(
                 domain: "ContactsViewModel",
                 code: 1,
-                userInfo: [NSLocalizedDescriptionKey: "This contact is not linked to a Chatforia user."]
+                userInfo: [NSLocalizedDescriptionKey: String(localized: "ios.contact_not_linked_to_chatforia_user")]
             )
         }
 
@@ -69,7 +69,7 @@ final class ContactsViewModel: ObservableObject {
             return externalPhone
         }
 
-        return "Unknown Contact"
+        return String(localized: "ios.unknown_contact")
     }
 
     func subtitle(for contact: ContactDTO) -> String {
@@ -84,6 +84,6 @@ final class ContactsViewModel: ObservableObject {
             return externalPhone
         }
 
-        return "Tap to view contact"
+        return String(localized: "ios.tap_to_view_contact")
     }
 }

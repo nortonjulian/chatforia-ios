@@ -537,7 +537,7 @@ final class ChatThreadViewModel: ObservableObject {
         }
 
         guard let token else {
-            errorText = "Missing auth token."
+            errorText = String(localized: "ios.missing_auth_token")
             return
         }
 
@@ -630,7 +630,7 @@ final class ChatThreadViewModel: ObservableObject {
         senderPublicKey: String?
     ) async -> Bool {
         guard let token, !token.isEmpty else {
-            errorText = "Missing auth token."
+            errorText = String(localized: "ios.missing_auth_token")
             return false
         }
 
@@ -721,7 +721,7 @@ final class ChatThreadViewModel: ObservableObject {
         senderPublicKey: String?
     ) async -> Bool {
         guard let token, !token.isEmpty else {
-            errorText = "Missing auth token."
+            errorText = String(localized: "ios.missing_auth_token")
             return false
         }
 
@@ -855,7 +855,7 @@ final class ChatThreadViewModel: ObservableObject {
         senderPublicKey: String?
     ) async -> Bool {
         guard let token, !token.isEmpty else {
-            errorText = "Missing auth token."
+            errorText = String(localized: "ios.missing_auth_token")
             return false
         }
 
@@ -996,7 +996,7 @@ final class ChatThreadViewModel: ObservableObject {
         defer { isSendingGIF = false }
         
         guard let token, !token.isEmpty else {
-            errorText = "Missing auth token."
+            errorText = String(localized: "ios.missing_auth_token")
             return false
         }
 
@@ -1121,7 +1121,7 @@ final class ChatThreadViewModel: ObservableObject {
         senderPublicKey: String?
     ) async -> Bool {
         guard let token, !token.isEmpty else {
-            errorText = "Missing auth token."
+            errorText = String(localized: "ios.missing_auth_token")
             return false
         }
 
@@ -1587,7 +1587,7 @@ extension ChatThreadViewModel {
         token: String?
     ) async -> Bool {
         guard let token, !token.isEmpty else {
-            errorText = "Missing auth token."
+            errorText = String(localized: "ios.missing_auth_token")
             return false
         }
 
@@ -1718,7 +1718,7 @@ extension ChatThreadViewModel {
         deleteForEveryone: Bool
     ) async -> Bool {
         guard let token, !token.isEmpty else {
-            errorText = "Missing auth token."
+            errorText = String(localized: "ios.missing_auth_token")
             return false
         }
 
@@ -1760,7 +1760,7 @@ extension ChatThreadViewModel {
         token: String?
     ) async -> Bool {
         guard let token, !token.isEmpty else {
-            errorText = "Missing auth token."
+            errorText = String(localized: "ios.missing_auth_token")
             return false
         }
 
@@ -1803,7 +1803,7 @@ extension ChatThreadViewModel {
         token: String?
     ) async -> Bool {
         guard let token, !token.isEmpty else {
-            errorText = "Missing auth token."
+            errorText = String(localized: "ios.missing_auth_token")
             return false
         }
 

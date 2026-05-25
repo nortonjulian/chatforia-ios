@@ -72,7 +72,7 @@ struct DialerView: View {
             
             Spacer()
             
-            Button("common.done") {
+            Button(String(localized: "common.done")) {
                 dismiss()
             }
             .font(.headline.weight(.semibold))
@@ -84,7 +84,11 @@ struct DialerView: View {
     
     private var numberField: some View {
         HStack(spacing: 10) {
-            Text(digits.isEmpty ? "Enter number" : formattedDisplayDigits)
+            Text(
+                digits.isEmpty
+                ? String(localized: "dialer.enterNumber")
+                : formattedDisplayDigits
+            )
                 .font(.system(size: 28, weight: .medium, design: .rounded))
                 .foregroundStyle(
                     digits.isEmpty
@@ -253,7 +257,7 @@ struct DialerView: View {
             return externalPhone
         }
 
-        return "Unknown Contact"
+        return String(localized: "contacts.unknown")
     }
     
     private var primaryMatch: ContactDTO? {
@@ -365,7 +369,11 @@ struct DialerView: View {
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "phone.fill")
-                    Text(isCalling ? "calls.calling" : "calls.call")
+                    Text(
+                        isCalling
+                        ? String(localized: "calls.calling")
+                        : String(localized: "calls.call")
+                    )
                 }
                 .font(.headline.weight(.semibold))
                 .foregroundStyle(themeManager.palette.buttonForeground)

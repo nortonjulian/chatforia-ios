@@ -16,14 +16,20 @@ struct InviteFriendsView: View {
                     Button {
                         Task { await shareGenericInvite() }
                     } label: {
-                        Label("Share My Invite Link", systemImage: "square.and.arrow.up")
+                        Label(
+                            String(localized: "invite.shareInviteLink"),
+                            systemImage: "square.and.arrow.up"
+                        )
                     }
                     .disabled(isCreatingInvite)
 
                     NavigationLink {
                         InvitePhoneContactsView()
                     } label: {
-                        Label("Invite from Phone Contacts", systemImage: "person.crop.circle.badge.plus")
+                        Label(
+                            String(localized: "invite.fromPhoneContacts"),
+                            systemImage: "person.crop.circle.badge.plus"
+                        )
                     }
                 }
 
@@ -34,11 +40,15 @@ struct InviteFriendsView: View {
                     }
                 }
             }
-            .navigationTitle("Invite Friends")
+            .navigationTitle(
+                String(localized: "invite.title")
+            )
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("common.done") { dismiss() }
+                    Button(String(localized: "common.done")) {
+                        dismiss()
+                    }
                 }
             }
             .sheet(isPresented: $isShowingShareSheet) {
@@ -49,7 +59,9 @@ struct InviteFriendsView: View {
 
     private func shareGenericInvite() async {
         guard let token = auth.currentToken, !token.isEmpty else {
-            errorText = "You need to be logged in to create an invite."
+            errorText = String(
+                localized: "invite.mustBeLoggedIn"
+            )
             return
         }
 
@@ -59,7 +71,9 @@ struct InviteFriendsView: View {
 
         do {
             let response = try await InviteService.shared.createInvite(token: token)
+
             let username = auth.currentUser?.username
+
             let message = InviteService.shared.createShareMessage(
                 inviterUsername: username,
                 inviteURL: response.url

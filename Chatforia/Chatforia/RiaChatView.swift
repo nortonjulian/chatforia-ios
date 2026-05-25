@@ -104,7 +104,7 @@ struct RiaChatView: View {
             composer
         }
         .background(themeManager.palette.screenBackground.ignoresSafeArea())
-        .navigationTitle("Ria")
+        .navigationTitle(String(localized: "ios.ria"))
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             if let user = auth.currentUser {
@@ -118,11 +118,11 @@ struct RiaChatView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
-                Text("Ria")
+                Text(String(localized: "ios.ria"))
                     .font(.title3.weight(.bold))
                     .foregroundStyle(themeManager.palette.primaryText)
 
-                Text("AI")
+                Text(String(localized: "ios.ai"))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(themeManager.palette.accent)
                     .padding(.horizontal, 8)
@@ -131,7 +131,12 @@ struct RiaChatView: View {
                     .clipShape(Capsule())
             }
 
-            Text("Chat with Ria anytime — separate from random human matching.")
+            Text(
+                String(
+                    localized:
+                    "ios.chat_with_ria_anytime_separate_from_random_human_matching"
+                )
+            )
                 .font(.subheadline)
                 .foregroundStyle(themeManager.palette.secondaryText)
         }
@@ -147,7 +152,9 @@ struct RiaChatView: View {
     }
 
     private var systemIntroPill: some View {
-        Text("YOU'RE NOW CHATTING WITH RIA.")
+        Text(
+            String(localized:"ios.you_re_now_chatting_with_ria")
+        )
             .font(.caption2.weight(.semibold))
             .foregroundStyle(themeManager.palette.secondaryText.opacity(0.85))
             .padding(.horizontal, 12)
@@ -160,7 +167,7 @@ struct RiaChatView: View {
 
     private var composer: some View {
         HStack(alignment: .bottom, spacing: 10) {
-            TextField("Message Ria...", text: $draft, axis: .vertical)
+            TextField(String(localized: "messages.messageRia"), text: $draft, axis: .vertical)
                 .textFieldStyle(.plain)
                 .foregroundStyle(themeManager.palette.primaryText)
                 .lineLimit(1...5)

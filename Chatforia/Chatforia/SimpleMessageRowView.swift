@@ -93,7 +93,7 @@ struct SimpleMessageRowView: View {
     private var senderDisplayName: String {
         let raw = msg.sender.username?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let raw, !raw.isEmpty { return raw }
-        return "User \(msg.sender.id)"
+        return String(format: String(localized: "chat.user_id_format"), msg.sender.id)
     }
 
     private var initials: String {
@@ -158,7 +158,7 @@ struct SimpleMessageRowView: View {
 
     private var displayText: String {
         if msg.deletedForAll == true {
-            return "This message was deleted"
+            return String(localized: "messages.thisMessageWasDeleted")
         }
 
         if let decryptedText, !decryptedText.isEmpty {
@@ -176,9 +176,9 @@ struct SimpleMessageRowView: View {
         }
 
         if msg.contentCiphertext != nil {
-            return "🔒 Encrypted message"
+            return String(localized: "chat.encryptedUnavailable")
         }
 
-        return "—"
+        return String(localized: "common.emptyDash")
     }
 }

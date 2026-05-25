@@ -12,7 +12,7 @@ struct BackupEncryptionKeyView: View {
     @State private var isSaving = false
     @State private var errorMessage: String?
     @State private var successMessage: String?
-    
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -29,11 +29,11 @@ struct BackupEncryptionKeyView: View {
                     .padding(20)
                 }
             }
-            .navigationTitle("encryption.backUpKey")
+            .navigationTitle(String(localized: "encryption.backUpKey"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("common.done") {
+                    Button(String(localized: "common.done")) {
                         dismiss()
                     }
                     .foregroundStyle(themeManager.palette.accent)
@@ -50,12 +50,12 @@ struct BackupEncryptionKeyView: View {
                     .font(.system(size: 26, weight: .semibold))
                     .foregroundStyle(themeManager.palette.accent)
 
-                Text("Protect Access to Your Messages")
+                Text(String(localized: "encryption.backup.headerTitle"))
                     .font(.title3.weight(.bold))
                     .foregroundStyle(themeManager.palette.primaryText)
             }
 
-            Text("Create a password-protected backup of your encryption key so you can restore access on a new device.")
+            Text(String(localized: "encryption.backup.headerSubtitle"))
                 .font(.subheadline)
                 .foregroundStyle(themeManager.palette.secondaryText)
         }
@@ -63,26 +63,26 @@ struct BackupEncryptionKeyView: View {
 
     private var explanationCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("common.howThisWorks")
+            Text(String(localized: "common.howThisWorks"))
                 .font(.headline)
                 .foregroundStyle(themeManager.palette.primaryText)
 
             infoRow(
                 icon: "key.fill",
-                title: "Your encryption key stays protected",
-                subtitle: "The backup is encrypted with the password you choose."
+                title: String(localized: "encryption.backup.protectedTitle"),
+                subtitle: String(localized: "encryption.backup.protectedSubtitle")
             )
 
             infoRow(
                 icon: "iphone.and.arrow.forward",
-                title: "Restore on another device",
-                subtitle: "Use this backup later if this device is lost, replaced, or reset."
+                title: String(localized: "encryption.backup.restoreDeviceTitle"),
+                subtitle: String(localized: "encryption.backup.restoreDeviceSubtitle")
             )
 
             infoRow(
                 icon: "exclamationmark.triangle.fill",
-                title: "Don’t lose your backup password",
-                subtitle: "Chatforia cannot recover it for you."
+                title: String(localized: "encryption.backup.passwordWarningTitle"),
+                subtitle: String(localized: "encryption.backup.passwordWarningSubtitle")
             )
         }
         .padding(16)
@@ -101,7 +101,7 @@ struct BackupEncryptionKeyView: View {
                 .foregroundStyle(themeManager.palette.primaryText)
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("encryption.backupPassword")
+                Text(String(localized: "encryption.backupPassword"))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(themeManager.palette.primaryText)
 
@@ -110,13 +110,13 @@ struct BackupEncryptionKeyView: View {
                     text: $password
                 )
 
-                Text("Use at least 6 characters.")
+                Text(String(localized: "encryption.backup.minimumLength"))
                     .font(.caption)
                     .foregroundStyle(themeManager.palette.secondaryText)
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("auth.confirmPassword")
+                Text(String(localized: "auth.confirmPassword"))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(themeManager.palette.primaryText)
 
@@ -155,7 +155,7 @@ struct BackupEncryptionKeyView: View {
                         ? String(localized: "encryptionRecovery.messages.creatingBackup")
                         : String(localized: "encryptionRecovery.actions.createBackup")
                     )
-                        .fontWeight(.semibold)
+                    .fontWeight(.semibold)
 
                     Spacer()
                 }
@@ -176,7 +176,7 @@ struct BackupEncryptionKeyView: View {
     }
 
     private var footerNote: some View {
-        Text("This backup helps you restore your encrypted messages later. Keep your password somewhere safe.")
+        Text(String(localized: "encryption.backup.footerNote"))
             .font(.footnote)
             .foregroundStyle(themeManager.palette.secondaryText)
             .multilineTextAlignment(.leading)
@@ -192,7 +192,7 @@ struct BackupEncryptionKeyView: View {
 
     private func backupKey() async {
         guard let token = auth.currentToken, !token.isEmpty else {
-            errorMessage = "Your session expired. Please sign in again."
+            errorMessage = String(localized: "auth.sessionExpired")
             successMessage = nil
             return
         }
@@ -201,19 +201,19 @@ struct BackupEncryptionKeyView: View {
         let trimmedConfirm = confirmPassword.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !trimmedPassword.isEmpty else {
-            errorMessage = "Enter a backup password."
+            errorMessage = String(localized: "encryption.backup.enterPassword")
             successMessage = nil
             return
         }
 
         guard trimmedPassword.count >= 6 else {
-            errorMessage = "Your backup password must be at least 6 characters."
+            errorMessage = String(localized: "encryption.backup.passwordTooShort")
             successMessage = nil
             return
         }
 
         guard trimmedPassword == trimmedConfirm else {
-            errorMessage = "Passwords do not match."
+            errorMessage = String(localized: "auth.passwordsDoNotMatch")
             successMessage = nil
             return
         }
@@ -228,7 +228,7 @@ struct BackupEncryptionKeyView: View {
                 password: trimmedPassword
             )
 
-            successMessage = "Your encryption key backup was created successfully."
+            successMessage = String(localized: "encryption.backup.success")
             password = ""
             confirmPassword = ""
 

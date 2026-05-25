@@ -12,11 +12,11 @@ struct RandomMatchingView: View {
                     .scaleEffect(1.5)
 
                 VStack(spacing: 10) {
-                    Text("Finding someone…")
+                    Text(String(localized: "ios.finding_someone"))
                         .font(.title2)
                         .fontWeight(.semibold)
 
-                    Text("We’re looking for someone who’s open to chat right now.")
+                    Text(String(localized: "ios.we_re_looking_for_someone_who_s_open_to_chat_right_now"))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -35,7 +35,7 @@ struct RandomMatchingView: View {
                 .padding(.horizontal, 20)
                 .padding(.bottom, 20)
             }
-            .navigationTitle("Random Chat")
+            .navigationTitle(String(localized: "section_random_chat"))
             .navigationBarTitleDisplayMode(.inline)
         }
         .presentationDetents([.medium])

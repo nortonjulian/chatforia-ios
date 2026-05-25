@@ -1,0 +1,295 @@
+Chatforia/Chatforia/RiaRewriteSheet.swift:20:                Text("Original")
+Chatforia/Chatforia/RiaRewriteSheet.swift:32:                Text("sounds.chooseTone")
+Chatforia/Chatforia/RiaRewriteSheet.swift:60:                    Text("Suggestions")
+Chatforia/Chatforia/RiaRewriteSheet.swift:84:                    Text("No rewrite suggestions came back. Try another tone.")
+Chatforia/Chatforia/ProfileRootView.swift:716:                        Text("\(vm.soundVolume)%")
+Chatforia/Chatforia/ProfileRootView.swift:832:                        Text("13–17").tag("TEEN_13_17")
+Chatforia/Chatforia/ProfileRootView.swift:833:                        Text("18–24").tag("ADULT_18_24")
+Chatforia/Chatforia/ProfileRootView.swift:834:                        Text("25–34").tag("ADULT_25_34")
+Chatforia/Chatforia/ProfileRootView.swift:835:                        Text("35–49").tag("ADULT_35_49")
+Chatforia/Chatforia/ProfileRootView.swift:836:                        Text("50+").tag("ADULT_50_PLUS")
+Chatforia/Chatforia/VoicemailDetailView.swift:88:            Text("Transcript")
+Chatforia/Chatforia/WirelessHomeView.swift:89:                        Text("Loading usage…")
+Chatforia/Chatforia/WirelessHomeView.swift:117:                                Text("remaining of \(formatGB(totalMb))")
+Chatforia/Chatforia/WirelessHomeView.swift:141:                    Text("No active data pack yet. Buy a pack below to start tracking usage.")
+Chatforia/Chatforia/WirelessHomeView.swift:147:                    Text("Usage details will appear once your data pack is active.")
+Chatforia/Chatforia/WirelessHomeView.swift:262:                Text("Stay connected when you’re traveling or away from Wi-Fi.")
+Chatforia/Chatforia/WirelessHomeView.swift:266:                Text("Choose a one-time eSIM data pack for Local, Europe, or Global coverage.")
+Chatforia/Chatforia/WirelessHomeView.swift:288:                Text("We don’t sell data packs under 3 GB.")
+Chatforia/Chatforia/WirelessHomeView.swift:439:        Text("eSIM data packs require an eSIM-compatible and unlocked device. Availability varies by phone model, carrier, and country. Coverage and speeds vary by region.")
+Chatforia/Chatforia/UpgradePromptSheet.swift:40:                            Text("Requires \(requiredPlan.displayName)")
+Chatforia/Chatforia/InvitePhoneContactsView.swift:18:                    Text("No phone contacts found.")
+Chatforia/Chatforia/InvitePhoneContactsView.swift:71:                        Text("common.invite")
+Chatforia/Chatforia/ChatsRootView.swift:244:                Text("This will remove the conversation from your list.")
+Chatforia/Chatforia/RandomMatchingView.swift:15:                    Text("Finding someone…")
+Chatforia/Chatforia/RandomMatchingView.swift:19:                    Text("We’re looking for someone who’s open to chat right now.")
+Chatforia/Chatforia/ChatThreadSearchSheet.swift:31:            .searchable(text: $searchText, prompt: Text("messages.searchMessages"))
+Chatforia/Chatforia/RestoreEncryptionKeyView.swift:27:                    Text("Restore Encryption Key")
+Chatforia/Chatforia/RestoreEncryptionKeyView.swift:33:                        Text("Enter the backup password you created when you saved your encryption key.")
+Chatforia/Chatforia/RestoreEncryptionKeyView.swift:40:                            Text("No backup found. Create one to protect your messages.")
+Chatforia/Chatforia/RestoreEncryptionKeyView.swift:92:                                    Text("Restore Key")
+Chatforia/Chatforia/RestoreEncryptionKeyView.swift:102:                        Text("Reset Encryption")
+Chatforia/Chatforia/RestoreEncryptionKeyView.swift:106:                        Text("This will generate a new encryption key for your account. Older encrypted messages may become unreadable unless you restore your original key.")
+Chatforia/Chatforia/RestoreEncryptionKeyView.swift:116:                                Text("Reset Encryption")
+Chatforia/Chatforia/RestoreEncryptionKeyView.swift:141:            Text("This will replace your encryption key. Older encrypted messages may not be readable unless you restore your original key.")
+Chatforia/Chatforia/AddContactView.swift:86:                                Text("Use this tab only for existing Chatforia users.")
+Chatforia/Chatforia/AddContactView.swift:91:                                Text("Save any phone number, even if they are not on Chatforia.")
+Chatforia/Chatforia/DecryptedMessageTextView.swift:16:                Text("🔒 Encrypted message")
+Chatforia/Chatforia/LanguageSelectionView.swift:9:            Text("Preferred Language")
+Chatforia/Chatforia/LoginView.swift:118:                                Text("or")
+Chatforia/Chatforia/LoginView.swift:133:                                    Text("auth.forgotPassword")
+Chatforia/Chatforia/LoginView.swift:186:                                Text("auth.dontHaveAnAccountYet")
+Chatforia/Chatforia/LoginView.swift:193:                                    Text("auth.createAccount")
+Chatforia/Chatforia/ChatMessageRowView.swift:251:                    Text("\(pair.value)")
+Chatforia/Chatforia/VoicemailInboxView.swift:107:            Text("voicemail.loading")
+Chatforia/Chatforia/VoicemailInboxView.swift:120:            Text("voicemail.couldNotLoad")
+Chatforia/Chatforia/VoicemailInboxView.swift:148:            Text("voicemail.empty")
+Chatforia/Chatforia/VoicemailInboxView.swift:152:            Text("voicemail.emptySubtitle")
+Chatforia/Chatforia/PickNumberSheet.swift:81:                Text("common.country")
+Chatforia/Chatforia/PickNumberSheet.swift:104:                    Text("phoneNumber.areaCode")
+Chatforia/Chatforia/PickNumberSheet.swift:133:                        Text("common.search")
+Chatforia/Chatforia/PickNumberSheet.swift:147:                Text("phoneNumber.capability")
+Chatforia/Chatforia/PickNumberSheet.swift:152:                    Text("SMS").tag("sms")
+Chatforia/Chatforia/PickNumberSheet.swift:153:                    Text("Voice").tag("voice")
+Chatforia/Chatforia/PickNumberSheet.swift:154:                    Text("SMS + Voice").tag("both")
+Chatforia/Chatforia/PickNumberSheet.swift:175:            Text("Premium numbers are protected from recycling while your Premium subscription is active.")
+Chatforia/Chatforia/PickNumberSheet.swift:184:            Text("dialer.availableNumbers")
+Chatforia/Chatforia/PickNumberSheet.swift:203:            Text("Enter a 3-digit area code (US/CA only), or leave blank, then search.")
+Chatforia/Chatforia/VideoCallView.swift:95:                Text("Waiting for participant…")
+Chatforia/Chatforia/VideoCallView.swift:184:                                Text("calls.cameraOff")
+Chatforia/Chatforia/CallHistoryView.swift:55:                .accessibilityLabel(Text("dialer.openDialPad"))
+Chatforia/Chatforia/PremiumPickerSheet.swift:75:                Text("billing.currentPlan")
+Chatforia/Chatforia/MessageAttachmentsView.swift:209:                            Text("GIF")
+Chatforia/Chatforia/MessageAttachmentsView.swift:389:                                Text("media.couldNotLoadImage")
+Chatforia/Chatforia/PlanView.swift:33:                Text("billing.currentPlan")
+Chatforia/Chatforia/PlanView.swift:85:            Text("Go ad-free with Plus, or unlock AI tools and customization with Premium.")
+Chatforia/Chatforia/PlanView.swift:92:                Text("Plus")
+Chatforia/Chatforia/PlanView.swift:97:                Text("Premium")
+Chatforia/Chatforia/SoundSettingsView.swift:18:                    Text("Volume")
+Chatforia/Chatforia/SoundSettingsView.swift:33:                    Text("\(settingsVM.soundVolume)%")
+Chatforia/Chatforia/SoundSettingsView.swift:128:                            Text("Requires \(requiredPlan.displayName)")
+Chatforia/Chatforia/ChatThreadView.swift:235:                Text("messages.noMessagesYet")
+Chatforia/Chatforia/ChatThreadView.swift:322:                                    Text("gif.couldNotLoad")
+Chatforia/Chatforia/ChatThreadView.swift:357:                        Text("messages.addCaptionThenSend")
+Chatforia/Chatforia/ChatThreadView.swift:486:                        Text("Please keep Chatforia open while this finishes.")
+Chatforia/Chatforia/RiaChatView.swift:121:                Text("Ria")
+Chatforia/Chatforia/RiaChatView.swift:125:                Text("AI")
+Chatforia/Chatforia/RiaChatView.swift:134:            Text("Chat with Ria anytime — separate from random human matching.")
+Chatforia/Chatforia/RiaChatView.swift:150:        Text("YOU'RE NOW CHATTING WITH RIA.")
+Chatforia/Chatforia/ESIMActivationView.swift:54:            Text("Status")
+Chatforia/Chatforia/ESIMActivationView.swift:79:            Text("common.install")
+Chatforia/Chatforia/ESIMActivationView.swift:83:            Text("Install directly on this iPhone, or use the activation details below on another supported device.")
+Chatforia/Chatforia/ESIMActivationView.swift:115:                Text("Your carrier hasn’t provided a valid install link yet. You can still use the manual activation details below when available.")
+Chatforia/Chatforia/ESIMActivationView.swift:132:            Text("esim.activationDetails")
+Chatforia/Chatforia/ESIMActivationView.swift:154:        Text("eSIM installation steps can vary by device. Make sure your iPhone is unlocked and eSIM-compatible before installing. If direct install is unavailable, use the activation details above in Settings > Cellular > Add eSIM.")
+Chatforia/Chatforia/ChatListRowView.swift:33:                        Text("SMS")
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:53:                Text("Protect Access to Your Messages")
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:58:            Text("Create a password-protected backup of your encryption key so you can restore access on a new device.")
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:66:            Text("common.howThisWorks")
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:104:                Text("encryption.backupPassword")
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:113:                Text("Use at least 6 characters.")
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:119:                Text("auth.confirmPassword")
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:179:        Text("This backup helps you restore your encrypted messages later. Keep your password somewhere safe.")
+Chatforia/Chatforia/SMSThreadSearchSheet.swift:41:            .searchable(text: $searchText, prompt: Text("messages.searchMessages"))
+Chatforia/Chatforia/MessageReceiptSheet.swift:20:                        Text("No one has read this message yet.")
+Chatforia/Chatforia/MessageReceiptSheet.swift:42:                                    Text("common.read")
+Chatforia/Chatforia/MessageBubbleView.swift:158:            Text("This message was deleted")
+Chatforia/Chatforia/MessageBubbleView.swift:186:            Text("🔒 Encrypted message")
+Chatforia/Chatforia/MessageComposerView.swift:265:                Text("Recording…")
+Chatforia/Chatforia/MessageComposerView.swift:314:                Text("Voice note ready")
+Chatforia/Chatforia/StartChatView.swift:105:                                                Text("Start Chatforia chat")
+Chatforia/Chatforia/RegisterView.swift:32:                        Text("auth.createYourAccount")
+Chatforia/Chatforia/RegisterView.swift:37:                        Text("Sign up to start messaging on Chatforia")
+Chatforia/Chatforia/RegisterView.swift:67:                            Text("or")
+Chatforia/Chatforia/RegisterView.swift:140:                            Text("auth.alreadyHaveAnAccount")
+Chatforia/Chatforia/RegisterView.swift:144:                            Text("Log in from the previous screen")
+Chatforia/Chatforia/RegisterView.swift:150:                        Text("By creating an account, you agree to our Terms of Service and Privacy Policy.")
+Chatforia/Chatforia/ForwardingSettingsView.swift:12:                        Text("Forward incoming calls and texts to your verified phone or email. Outgoing calls/texts can show your Chatforia number.")
+Chatforia/Chatforia/ForwardingSettingsView.swift:41:                            Text("forwarding.destinationPhoneE164")
+Chatforia/Chatforia/ForwardingSettingsView.swift:59:                            Text("forwarding.destinationEmail")
+Chatforia/Chatforia/ForwardingSettingsView.swift:80:                            Text("Destination (E.164) for calls")
+Chatforia/Chatforia/ForwardingSettingsView.swift:99:                                Text("settings.startHour")
+Chatforia/Chatforia/ForwardingSettingsView.swift:114:                                Text("settings.endHour")
+Chatforia/Chatforia/ForwardingSettingsView.swift:150:                                    Text("forwarding.saveForwarding")
+Chatforia/Chatforia/UpgradeView.swift:82:                Text("Unlock more of Chatforia")
+Chatforia/Chatforia/UpgradeView.swift:87:                Text("Choose a cleaner, more personal Chatforia experience.")
+Chatforia/Chatforia/UpgradeView.swift:169:                    Text("upgrade.bestExperience")
+Chatforia/Chatforia/UpgradeView.swift:224:                Text("profile.customization")
+Chatforia/Chatforia/UpgradeView.swift:228:                Text("Unlock additional Chatforia themes, tones, and personalization features with Premium.")
+Chatforia/Chatforia/UpgradeView.swift:279:            Text("upgrade.choosePlan")
+Chatforia/Chatforia/UpgradeView.swift:284:            Text("Best value • Save almost 36% annually")
+Chatforia/Chatforia/UpgradeView.swift:290:                    Text("Upgrade with Apple")
+Chatforia/Chatforia/UpgradeView.swift:294:                    Text("Plus removes ads and adds forwarding. Premium unlocks additional themes, message tones, ringtones, AI tools, and the full Chatforia experience.")
+Chatforia/Chatforia/UpgradeView.swift:325:            Text("Auto-renewable subscription. Payment is charged to your Apple Account at confirmation of purchase. Subscription automatically renews unless canceled at least 24 hours before the end of the current period. You can manage and cancel your subscription in your Apple account settings.")
+Chatforia/Chatforia/RotateEncryptionKeyView.swift:53:                Text("Rotate Your Encryption Key")
+Chatforia/Chatforia/RotateEncryptionKeyView.swift:58:            Text("This creates a new encryption key for your account.")
+Chatforia/Chatforia/RotateEncryptionKeyView.swift:66:            Text("common.beforeYouContinue")
+Chatforia/Chatforia/RotateEncryptionKeyView.swift:85:            Text("Type ROTATE to continue")
+Chatforia/Chatforia/OnboardingView.swift:70:            Text("common.welcome")
+Chatforia/Chatforia/OnboardingView.swift:98:            Text("common.welcomeToChatforia")
+Chatforia/Chatforia/OnboardingView.swift:103:            Text("Message globally, translate instantly, and start conversations fast.")
+Chatforia/Chatforia/OnboardingView.swift:113:            Text("auth.chooseUsername")
+Chatforia/Chatforia/OnboardingView.swift:118:            Text("This is how other people will see you.")
+Chatforia/Chatforia/OnboardingView.swift:139:            Text("profile.chooseLanguage")
+Chatforia/Chatforia/OnboardingView.swift:144:            Text("This helps Chatforia personalize translation and messaging for you.")
+Chatforia/Chatforia/OnboardingView.swift:161:            Text("You’re ready to chat")
+Chatforia/Chatforia/OnboardingView.swift:166:            Text("You can start a new conversation, save contacts, and come back here later to update your settings.")
+Chatforia/Chatforia/SMSThreadView.swift:753:            Text("In thread")
+Chatforia/Chatforia/CheckoutSheetView.swift:12:            Text("upgrade.confirmPurchase")
+Chatforia/Chatforia/GIFPickerView.swift:37:                            description: Text("Try a different search.")
+Chatforia/Chatforia/GIFPickerView.swift:141:                Text("GIF")
+Chatforia/Chatforia/ReportMessageSheet.swift:29:                        Text("Only this message").tag(0)
+Chatforia/Chatforia/ReportMessageSheet.swift:30:                        Text("This + previous 5").tag(5)
+Chatforia/Chatforia/ReportMessageSheet.swift:31:                        Text("This + previous 10").tag(10)
+Chatforia/Chatforia/ReportMessageSheet.swift:32:                        Text("This + previous 20").tag(20)
+Chatforia/Chatforia/ReportMessageSheet.swift:48:                        Text("Reporting message from **\(senderName)**")
+Chatforia/Chatforia/PhoneNumberManagementView.swift:31:                            Text("Your number may be released in \(days) day\(days == 1 ? "" : "s"). Upgrade to Premium to keep it protected.")
+Chatforia/Chatforia/PhoneNumberManagementView.swift:45:                Text("No Chatforia number assigned")
+Chatforia/Chatforia/VoicemailDetailView.swift:30:                    title: "Voicemail",
+Chatforia/Chatforia/WirelessHomeView.swift:84:        SectionCardView(title: "Current Usage") {
+Chatforia/Chatforia/WirelessHomeView.swift:131:                            infoPill(title: "Used", value: formatGB(usedMb))
+Chatforia/Chatforia/WirelessHomeView.swift:133:                            infoPill(title: "Left", value: formatGB(remainingMb))
+Chatforia/Chatforia/WirelessHomeView.swift:135:                            infoPill(title: "Expires", value: expirationText(from: source))
+Chatforia/Chatforia/WirelessHomeView.swift:245:        SectionCardView(title: "Manage") {
+Chatforia/Chatforia/WirelessHomeView.swift:247:                ThemedOutlineButton(title: "Manage Wireless") {
+Chatforia/Chatforia/WirelessHomeView.swift:251:                ThemedOutlineButton(title: "Port My Number") {
+Chatforia/Chatforia/WirelessHomeView.swift:260:        SectionCardView(title: "Chatforia Mobile") {
+Chatforia/Chatforia/WirelessHomeView.swift:275:        SectionCardView(title: "wireless.coverage") {
+Chatforia/Chatforia/WirelessHomeView.swift:373:        SectionCardView(title: "Your eSIM") {
+Chatforia/Chatforia/UpgradePromptSheet.swift:72:                            title: "Not now",
+Chatforia/Chatforia/ContactsRootView.swift:137:                    title: "Loading contacts…",
+Chatforia/Chatforia/ContactsRootView.swift:138:                    subtitle: "Pulling in your saved people."
+Chatforia/Chatforia/ContactsRootView.swift:145:                    title: "Couldn’t load contacts",
+Chatforia/Chatforia/ContactsRootView.swift:157:                    title: "No contacts found",
+Chatforia/Chatforia/ContactsRootView.swift:158:                    subtitle: "Try a different name or username."
+Chatforia/Chatforia/ContactsRootView.swift:165:                    title: "No contacts yet",
+Chatforia/Chatforia/ContactsRootView.swift:166:                    subtitle: "Add contacts manually, import them from your phone, or start a new conversation.",
+Chatforia/Chatforia/ChatsRootView.swift:39:                                title: "Loading chats…",
+Chatforia/Chatforia/ChatsRootView.swift:40:                                subtitle: "Pulling in your latest conversations."
+Chatforia/Chatforia/ChatsRootView.swift:47:                                title: "Couldn’t load chats",
+Chatforia/Chatforia/ChatsRootView.swift:60:                                title: "No results",
+Chatforia/Chatforia/ChatsRootView.swift:61:                                subtitle: "Try searching for a different name or message."
+Chatforia/Chatforia/ChatsRootView.swift:68:                                title: "No chats yet",
+Chatforia/Chatforia/ChatsRootView.swift:69:                                subtitle: "Tap the plus button to start your first conversation."
+Chatforia/Chatforia/ChatsRootView.swift:494:            title: "Unsupported conversation",
+Chatforia/Chatforia/ChatsRootView.swift:495:            subtitle: "Kind: \(conversation.kind)"
+Chatforia/Chatforia/AddContactView.swift:56:                                    title: "Username",
+Chatforia/Chatforia/AddContactView.swift:62:                                    title: "Phone Number",
+Chatforia/Chatforia/AddContactView.swift:69:                                    title: "Name",
+Chatforia/Chatforia/AddContactView.swift:75:                                title: "Alias (optional)",
+Chatforia/Chatforia/AddContactView.swift:80:                                title: "Favorite",
+Chatforia/Chatforia/AddContactView.swift:81:                                subtitle: "Pin this person as a favorite contact.",
+Chatforia/Chatforia/LoginView.swift:166:                                title: "Email or username",
+Chatforia/Chatforia/LoginView.swift:173:                                title: "Password",
+Chatforia/Chatforia/VideoCallView.swift:242:                title: "Camera"
+Chatforia/Chatforia/VideoCallView.swift:249:                title: "Flip"
+Chatforia/Chatforia/VideoCallView.swift:256:                title: "Speaker",
+Chatforia/Chatforia/VideoCallView.swift:264:                title: "End",
+Chatforia/Chatforia/CallHistoryView.swift:82:                    title: "Couldn’t load call history",
+Chatforia/Chatforia/PremiumPickerSheet.swift:41:                            title: "Free",
+Chatforia/Chatforia/PremiumPickerSheet.swift:47:                            title: "Premium",
+Chatforia/Chatforia/ContactDetailView.swift:74:                                title: "Message",
+Chatforia/Chatforia/ContactDetailView.swift:84:                                title: "Call",
+Chatforia/Chatforia/ContactDetailView.swift:93:                                    title: "Video",
+Chatforia/Chatforia/ContactDetailView.swift:103:                        detailLine(title: "Name", value: displayName)
+Chatforia/Chatforia/ContactDetailView.swift:106:                            detailLine(title: "External Name", value: externalName)
+Chatforia/Chatforia/ContactDetailView.swift:110:                            detailLine(title: "Phone", value: phone)
+Chatforia/Chatforia/ContactDetailView.swift:114:                            detailLine(title: "Username", value: "@\(username)")
+Chatforia/Chatforia/ActiveCallView.swift:52:                        title: "Speaker",
+Chatforia/Chatforia/ActiveCallView.swift:60:                        title: "End",
+Chatforia/Chatforia/PlanView.swift:31:        SectionCardView(title: "My Plan") {
+Chatforia/Chatforia/PlanView.swift:50:        SectionCardView(title: "Compare Plans") {
+Chatforia/Chatforia/PlanView.swift:60:                    ThemedOutlineButton(title: "common.upgrade") {
+Chatforia/Chatforia/PlanView.swift:65:                    ThemedOutlineButton(title: "Upgrade to Premium") {
+Chatforia/Chatforia/PlanView.swift:69:                    ThemedOutlineButton(title: "Manage Subscription") {
+Chatforia/Chatforia/PlanView.swift:74:                    ThemedOutlineButton(title: "Manage Subscription") {
+Chatforia/Chatforia/PlanView.swift:113:        SectionCardView(title: "Included") {
+Chatforia/Chatforia/SoundSettingsView.swift:114:                        title: "Premium Sound",
+Chatforia/Chatforia/SoundSettingsView.swift:150:                        title: "Premium Sound",
+Chatforia/Chatforia/ESIMActivationView.swift:136:            detailRow(title: "esim.plan", value: viewModel.payload.planName)
+Chatforia/Chatforia/ESIMActivationView.swift:137:            detailRow(title: "esim.lpaUri", value: viewModel.explicitLpaText)
+Chatforia/Chatforia/ESIMActivationView.swift:138:            detailRow(title: "esim.activationCode", value: viewModel.installationCodeText)
+Chatforia/Chatforia/ESIMActivationView.swift:139:            detailRow(title: "esim.confirmationCode", value: viewModel.confirmationCodeText)
+Chatforia/Chatforia/ESIMActivationView.swift:140:            detailRow(title: "esim.smdpAddress", value: viewModel.smdpAddressText)
+Chatforia/Chatforia/ESIMActivationView.swift:141:            detailRow(title: "esim.iccid", value: viewModel.iccidText)
+Chatforia/Chatforia/ImportPhoneContactsView.swift:21:                            title: "Loading phone contacts…",
+Chatforia/Chatforia/ImportPhoneContactsView.swift:22:                            subtitle: "Reading contacts from your iPhone."
+Chatforia/Chatforia/ImportPhoneContactsView.swift:27:                            title: "Couldn’t load contacts",
+Chatforia/Chatforia/ImportPhoneContactsView.swift:37:                            title: "No phone contacts found",
+Chatforia/Chatforia/ImportPhoneContactsView.swift:38:                            subtitle: "There are no importable contacts available."
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:72:                title: "Your encryption key stays protected",
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:73:                subtitle: "The backup is encrypted with the password you choose."
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:78:                title: "Restore on another device",
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:79:                subtitle: "Use this backup later if this device is lost, replaced, or reset."
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:84:                title: "Don’t lose your backup password",
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:85:                subtitle: "Chatforia cannot recover it for you."
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:109:                    title: "encryption.backupPassword",
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:124:                    title: "auth.confirmPassword",
+Chatforia/Chatforia/WirelessCatalog.swift:53:                    title: "Global Unlimited",
+Chatforia/Chatforia/WirelessCatalog.swift:61:                    title: "Global 3 GB",
+Chatforia/Chatforia/WirelessCatalog.swift:69:                    title: "Global 5 GB",
+Chatforia/Chatforia/WirelessCatalog.swift:77:                    title: "Global 10 GB",
+Chatforia/Chatforia/WirelessCatalog.swift:89:                    title: "Europe Unlimited",
+Chatforia/Chatforia/WirelessCatalog.swift:97:                    title: "Europe 3 GB",
+Chatforia/Chatforia/WirelessCatalog.swift:105:                    title: "Europe 5 GB",
+Chatforia/Chatforia/WirelessCatalog.swift:113:                    title: "Europe 10 GB",
+Chatforia/Chatforia/WirelessCatalog.swift:121:                    title: "Europe 20 GB",
+Chatforia/Chatforia/WirelessCatalog.swift:133:                    title: "Local Unlimited",
+Chatforia/Chatforia/WirelessCatalog.swift:141:                    title: "Local 3 GB",
+Chatforia/Chatforia/WirelessCatalog.swift:149:                    title: "Local 5 GB",
+Chatforia/Chatforia/WirelessCatalog.swift:157:                    title: "Local 10 GB",
+Chatforia/Chatforia/WirelessCatalog.swift:165:                    title: "Local 20 GB",
+Chatforia/Chatforia/StartChatView.swift:21:                            title: "Searching…",
+Chatforia/Chatforia/StartChatView.swift:22:                            subtitle: "Looking for people you can message."
+Chatforia/Chatforia/StartChatView.swift:27:                            title: "Search unavailable",
+Chatforia/Chatforia/StartChatView.swift:33:                            title: "Start a conversation",
+Chatforia/Chatforia/StartChatView.swift:34:                            subtitle: "Search by username, contact name, or phone number."
+Chatforia/Chatforia/StartChatView.swift:42:                            title: "No users found",
+Chatforia/Chatforia/StartChatView.swift:43:                            subtitle: "Try a different username, contact name, or phone number."
+Chatforia/Chatforia/StartChatView.swift:188:                    subtitle: "Text this number"
+Chatforia/Chatforia/StartChatView.swift:202:                    subtitle: "Invite to Chatforia"
+Chatforia/Chatforia/RegisterView.swift:80:                                title: "SMS consent",
+Chatforia/Chatforia/RegisterView.swift:81:                                subtitle: "I consent to receive SMS messages from Chatforia.",
+Chatforia/Chatforia/RegisterView.swift:108:                            title: "Username",
+Chatforia/Chatforia/RegisterView.swift:114:                            title: "Email",
+Chatforia/Chatforia/RegisterView.swift:121:                            title: "Password",
+Chatforia/Chatforia/RegisterView.swift:127:                            title: "auth.confirmPassword",
+Chatforia/Chatforia/RegisterView.swift:133:                            title: "Phone (optional)",
+Chatforia/Chatforia/ForwardingSettingsView.swift:10:                SectionCardView(title: "Call & Text Forwarding") {
+Chatforia/Chatforia/UpgradeView.swift:99:            title: "Keep your number",
+Chatforia/Chatforia/UpgradeView.swift:100:            subtitle: "Upgrade to Premium to keep your number protected from recycling.",
+Chatforia/Chatforia/UpgradeView.swift:109:            title: "Cleaner communication",
+Chatforia/Chatforia/UpgradeView.swift:110:            subtitle: "Remove distractions and unlock practical communication tools.",
+Chatforia/Chatforia/UpgradeView.swift:125:            title: "The full Chatforia experience",
+Chatforia/Chatforia/UpgradeView.swift:126:            subtitle: "Unlock personalization, AI tools, and advanced Chatforia features.",
+Chatforia/Chatforia/UpgradeView.swift:237:                    title: "Themes"
+Chatforia/Chatforia/UpgradeView.swift:242:                    title: "Message tones"
+Chatforia/Chatforia/UpgradeView.swift:247:                    title: "Ringtones"
+Chatforia/Chatforia/UpgradeView.swift:342:                title: "Refresh purchase status",
+Chatforia/Chatforia/UpgradeView.swift:358:                title: "Maybe later",
+Chatforia/Chatforia/OnboardingView.swift:177:                ThemedOutlineButton(title: "Back") {
+Chatforia/Chatforia/SMSThreadView.swift:185:                title: "Loading SMS…",
+Chatforia/Chatforia/SMSThreadView.swift:186:                subtitle: "Pulling in your latest text messages."
+Chatforia/Chatforia/ContactsRootView.swift:138:                    subtitle: "Pulling in your saved people."
+Chatforia/Chatforia/ContactsRootView.swift:158:                    subtitle: "Try a different name or username."
+Chatforia/Chatforia/ContactsRootView.swift:166:                    subtitle: "Add contacts manually, import them from your phone, or start a new conversation.",
+Chatforia/Chatforia/ChatsRootView.swift:40:                                subtitle: "Pulling in your latest conversations."
+Chatforia/Chatforia/ChatsRootView.swift:61:                                subtitle: "Try searching for a different name or message."
+Chatforia/Chatforia/ChatsRootView.swift:69:                                subtitle: "Tap the plus button to start your first conversation."
+Chatforia/Chatforia/ChatsRootView.swift:495:            subtitle: "Kind: \(conversation.kind)"
+Chatforia/Chatforia/AddContactView.swift:81:                                subtitle: "Pin this person as a favorite contact.",
+Chatforia/Chatforia/ImportPhoneContactsView.swift:22:                            subtitle: "Reading contacts from your iPhone."
+Chatforia/Chatforia/ImportPhoneContactsView.swift:38:                            subtitle: "There are no importable contacts available."
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:73:                subtitle: "The backup is encrypted with the password you choose."
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:79:                subtitle: "Use this backup later if this device is lost, replaced, or reset."
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:85:                subtitle: "Chatforia cannot recover it for you."
+Chatforia/Chatforia/StartChatView.swift:22:                            subtitle: "Looking for people you can message."
+Chatforia/Chatforia/StartChatView.swift:34:                            subtitle: "Search by username, contact name, or phone number."
+Chatforia/Chatforia/StartChatView.swift:43:                            subtitle: "Try a different username, contact name, or phone number."
+Chatforia/Chatforia/StartChatView.swift:188:                    subtitle: "Text this number"
+Chatforia/Chatforia/StartChatView.swift:202:                    subtitle: "Invite to Chatforia"
+Chatforia/Chatforia/RegisterView.swift:81:                                subtitle: "I consent to receive SMS messages from Chatforia.",
+Chatforia/Chatforia/UpgradeView.swift:100:            subtitle: "Upgrade to Premium to keep your number protected from recycling.",
+Chatforia/Chatforia/UpgradeView.swift:110:            subtitle: "Remove distractions and unlock practical communication tools.",
+Chatforia/Chatforia/UpgradeView.swift:126:            subtitle: "Unlock personalization, AI tools, and advanced Chatforia features.",
+Chatforia/Chatforia/SMSThreadView.swift:186:                subtitle: "Pulling in your latest text messages."

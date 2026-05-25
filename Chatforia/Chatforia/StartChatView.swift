@@ -18,20 +18,20 @@ struct StartChatView: View {
                 Group {
                     if vm.isLoading && vm.results.isEmpty {
                         LoadingStateView(
-                            title: "Searching…",
-                            subtitle: "Looking for people you can message."
+                            title: String(localized: "ios.searching"),
+                            subtitle: String(localized: "ios.looking_for_people_you_can_message")
                         )
                     } else if let errorText = vm.errorText, !errorText.isEmpty, vm.results.isEmpty {
                         EmptyStateView(
                             systemImage: "exclamationmark.magnifyingglass",
-                            title: "Search unavailable",
+                            title: String(localized: "ios.search_unavailable"),
                             subtitle: errorText
                         )
                     } else if vm.trimmedQuery.isEmpty {
                         EmptyStateView(
                             systemImage: "person.crop.circle.badge.plus",
-                            title: "Start a conversation",
-                            subtitle: "Search by username, contact name, or phone number."
+                            title: String(localized: "common.startConversation"),
+                            subtitle: String(localized: "ios.search_by_username_contact_or_phone")
                         )
                     } else if vm.looksLikePhoneInput && vm.contactResults.isEmpty,
                               let phone = vm.normalizedPhoneCandidate {
@@ -39,8 +39,8 @@ struct StartChatView: View {
                       } else if vm.results.isEmpty && vm.contactResults.isEmpty {
                         EmptyStateView(
                             systemImage: "magnifyingglass",
-                            title: "No users found",
-                            subtitle: "Try a different username, contact name, or phone number."
+                            title: String(localized: "ios.no_users_found"),
+                            subtitle: String(localized: "ios.try_different_username_contact_or_phone")
                         )
                     } else {
                         List {
@@ -52,7 +52,7 @@ struct StartChatView: View {
                             }
                             
                             if !vm.contactResults.isEmpty {
-                                Section("Saved contacts") {
+                                Section(String(localized: "contacts.savedContacts")) {
                                     ForEach(vm.contactResults) { contact in
                                         Button {
                                             Task { await selectContact(contact) }
@@ -65,7 +65,7 @@ struct StartChatView: View {
                                                         .font(.body.weight(.medium))
                                                         .foregroundStyle(themeManager.palette.primaryText)
 
-                                                    Text(contact.externalPhone ?? (contact.user?.username.map { "@\($0)" } ?? "Open conversation"))
+                                                    Text(contact.externalPhone ?? (contact.user?.username.map { "@\($0)" } ?? String(localized: "common.openConversation")))
                                                         .font(.footnote)
                                                         .foregroundStyle(themeManager.palette.secondaryText)
                                                 }
@@ -102,7 +102,7 @@ struct StartChatView: View {
                                                     .font(.body.weight(.medium))
                                                     .foregroundStyle(themeManager.palette.primaryText)
 
-                                                Text("Start Chatforia chat")
+                                                Text(String(localized: "contacts.startChatforiaChat"))
                                                     .font(.footnote)
                                                     .foregroundStyle(themeManager.palette.secondaryText)
                                             }
@@ -132,7 +132,10 @@ struct StartChatView: View {
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $vm.searchText, prompt: "Username, contact name, or phone number")
+            .searchable(
+                text: $vm.searchText,
+                prompt: Text("ios.username_contact_name_or_phone_number")
+            )
             .onChange(of: vm.searchText) { _, _ in
                 vm.handleSearchTextChanged(currentUserId: auth.currentUser?.id)
             }
@@ -185,7 +188,7 @@ struct StartChatView: View {
                 rowContent(
                     icon: "phone.fill",
                     title: phone,
-                    subtitle: "Text this number"
+                    subtitle: String(localized: "ios.text_this_number")
                 )
             }
             .buttonStyle(.plain)
@@ -199,7 +202,7 @@ struct StartChatView: View {
                 rowContent(
                     icon: "square.and.arrow.up",
                     title: phone,
-                    subtitle: "Invite to Chatforia"
+                    subtitle: String(localized: "ios.invite_to_chatforia")
                 )
             }
             .buttonStyle(.plain)
@@ -272,7 +275,7 @@ struct StartChatView: View {
 
     private func selectPhone() async {
         guard let phone = vm.normalizedPhoneCandidate else {
-            vm.errorText = "Invalid phone number"
+            vm.errorText = String(localized: "ios.invalid_phone_number")
             return
         }
 

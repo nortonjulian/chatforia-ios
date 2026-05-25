@@ -6,7 +6,8 @@ struct PlanView: View {
 
     @State private var showUpgrade = false
 
-    private let manageSubscriptionsURL = URL(string: "https://apps.apple.com/account/subscriptions")!
+    private let manageSubscriptionsURL =
+        URL(string: "https://apps.apple.com/account/subscriptions")!
 
     var body: some View {
         ScrollView {
@@ -18,7 +19,7 @@ struct PlanView: View {
             .padding()
         }
         .background(themeManager.palette.screenBackground)
-        .navigationTitle("Plan & Billing")
+        .navigationTitle(String(localized: "billing.planAndBilling"))
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(isPresented: $showUpgrade) {
             UpgradeView()
@@ -28,9 +29,9 @@ struct PlanView: View {
     }
 
     private var currentPlanSection: some View {
-        SectionCardView(title: "My Plan") {
+        SectionCardView(title: String(localized: "billing.myPlan")) {
             VStack(alignment: .leading, spacing: 14) {
-                Text("billing.currentPlan")
+                Text(String(localized: "billing.currentPlan"))
                     .font(.subheadline)
                     .foregroundStyle(themeManager.palette.secondaryText)
 
@@ -47,7 +48,7 @@ struct PlanView: View {
     }
 
     private var billingSection: some View {
-        SectionCardView(title: "Compare Plans") {
+        SectionCardView(title: String(localized: "billing.comparePlans")) {
             VStack(spacing: 16) {
                 planComparisonSection
 
@@ -57,21 +58,29 @@ struct PlanView: View {
 
                 switch currentPlan {
                 case .free:
-                    ThemedOutlineButton(title: "common.upgrade") {
+                    ThemedOutlineButton(
+                        title: String(localized: "common.upgrade")
+                    ) {
                         showUpgrade = true
                     }
 
                 case .plus:
-                    ThemedOutlineButton(title: "Upgrade to Premium") {
+                    ThemedOutlineButton(
+                        title: String(localized: "upgrade.to_premium")
+                    ) {
                         showUpgrade = true
                     }
 
-                    ThemedOutlineButton(title: "Manage Subscription") {
+                    ThemedOutlineButton(
+                        title: String(localized: "common.manageSubscription")
+                    ) {
                         openManageSubscriptions()
                     }
 
                 case .premium:
-                    ThemedOutlineButton(title: "Manage Subscription") {
+                    ThemedOutlineButton(
+                        title: String(localized: "common.manageSubscription")
+                    ) {
                         openManageSubscriptions()
                     }
                 }
@@ -82,50 +91,50 @@ struct PlanView: View {
 
     private var planComparisonSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Go ad-free with Plus, or unlock AI tools and customization with Premium.")
+            Text(String(localized: "billing.compareDescription"))
                 .font(.footnote)
                 .foregroundStyle(themeManager.palette.secondaryText)
 
             HStack {
                 Spacer()
 
-                Text("Plus")
+                Text(String(localized: "billing.plus"))
                     .font(.caption.weight(.medium))
                     .foregroundStyle(themeManager.palette.secondaryText)
                     .frame(width: 40)
 
-                Text("Premium")
+                Text(String(localized: "billing.premium"))
                     .font(.caption.weight(.medium))
                     .foregroundStyle(themeManager.palette.secondaryText)
                     .frame(width: 60)
             }
 
-            planRow("Ad-free experience", plus: true, premium: true)
-            planRow("Longer message history", plus: true, premium: true)
-            planRow("Call & text forwarding", plus: true, premium: true)
-            planRow("AI tools", plus: false, premium: true)
-            planRow("Premium themes & sounds", plus: false, premium: true)
-            planRow("Priority support", plus: false, premium: true)
+            planRow(String(localized: "billing.feature.adFree"), plus: true, premium: true)
+            planRow(String(localized: "billing.feature.longerHistory"), plus: true, premium: true)
+            planRow(String(localized: "billing.feature.forwarding"), plus: true, premium: true)
+            planRow(String(localized: "billing.feature.aiTools"), plus: false, premium: true)
+            planRow(String(localized: "billing.feature.premiumThemes"), plus: false, premium: true)
+            planRow(String(localized: "billing.feature.prioritySupport"), plus: false, premium: true)
         }
     }
 
     private var includedSection: some View {
-        SectionCardView(title: "Included") {
+        SectionCardView(title: String(localized: "billing.includedTitle")) {
             VStack(alignment: .leading, spacing: 12) {
-                featureRow("Messaging")
-                featureRow("Translation")
-                featureRow("Media sharing")
+                featureRow(String(localized: "billing.included.messaging"))
+                featureRow(String(localized: "billing.included.translation"))
+                featureRow(String(localized: "billing.included.mediaSharing"))
 
                 if currentPlan == .plus || currentPlan == .premium {
-                    featureRow("Expanded access")
-                    featureRow("Enhanced features")
+                    featureRow(String(localized: "billing.included.expandedAccess"))
+                    featureRow(String(localized: "billing.included.enhancedFeatures"))
                 }
 
                 if currentPlan == .premium {
-                    featureRow("Premium themes")
-                    featureRow("Premium sounds")
-                    featureRow("AI tools")
-                    featureRow("Priority support")
+                    featureRow(String(localized: "billing.included.premiumThemes"))
+                    featureRow(String(localized: "billing.included.premiumSounds"))
+                    featureRow(String(localized: "billing.included.aiTools"))
+                    featureRow(String(localized: "billing.included.prioritySupport"))
                 }
             }
             .padding(.vertical, 8)
@@ -145,7 +154,11 @@ struct PlanView: View {
         }
     }
 
-    private func planRow(_ title: String, plus: Bool, premium: Bool) -> some View {
+    private func planRow(
+        _ title: String,
+        plus: Bool,
+        premium: Bool
+    ) -> some View {
         HStack {
             Text(title)
                 .font(.subheadline)
@@ -155,11 +168,19 @@ struct PlanView: View {
 
             HStack(spacing: 16) {
                 Image(systemName: plus ? "checkmark.circle.fill" : "xmark.circle")
-                    .foregroundStyle(plus ? themeManager.palette.accent : themeManager.palette.secondaryText)
+                    .foregroundStyle(
+                        plus
+                            ? themeManager.palette.accent
+                            : themeManager.palette.secondaryText
+                    )
                     .frame(width: 40)
 
                 Image(systemName: premium ? "checkmark.circle.fill" : "xmark.circle")
-                    .foregroundStyle(premium ? themeManager.palette.buttonEnd : themeManager.palette.secondaryText)
+                    .foregroundStyle(
+                        premium
+                            ? themeManager.palette.buttonEnd
+                            : themeManager.palette.secondaryText
+                    )
                     .frame(width: 60)
             }
         }
@@ -172,11 +193,11 @@ struct PlanView: View {
     private var planDescription: String {
         switch currentPlan {
         case .free:
-            return "Basic access to Chatforia with core messaging features."
+            return String(localized: "billing.description.free")
         case .plus:
-            return "Ad-free access with longer history and forwarding features."
+            return String(localized: "billing.description.plus")
         case .premium:
-            return "Full access to premium customization, AI tools, and priority support."
+            return String(localized: "billing.description.premium")
         }
     }
 

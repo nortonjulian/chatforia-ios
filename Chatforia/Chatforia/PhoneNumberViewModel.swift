@@ -83,8 +83,8 @@ final class PhoneNumberViewModel: ObservableObject {
                     response.error ??
                     response.message ??
                     (mode == .premium
-                        ? "No available inventory right now."
-                        : "No free numbers in our pool for that area code right now.")
+                     ? String(localized: "phoneNumber.noInventory")
+                     : String(localized: "phoneNumber.noFreeNumbersForAreaCode"))
             }
         } catch {
             errorText = error.localizedDescription

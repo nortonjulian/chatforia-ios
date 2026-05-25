@@ -149,7 +149,7 @@ struct VoicemailInboxView: View {
                 .font(.headline)
                 .foregroundStyle(themeManager.palette.primaryText)
 
-            Text("When someone leaves you a voicemail, it will show up here.")
+            Text("voicemail.emptySubtitle")
                 .font(.subheadline)
                 .foregroundStyle(themeManager.palette.secondaryText)
                 .multilineTextAlignment(.center)

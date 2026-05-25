@@ -25,7 +25,7 @@ struct ContactDetailView: View {
         if let externalPhone = contact.externalPhone?.trimmingCharacters(in: .whitespacesAndNewlines), !externalPhone.isEmpty {
             return externalPhone
         }
-        return "Unknown Contact"
+        return String(localized: "ios.unknown_contact")
     }
 
     private var subtitle: String {

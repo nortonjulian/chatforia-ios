@@ -43,7 +43,10 @@ struct ContactsRootView: View {
             }
             .navigationTitle(String(localized: "tab_contacts"))
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $vm.searchText, prompt: "Search contacts")
+            .searchable(
+                text: $vm.searchText,
+                prompt: String(localized: "ios.search_contacts")
+            )
             .onChange(of: vm.searchText) { _, _ in
                 Task { await reload() }
             }
@@ -72,7 +75,10 @@ struct ContactsRootView: View {
                         Button {
                             showingInviteFriends = true
                         } label: {
-                            Label("Invite Friends", systemImage: "square.and.arrow.up")
+                            Label(
+                                String(localized: "ios.invite_friends"),
+                                systemImage: "square.and.arrow.up"
+                            )
                         }
                     } label: {
                         Image(systemName: "plus")
@@ -134,15 +140,15 @@ struct ContactsRootView: View {
         Group {
             if vm.isLoading && vm.contacts.isEmpty {
                 LoadingStateView(
-                    title: "Loading contacts…",
-                    subtitle: "Pulling in your saved people."
+                    title: String(localized: "ios.loading_contacts"),
+                    subtitle: String(localized: "ios.pulling_in_your_saved_people")
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             } else if let errorText = vm.errorText, !errorText.isEmpty, vm.contacts.isEmpty {
                 EmptyStateView(
                     systemImage: "person.crop.circle.badge.exclamationmark",
-                    title: "Couldn’t load contacts",
+                    title: String(localized: "ios.couldn_t_load_contacts"),
                     subtitle: errorText,
                     buttonTitle: "common.tryAgain",
                     buttonAction: {
@@ -154,16 +160,16 @@ struct ContactsRootView: View {
             } else if vm.contacts.isEmpty && !vm.searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 EmptyStateView(
                     systemImage: "magnifyingglass",
-                    title: "No contacts found",
-                    subtitle: "Try a different name or username."
+                    title: String(localized: "ios.no_contacts_found"),
+                    subtitle: String(localized: "ios.try_a_different_name_or_username")
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             } else if vm.contacts.isEmpty {
                 EmptyStateView(
                     systemImage: "person.2",
-                    title: "No contacts yet",
-                    subtitle: "Add contacts manually, import them from your phone, or start a new conversation.",
+                    title: String(localized: "ios.no_contacts_yet"),
+                    subtitle: String(localized: "ios.add_contacts_manually_import_from_phone_or_start_new_conversation"),
                     buttonTitle: String(localized: "common.newConversation"),
                     buttonAction: {
                         showingStartChat = true
@@ -244,7 +250,7 @@ struct ContactsRootView: View {
             guard let phone = contact.externalPhone?
                 .trimmingCharacters(in: .whitespacesAndNewlines),
                   !phone.isEmpty else {
-                vm.errorText = "Invalid phone number"
+                vm.errorText = String(localized: "ios.invalid_phone_number")
                 return
             }
 
@@ -255,7 +261,7 @@ struct ContactsRootView: View {
 
         case .video:
             guard let calleeId = contact.user?.id else {
-                vm.errorText = "This contact does not support video calls"
+                vm.errorText = String(localized: "ios.contact_does_not_support_video_calls")
                 return
             }
 

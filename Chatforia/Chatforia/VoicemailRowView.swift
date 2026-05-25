@@ -19,7 +19,8 @@ struct VoicemailRowView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Text(displayCaller)
-                            .font(.subheadline.weight(voicemail.isRead ? .regular : .bold))                            .foregroundStyle(themeManager.palette.primaryText)
+                            .font(.subheadline.weight(voicemail.isRead ? .regular : .bold))
+                            .foregroundStyle(themeManager.palette.primaryText)
                             .lineLimit(1)
 
                         Spacer(minLength: 8)
@@ -31,9 +32,12 @@ struct VoicemailRowView: View {
                     }
 
                     HStack(spacing: 8) {
-                        Label("Voicemail", systemImage: "waveform")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(themeManager.palette.accent)
+                        Label(
+                            String(localized: "voicemail.title"),
+                            systemImage: "waveform"
+                        )
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(themeManager.palette.accent)
 
                         if let durationSec = voicemail.durationSec {
                             Text(AudioAttachmentCardView.formatTime(Double(durationSec)))
@@ -64,7 +68,10 @@ struct VoicemailRowView: View {
         .buttonStyle(.plain)
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             Button(role: .destructive, action: onDelete) {
-                Label("common.delete", systemImage: "trash")
+                Label(
+                    String(localized: "common.delete"),
+                    systemImage: "trash"
+                )
             }
 
             Button(action: onToggleRead) {
@@ -83,7 +90,7 @@ struct VoicemailRowView: View {
 
     private var displayCaller: String {
         let trimmed = voicemail.fromNumber.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? "Unknown Caller" : trimmed
+        return trimmed.isEmpty ? String(localized: "voicemail.unknownCaller") : trimmed
     }
 
     private var transcriptPreview: String? {
@@ -98,11 +105,11 @@ struct VoicemailRowView: View {
     private var fallbackSubtitle: String {
         switch voicemail.transcriptStatus {
         case .pending:
-            return "Transcript pending"
+            return String(localized: "voicemail.transcriptPending")
         case .failed:
-            return "Transcript unavailable"
+            return String(localized: "voicemail.transcriptUnavailable")
         case .complete:
-            return "Tap to play"
+            return String(localized: "voicemail.tapToPlay")
         }
     }
 

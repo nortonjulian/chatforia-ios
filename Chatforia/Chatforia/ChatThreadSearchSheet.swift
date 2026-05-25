@@ -29,7 +29,7 @@ struct ChatThreadSearchSheet: View {
                 .buttonStyle(.plain)
             }
             .searchable(text: $searchText, prompt: Text("messages.searchMessages"))
-            .navigationTitle("Search in chat")
+            .navigationTitle(String(localized: "ios.search_in_chat"))
             .navigationBarTitleDisplayMode(.inline)
         }
     }
@@ -61,7 +61,7 @@ struct ChatThreadSearchSheet: View {
         }
 
         if message.deletedForAll == true {
-            return "This message was deleted"
+            return String(localized: "messages.thisMessageWasDeleted")
         }
 
         if message.contentCiphertext != nil {

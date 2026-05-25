@@ -36,17 +36,17 @@ struct ChatsRootView: View {
                     Group {
                         if vm.isLoading && vm.conversations.isEmpty {
                             LoadingStateView(
-                                title: "Loading chats…",
-                                subtitle: "Pulling in your latest conversations."
+                                title: String(localized: "ios.loading_chats"),
+                                subtitle: String(localized: "ios.pulling_in_your_latest_conversations")
                             )
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                         } else if let err = vm.errorText, !err.isEmpty, vm.conversations.isEmpty {
                             EmptyStateView(
                                 systemImage: "exclamationmark.bubble",
-                                title: "Couldn’t load chats",
+                                title: String(localized: "ios.couldn_t_load_chats"),
                                 subtitle: err,
-                                buttonTitle: "common.tryAgain",
+                                buttonTitle: String(localized: "common.tryAgain"),
                                 buttonAction: {
                                     Task { await reload() }
                                 }
@@ -57,16 +57,16 @@ struct ChatsRootView: View {
                                     !vm.searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                             EmptyStateView(
                                 systemImage: "magnifyingglass",
-                                title: "No results",
-                                subtitle: "Try searching for a different name or message."
+                                title: String(localized: "ios.no_results"),
+                                subtitle: String(localized: "ios.try_searching_for_a_different_name_or_message")
                             )
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                         } else if vm.conversations.isEmpty {
                             EmptyStateView(
                                 systemImage: "bubble.left.and.bubble.right",
-                                title: "No chats yet",
-                                subtitle: "Tap the plus button to start your first conversation."
+                                title: String(localized: "ios.no_chats_yet"),
+                                subtitle: String(localized: "ios.tap_the_plus_button_to_start_your_first_conversation")
                             )
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
@@ -98,7 +98,10 @@ struct ChatsRootView: View {
                                         Button {
                                             handleMessageFromChats(conversation)
                                         } label: {
-                                            Label("Message", systemImage: "message.fill")
+                                            Label(
+                                                String(localized: "ios.message"),
+                                                systemImage: "message.fill"
+                                            )
                                         }
                                         .tint(themeManager.palette.accent)
                                     }
@@ -109,7 +112,10 @@ struct ChatsRootView: View {
                                                 _ = await vm.archiveConversation(conversation, token: token)
                                             }
                                         } label: {
-                                            Label("common.archive", systemImage: "archivebox")
+                                            Label(
+                                                String(localized: "common.delete"),
+                                                systemImage: "trash"
+                                            )
                                         }
                                         .tint(.blue)
 
@@ -166,7 +172,7 @@ struct ChatsRootView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
             .navigationTitle(String(localized: "tab_chats"))
-            .searchable(text: $vm.searchText, prompt: "Search chats")
+            .searchable(text: $vm.searchText, prompt: Text("ios.search_chats"))
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button {
@@ -227,8 +233,14 @@ struct ChatsRootView: View {
                     }
                 )
             }
-            .alert("messages.deleteConversationTitle", isPresented: $showDeleteConfirm) {
-                Button("common.delete", role: .destructive) {
+            .alert(
+                String(localized: "messages.deleteConversationTitle"),
+                isPresented: $showDeleteConfirm
+            ) {
+                Button(
+                    String(localized: "common.delete"),
+                    role: .destructive
+                ) {
                     if let convo = pendingConversation {
                         Task {
                             let token = TokenStore.shared.read()
@@ -241,7 +253,7 @@ struct ChatsRootView: View {
                     pendingConversation = nil
                 }
             } message: {
-                Text("This will remove the conversation from your list.")
+                Text("ios.this_will_remove_the_conversation_from_your_list")
             }
             .task {
                 if !didSetupRandomMatchListener {
@@ -333,8 +345,13 @@ struct ChatsRootView: View {
             guard let dict = data.first as? [String: Any],
                   let roomId = dict["roomId"] as? Int else { return }
 
-            let myAlias = dict["myAlias"] as? String ?? "You"
-            let partnerAlias = dict["partnerAlias"] as? String ?? "Stranger"
+            let myAlias =
+                dict["myAlias"] as? String
+                ?? String(localized: "common.you")
+
+            let partnerAlias =
+                dict["partnerAlias"] as? String
+                ?? String(localized: "random.stranger")
 
             Task { @MainActor in
                 await handleMatchFound(
@@ -422,17 +439,20 @@ struct ChatsRootView: View {
                 return phone
             }
 
-            return "messages.conversation"
+            return String(localized: "messages.conversation")
         }
 
-        return "Chat #\(item.id?.description ?? "draft")"
+        return String(
+            format: String(localized: "ios.chat_number"),
+            item.id?.description ?? String(localized: "ios.draft")
+        )
     }
 
     private func conversationSubtitle(_ conversation: ConversationDTO) -> String {
         guard let last = conversation.last else {
             return conversation.kind.lowercased() == "sms"
-                ? "Tap to open SMS thread"
-                : "Tap to open"
+                ? String(localized: "ios.tap_to_open_sms_thread")
+                : String(localized: "ios.tap_to_open")
         }
 
         let text = last.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -453,15 +473,15 @@ struct ChatsRootView: View {
             if kinds.contains("GIF") {
                 base = "🎞 GIF"
             } else if kinds.contains("IMAGE") {
-                base = "📷 Photo"
+                base = "📷 \(String(localized: "ios.photo"))"
             } else if kinds.contains("AUDIO") {
-                base = "🎤 Voice message"
+                base = "🎤 \(String(localized: "ios.voice_message"))"
             } else if kinds.contains("VIDEO") {
-                base = "🎥 Video"
+                base = "🎥 \(String(localized: "ios.video"))"
             } else if let mediaCount = last.mediaCount, mediaCount > 1 {
-                base = "📎 \(mediaCount) attachments"
+                base = "📎 \(String(localized: "ios.attachment"))"
             } else {
-                base = "📎 Attachment"
+                base = "📎 \(String(localized: "ios.attachment"))"
             }
 
             if (conversation.isGroup ?? false),
@@ -473,7 +493,7 @@ struct ChatsRootView: View {
             return base
         }
 
-        return "Tap to open"
+        return String(localized: "ios.tap_to_open")
     }
 
     private func conversationTimestamp(_ item: ConversationDTO) -> String {
@@ -491,10 +511,15 @@ private struct UnsupportedConversationView: View {
     var body: some View {
         EmptyStateView(
             systemImage: "questionmark.bubble",
-            title: "Unsupported conversation",
-            subtitle: "Kind: \(conversation.kind)"
+            title: String(localized: "ios.unsupported_conversation"),
+            subtitle: String(
+                format: String(localized: "ios.kind_format"),
+                conversation.kind
+            )
         )
-        .navigationTitle("messages.conversation")
+        .navigationTitle(
+            String(localized: "messages.conversation")
+        )
         .navigationBarTitleDisplayMode(.inline)
     }
 }
