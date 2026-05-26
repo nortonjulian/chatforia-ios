@@ -5,6 +5,7 @@ struct DialerView: View {
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var callManager: CallManager
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
     
     @Environment(\.dismiss) private var dismiss
     
@@ -66,13 +67,19 @@ struct DialerView: View {
     
     private var header: some View {
         HStack {
-            Text(String(localized: "dialer.dial"))
+            Text(appText(
+                "dialer.dial",
+                languageCode: appLanguage
+            ))
                 .font(.title2.weight(.semibold))
                 .foregroundStyle(themeManager.palette.primaryText)
             
             Spacer()
             
-            Button(String(localized: "common.done")) {
+            Button(appText(
+                "common.done",
+                languageCode: appLanguage
+            )) {
                 dismiss()
             }
             .font(.headline.weight(.semibold))
@@ -86,7 +93,10 @@ struct DialerView: View {
         HStack(spacing: 10) {
             Text(
                 digits.isEmpty
-                ? String(localized: "dialer.enterNumber")
+                ? appText(
+                    "dialer.enterNumber",
+                    languageCode: appLanguage
+                )
                 : formattedDisplayDigits
             )
                 .font(.system(size: 28, weight: .medium, design: .rounded))
@@ -144,7 +154,10 @@ struct DialerView: View {
             if let contact = primaryMatch, shouldShowSuggestionRow {
                 HStack(spacing: 12) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(String(localized: "common.suggested"))
+                        Text(appText(
+                            "common.suggested",
+                            languageCode: appLanguage
+                        ))
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(themeManager.palette.primaryText.opacity(0.55))
 
@@ -257,7 +270,10 @@ struct DialerView: View {
             return externalPhone
         }
 
-        return String(localized: "contacts.unknown")
+        return appText(
+            "contacts.unknown",
+            languageCode: appLanguage
+        )
     }
     
     private var primaryMatch: ContactDTO? {
@@ -371,8 +387,14 @@ struct DialerView: View {
                     Image(systemName: "phone.fill")
                     Text(
                         isCalling
-                        ? String(localized: "calls.calling")
-                        : String(localized: "calls.call")
+                        ? appText(
+                            "calls.calling",
+                            languageCode: appLanguage
+                        )
+                        : appText(
+                            "calls.call",
+                            languageCode: appLanguage
+                        )
                     )
                 }
                 .font(.headline.weight(.semibold))

@@ -7,6 +7,7 @@ struct VoicemailRowView: View {
     let onDelete: () -> Void
 
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     var body: some View {
         Button(action: onTap) {
@@ -33,7 +34,7 @@ struct VoicemailRowView: View {
 
                     HStack(spacing: 8) {
                         Label(
-                            String(localized: "voicemail.title"),
+                            appText("voicemail.title", languageCode: appLanguage),
                             systemImage: "waveform"
                         )
                         .font(.caption.weight(.semibold))
@@ -69,7 +70,7 @@ struct VoicemailRowView: View {
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             Button(role: .destructive, action: onDelete) {
                 Label(
-                    String(localized: "common.delete"),
+                    appText("common.delete", languageCode: appLanguage),
                     systemImage: "trash"
                 )
             }
@@ -77,8 +78,8 @@ struct VoicemailRowView: View {
             Button(action: onToggleRead) {
                 Label(
                     voicemail.isRead
-                        ? String(localized: "common.unread")
-                        : String(localized: "common.read"),
+                        ? appText("common.unread", languageCode: appLanguage)
+                        : appText("common.read", languageCode: appLanguage),
                     systemImage: voicemail.isRead
                         ? "envelope.badge"
                         : "checkmark.circle"
@@ -90,7 +91,9 @@ struct VoicemailRowView: View {
 
     private var displayCaller: String {
         let trimmed = voicemail.fromNumber.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? String(localized: "voicemail.unknownCaller") : trimmed
+        return trimmed.isEmpty
+            ? appText("voicemail.unknownCaller", languageCode: appLanguage)
+            : trimmed
     }
 
     private var transcriptPreview: String? {
@@ -105,11 +108,11 @@ struct VoicemailRowView: View {
     private var fallbackSubtitle: String {
         switch voicemail.transcriptStatus {
         case .pending:
-            return String(localized: "voicemail.transcriptPending")
+            return appText("voicemail.transcriptPending", languageCode: appLanguage)
         case .failed:
-            return String(localized: "voicemail.transcriptUnavailable")
+            return appText("voicemail.transcriptUnavailable", languageCode: appLanguage)
         case .complete:
-            return String(localized: "voicemail.tapToPlay")
+            return appText("voicemail.tapToPlay", languageCode: appLanguage)
         }
     }
 

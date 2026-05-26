@@ -27,6 +27,10 @@ final class TwilioVideoService: NSObject {
     static let shared = TwilioVideoService()
 
     weak var delegate: TwilioVideoServiceDelegate?
+    
+    private var appLanguage: String {
+        UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
+    }
 
     private(set) var room: Room?
     private(set) var roomName: String?
@@ -136,7 +140,12 @@ final class TwilioVideoService: NSObject {
         let newPosition: AVCaptureDevice.Position = isFrontCamera ? .back : .front
 
         guard let device = CameraSource.captureDevice(position: newPosition) else {
-            delegate?.twilioVideoDidFail("No camera available.")
+            delegate?.twilioVideoDidFail(
+                appText(
+                    "media.noCameraAvailable",
+                    languageCode: appLanguage
+                )
+            )
             return
         }
 
@@ -177,7 +186,13 @@ final class TwilioVideoService: NSObject {
             throw NSError(
                 domain: "TwilioVideoService",
                 code: 1000,
-                userInfo: [NSLocalizedDescriptionKey: "Could not create camera source."]
+                userInfo: [
+                    NSLocalizedDescriptionKey:
+                        appText(
+                            "media.couldNotCreateCameraSource",
+                            languageCode: appLanguage
+                        )
+                ]
             )
         }
 
@@ -189,7 +204,13 @@ final class TwilioVideoService: NSObject {
             throw NSError(
                 domain: "TwilioVideoService",
                 code: 1001,
-                userInfo: [NSLocalizedDescriptionKey: "No camera available."]
+                userInfo: [
+                    NSLocalizedDescriptionKey:
+                        appText(
+                            "media.noCameraAvailable",
+                            languageCode: appLanguage
+                        )
+                ]
             )
         }
 

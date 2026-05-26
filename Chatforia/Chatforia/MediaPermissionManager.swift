@@ -6,20 +6,24 @@ enum MediaPermissionError: LocalizedError {
     case microphoneDenied
     case cameraRestricted
     case microphoneRestricted
+    
+    private var appLanguage: String {
+        UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
+    }
 
     var errorDescription: String? {
         switch self {
         case .cameraDenied:
-            return String(localized: "media.cameraDenied")
+            return appText("media.cameraDenied", languageCode: appLanguage)
 
         case .microphoneDenied:
-            return String(localized: "media.microphoneDenied")
+            return appText("media.microphoneDenied", languageCode: appLanguage)
 
         case .cameraRestricted:
-            return String(localized: "media.cameraRestricted")
+            return appText("media.cameraRestricted", languageCode: appLanguage)
 
         case .microphoneRestricted:
-            return String(localized: "media.microphoneRestricted")
+            return appText("media.microphoneRestricted", languageCode: appLanguage)
         }
     }
 }

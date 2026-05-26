@@ -11,29 +11,50 @@ enum ReportReason: String, CaseIterable, Identifiable, Codable {
 
     var id: String { rawValue }
 
-    var title: String {
+    func title(languageCode: String) -> String {
         switch self {
 
         case .harassment:
-            return String(localized: "report.harassment")
+            return appText(
+                "report.harassment",
+                languageCode: languageCode
+            )
 
         case .threats:
-            return String(localized: "report.threats")
+            return appText(
+                "report.threats",
+                languageCode: languageCode
+            )
 
         case .hate:
-            return String(localized: "report.hate")
+            return appText(
+                "report.hate",
+                languageCode: languageCode
+            )
 
         case .sexualContent:
-            return String(localized: "report.sexualContent")
+            return appText(
+                "report.sexualContent",
+                languageCode: languageCode
+            )
 
         case .spamScam:
-            return String(localized: "report.spamScam")
+            return appText(
+                "report.spamScam",
+                languageCode: languageCode
+            )
 
         case .impersonation:
-            return String(localized: "report.impersonation")
+            return appText(
+                "report.impersonation",
+                languageCode: languageCode
+            )
 
         case .other:
-            return String(localized: "report.other")
+            return appText(
+                "report.other",
+                languageCode: languageCode
+            )
         }
     }
 }

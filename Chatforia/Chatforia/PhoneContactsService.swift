@@ -31,8 +31,11 @@ final class PhoneContactsService {
                     .joined(separator: " ")
                     .trimmingCharacters(in: .whitespacesAndNewlines)
 
-                let displayName = fullName.isEmpty ? "Unknown" : fullName
-
+                let language = UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
+                let displayName = fullName.isEmpty
+                    ? appText("common.unknown", languageCode: language)
+                    : fullName
+                
                 for phoneValue in contact.phoneNumbers {
                     let raw = phoneValue.value.stringValue
                     let normalized = Self.normalizePhone(raw)

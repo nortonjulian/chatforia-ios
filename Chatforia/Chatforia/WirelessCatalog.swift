@@ -7,38 +7,29 @@ enum EsimScope: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var displayName: String {
+    func displayName(languageCode: String) -> String {
         switch self {
         case .local:
-            return String(localized: "esim.local")
+            return appText("esim.local", languageCode: languageCode)
 
         case .europe:
-            return String(localized: "esim.europe")
+            return appText("esim.europe", languageCode: languageCode)
 
         case .global:
-            return String(localized: "esim.global")
+            return appText("esim.global", languageCode: languageCode)
         }
     }
 
-    var subtitle: String {
+    func subtitle(languageCode: String) -> String {
         switch self {
         case .local:
-            return String(
-                localized:
-                "esim.localSubtitle"
-            )
+            return appText("esim.localSubtitle", languageCode: languageCode)
 
         case .europe:
-            return String(
-                localized:
-                "esim.europeSubtitle"
-            )
+            return appText("esim.europeSubtitle", languageCode: languageCode)
 
         case .global:
-            return String(
-                localized:
-                "esim.globalSubtitle"
-            )
+            return appText("esim.globalSubtitle", languageCode: languageCode)
         }
     }
 }
@@ -48,12 +39,20 @@ struct DataPackOption: Identifiable, Hashable {
     let product: String
     let scope: EsimScope
     let gb: Int
-    let title: String
-    let description: String
+    let titleKey: String
+    let descriptionKey: String
 
-    var displayDataAmount: String {
+    func title(languageCode: String) -> String {
+        appText(titleKey, languageCode: languageCode)
+    }
+
+    func description(languageCode: String) -> String {
+        appText(descriptionKey, languageCode: languageCode)
+    }
+
+    func displayDataAmount(languageCode: String) -> String {
         gb == 0
-            ? String(localized:"esim.unlimited")
+            ? appText("esim.unlimited", languageCode: languageCode)
             : "\(gb) GB"
     }
 }
@@ -68,41 +67,33 @@ enum WirelessCatalog {
                     product: "chatforia_esim_global_unlimited",
                     scope: .global,
                     gb: 0,
-                    title:
-                    String(
-                        localized:
-                        "esim.globalUnlimited"
-                    ),
-                    description:
-                    String(
-                        localized:
-                        "esim.heavyUsageDescription"
-                    )
+                    titleKey: "esim.globalUnlimited",
+                    descriptionKey: "esim.heavyUsageDescription"
                 ),
                 DataPackOption(
                     id: "chatforia_esim_global_3",
                     product: "chatforia_esim_global_3",
                     scope: .global,
                     gb: 3,
-                    title: "Global 3 GB",
-                    description: "Great for short trips and light international use."
+                    titleKey: "esim.global3gb",
+                    descriptionKey: "esim.global3gbDescription"
                 ),
                 DataPackOption(
                     id: "chatforia_esim_global_5",
                     product: "chatforia_esim_global_5",
                     scope: .global,
                     gb: 5,
-                    title: "Global 5 GB",
-                    description: "Perfect for moderate travel and daily connectivity."
+                    titleKey: "esim.global5gb",
+                    descriptionKey: "esim.global5gbDescription"
                 ),
                 DataPackOption(
                     id: "chatforia_esim_global_10",
                     product: "chatforia_esim_global_10",
                     scope: .global,
-                    gb: 10, // ✅ FIXED
-                    title: "Global 10 GB",
-                    description: "Ideal for longer trips, streaming, and frequent use."
-                ),
+                    gb: 10,
+                    titleKey: "esim.global10gb",
+                    descriptionKey: "esim.global10gbDescription"
+                )
             ]
 
         case .europe:
@@ -112,41 +103,41 @@ enum WirelessCatalog {
                     product: "chatforia_esim_europe_unlimited",
                     scope: .europe,
                     gb: 0,
-                    title: "Europe Unlimited",
-                    description: "Best for heavy usage, streaming, and never worrying about data limits."
+                    titleKey: "esim.europeUnlimited",
+                    descriptionKey: "esim.heavyUsageDescription"
                 ),
                 DataPackOption(
                     id: "chatforia_esim_europe_3",
                     product: "chatforia_esim_europe_3",
                     scope: .europe,
                     gb: 3,
-                    title: "Europe 3 GB",
-                    description: "Great for quick trips, maps, and messaging."
+                    titleKey: "esim.europe3gb",
+                    descriptionKey: "esim.europe3gbDescription"
                 ),
                 DataPackOption(
                     id: "chatforia_esim_europe_5",
                     product: "chatforia_esim_europe_5",
                     scope: .europe,
                     gb: 5,
-                    title: "Europe 5 GB",
-                    description: "Perfect for weekend trips and regular daily use."
+                    titleKey: "esim.europe5gb",
+                    descriptionKey: "esim.europe5gbDescription"
                 ),
                 DataPackOption(
                     id: "chatforia_esim_europe_10",
                     product: "chatforia_esim_europe_10",
                     scope: .europe,
                     gb: 10,
-                    title: "Europe 10 GB",
-                    description: "Ideal for longer stays, streaming, and daily use."
+                    titleKey: "esim.europe10gb",
+                    descriptionKey: "esim.europe10gbDescription"
                 ),
                 DataPackOption(
                     id: "chatforia_esim_europe_20",
                     product: "chatforia_esim_europe_20",
                     scope: .europe,
                     gb: 20,
-                    title: "Europe 20 GB",
-                    description: "Best for power users, hotspot use, and heavy browsing."
-                ),
+                    titleKey: "esim.europe20gb",
+                    descriptionKey: "esim.europe20gbDescription"
+                )
             ]
 
         case .local:
@@ -156,41 +147,41 @@ enum WirelessCatalog {
                     product: "chatforia_esim_local_unlimited",
                     scope: .local,
                     gb: 0,
-                    title: "Local Unlimited",
-                    description: "Best for heavy usage, streaming, and never worrying about data limits."
+                    titleKey: "esim.localUnlimited",
+                    descriptionKey: "esim.heavyUsageDescription"
                 ),
                 DataPackOption(
                     id: "chatforia_esim_local_3",
                     product: "chatforia_esim_local_3",
                     scope: .local,
                     gb: 3,
-                    title: "Local 3 GB",
-                    description: "Great for light use, maps, and messaging."
+                    titleKey: "esim.local3gb",
+                    descriptionKey: "esim.local3gbDescription"
                 ),
                 DataPackOption(
                     id: "chatforia_esim_local_5",
                     product: "chatforia_esim_local_5",
                     scope: .local,
                     gb: 5,
-                    title: "Local 5 GB",
-                    description: "Perfect for everyday use and regular browsing."
+                    titleKey: "esim.local5gb",
+                    descriptionKey: "esim.local5gbDescription"
                 ),
                 DataPackOption(
                     id: "chatforia_esim_local_10",
                     product: "chatforia_esim_local_10",
                     scope: .local,
                     gb: 10,
-                    title: "Local 10 GB",
-                    description: "Ideal for streaming, sharing, and heavier daily use."
+                    titleKey: "esim.local10gb",
+                    descriptionKey: "esim.local10gbDescription"
                 ),
                 DataPackOption(
                     id: "chatforia_esim_local_20",
                     product: "chatforia_esim_local_20",
                     scope: .local,
                     gb: 20,
-                    title: "Local 20 GB",
-                    description: "Best for power users, hotspot, and high data usage."
-                ),
+                    titleKey: "esim.local20gb",
+                    descriptionKey: "esim.local20gbDescription"
+                )
             ]
         }
     }

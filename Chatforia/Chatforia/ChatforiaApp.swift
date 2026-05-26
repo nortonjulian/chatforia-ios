@@ -77,6 +77,7 @@ struct ChatforiaApp: App {
                 ContentView()
                 CallOverlayHostView()
             }
+            .id(appLanguage)
             .onAppear {
                     AnalyticsManager.shared.capture("app_opened")
             }
@@ -101,8 +102,13 @@ struct ChatforiaApp: App {
                     settingsVM.load(from: user)
                     
                     appLanguage = user.uiLanguage ?? "en"
-                    print("🌍 appLanguage set to:", appLanguage)
-                    print("🌍 test common.welcome:", String(localized: "common.welcome", locale: Locale(identifier: appLanguage)))
+                    let path = Bundle.main.path(forResource: "es", ofType: "lproj")
+                    let esBundle = path.flatMap { Bundle(path: $0) }
+
+                    print("🌍 ES bundle path:", path ?? "nil")
+                    print("🌍 tab_calls ES bundle:", esBundle?.localizedString(forKey: "tab_calls", value: nil, table: "Localizable") ?? "nil")
+                    print("🌍 calls.recents ES bundle:", esBundle?.localizedString(forKey: "calls.recents", value: nil, table: "Localizable") ?? "nil")
+                    print("🌍 calls.voicemail ES bundle:", esBundle?.localizedString(forKey: "calls.voicemail", value: nil, table: "Localizable") ?? "nil")
                     
                     settingsVM.loadLocalAISettings()
 

@@ -3,6 +3,7 @@ import SwiftUI
 struct CallHistoryView: View {
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
     @EnvironmentObject private var callManager: CallManager
     
     @State private var items: [CallRecordDTO] = []
@@ -22,7 +23,7 @@ struct CallHistoryView: View {
         VStack(spacing: 0) {
             Picker("calls.section", selection: $selectedSegment) {
                 ForEach(CallsSegment.allCases) { segment in
-                    Text(segment.localizedTitle)
+                    Text(appText(segment.titleKey, languageCode: appLanguage))
                         .tag(segment)
                 }
             }
@@ -44,7 +45,9 @@ struct CallHistoryView: View {
                 }
             }
         }
-        .navigationTitle(String(localized: "tab_calls"))
+        .navigationTitle(
+            appText("tab_calls", languageCode: appLanguage)
+        )
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -54,7 +57,7 @@ struct CallHistoryView: View {
                     Image(systemName: "circle.grid.3x3.fill")
                 }
                 .accessibilityLabel(
-                    Text(String(localized:"dialer.openDialPad"))
+                    Text(appText("dialer.openDialPad", languageCode: appLanguage))
                 )
             }
         }
@@ -80,17 +83,17 @@ struct CallHistoryView: View {
         Group {
             if isLoading && items.isEmpty {
                 ProgressView(
-                    String(localized: "calls.loadingCalls")
+                    appText("calls.loadingCalls", languageCode: appLanguage)
                 )
             } else if let errorMessage, items.isEmpty {
                 contentUnavailable(
-                    title: String(localized: "calls.couldntLoadHistory"),
+                    title: appText("calls.couldntLoadHistory", languageCode: appLanguage),
                     message: errorMessage
                 )
             } else if items.isEmpty {
                 contentUnavailable(
-                    title: String(localized: "callHistory.emptyTitle"),
-                    message: String(localized: "callHistory.emptySubtitle")
+                    title: appText("callHistory.emptyTitle", languageCode: appLanguage),
+                    message: appText("callHistory.emptySubtitle", languageCode: appLanguage)
                 )
             } else {
                 List {
@@ -146,7 +149,7 @@ struct CallHistoryView: View {
                                 }
                             } label: {
                                 Label(
-                                    String(localized:"common.delete"),
+                                    appText("common.delete", languageCode: appLanguage),
                                     systemImage:"trash"
                                 )
                             }
@@ -158,7 +161,7 @@ struct CallHistoryView: View {
                                 }
                             } label: {
                                 Label(
-                                    String(localized: "ios.message"),
+                                    appText("ios.message", languageCode: appLanguage),
                                     systemImage: "message.fill"
                                 )
                             }
@@ -267,7 +270,7 @@ struct CallHistoryView: View {
         guard !isLoading else { return }
         guard let token = auth.currentToken, !token.isEmpty else {
             errorMessage =
-                String(localized:"auth.youNeedToBeSignedIn")
+            appText("auth.youNeedToBeSignedIn", languageCode: appLanguage)
             items = []
             return
         }
@@ -320,6 +323,7 @@ struct CallHistoryView: View {
     
     private struct CallHistoryRowView: View {
         @EnvironmentObject private var themeManager: ThemeManager
+        @AppStorage("chatforia_language") private var appLanguage = "en"
         
         let item: CallRecordDTO
         let currentUserId: Int?
@@ -381,29 +385,29 @@ struct CallHistoryView: View {
             }
 
             return isOutgoing
-                ? String(localized:"calls.outgoingCall")
-                : String(localized:"calls.incomingCall")
+                ? appText("calls.outgoingCall", languageCode: appLanguage)
+                : appText("calls.incomingCall", languageCode: appLanguage)
         }
         
         private var directionLabel: String {
             isOutgoing
-             ? String(localized:"calls.outgoing")
-             : String(localized:"calls.incoming")
+             ? appText("calls.outgoing", languageCode: appLanguage)
+             : appText("calls.incoming", languageCode: appLanguage)
         }
         
         private var statusLabel: String {
             switch item.status.uppercased() {
             case "MISSED":
-                return String(localized:"calls.missed")
+                return appText("calls.missed", languageCode: appLanguage)
 
             case "DECLINED":
-                return String(localized:"calls.declined")
+                return appText("calls.declined", languageCode: appLanguage)
 
             case "FAILED":
-                return String(localized:"calls.failed")
+                return appText("calls.failed", languageCode: appLanguage)
 
             case "ENDED":
-                return String(localized:"calls.completed")
+                return appText("calls.completed", languageCode: appLanguage)
 
             default:
                 return directionLabel

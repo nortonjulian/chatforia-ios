@@ -10,10 +10,11 @@ struct ThemedGradientButton: View {
     var isDisabled: Bool = false
 
     @EnvironmentObject private var themeManager: ThemeManager
-
+    @AppStorage("chatforia_language") private var appLanguage = "en"
+    
     var body: some View {
         Button(action: action) {
-            Text(title)
+            Text(appText(title, languageCode: appLanguage))
                 .font(font)
                 .foregroundStyle(themeManager.palette.buttonForeground.opacity(isDisabled ? 0.7 : 1))
                 .frame(maxWidth: isFullWidth ? .infinity : nil)

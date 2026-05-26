@@ -4,6 +4,7 @@ struct ImportPhoneContactsView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     @StateObject private var vm = ImportPhoneContactsViewModel()
 
@@ -19,22 +20,28 @@ struct ImportPhoneContactsView: View {
                     if vm.isLoading {
                         LoadingStateView(
                             title:
-                                String(
-                                    localized:
-                                    "contacts.loadingPhoneContacts"
+                                appText(
+                                    "contacts.loadingPhoneContacts",
+                                    languageCode: appLanguage
                                 ),
                             subtitle:
-                                String(
-                                    localized:
-                                    "contacts.readingContactsFromIPhone"
+                                appText(
+                                    "contacts.readingContactsFromIPhone",
+                                    languageCode: appLanguage
                                 )
                         )
                     } else if let errorText = vm.errorText, !errorText.isEmpty, vm.contacts.isEmpty {
                         EmptyStateView(
                             systemImage: "person.crop.circle.badge.exclamationmark",
-                            title: String(localized: "ios.couldn_t_load_contacts"),
+                            title: appText(
+                                "ios.couldn_t_load_contacts",
+                                languageCode: appLanguage
+                            ),
                             subtitle: errorText,
-                            buttonTitle: "common.tryAgain",
+                            buttonTitle: appText(
+                                "common.tryAgain",
+                                languageCode: appLanguage
+                            ),
                             buttonAction: {
                                 Task { await vm.loadContacts() }
                             }
@@ -43,26 +50,26 @@ struct ImportPhoneContactsView: View {
                         EmptyStateView(
                             systemImage: "person.crop.circle.badge.plus",
                             title:
-                            String(
-                                localized:
-                                "contacts.noPhoneContactsFound"
-                            ),
+                                appText(
+                                    "contacts.noPhoneContactsFound",
+                                    languageCode: appLanguage
+                                ),
 
                         subtitle:
-                            String(
-                                localized:
-                                "contacts.noImportableContacts"
-                            )
+                                appText(
+                                    "contacts.noImportableContacts",
+                                    languageCode: appLanguage
+                                )
                         )
                     } else {
                         List {
                             Section {
                                 HStack {
                                     Button(
-                                    String(
-                                        localized:
-                                        "common.selectAll"
-                                    )
+                                        appText(
+                                            "common.selectAll",
+                                            languageCode: appLanguage
+                                        )
                                 ) {
                                         vm.selectAll()
                                     }
@@ -70,7 +77,10 @@ struct ImportPhoneContactsView: View {
 
                                     Spacer()
 
-                                    Button(String(localized: "common.clear")) {
+                                    Button(appText(
+                                        "common.clear",
+                                        languageCode: appLanguage
+                                    )) {
                                         vm.clearSelection()
                                     }
                                     .foregroundStyle(themeManager.palette.accent)
@@ -110,16 +120,19 @@ struct ImportPhoneContactsView: View {
                 }
             }
             .navigationTitle(
-                String(
-                    localized:
-                    "contacts.importContacts"
+                appText(
+                    "contacts.importContacts",
+                    languageCode: appLanguage
                 )
             )
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button(
-                        String(localized:"common.close")
+                        appText(
+                            "common.close",
+                            languageCode: appLanguage
+                        )
                     ) {
                         dismiss()
                     }
@@ -129,8 +142,14 @@ struct ImportPhoneContactsView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(
                         vm.isImporting
-                            ? "common.importing"
-                            : "common.import"
+                            ? appText(
+                                "common.importing",
+                                languageCode: appLanguage
+                              )
+                            : appText(
+                                "common.import",
+                                languageCode: appLanguage
+                              )
                     ) {
                         Task { await importSelected() }
                     }

@@ -6,6 +6,7 @@ struct ChatThreadSearchSheet: View {
     let onSelect: (MessageDTO) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     var body: some View {
         NavigationStack {
@@ -28,8 +29,21 @@ struct ChatThreadSearchSheet: View {
                 }
                 .buttonStyle(.plain)
             }
-            .searchable(text: $searchText, prompt: Text("messages.searchMessages"))
-            .navigationTitle(String(localized: "ios.search_in_chat"))
+            .searchable(
+                text: $searchText,
+                prompt: Text(
+                    appText(
+                        "messages.searchMessages",
+                        languageCode: appLanguage
+                    )
+                )
+            )
+            .navigationTitle(
+                appText(
+                    "ios.search_in_chat",
+                    languageCode: appLanguage
+                )
+            )
             .navigationBarTitleDisplayMode(.inline)
         }
     }
@@ -61,11 +75,17 @@ struct ChatThreadSearchSheet: View {
         }
 
         if message.deletedForAll == true {
-            return String(localized: "messages.thisMessageWasDeleted")
+            return appText(
+                "messages.thisMessageWasDeleted",
+                languageCode: appLanguage
+            )
         }
 
         if message.contentCiphertext != nil {
-            return String(localized: "messages.encryptedMessage")
+            return appText(
+                "messages.encryptedMessage",
+                languageCode: appLanguage
+            )
         }
 
         return "—"

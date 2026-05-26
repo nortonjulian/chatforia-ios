@@ -1,19 +1,25 @@
 import SwiftUI
 
 struct SectionCardView<Content: View>: View {
-    let title: String
+    let titleKey: String
     @ViewBuilder let content: Content
 
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     init(title: String, @ViewBuilder content: () -> Content) {
-        self.title = title
+        self.titleKey = title
         self.content = content()
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(title.localizedUppercase)
+            Text(
+                appText(
+                    titleKey,
+                    languageCode: appLanguage
+                ).localizedUppercase
+            )
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(themeManager.palette.secondaryText)
                 .tracking(0.8)
@@ -26,8 +32,6 @@ struct SectionCardView<Content: View>: View {
             .background(
                 ZStack {
                     themeManager.palette.cardBackground
-
-                    // 🔥 subtle theme glow overlay (feels more like web)
                     LinearGradient(
                         colors: [
                             themeManager.palette.accent.opacity(0.06),

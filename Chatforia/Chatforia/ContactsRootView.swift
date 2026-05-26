@@ -3,6 +3,7 @@ import SwiftUI
 struct ContactsRootView: View {
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
     @StateObject private var vm = ContactsViewModel()
 
     @State private var selectedRoom: ChatRoomDTO? = nil
@@ -41,11 +42,19 @@ struct ContactsRootView: View {
                     SMSThreadView(conversation: conversation)
                 }
             }
-            .navigationTitle(String(localized: "tab_contacts"))
+            .navigationTitle(
+                appText(
+                    "tab_contacts",
+                    languageCode: appLanguage
+                )
+            )
             .navigationBarTitleDisplayMode(.inline)
             .searchable(
                 text: $vm.searchText,
-                prompt: String(localized: "ios.search_contacts")
+                prompt: appText(
+                    "ios.search_contacts",
+                    languageCode: appLanguage
+                )
             )
             .onChange(of: vm.searchText) { _, _ in
                 Task { await reload() }
@@ -56,14 +65,21 @@ struct ContactsRootView: View {
                         Button {
                             showingStartChat = true
                         } label: {
-                            Label(String(localized: "common.newConversation"), systemImage: "plus.bubble")
+                            Label(
+                                appText(
+                                    "common.newConversation",
+                                    languageCode: appLanguage
+                                ), systemImage: "plus.bubble")
                         }
 
                         Button {
                             showingAddContact = true
                         } label: {
                             Label(
-                                String(localized: "contacts.addContact"),
+                                appText(
+                                    "contacts.addContact",
+                                    languageCode: appLanguage
+                                ),
                                 systemImage: "person.badge.plus"
                             )
 
@@ -72,14 +88,20 @@ struct ContactsRootView: View {
                         Button {
                             showingImportContacts = true
                         } label: {
-                            Label(String(localized: "common.importFromPhone"), systemImage: "square.and.arrow.down")
+                            Label(appText(
+                                "common.importFromPhone",
+                                languageCode: appLanguage
+                            ), systemImage: "square.and.arrow.down")
                         }
                         
                         Button {
                             showingInviteFriends = true
                         } label: {
                             Label(
-                                String(localized: "ios.invite_friends"),
+                                appText(
+                                    "ios.invite_friends",
+                                    languageCode: appLanguage
+                                ),
                                 systemImage: "square.and.arrow.up"
                             )
                         }
@@ -143,17 +165,29 @@ struct ContactsRootView: View {
         Group {
             if vm.isLoading && vm.contacts.isEmpty {
                 LoadingStateView(
-                    title: String(localized: "ios.loading_contacts"),
-                    subtitle: String(localized: "ios.pulling_in_your_saved_people")
+                    title: appText(
+                            "ios.loading_contacts",
+                            languageCode: appLanguage
+                        ),
+                    subtitle: appText(
+                        "ios.pulling_in_your_saved_people",
+                        languageCode: appLanguage
+                    )
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             } else if let errorText = vm.errorText, !errorText.isEmpty, vm.contacts.isEmpty {
                 EmptyStateView(
                     systemImage: "person.crop.circle.badge.exclamationmark",
-                    title: String(localized: "ios.couldn_t_load_contacts"),
+                    title: appText(
+                        "ios.couldn_t_load_contacts",
+                        languageCode: appLanguage
+                    ),
                     subtitle: errorText,
-                    buttonTitle: String(localized: "common.tryAgain"),
+                    buttonTitle: appText(
+                        "common.tryAgain",
+                        languageCode: appLanguage
+                    ),
                     buttonAction: {
                         Task { await reload() }
                     }
@@ -163,17 +197,32 @@ struct ContactsRootView: View {
             } else if vm.contacts.isEmpty && !vm.searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 EmptyStateView(
                     systemImage: "magnifyingglass",
-                    title: String(localized: "ios.no_contacts_found"),
-                    subtitle: String(localized: "ios.try_a_different_name_or_username")
+                    title: appText(
+                        "ios.no_contacts_found",
+                        languageCode: appLanguage
+                    ),
+                    subtitle: appText(
+                        "ios.try_a_different_name_or_username",
+                        languageCode: appLanguage
+                    )
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             } else if vm.contacts.isEmpty {
                 EmptyStateView(
                     systemImage: "person.2",
-                    title: String(localized: "ios.no_contacts_yet"),
-                    subtitle: String(localized: "ios.add_contacts_manually_import_from_phone_or_start_new_conversation"),
-                    buttonTitle: String(localized: "common.newConversation"),
+                    title: appText(
+                        "ios.no_contacts_yet",
+                        languageCode: appLanguage
+                    ),
+                    subtitle: appText(
+                        "ios.add_contacts_manually_import_from_phone_or_start_new_conversation",
+                        languageCode: appLanguage
+                    ),
+                    buttonTitle: appText(
+                        "common.newConversation",
+                        languageCode: appLanguage
+                    ),
                     buttonAction: {
                         showingStartChat = true
                     }
@@ -253,7 +302,10 @@ struct ContactsRootView: View {
             guard let phone = contact.externalPhone?
                 .trimmingCharacters(in: .whitespacesAndNewlines),
                   !phone.isEmpty else {
-                vm.errorText = String(localized: "ios.invalid_phone_number")
+                vm.errorText = appText(
+                    "ios.invalid_phone_number",
+                    languageCode: appLanguage
+                )
                 return
             }
 
@@ -264,7 +316,10 @@ struct ContactsRootView: View {
 
         case .video:
             guard let calleeId = contact.user?.id else {
-                vm.errorText = String(localized: "ios.contact_does_not_support_video_calls")
+                vm.errorText = appText(
+                    "ios.contact_does_not_support_video_calls",
+                    languageCode: appLanguage
+                )
                 return
             }
 

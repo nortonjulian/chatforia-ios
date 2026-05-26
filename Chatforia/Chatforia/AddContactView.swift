@@ -4,6 +4,7 @@ struct AddContactView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     @StateObject private var vm: AddContactViewModel
 
@@ -41,7 +42,10 @@ struct AddContactView: View {
                     VStack(spacing: 18) {
 
                         Picker(
-                            String(localized: "contacts.mode"),
+                            appText(
+                                "contacts.mode",
+                                languageCode: appLanguage
+                            ),
                             selection: $vm.mode
                         ) {
                             ForEach(AddContactMode.allCases) { mode in
@@ -59,7 +63,10 @@ struct AddContactView: View {
                             if vm.mode == .username {
 
                                 ThemedTextField(
-                                    title: String(localized: "auth.username"),
+                                    title: appText(
+                                        "auth.username",
+                                        languageCode: appLanguage
+                                    ),
                                     text: $vm.username,
                                     contentType: .username
                                 )
@@ -67,27 +74,40 @@ struct AddContactView: View {
                             } else {
 
                                 ThemedTextField(
-                                    title: String(localized: "contacts.phoneNumber"),
+                                    title: appText(
+                                        "contacts.phoneNumber",
+                                        languageCode: appLanguage
+                                    ),
                                     text: $vm.phoneNumber,
                                     keyboard: .phonePad,
                                     contentType: .telephoneNumber
                                 )
 
                                 ThemedTextField(
-                                    title: String(localized: "common.name"),
+                                    title: appText(
+                                        "common.name",
+                                        languageCode: appLanguage
+                                    ),
                                     text: $vm.externalName
                                 )
                             }
 
                             ThemedTextField(
-                                title: String(localized: "contacts.aliasOptional"),
+                                title: appText(
+                                    "contacts.aliasOptional",
+                                    languageCode: appLanguage
+                                ),
                                 text: $vm.alias
                             )
 
                             ThemedToggleRow(
-                                title: String(localized: "contacts.favorite"),
-                                subtitle: String(
-                                    localized: "contacts.favoriteSubtitle"
+                                title: appText(
+                                    "contacts.favorite",
+                                    languageCode: appLanguage
+                                ),
+                                subtitle: appText(
+                                    "contacts.favoriteSubtitle",
+                                    languageCode: appLanguage
                                 ),
                                 isOn: $vm.favorite
                             )
@@ -95,9 +115,9 @@ struct AddContactView: View {
                             if vm.mode == .username {
 
                                 Text(
-                                    String(
-                                        localized:
-                                        "contacts.usernameModeHelp"
+                                    appText(
+                                        "contacts.usernameModeHelp",
+                                        languageCode: appLanguage
                                     )
                                 )
                                 .font(.footnote)
@@ -112,9 +132,9 @@ struct AddContactView: View {
                             } else {
 
                                 Text(
-                                    String(
-                                        localized:
-                                        "contacts.phoneModeHelp"
+                                    appText(
+                                        "contacts.phoneModeHelp",
+                                        languageCode: appLanguage
                                     )
                                 )
                                 .font(.footnote)
@@ -173,8 +193,14 @@ struct AddContactView: View {
                         ThemedGradientButton(
                             title:
                                 vm.isSaving
-                                ? String(localized: "common.saving")
-                                : String(localized: "contacts.saveContact"),
+                                ? appText(
+                                    "common.saving",
+                                    languageCode: appLanguage
+                                )
+                                : appText(
+                                    "contacts.saveContact",
+                                    languageCode: appLanguage
+                                ),
 
                             action: {
                                 Task { await save() }
@@ -189,13 +215,19 @@ struct AddContactView: View {
                 }
             }
             .navigationTitle(
-                String(localized: "contacts.addContact")
+                appText(
+                    "contacts.addContact",
+                    languageCode: appLanguage
+                )
             )
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button(
-                        String(localized: "button_cancel")
+                        appText(
+                            "button_cancel",
+                            languageCode: appLanguage
+                        )
                     ) {
                         dismiss()
                     }

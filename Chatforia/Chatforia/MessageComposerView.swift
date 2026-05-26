@@ -5,6 +5,7 @@ struct MessageComposerView: View {
 
     @EnvironmentObject var settingsVM: SettingsViewModel
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     let isSending: Bool
     let isSendingVoice: Bool
@@ -154,8 +155,14 @@ struct MessageComposerView: View {
 
                 TextField(
                     isCaptioningPendingMedia
-                        ? String(localized:"messages.addCaption")
-                        : String(localized:"messages.message"),
+                        ? appText(
+                            "messages.addCaption",
+                            languageCode: appLanguage
+                        )
+                        : appText(
+                            "messages.message",
+                            languageCode: appLanguage
+                        ),
                     text: $draft,
                     axis: .vertical
                 )
@@ -265,7 +272,10 @@ struct MessageComposerView: View {
                     .frame(width: 10, height: 10)
 
                 Text(
-                        String(localized:"messages.recording")
+                    appText(
+                        "messages.recording",
+                        languageCode: appLanguage
+                    )
                     )
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(themeManager.palette.primaryText)
@@ -315,13 +325,19 @@ struct MessageComposerView: View {
             .disabled(isSendingVoice)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(String(localized: "messages.voiceNoteReady"))
+                Text(appText(
+                    "messages.voiceNoteReady",
+                    languageCode: appLanguage
+                ))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(themeManager.palette.primaryText)
 
                 Text(
                     voiceDraftDurationText
-                    ?? String(localized: "common.zeroDuration")
+                    ?? appText(
+                        "common.zeroDuration",
+                        languageCode: appLanguage
+                    )
                 )
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(themeManager.palette.secondaryText)
@@ -329,7 +345,10 @@ struct MessageComposerView: View {
 
             Spacer(minLength: 0)
 
-            Button(String(localized: "button_cancel")) {
+            Button(appText(
+                "button_cancel",
+                languageCode: appLanguage
+            )) {
                 onCancelVoiceDraftTap()
             }
             .font(.subheadline.weight(.semibold))
@@ -340,7 +359,10 @@ struct MessageComposerView: View {
             Button {
                 onSendVoiceDraftTap()
             } label: {
-                Text(String(localized: "common.send"))
+                Text(appText(
+                    "common.send",
+                    languageCode: appLanguage
+                ))
                     .font(.subheadline.weight(.bold))
                     .foregroundStyle(themeManager.palette.composerButtonForeground)
                     .padding(.horizontal, 14)

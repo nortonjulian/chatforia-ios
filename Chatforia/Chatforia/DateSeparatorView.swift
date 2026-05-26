@@ -4,6 +4,7 @@ struct DateSeparatorView: View {
     let date: Date
 
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     var body: some View {
         HStack {
@@ -31,11 +32,17 @@ struct DateSeparatorView: View {
         let calendar = Calendar.current
 
         if calendar.isDateInToday(date) {
-            return String(localized: "common.today")
+            return appText(
+                "common.today",
+                languageCode: appLanguage
+            )
         }
 
         if calendar.isDateInYesterday(date) {
-            return String(localized: "common.yesterday")
+            return appText(
+                "common.yesterday",
+                languageCode: appLanguage
+            )
         }
 
         let formatter = DateFormatter()

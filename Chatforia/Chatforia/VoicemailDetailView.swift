@@ -6,6 +6,7 @@ struct VoicemailDetailView: View {
     let onCallBack: (() -> Void)?
 
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
     @State private var didAutoMarkRead = false
 
     init(
@@ -28,7 +29,7 @@ struct VoicemailDetailView: View {
 
                 AudioAttachmentCardView(
                     urlString: voicemail.audioUrl,
-                    title: String(localized: "voicemail.title"),
+                    title: appText("voicemail.title", languageCode: appLanguage),
                     durationSec: Double(voicemail.durationSec ?? 0),
                     isMe: false,
                     maxWidth: .infinity,
@@ -46,7 +47,7 @@ struct VoicemailDetailView: View {
                 .ignoresSafeArea()
         )
         .navigationTitle(
-            String(localized: "voicemail.title")
+            appText("voicemail.title", languageCode: appLanguage)
         )
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -58,24 +59,24 @@ struct VoicemailDetailView: View {
         VStack(alignment: .leading, spacing: 10) {
 
             infoRow(
-                label: String(localized: "voicemail.from"),
+                label: appText("voicemail.from", languageCode: appLanguage),
                 value: displayFrom
             )
 
             infoRow(
-                label: String(localized: "voicemail.to"),
+                label: appText("voicemail.to", languageCode: appLanguage),
                 value: displayTo
             )
 
             infoRow(
-                label: String(localized: "voicemail.received"),
+                label: appText("voicemail.received", languageCode: appLanguage),
                 value: receivedText
             )
 
             if let durationSec = voicemail.durationSec {
 
                 infoRow(
-                    label: String(localized: "voicemail.duration"),
+                    label: appText("voicemail.duration", languageCode: appLanguage),
                     value: AudioAttachmentCardView.formatTime(
                         Double(durationSec)
                     )
@@ -111,7 +112,7 @@ struct VoicemailDetailView: View {
             Button(action: onCallBack) {
 
                 Label(
-                    "calls.callBack",
+                    appText("calls.callBack", languageCode: appLanguage),
                     systemImage: "phone.fill"
                 )
                 .font(.subheadline.weight(.semibold))
@@ -128,7 +129,7 @@ struct VoicemailDetailView: View {
         VStack(alignment: .leading, spacing: 8) {
 
             Text(
-                String(localized: "voicemail.transcript")
+                appText("voicemail.transcript", languageCode: appLanguage)
             )
             .font(.headline)
             .foregroundStyle(
@@ -179,29 +180,20 @@ struct VoicemailDetailView: View {
                 } else {
 
                     placeholderCard(
-                        String(
-                            localized:
-                                "voicemail.noTranscript"
-                        )
+                        appText("voicemail.noTranscript", languageCode: appLanguage)
                     )
                 }
 
             case .pending:
 
                 placeholderCard(
-                    String(
-                        localized:
-                            "voicemail.transcriptPending"
-                    )
+                    appText("voicemail.transcriptPending", languageCode: appLanguage)
                 )
 
             case .failed:
 
                 placeholderCard(
-                    String(
-                        localized:
-                            "voicemail.transcriptUnavailable"
-                    )
+                    appText("voicemail.transcriptUnavailable", languageCode: appLanguage)
                 )
             }
         }
@@ -284,10 +276,7 @@ struct VoicemailDetailView: View {
             )
 
         return value.isEmpty
-            ? String(
-                localized:
-                    "voicemail.unknownCaller"
-            )
+            ? appText("voicemail.unknownCaller", languageCode: appLanguage)
             : value
     }
 
@@ -299,10 +288,7 @@ struct VoicemailDetailView: View {
             )
 
         return value.isEmpty
-            ? String(
-                localized:
-                    "voicemail.yourNumber"
-            )
+            ? appText("voicemail.yourNumber", languageCode: appLanguage)
             : value
     }
 

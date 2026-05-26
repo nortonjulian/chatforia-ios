@@ -3,6 +3,7 @@ import SwiftUI
 struct ChatsRootView: View {
     @EnvironmentObject var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var vm = ChatsViewModel()
 
@@ -36,17 +37,29 @@ struct ChatsRootView: View {
                     Group {
                         if vm.isLoading && vm.conversations.isEmpty {
                             LoadingStateView(
-                                title: String(localized: "ios.loading_chats"),
-                                subtitle: String(localized: "ios.pulling_in_your_latest_conversations")
+                                title: appText(
+                                    "ios.loading_chats",
+                                    languageCode: appLanguage
+                                ),
+                                subtitle: appText(
+                                    "ios.pulling_in_your_latest_conversations",
+                                    languageCode: appLanguage
+                                )
                             )
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                         } else if let err = vm.errorText, !err.isEmpty, vm.conversations.isEmpty {
                             EmptyStateView(
                                 systemImage: "exclamationmark.bubble",
-                                title: String(localized: "ios.couldn_t_load_chats"),
+                                title: appText(
+                                    "ios.couldn_t_load_chats",
+                                    languageCode: appLanguage
+                                ),
                                 subtitle: err,
-                                buttonTitle: String(localized: "common.tryAgain"),
+                                buttonTitle: appText(
+                                    "common.tryAgain",
+                                    languageCode: appLanguage
+                                ),
                                 buttonAction: {
                                     Task { await reload() }
                                 }
@@ -57,16 +70,28 @@ struct ChatsRootView: View {
                                     !vm.searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                             EmptyStateView(
                                 systemImage: "magnifyingglass",
-                                title: String(localized: "ios.no_results"),
-                                subtitle: String(localized: "ios.try_searching_for_a_different_name_or_message")
+                                title: appText(
+                                    "ios.no_results",
+                                    languageCode: appLanguage
+                                ),
+                                subtitle: appText(
+                                    "ios.try_searching_for_a_different_name_or_message",
+                                    languageCode: appLanguage
+                                )
                             )
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                         } else if vm.conversations.isEmpty {
                             EmptyStateView(
                                 systemImage: "bubble.left.and.bubble.right",
-                                title: String(localized: "ios.no_chats_yet"),
-                                subtitle: String(localized: "ios.tap_the_plus_button_to_start_your_first_conversation")
+                                title: appText(
+                                    "ios.no_chats_yet",
+                                    languageCode: appLanguage
+                                ),
+                                subtitle: appText(
+                                    "ios.tap_the_plus_button_to_start_your_first_conversation",
+                                    languageCode: appLanguage
+                                )
                             )
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
@@ -99,7 +124,10 @@ struct ChatsRootView: View {
                                             handleMessageFromChats(conversation)
                                         } label: {
                                             Label(
-                                                String(localized: "ios.message"),
+                                                appText(
+                                                    "ios.message",
+                                                    languageCode: appLanguage
+                                                ),
                                                 systemImage: "message.fill"
                                             )
                                         }
@@ -113,7 +141,10 @@ struct ChatsRootView: View {
                                             }
                                         } label: {
                                             Label(
-                                                String(localized: "common.delete"),
+                                                appText(
+                                                    "common.delete",
+                                                    languageCode: appLanguage
+                                                ),
                                                 systemImage: "trash"
                                             )
                                         }
@@ -124,7 +155,10 @@ struct ChatsRootView: View {
                                             showDeleteConfirm = true
                                         } label: {
                                             Label(
-                                                String(localized: "common.delete"),
+                                                appText(
+                                                    "common.delete",
+                                                    languageCode: appLanguage
+                                                ),
                                                 systemImage: "trash"
                                             )
                                         }
@@ -174,10 +208,18 @@ struct ChatsRootView: View {
                     .environmentObject(settingsVM)
             }
             .navigationBarTitleDisplayMode(.inline)
-            .navigationTitle(String(localized: "tab_chats"))
+            .navigationTitle(appText(
+                "tab_chats",
+                languageCode: appLanguage
+            ))
             .searchable(
                 text: $vm.searchText,
-                prompt: Text(String(localized: "ios.search_chats"))
+                prompt: Text(
+                    appText(
+                        "ios.search_chats",
+                        languageCode: appLanguage
+                    )
+                )
             )
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
@@ -240,11 +282,17 @@ struct ChatsRootView: View {
                 )
             }
             .alert(
-                String(localized: "messages.deleteConversationTitle"),
+                appText(
+                    "messages.deleteConversationTitle",
+                    languageCode: appLanguage
+                ),
                 isPresented: $showDeleteConfirm
             ) {
                 Button(
-                    String(localized: "common.delete"),
+                    appText(
+                        "common.delete",
+                        languageCode: appLanguage
+                    ),
                     role: .destructive
                 ) {
                     if let convo = pendingConversation {
@@ -255,14 +303,17 @@ struct ChatsRootView: View {
                         }
                     }
                 }
-                Button(String(localized: "button_cancel"), role: .cancel) {
+                Button(appText(
+                    "button_cancel",
+                    languageCode: appLanguage
+                ), role: .cancel) {
                     pendingConversation = nil
                 }
             } message: {
                 Text(
-                    String(
-                        localized:
-                        "ios.this_will_remove_the_conversation_from_your_list"
+                    appText(
+                        "ios.this_will_remove_the_conversation_from_your_list",
+                        languageCode: appLanguage
                     )
                 )
             }
@@ -358,11 +409,11 @@ struct ChatsRootView: View {
 
             let myAlias =
                 dict["myAlias"] as? String
-                ?? String(localized: "common.you")
+                ?? appText("common.you", languageCode: appLanguage)
 
             let partnerAlias =
                 dict["partnerAlias"] as? String
-                ?? String(localized: "random.stranger")
+                ?? appText("random.stranger", languageCode: appLanguage)
 
             Task { @MainActor in
                 await handleMatchFound(
@@ -450,20 +501,36 @@ struct ChatsRootView: View {
                 return phone
             }
 
-            return String(localized: "messages.conversation")
+            return appText(
+                "messages.conversation",
+                languageCode: appLanguage
+            )
         }
 
         return String(
-            format: String(localized: "ios.chat_number"),
-            item.id?.description ?? String(localized: "ios.draft")
+            format: appText(
+                "ios.chat_number",
+                languageCode: appLanguage
+            ),
+            item.id?.description
+                ?? appText(
+                    "ios.draft",
+                    languageCode: appLanguage
+                )
         )
     }
 
     private func conversationSubtitle(_ conversation: ConversationDTO) -> String {
         guard let last = conversation.last else {
             return conversation.kind.lowercased() == "sms"
-                ? String(localized: "ios.tap_to_open_sms_thread")
-                : String(localized: "ios.tap_to_open")
+                ? appText(
+                    "ios.tap_to_open_sms_thread",
+                    languageCode: appLanguage
+                )
+                : appText(
+                    "ios.tap_to_open",
+                    languageCode: appLanguage
+                )
         }
 
         let text = last.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -482,17 +549,17 @@ struct ChatsRootView: View {
             let base: String
 
             if kinds.contains("GIF") {
-                base = "🎞 \(String(localized: "ios.gif"))"
+                base = "🎞 \(appText("ios.gif", languageCode: appLanguage))"
             } else if kinds.contains("IMAGE") {
-                base = "📷 \(String(localized: "ios.photo"))"
+                base = "📷 \(appText("ios.photo", languageCode: appLanguage))"
             } else if kinds.contains("AUDIO") {
-                base = "🎤 \(String(localized: "ios.voice_message"))"
+                base = "🎤 \(appText("ios.voice_message", languageCode: appLanguage))"
             } else if kinds.contains("VIDEO") {
-                base = "🎥 \(String(localized: "ios.video"))"
+                base = "🎥 \(appText("ios.video", languageCode: appLanguage))"
             } else if let mediaCount = last.mediaCount, mediaCount > 1 {
-                base = "📎 \(String(localized: "ios.attachment"))"
+                base = "📎 \(appText("ios.attachment", languageCode: appLanguage))"
             } else {
-                base = "📎 \(String(localized: "ios.attachment"))"
+                base = "📎 \(appText("ios.attachment", languageCode: appLanguage))"
             }
 
             if (conversation.isGroup ?? false),
@@ -504,7 +571,7 @@ struct ChatsRootView: View {
             return base
         }
 
-        return String(localized: "ios.tap_to_open")
+        return appText("ios.tap_to_open", languageCode: appLanguage)
     }
 
     private func conversationTimestamp(_ item: ConversationDTO) -> String {
@@ -519,17 +586,28 @@ struct ChatsRootView: View {
 private struct UnsupportedConversationView: View {
     let conversation: ConversationDTO
 
+    @AppStorage("chatforia_language") private var appLanguage = "en"
+
     var body: some View {
         EmptyStateView(
             systemImage: "questionmark.bubble",
-            title: String(localized: "ios.unsupported_conversation"),
+            title: appText(
+                "ios.unsupported_conversation",
+                languageCode: appLanguage
+            ),
             subtitle: String(
-                format: String(localized: "ios.kind_format"),
+                format: appText(
+                    "ios.kind_format",
+                    languageCode: appLanguage
+                ),
                 conversation.kind
             )
         )
         .navigationTitle(
-            String(localized: "messages.conversation")
+            appText(
+                "messages.conversation",
+                languageCode: appLanguage
+            )
         )
         .navigationBarTitleDisplayMode(.inline)
     }

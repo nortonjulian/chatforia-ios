@@ -5,10 +5,11 @@ struct ThemedOutlineButton: View {
     let action: () -> Void
 
     @EnvironmentObject private var themeManager: ThemeManager
-
+    @AppStorage("chatforia_language") private var appLanguage = "en"
+    
     var body: some View {
         Button(action: action) {
-            Text(title)
+            Text(appText(title, languageCode: appLanguage))
                 .font(.headline)
                 .foregroundStyle(themeManager.palette.primaryText)
                 .frame(maxWidth: .infinity)

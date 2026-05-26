@@ -8,6 +8,7 @@ struct UpgradePromptSheet: View {
 
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     var body: some View {
         NavigationStack {
@@ -37,14 +38,22 @@ struct UpgradePromptSheet: View {
                                 .foregroundStyle(themeManager.palette.secondaryText)
                                 .multilineTextAlignment(.center)
 
-                            Text(String(format: String(localized: "upgrade.requires_plan_format"), requiredPlan.displayName))
-                                .font(.footnote.weight(.semibold))
-                                .foregroundStyle(themeManager.palette.accent)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(themeManager.palette.accent.opacity(0.12))
-                                .clipShape(Capsule())
-                                .padding(.top, 4)
+                            Text(
+                                String(
+                                    format: appText(
+                                        "upgrade.requires_plan_format",
+                                        languageCode: appLanguage
+                                    ),
+                                    planDisplayName(requiredPlan)
+                                )
+                            )
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(themeManager.palette.accent)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(themeManager.palette.accent.opacity(0.12))
+                            .clipShape(Capsule())
+                            .padding(.top, 4)
                         }
                     }
                     .padding(20)
@@ -54,13 +63,21 @@ struct UpgradePromptSheet: View {
                         RoundedRectangle(cornerRadius: 20, style: .continuous)
                             .stroke(themeManager.palette.border, lineWidth: 1)
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .clipShape(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    )
 
                     VStack(spacing: 12) {
                         ThemedGradientButton(
                             title: requiredPlan == .plus
-                                ? String(localized: "upgrade.to_plus")
-                                : String(localized: "upgrade.to_premium"),
+                                ? appText(
+                                    "upgrade.to_plus",
+                                    languageCode: appLanguage
+                                )
+                                : appText(
+                                    "upgrade.to_premium",
+                                    languageCode: appLanguage
+                                ),
                             action: {
                                 onUpgradeTapped()
                             },
@@ -71,7 +88,10 @@ struct UpgradePromptSheet: View {
                         .frame(maxWidth: .infinity)
 
                         ThemedOutlineButton(
-                            title: String(localized: "common.notNow"),
+                            title: appText(
+                                "common.notNow",
+                                languageCode: appLanguage
+                            ),
                             action: {
                                 dismiss()
                             }
@@ -82,22 +102,48 @@ struct UpgradePromptSheet: View {
                 }
                 .padding()
             }
-            .navigationTitle(String(localized: "common.upgradeRequired"))
+            .navigationTitle(
+                appText(
+                    "common.upgradeRequired",
+                    languageCode: appLanguage
+                )
+            )
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
-                AnalyticsManager.shared.capture("upgrade_viewed", properties: [
-                    "source": "upgrade_prompt",
-                    "required_plan": requiredPlan.displayName
-                ])
+                AnalyticsManager.shared.capture(
+                    "upgrade_viewed",
+                    properties: [
+                        "source": "upgrade_prompt",
+                        "required_plan": planDisplayName(requiredPlan)
+                    ]
+                )
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(String(localized: "common.close")) {
+                    Button(
+                        appText(
+                            "common.close",
+                            languageCode: appLanguage
+                        )
+                    ) {
                         dismiss()
                     }
                     .foregroundStyle(themeManager.palette.accent)
                 }
             }
+        }
+    }
+
+    private func planDisplayName(_ plan: AppPlan) -> String {
+        switch plan {
+        case .free:
+            return appText("billing.free", languageCode: appLanguage)
+
+        case .plus:
+            return appText("billing.plus", languageCode: appLanguage)
+
+        case .premium:
+            return appText("billing.premium", languageCode: appLanguage)
         }
     }
 }

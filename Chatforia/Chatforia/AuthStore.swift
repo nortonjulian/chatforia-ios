@@ -32,6 +32,10 @@ final class AuthStore: NSObject, ObservableObject {
 
     private let tokenStore = TokenStore.shared
     private(set) var socket = SocketManager.shared
+    
+    private var appLanguage: String {
+        UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
+    }
 
     var isPlus: Bool { subscriptionPlan == .plus }
     var isPremium: Bool { subscriptionPlan == .premium }
@@ -140,7 +144,10 @@ final class AuthStore: NSObject, ObservableObject {
 
                 if shouldRestore {
                     needsKeyRestore = true
-                    keyRestoreMessage = "This device is missing your encryption key. Restore it to read older encrypted messages."
+                    keyRestoreMessage = appText(
+                        "auth.missingEncryptionKeyOlderMessages",
+                        languageCode: appLanguage
+                    )
                 } else {
                     needsKeyRestore = false
                     keyRestoreMessage = nil
@@ -278,14 +285,20 @@ final class AuthStore: NSObject, ObservableObject {
         if !serverKey.isEmpty && localKey.isEmpty {
             encryptionState = .missing
             needsKeyRestore = true
-            keyRestoreMessage = "This device is missing your encryption key. Restore it to read encrypted messages."
+            keyRestoreMessage = appText(
+                "auth.missingEncryptionKey",
+                languageCode: appLanguage
+            )
             return
         }
 
         if !serverKey.isEmpty && !localKey.isEmpty && serverKey != localKey {
             encryptionState = .mismatch
             needsKeyRestore = true
-            keyRestoreMessage = "This device has a different encryption key. Restore the correct key to access your messages."
+            keyRestoreMessage = appText(
+                "auth.mismatchedEncryptionKey",
+                languageCode: appLanguage
+            )
             return
         }
 

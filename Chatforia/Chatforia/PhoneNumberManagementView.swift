@@ -3,6 +3,7 @@ import SwiftUI
 struct PhoneNumberManagementView: View {
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     @StateObject private var vm = PhoneNumberViewModel()
     @State private var showPicker = false
@@ -24,7 +25,7 @@ struct PhoneNumberManagementView: View {
 
                         Text(
                             number.status ??
-                            String(localized: "phoneNumber.assigned")
+                            appText("phoneNumber.assigned", languageCode: appLanguage)
                         )
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(themeManager.palette.primaryText)
@@ -38,13 +39,11 @@ struct PhoneNumberManagementView: View {
 
                             Text(
                                 String(
-                                    format: String(
-                                        localized: "phoneNumber.releaseWarningFormat"
-                                    ),
+                                    format: appText("phoneNumber.releaseWarningFormat", languageCode: appLanguage),
                                     String(days),
                                     days == 1
                                         ? ""
-                                        : String(localized: "phoneNumber.pluralS")
+                                        : appText("phoneNumber.pluralS", languageCode: appLanguage)
                                 )
                             )
                             .font(.footnote.weight(.semibold))
@@ -55,7 +54,7 @@ struct PhoneNumberManagementView: View {
                     }
 
                     Button(
-                        String(localized: "phoneNumber.replaceNumber")
+                        appText("phoneNumber.replaceNumber", languageCode: appLanguage)
                     ) {
                         showPicker = true
                     }
@@ -65,14 +64,14 @@ struct PhoneNumberManagementView: View {
             } else {
 
                 Text(
-                    String(localized: "phoneNumber.noNumberAssigned")
+                    appText("phoneNumber.noNumberAssigned", languageCode: appLanguage)
                 )
                 .foregroundStyle(.secondary)
 
                 Button(
                     vm.currentNumber == nil
-                        ? String(localized: "phoneNumber.pickNumber")
-                        : String(localized: "phoneNumber.replaceNumber")
+                        ? appText("phoneNumber.pickNumber", languageCode: appLanguage)
+                        : appText("phoneNumber.replaceNumber", languageCode: appLanguage)
                 ) {
                     showPicker = true
                 }
@@ -83,7 +82,7 @@ struct PhoneNumberManagementView: View {
         }
         .padding()
         .navigationTitle(
-            String(localized: "phoneNumber.title")
+            appText("phoneNumber.title", languageCode: appLanguage)
         )
         .task {
             await vm.loadCurrentNumber(token: auth.currentToken)

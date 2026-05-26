@@ -10,6 +10,7 @@ struct ChatThreadView: View {
 
     @EnvironmentObject var auth: AuthStore
     @EnvironmentObject var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
     @EnvironmentObject var callManager: CallManager
 
     @StateObject private var vm = ChatThreadViewModel()
@@ -182,7 +183,10 @@ struct ChatThreadView: View {
             }
         }
         .confirmationDialog(
-            String(localized: "messages.deleteMessageTitle"),
+            appText(
+                "messages.deleteMessageTitle",
+                languageCode: appLanguage
+            ),
             isPresented: Binding(
                 get: { deletingMessage != nil },
                 set: { if !$0 { deletingMessage = nil } }
@@ -191,7 +195,10 @@ struct ChatThreadView: View {
         ) {
             if let msg = deletingMessage {
                 Button(
-                    String(localized: "messages.deleteForEveryone"),
+                    appText(
+                        "messages.deleteForEveryone",
+                        languageCode: appLanguage
+                    ),
                     role: .destructive
                 ) {
                     Task {
@@ -218,7 +225,10 @@ struct ChatThreadView: View {
                 }
             }
 
-            Button(String(localized: "button_cancel"), role: .cancel) {
+            Button(appText(
+                "button_cancel",
+                languageCode: appLanguage
+            ), role: .cancel) {
                 deletingMessage = nil
             }
         }
@@ -236,7 +246,10 @@ extension ChatThreadView {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if vm.messages.isEmpty {
                 Text(
-                    String(localized:"messages.noMessagesYet")
+                    appText(
+                        "messages.noMessagesYet",
+                        languageCode: appLanguage
+                    )
                 )
                     .foregroundStyle(themeManager.palette.secondaryText)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -325,7 +338,10 @@ extension ChatThreadView {
                                 VStack(spacing: 6) {
                                     Image(systemName: "exclamationmark.triangle")
                                     Text(
-                                        String(localized: "gif.couldNotLoad")
+                                        appText(
+                                            "gif.couldNotLoad",
+                                            languageCode: appLanguage
+                                        )
                                     )
                                         .font(.caption)
                                 }
@@ -359,17 +375,23 @@ extension ChatThreadView {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(
                             pendingVideoURL != nil
-                                ? String(localized:"messages.videoReady")
-                                : String(localized:"messages.photoReady")
+                                ? appText(
+                                    "messages.videoReady",
+                                    languageCode: appLanguage
+                                )
+                                : appText(
+                                    "messages.photoReady",
+                                    languageCode: appLanguage
+                                )
                         )
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(themeManager.palette.primaryText)
 
                         Text(
-                        String(
-                            localized:
-                            "messages.addCaptionThenSend"
-                        )
+                            appText(
+                                "messages.addCaptionThenSend",
+                                languageCode: appLanguage
+                            )
                     )
                             .font(.caption)
                             .foregroundStyle(themeManager.palette.secondaryText)
@@ -377,7 +399,10 @@ extension ChatThreadView {
 
                     Spacer(minLength: 0)
 
-                    Button(String(localized: "button_cancel")) {
+                    Button(appText(
+                        "button_cancel",
+                        languageCode: appLanguage
+                    )) {
                         pendingImageData = nil
                         pendingVideoURL = nil
                     }
@@ -415,7 +440,10 @@ extension ChatThreadView {
 
                                     isProcessingVideo = true
                                     videoProcessingStatus =
-                                    String(localized:"messages.uploadingVideo")
+                                    appText(
+                                        "messages.uploadingVideo",
+                                        languageCode: appLanguage
+                                    )
 
                                     let videoData = try Data(contentsOf: videoURL)
 
@@ -448,9 +476,9 @@ extension ChatThreadView {
                                     vm.errorText =
                                     String(
                                         format:
-                                            String(
-                                                localized:
-                                                "messages.selectedVideoLoadFailed"
+                                            appText(
+                                                "messages.selectedVideoLoadFailed",
+                                                languageCode: appLanguage
                                             ),
                                         error.localizedDescription
                                     )
@@ -458,7 +486,10 @@ extension ChatThreadView {
                             }
                         }
                     } label: {
-                        Text(String(localized: "common.send"))
+                        Text(appText(
+                            "common.send",
+                            languageCode: appLanguage
+                        ))
                             .font(.subheadline.weight(.bold))
                             .foregroundStyle(themeManager.palette.composerButtonForeground)
                             .padding(.horizontal, 14)
@@ -506,15 +537,17 @@ extension ChatThreadView {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(
                             videoProcessingStatus
-                            ?? String(localized:"messages.processingVideo")
-                        )
+                            ?? appText(
+                                "messages.processingVideo",
+                                languageCode: appLanguage
+                            )                        )
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(themeManager.palette.primaryText)
 
                         Text(
-                            String(
-                                localized:
-                                "messages.keepChatforiaOpen"
+                            appText(
+                                "messages.keepChatforiaOpen",
+                                languageCode: appLanguage
                             )
                         )
                             .font(.caption)
@@ -623,9 +656,9 @@ extension ChatThreadView {
             guard !data.isEmpty else {
                 await MainActor.run {
                     vm.errorText =
-                    String(
-                        localized:
-                        "gif.emptyData"
+                    appText(
+                        "gif.emptyData",
+                        languageCode: appLanguage
                     )
                 }
                 return
@@ -653,11 +686,10 @@ extension ChatThreadView {
             await MainActor.run {
                 vm.errorText =
                 String(
-                    format:
-                        String(
-                            localized:
-                            "gif.sendFailed"
-                        ),
+                    format: appText(
+                        "gif.sendFailed",
+                        languageCode: appLanguage
+                    ),
                     error.localizedDescription
                 )
             }
@@ -727,9 +759,9 @@ extension ChatThreadView {
                 vm.errorText =
                 String(
                     format:
-                        String(
-                            localized:
-                            "messages.videoLoadFailed"
+                        appText(
+                            "messages.videoLoadFailed",
+                            languageCode: appLanguage
                         ),
                     error.localizedDescription
                 )
@@ -835,9 +867,9 @@ extension ChatThreadView {
         room.name
         ?? String(
             format:
-                String(
-                    localized:
-                    "chat.roomNumber"
+                appText(
+                    "chat.roomNumber",
+                    languageCode: appLanguage
                 ),
             room.id
         )
@@ -847,12 +879,18 @@ extension ChatThreadView {
         NavigationStack {
             VStack(spacing: 16) {
                 HStack(spacing: 12) {
-                    Button(String(localized:"gif.shortTitle")) {
+                    Button(appText(
+                        "gif.shortTitle",
+                        languageCode: appLanguage
+                    )) {
                         showEditGIFPicker = true
                     }
 
                     Button(
-                        String(localized:"messages.emoji")
+                        appText(
+                            "messages.emoji",
+                            languageCode: appLanguage
+                        )
                     ) {
                         if !isEditEditorFocused {
                             isEditEditorFocused = true
@@ -861,7 +899,10 @@ extension ChatThreadView {
 
                     if editPendingGIFURL != nil {
                         Button(
-                        String(localized:"gif.remove"),
+                            appText(
+                                "gif.remove",
+                                languageCode: appLanguage
+                            ),
                         role: .destructive
                     ) {
                             editPendingGIFURL = nil
@@ -895,12 +936,18 @@ extension ChatThreadView {
             }
             .padding()
             .navigationTitle(
-                String(localized:"messages.editMessage")
+                appText(
+                    "messages.editMessage",
+                    languageCode: appLanguage
+                )
             )
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(String(localized: "button_cancel")) {
+                    Button(appText(
+                        "button_cancel",
+                        languageCode: appLanguage
+                    )) {
                         editingMessage = nil
                         editDraft = ""
                         editPendingGIFURL = nil
@@ -910,7 +957,10 @@ extension ChatThreadView {
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(String(localized: "common.save")) {
+                    Button(appText(
+                        "common.save",
+                        languageCode: appLanguage
+                    )) {
                         Task { @MainActor in
                             guard let msg = editingMessage else { return }
 

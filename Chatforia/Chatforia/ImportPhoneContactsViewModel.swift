@@ -9,6 +9,10 @@ final class ImportPhoneContactsViewModel: ObservableObject {
     @Published var isImporting = false
     @Published var errorText: String?
     @Published var successText: String?
+    
+    private var appLanguage: String {
+        UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
+    }
 
     var selectedContacts: [PhoneContactDTO] {
         contacts.filter { selectedIDs.contains($0.id) }
@@ -26,7 +30,10 @@ final class ImportPhoneContactsViewModel: ObservableObject {
         guard granted else {
             contacts = []
             selectedIDs.removeAll()
-            errorText = "Contacts access was not granted."
+            errorText = appText(
+                "contacts.accessNotGranted",
+                languageCode: appLanguage
+            )
             return
         }
 
@@ -81,7 +88,10 @@ final class ImportPhoneContactsViewModel: ObservableObject {
             throw NSError(
                 domain: "ImportPhoneContactsViewModel",
                 code: 1,
-                userInfo: [NSLocalizedDescriptionKey: "Select at least one contact."]
+                userInfo: [NSLocalizedDescriptionKey: appText(
+                    "contacts.selectAtLeastOne",
+                    languageCode: appLanguage
+                )]
             )
         }
 
@@ -109,8 +119,17 @@ final class ImportPhoneContactsViewModel: ObservableObject {
 
         if imported > 0 {
             successText = imported == 1
-                ? "Imported 1 contact."
-                : "Imported \(imported) contacts."
+                ? appText(
+                    "contacts.importedOneContact",
+                    languageCode: appLanguage
+                )
+                : String(
+                    format: appText(
+                        "contacts.importedContactsCount",
+                        languageCode: appLanguage
+                    ),
+                    imported
+                )
         } else {
             successText = nil
         }
@@ -119,14 +138,28 @@ final class ImportPhoneContactsViewModel: ObservableObject {
             errorText = nil
         } else if imported > 0 {
             errorText = failedNames.count == 1
-                ? "1 contact could not be imported."
-                : "\(failedNames.count) contacts could not be imported."
+                ? appText(
+                    "contacts.oneContactCouldNotImport",
+                    languageCode: appLanguage
+                )
+                : String(
+                    format: appText(
+                        "contacts.contactsCouldNotImportCount",
+                        languageCode: appLanguage
+                    ),
+                    failedNames.count
+                )
         } else {
             errorText = failedNames.count == 1
-                ? "Could not import the selected contact."
-                : "Could not import the selected contacts."
+                ? appText(
+                    "contacts.couldNotImportSelectedContact",
+                    languageCode: appLanguage
+                )
+                : appText(
+                    "contacts.couldNotImportSelectedContacts",
+                    languageCode: appLanguage
+                )
         }
-
         return imported
     }
 

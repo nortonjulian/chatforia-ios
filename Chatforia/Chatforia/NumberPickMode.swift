@@ -6,14 +6,24 @@ enum NumberPickMode: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    private var appLanguage: String {
+        UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
+    }
+
     var title: String {
         switch self {
 
         case .free:
-            return String(localized: "phoneNumber.availableNumber")
+            return appText(
+                "phoneNumber.availableNumber",
+                languageCode: appLanguage
+            )
 
         case .premium:
-            return String(localized: "phoneNumber.premiumNumber")
+            return appText(
+                "phoneNumber.premiumNumber",
+                languageCode: appLanguage
+            )
         }
     }
 
@@ -21,15 +31,15 @@ enum NumberPickMode: String, CaseIterable, Identifiable {
         switch self {
 
         case .free:
-            return String(
-                localized:
-                "phoneNumber.freeNumberSubtitle"
+            return appText(
+                "phoneNumber.freeNumberSubtitle",
+                languageCode: appLanguage
             )
 
         case .premium:
-            return String(
-                localized:
-                "phoneNumber.premiumNumberSubtitle"
+            return appText(
+                "phoneNumber.premiumNumberSubtitle",
+                languageCode: appLanguage
             )
         }
     }

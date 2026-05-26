@@ -6,6 +6,7 @@ struct SettingsRowView: View {
     let value: String
 
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     var body: some View {
         HStack(spacing: 12) {
@@ -14,7 +15,7 @@ struct SettingsRowView: View {
                 .foregroundStyle(themeManager.palette.accent)
                 .frame(width: 22)
 
-            Text(title)
+            Text(appText(title, languageCode: appLanguage))
                 .font(.body)
                 .foregroundStyle(themeManager.palette.primaryText)
 

@@ -3,6 +3,8 @@ import SwiftUI
 struct RandomMatchingView: View {
     let onCancel: () -> Void
 
+    @AppStorage("chatforia_language") private var appLanguage = "en"
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 24) {
@@ -12,11 +14,11 @@ struct RandomMatchingView: View {
                     .scaleEffect(1.5)
 
                 VStack(spacing: 10) {
-                    Text(String(localized: "ios.finding_someone"))
+                    Text(appText("ios.finding_someone", languageCode: appLanguage))
                         .font(.title2)
                         .fontWeight(.semibold)
 
-                    Text(String(localized: "ios.we_re_looking_for_someone_who_s_open_to_chat_right_now"))
+                    Text(appText("ios.we_re_looking_for_someone_who_s_open_to_chat_right_now", languageCode: appLanguage))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -28,14 +30,14 @@ struct RandomMatchingView: View {
                 Button {
                     onCancel()
                 } label: {
-                    Text(String(localized: "button_cancel"))
+                    Text(appText("button_cancel", languageCode: appLanguage))
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
                 .padding(.horizontal, 20)
                 .padding(.bottom, 20)
             }
-            .navigationTitle(String(localized: "section_random_chat"))
+            .navigationTitle(appText("section_random_chat", languageCode: appLanguage))
             .navigationBarTitleDisplayMode(.inline)
         }
         .presentationDetents([.medium])

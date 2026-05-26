@@ -6,6 +6,7 @@ struct SMSThreadSearchSheet: View {
     let onSelect: (SMSMessageDTO) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     var body: some View {
         NavigationStack {
@@ -22,8 +23,8 @@ struct SMSThreadSearchSheet: View {
 
                             Text(
                                 message.isOutgoing
-                                    ? String(localized: "common.sent")
-                                    : String(localized: "common.received")
+                                    ? appText("common.sent", languageCode: appLanguage)
+                                    : appText("common.received", languageCode: appLanguage)
                             )
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(.secondary)
@@ -40,9 +41,9 @@ struct SMSThreadSearchSheet: View {
             }
             .searchable(
                 text: $searchText,
-                prompt: Text("messages.searchMessages")
+                prompt: Text(appText("messages.searchMessages", languageCode: appLanguage))
             )
-            .navigationTitle(String(localized: "messages.searchInThread"))
+            .navigationTitle(appText("messages.searchInThread", languageCode: appLanguage))
             .navigationBarTitleDisplayMode(.inline)
         }
     }
@@ -82,7 +83,7 @@ struct SMSThreadSearchSheet: View {
                 .joined(separator: ", ")
         }
 
-        return String(localized: "messages.noText")
+        return appText("messages.noText", languageCode: appLanguage)
     }
 
     private func timestampText(for message: SMSMessageDTO) -> String {

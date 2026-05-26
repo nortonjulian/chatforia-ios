@@ -4,6 +4,10 @@ enum CallDestination: Equatable {
     case phoneNumber(String, displayName: String?)
     case appUser(userId: Int, username: String?)
     case videoRoom(roomId: Int, roomName: String, displayName: String?)
+    
+    private var appLanguage: String {
+        UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
+    }
 
     var displayName: String {
         switch self {
@@ -15,12 +19,18 @@ enum CallDestination: Equatable {
         case .appUser(_, let username):
             return username?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
                 ? username!
-                : "Call"
+                : appText(
+                    "calls.call",
+                    languageCode: appLanguage
+                )
 
         case .videoRoom(_, _, let displayName):
             return displayName?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
                 ? displayName!
-                : "Group Video"
+            : appText(
+                "calls.groupVideo",
+                languageCode: appLanguage
+            )
         }
     }
 }

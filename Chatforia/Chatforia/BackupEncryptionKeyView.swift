@@ -3,6 +3,7 @@ import SwiftUI
 struct BackupEncryptionKeyView: View {
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
     @Environment(\.dismiss) private var dismiss
 
     let onCompleted: (() async -> Void)? = nil
@@ -29,11 +30,21 @@ struct BackupEncryptionKeyView: View {
                     .padding(20)
                 }
             }
-            .navigationTitle(String(localized: "encryption.backUpKey"))
+            .navigationTitle(
+                appText(
+                    "encryption.backUpKey",
+                    languageCode: appLanguage
+                )
+            )
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(String(localized: "common.done")) {
+                    Button(
+                        appText(
+                            "common.done",
+                            languageCode: appLanguage
+                        )
+                    ) {
                         dismiss()
                     }
                     .foregroundStyle(themeManager.palette.accent)
@@ -50,12 +61,12 @@ struct BackupEncryptionKeyView: View {
                     .font(.system(size: 26, weight: .semibold))
                     .foregroundStyle(themeManager.palette.accent)
 
-                Text(String(localized: "encryption.backup.headerTitle"))
+                Text(appText("encryption.backup.headerTitle", languageCode: appLanguage))
                     .font(.title3.weight(.bold))
                     .foregroundStyle(themeManager.palette.primaryText)
             }
 
-            Text(String(localized: "encryption.backup.headerSubtitle"))
+            Text(appText("encryption.backup.headerSubtitle", languageCode: appLanguage))
                 .font(.subheadline)
                 .foregroundStyle(themeManager.palette.secondaryText)
         }
@@ -63,26 +74,26 @@ struct BackupEncryptionKeyView: View {
 
     private var explanationCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(String(localized: "common.howThisWorks"))
+            Text(appText("common.howThisWorks", languageCode: appLanguage))
                 .font(.headline)
                 .foregroundStyle(themeManager.palette.primaryText)
 
             infoRow(
                 icon: "key.fill",
-                title: String(localized: "encryption.backup.protectedTitle"),
-                subtitle: String(localized: "encryption.backup.protectedSubtitle")
+                title: appText("encryption.backup.protectedTitle", languageCode: appLanguage),
+                subtitle: appText("encryption.backup.protectedSubtitle", languageCode: appLanguage)
             )
 
             infoRow(
                 icon: "iphone.and.arrow.forward",
-                title: String(localized: "encryption.backup.restoreDeviceTitle"),
-                subtitle: String(localized: "encryption.backup.restoreDeviceSubtitle")
+                title: appText("encryption.backup.restoreDeviceTitle", languageCode: appLanguage),
+                subtitle: appText("encryption.backup.restoreDeviceSubtitle", languageCode: appLanguage)
             )
 
             infoRow(
                 icon: "exclamationmark.triangle.fill",
-                title: String(localized: "encryption.backup.passwordWarningTitle"),
-                subtitle: String(localized: "encryption.backup.passwordWarningSubtitle")
+                title: appText("encryption.backup.passwordWarningTitle", languageCode: appLanguage),
+                subtitle: appText("encryption.backup.passwordWarningSubtitle", languageCode: appLanguage)
             )
         }
         .padding(16)
@@ -96,12 +107,12 @@ struct BackupEncryptionKeyView: View {
 
     private var formCard: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(String(localized: "encryptionRecovery.actions.createBackup"))
+            Text(appText("encryptionRecovery.actions.createBackup", languageCode: appLanguage))
                 .font(.headline)
                 .foregroundStyle(themeManager.palette.primaryText)
 
             VStack(alignment: .leading, spacing: 6) {
-                Text(String(localized: "encryption.backupPassword"))
+                Text(appText("encryption.backupPassword", languageCode: appLanguage))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(themeManager.palette.primaryText)
 
@@ -110,13 +121,13 @@ struct BackupEncryptionKeyView: View {
                     text: $password
                 )
 
-                Text(String(localized: "encryption.backup.minimumLength"))
+                Text(appText("encryption.backup.minimumLength", languageCode: appLanguage))
                     .font(.caption)
                     .foregroundStyle(themeManager.palette.secondaryText)
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                Text(String(localized: "auth.confirmPassword"))
+                Text(appText("auth.confirmPassword", languageCode: appLanguage))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(themeManager.palette.primaryText)
 
@@ -152,8 +163,8 @@ struct BackupEncryptionKeyView: View {
 
                     Text(
                         isSaving
-                        ? String(localized: "encryptionRecovery.messages.creatingBackup")
-                        : String(localized: "encryptionRecovery.actions.createBackup")
+                        ? appText("encryptionRecovery.messages.creatingBackup", languageCode: appLanguage)
+                        : appText("encryptionRecovery.actions.createBackup", languageCode: appLanguage)
                     )
                     .fontWeight(.semibold)
 
@@ -176,7 +187,10 @@ struct BackupEncryptionKeyView: View {
     }
 
     private var footerNote: some View {
-        Text(String(localized: "encryption.backup.footerNote"))
+        Text(appText(
+            "encryption.backup.footerNote",
+            languageCode: appLanguage
+        ))
             .font(.footnote)
             .foregroundStyle(themeManager.palette.secondaryText)
             .multilineTextAlignment(.leading)
@@ -192,7 +206,7 @@ struct BackupEncryptionKeyView: View {
 
     private func backupKey() async {
         guard let token = auth.currentToken, !token.isEmpty else {
-            errorMessage = String(localized: "auth.sessionExpired")
+            errorMessage = appText("auth.sessionExpired", languageCode: appLanguage)
             successMessage = nil
             return
         }
@@ -201,19 +215,19 @@ struct BackupEncryptionKeyView: View {
         let trimmedConfirm = confirmPassword.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !trimmedPassword.isEmpty else {
-            errorMessage = String(localized: "encryption.backup.enterPassword")
+            errorMessage = appText("encryption.backup.enterPassword", languageCode: appLanguage)
             successMessage = nil
             return
         }
 
         guard trimmedPassword.count >= 6 else {
-            errorMessage = String(localized: "encryption.backup.passwordTooShort")
+            errorMessage = appText("encryption.backup.passwordTooShort", languageCode: appLanguage)
             successMessage = nil
             return
         }
 
         guard trimmedPassword == trimmedConfirm else {
-            errorMessage = String(localized: "auth.passwordsDoNotMatch")
+            errorMessage = appText("auth.passwordsDoNotMatch", languageCode: appLanguage)
             successMessage = nil
             return
         }
@@ -228,7 +242,7 @@ struct BackupEncryptionKeyView: View {
                 password: trimmedPassword
             )
 
-            successMessage = String(localized: "encryption.backup.success")
+            successMessage = appText("encryption.backup.success", languageCode: appLanguage)
             password = ""
             confirmPassword = ""
 

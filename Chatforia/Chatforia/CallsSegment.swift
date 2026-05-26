@@ -5,16 +5,20 @@ enum CallsSegment: String, CaseIterable, Identifiable {
     case voicemail
 
     var id: String {
-        localizedTitle
+        rawValue
+    }
+
+    var titleKey: String {
+        switch self {
+        case .recents:
+            return "calls.recents"
+
+        case .voicemail:
+            return "calls.voicemail"
+        }
     }
 
     var localizedTitle: String {
-        switch self {
-        case .recents:
-            return String(localized: "calls.recents")
-
-        case .voicemail:
-            return String(localized: "calls.voicemail")
-        }
+        String(localized: String.LocalizationValue(titleKey))
     }
 }

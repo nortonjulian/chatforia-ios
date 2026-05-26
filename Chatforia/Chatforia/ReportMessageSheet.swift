@@ -15,57 +15,63 @@ struct ReportMessageSheet: View {
     let onCancel: () -> Void
     let onSubmit: () -> Void
 
+    @AppStorage("chatforia_language") private var appLanguage = "en"
+
     var body: some View {
         NavigationStack {
             Form {
-                Section(String(localized: "report.reason")) {
+                Section(appText("report.reason", languageCode: appLanguage)) {
                     Picker(
-                        String(localized: "report.reason"),
+                        appText("report.reason", languageCode: appLanguage),
                         selection: $reason
                     ) {
                         ForEach(ReportReason.allCases) { value in
-                            Text(value.title).tag(value)
+                            Text(value.title(languageCode: appLanguage))
+                                .tag(value)
                         }
                     }
                 }
 
-                Section(String(localized: "report.includePreviousMessages")) {
+                Section(appText("report.includePreviousMessages", languageCode: appLanguage)) {
                     Picker(
-                        String(localized: "messages.context"),
+                        appText("messages.context", languageCode: appLanguage),
                         selection: $contextCount
                     ) {
-                        Text(String(localized: "report.onlyThisMessage"))
+                        Text(appText("report.onlyThisMessage", languageCode: appLanguage))
                             .tag(0)
 
-                        Text(String(localized: "report.thisPlusPrevious5"))
+                        Text(appText("report.thisPlusPrevious5", languageCode: appLanguage))
                             .tag(5)
 
-                        Text(String(localized: "report.thisPlusPrevious10"))
+                        Text(appText("report.thisPlusPrevious10", languageCode: appLanguage))
                             .tag(10)
 
-                        Text(String(localized: "report.thisPlusPrevious20"))
+                        Text(appText("report.thisPlusPrevious20", languageCode: appLanguage))
                             .tag(20)
                     }
                     .pickerStyle(.navigationLink)
                 }
 
-                Section(String(localized: "common.additionalDetails")) {
+                Section(appText("common.additionalDetails", languageCode: appLanguage)) {
                     TextEditor(text: $details)
                         .frame(minHeight: 120)
                 }
 
                 Section {
                     Toggle(
-                        String(localized: "report.blockUserAfterReporting"),
+                        appText("report.blockUserAfterReporting", languageCode: appLanguage),
                         isOn: $blockAfterReport
                     )
                 }
 
-                Section(String(localized: "report.preview")) {
+                Section(appText("report.preview", languageCode: appLanguage)) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(
                             String(
-                                format: String(localized: "report.reportingMessageFrom"),
+                                format: appText(
+                                    "report.reportingMessageFrom",
+                                    languageCode: appLanguage
+                                ),
                                 senderName
                             )
                         )
@@ -73,7 +79,7 @@ struct ReportMessageSheet: View {
 
                         Text(
                             previewText.isEmpty
-                                ? String(localized: "report.noVisibleText")
+                                ? appText("report.noVisibleText", languageCode: appLanguage)
                                 : previewText
                         )
                         .foregroundStyle(.secondary)
@@ -88,12 +94,12 @@ struct ReportMessageSheet: View {
                     }
                 }
             }
-            .navigationTitle(String(localized: "report.title"))
+            .navigationTitle(appText("report.title", languageCode: appLanguage))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(
-                        String(localized: "button_cancel"),
+                        appText("button_cancel", languageCode: appLanguage),
                         role: .cancel
                     ) {
                         if !isSubmitting {
@@ -104,7 +110,7 @@ struct ReportMessageSheet: View {
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(String(localized: "common.submit")) {
+                    Button(appText("common.submit", languageCode: appLanguage)) {
                         onSubmit()
                     }
                     .disabled(isSubmitting)

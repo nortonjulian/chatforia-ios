@@ -3,6 +3,7 @@ import SwiftUI
 struct ESIMActivationView: View {
     @StateObject var viewModel: ESIMActivationViewModel
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
     @Environment(\.openURL) private var openURL
 
     var body: some View {
@@ -17,17 +18,17 @@ struct ESIMActivationView: View {
             .padding()
         }
         .background(themeManager.palette.screenBackground.ignoresSafeArea())
-        .navigationTitle(String(localized: "esim.activate"))
+        .navigationTitle(appText("esim.activate", languageCode: appLanguage))
         .navigationBarTitleDisplayMode(.inline)
         .alert(
-            String(localized: "esim.unableToInstall"),
+            appText("esim.unableToInstall", languageCode: appLanguage),
             isPresented: errorBinding
         ) {
-            Button(String(localized: "common.ok"), role: .cancel) {}
+            Button(appText("common.ok", languageCode: appLanguage), role: .cancel) {}
         } message: {
             Text(
                 viewModel.errorMessage
-                ?? String(localized: "common.tryAgain")
+                ?? appText("common.tryAgain", languageCode: appLanguage)
             )
         }
     }
@@ -57,8 +58,7 @@ struct ESIMActivationView: View {
 
     private var statusSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-
-            Text(String(localized: "common.status"))
+            Text(appText("common.status", languageCode: appLanguage))
                 .font(.headline)
                 .foregroundStyle(themeManager.palette.primaryText)
 
@@ -77,8 +77,8 @@ struct ESIMActivationView: View {
 
                 Text(
                     viewModel.isActive
-                    ? String(localized: "esim.serviceActive")
-                    : String(localized: "esim.readyToInstall")
+                    ? appText("esim.serviceActive", languageCode: appLanguage)
+                    : appText("esim.readyToInstall", languageCode: appLanguage)
                 )
                 .font(.body.weight(.semibold))
                 .foregroundStyle(themeManager.palette.primaryText)
@@ -96,19 +96,13 @@ struct ESIMActivationView: View {
 
     private var installSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-
-            Text(String(localized: "common.install"))
+            Text(appText("common.install", languageCode: appLanguage))
                 .font(.headline)
                 .foregroundStyle(themeManager.palette.primaryText)
 
-            Text(
-                String(
-                    localized:
-                    "esim.installDirectlyOrUseDetails"
-                )
-            )
-            .font(.footnote)
-            .foregroundStyle(themeManager.palette.secondaryText)
+            Text(appText("esim.installDirectlyOrUseDetails", languageCode: appLanguage))
+                .font(.footnote)
+                .foregroundStyle(themeManager.palette.secondaryText)
 
             Button {
                 Task {
@@ -154,14 +148,9 @@ struct ESIMActivationView: View {
             )
 
             if !viewModel.canInstall {
-                Text(
-                    String(
-                        localized:
-                        "esim.noValidInstallLink"
-                    )
-                )
-                .font(.caption)
-                .foregroundStyle(themeManager.palette.secondaryText)
+                Text(appText("esim.noValidInstallLink", languageCode: appLanguage))
+                    .font(.caption)
+                    .foregroundStyle(themeManager.palette.secondaryText)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -176,8 +165,7 @@ struct ESIMActivationView: View {
 
     private var detailsSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-
-            Text(String(localized: "esim.activationDetails"))
+            Text(appText("esim.activationDetails", languageCode: appLanguage))
                 .font(.headline)
                 .foregroundStyle(themeManager.palette.primaryText)
 
@@ -199,22 +187,17 @@ struct ESIMActivationView: View {
     }
 
     private var supportSection: some View {
-        Text(
-            String(
-                localized:
-                "esim.installationSupportText"
-            )
-        )
-        .font(.caption)
-        .foregroundStyle(themeManager.palette.secondaryText)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        Text(appText("esim.installationSupportText", languageCode: appLanguage))
+            .font(.caption)
+            .foregroundStyle(themeManager.palette.secondaryText)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder
     private func detailRow(title: String, value: String?) -> some View {
         if let value, !value.isEmpty {
             VStack(alignment: .leading, spacing: 4) {
-                Text(title)
+                Text(appText(title, languageCode: appLanguage))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(themeManager.palette.secondaryText)
 

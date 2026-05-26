@@ -1,0 +1,31 @@
+
+Found 7 likely hard-coded localization strings:
+
+Chatforia/Chatforia/DecryptedMessageTextView.swift:16
+  VALUE: 🔒 Encrypted message
+  LINE : Text("🔒 Encrypted message")
+
+Chatforia/Chatforia/LoginView.swift:118
+  VALUE: or
+  LINE : Text("or")
+
+Chatforia/Chatforia/LoginView.swift:132
+  VALUE: Forgot password?
+  LINE : NavigationLink("Forgot password?") {
+
+Chatforia/Chatforia/VoicemailInboxView.swift:58
+  VALUE: Voicemail Error
+  LINE : .alert("Voicemail Error", isPresented: errorBinding) {
+
+Chatforia/Chatforia/MessageAttachmentsView.swift:209
+  VALUE: GIF
+  LINE : Text("GIF")
+
+Chatforia/Chatforia/ChatListRowView.swift:33
+  VALUE: SMS
+  LINE : Text("SMS")
+
+Chatforia/Chatforia/GIFPickerView.swift:154
+  VALUE: GIF
+  LINE : Text("GIF")
+

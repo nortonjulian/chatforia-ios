@@ -81,12 +81,12 @@ struct LoginView: View {
                 ScrollView {
                     VStack(spacing: 20) {
                         VStack(spacing: 8) {
-                            Text(hasLoggedInBefore ? "common.welcomeBack" : "common.welcomeToChatforia")
+                            Text(String(localized: hasLoggedInBefore ? "common.welcomeBack" : "common.welcomeToChatforia"))
                                 .font(.system(size: 30, weight: .bold))
                                 .foregroundStyle(themeManager.palette.primaryText)
                                 .multilineTextAlignment(.center)
 
-                            Text(hasLoggedInBefore ? "Log in to your Chatforia account" : "Sign in or create an account")
+                            Text(String(localized: hasLoggedInBefore ? "login.subtitleReturning" : "upgrade.auth.signInOrCreateAnAccount"))
                                 .font(.subheadline)
                                 .foregroundStyle(themeManager.palette.secondaryText)
                                 .multilineTextAlignment(.center)

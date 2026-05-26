@@ -4,6 +4,7 @@ struct StartChatView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     @StateObject private var vm = StartChatViewModel()
 
@@ -18,20 +19,35 @@ struct StartChatView: View {
                 Group {
                     if vm.isLoading && vm.results.isEmpty {
                         LoadingStateView(
-                            title: String(localized: "ios.searching"),
-                            subtitle: String(localized: "ios.looking_for_people_you_can_message")
+                            title: appText(
+                                "ios.searching",
+                                languageCode: appLanguage
+                            ),
+                            subtitle: appText(
+                                "ios.looking_for_people_you_can_message",
+                                languageCode: appLanguage
+                            )
                         )
                     } else if let errorText = vm.errorText, !errorText.isEmpty, vm.results.isEmpty {
                         EmptyStateView(
                             systemImage: "exclamationmark.magnifyingglass",
-                            title: String(localized: "ios.search_unavailable"),
+                            title: appText(
+                                "ios.search_unavailable",
+                                languageCode: appLanguage
+                            ),
                             subtitle: errorText
                         )
                     } else if vm.trimmedQuery.isEmpty {
                         EmptyStateView(
                             systemImage: "person.crop.circle.badge.plus",
-                            title: String(localized: "common.startConversation"),
-                            subtitle: String(localized: "ios.search_by_username_contact_or_phone")
+                            title: appText(
+                                "common.startConversation",
+                                languageCode: appLanguage
+                            ),
+                            subtitle: appText(
+                                "ios.search_by_username_contact_or_phone",
+                                languageCode: appLanguage
+                            )
                         )
                     } else if vm.looksLikePhoneInput && vm.contactResults.isEmpty,
                               let phone = vm.normalizedPhoneCandidate {
@@ -39,20 +55,36 @@ struct StartChatView: View {
                       } else if vm.results.isEmpty && vm.contactResults.isEmpty {
                         EmptyStateView(
                             systemImage: "magnifyingglass",
-                            title: String(localized: "ios.no_users_found"),
-                            subtitle: String(localized: "ios.try_different_username_contact_or_phone")
+                            title: appText(
+                                "ios.no_users_found",
+                                languageCode: appLanguage
+                            ),
+                            subtitle: appText(
+                                "ios.try_different_username_contact_or_phone",
+                                languageCode: appLanguage
+                            )
                         )
                     } else {
                         List {
                             if vm.looksLikePhoneInput, let phone = vm.normalizedPhoneCandidate {
-                                Section(String(localized: "common.phoneNumber")) {
+                                Section(
+                                    appText(
+                                        "common.phoneNumber",
+                                        languageCode: appLanguage
+                                    )
+                                ) {
                                     phoneRow(phone: phone)
                                         .listRowBackground(themeManager.palette.cardBackground)
                                 }
                             }
                             
                             if !vm.contactResults.isEmpty {
-                                Section(String(localized: "contacts.savedContacts")) {
+                                Section(
+                                    appText(
+                                        "contacts.savedContacts",
+                                        languageCode: appLanguage
+                                    )
+                                ) {
                                     ForEach(vm.contactResults) { contact in
                                         Button {
                                             Task { await selectContact(contact) }
@@ -65,7 +97,10 @@ struct StartChatView: View {
                                                         .font(.body.weight(.medium))
                                                         .foregroundStyle(themeManager.palette.primaryText)
 
-                                                    Text(contact.externalPhone ?? (contact.user?.username.map { "@\($0)" } ?? String(localized: "common.openConversation")))
+                                                    Text(contact.externalPhone ?? (contact.user?.username.map { "@\($0)" } ?? appText(
+                                                        "common.openConversation",
+                                                        languageCode: appLanguage
+                                                    )))
                                                         .font(.footnote)
                                                         .foregroundStyle(themeManager.palette.secondaryText)
                                                 }
@@ -89,7 +124,12 @@ struct StartChatView: View {
                                 }
                             }
 
-                            Section(String(localized: "contacts.chatforiaUsers")) {
+                            Section(
+                                appText(
+                                    "contacts.chatforiaUsers",
+                                    languageCode: appLanguage
+                                )
+                            ) {
                                 ForEach(vm.results) { user in
                                     Button {
                                         Task { await selectUser(user) }
@@ -102,7 +142,10 @@ struct StartChatView: View {
                                                     .font(.body.weight(.medium))
                                                     .foregroundStyle(themeManager.palette.primaryText)
 
-                                                Text(String(localized: "contacts.startChatforiaChat"))
+                                                Text(appText(
+                                                    "contacts.startChatforiaChat",
+                                                    languageCode: appLanguage
+                                                ))
                                                     .font(.footnote)
                                                     .foregroundStyle(themeManager.palette.secondaryText)
                                             }
@@ -134,21 +177,32 @@ struct StartChatView: View {
             .navigationBarTitleDisplayMode(.inline)
             .searchable(
                 text: $vm.searchText,
-                prompt: Text("ios.username_contact_name_or_phone_number")
+                prompt: Text(
+                    appText(
+                        "ios.username_contact_name_or_phone_number",
+                        languageCode: appLanguage
+                    )
+                )
             )
             .onChange(of: vm.searchText) { _, _ in
                 vm.handleSearchTextChanged(currentUserId: auth.currentUser?.id)
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button(String(localized: "button_cancel")) {
+                    Button(appText(
+                        "button_cancel",
+                        languageCode: appLanguage
+                    )) {
                         dismiss()
                     }
                     .foregroundStyle(themeManager.palette.accent)
                 }
 
                 ToolbarItem(placement: .principal) {
-                    Text(String(localized: "common.newConversation"))
+                    Text(appText(
+                        "common.newConversation",
+                        languageCode: appLanguage
+                    ))
                         .font(.headline)
                         .foregroundStyle(themeManager.palette.primaryText)
                 }
@@ -168,7 +222,10 @@ struct StartChatView: View {
 
     private func phoneCandidateRow(phone: String) -> some View {
         List {
-            Section(String(localized: "common.phoneNumber")) {
+            Section(appText(
+                "common.phoneNumber",
+                languageCode: appLanguage
+            )) {
                 phoneRow(phone: phone)
                     .listRowBackground(themeManager.palette.cardBackground)
             }
@@ -188,7 +245,10 @@ struct StartChatView: View {
                 rowContent(
                     icon: "phone.fill",
                     title: phone,
-                    subtitle: String(localized: "ios.text_this_number")
+                    subtitle: appText(
+                        "ios.text_this_number",
+                        languageCode: appLanguage
+                    )
                 )
             }
             .buttonStyle(.plain)
@@ -202,7 +262,10 @@ struct StartChatView: View {
                 rowContent(
                     icon: "square.and.arrow.up",
                     title: phone,
-                    subtitle: String(localized: "ios.invite_to_chatforia")
+                    subtitle: appText(
+                        "ios.invite_to_chatforia",
+                        languageCode: appLanguage
+                    )
                 )
             }
             .buttonStyle(.plain)
@@ -275,7 +338,10 @@ struct StartChatView: View {
 
     private func selectPhone() async {
         guard let phone = vm.normalizedPhoneCandidate else {
-            vm.errorText = String(localized: "ios.invalid_phone_number")
+            vm.errorText = appText(
+                "ios.invalid_phone_number",
+                languageCode: appLanguage
+            )
             return
         }
 

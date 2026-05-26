@@ -2,19 +2,27 @@ import SwiftUI
 
 struct LanguageSelectionView: View {
     @Binding var selectedLanguage: String
+
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
 
             Text(
-                String(localized: "settings.preferredLanguage")
+                appText(
+                    "settings.preferredLanguage",
+                    languageCode: appLanguage
+                )
             )
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(themeManager.palette.primaryText)
 
             Picker(
-                String(localized: "settings.preferredLanguage"),
+                appText(
+                    "settings.preferredLanguage",
+                    languageCode: appLanguage
+                ),
                 selection: $selectedLanguage
             ) {
                 ForEach(AppLanguages.all) { language in

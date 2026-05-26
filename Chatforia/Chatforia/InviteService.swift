@@ -3,6 +3,10 @@ import Foundation
 final class InviteService {
     static let shared = InviteService()
     private init() {}
+    
+    private var appLanguage: String {
+        UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
+    }
 
     func createInvite(
         targetPhone: String? = nil,
@@ -70,14 +74,23 @@ final class InviteService {
         let name = inviterUsername?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let name, !name.isEmpty {
             return String(
-                format: String(localized: "invite.shareMessageWithName"),
+                format: appText(
+                    "invite.shareMessageWithName",
+                    languageCode: appLanguage
+                ),
                 name,
                 inviteURL
             )
         }
 
         return String(
-            format: String(localized: "invite.shareMessageGeneric"),
+            format: String(
+                format: appText(
+                    "invite.shareMessageGeneric",
+                    languageCode: appLanguage
+                ),
+                inviteURL
+            ),
             inviteURL
         )
             }

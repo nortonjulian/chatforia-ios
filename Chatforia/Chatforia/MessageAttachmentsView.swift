@@ -7,6 +7,7 @@ struct MessageAttachmentsView: View {
     let maxWidth: CGFloat
     let onVideoTap: ((URL) -> Void)?
 
+    @AppStorage("chatforia_language") private var appLanguage = "en"
     @State private var selectedImageURL: IdentifiableURL?
 
     var body: some View {
@@ -38,15 +39,27 @@ struct MessageAttachmentsView: View {
                 videoCard(attachment)
             case "FILE":
                 tappableFileCard(
-                    title: attachment.caption?.nilIfBlank ?? fileNameFromURL(attachment.url) ?? "File",
-                    subtitle: attachment.mimeType?.nilIfBlank ?? "File attachment",
+                    title: attachment.caption?.nilIfBlank ?? fileNameFromURL(attachment.url) ?? appText(
+                        "common.file",
+                        languageCode: appLanguage
+                    ),
+                    subtitle: attachment.mimeType?.nilIfBlank ?? appText(
+                        "messages.attachment",
+                        languageCode: appLanguage
+                    ),
                     systemImage: "doc.fill",
                     urlString: attachment.url
                 )
             default:
                 tappableFileCard(
-                    title: attachment.caption?.nilIfBlank ?? "Attachment",
-                    subtitle: attachment.mimeType?.nilIfBlank ?? "Attachment",
+                    title: attachment.caption?.nilIfBlank ?? appText(
+                        "messages.attachment",
+                        languageCode: appLanguage
+                    ),
+                    subtitle: attachment.mimeType?.nilIfBlank ?? appText(
+                        "messages.attachment",
+                        languageCode: appLanguage
+                    ),
                     systemImage: "paperclip",
                     urlString: attachment.url
                 )
@@ -91,8 +104,14 @@ struct MessageAttachmentsView: View {
                 }
             } else {
                 tappableFileCard(
-                    title: attachment.caption?.nilIfBlank ?? "Video",
-                    subtitle: attachment.mimeType?.nilIfBlank ?? "Video attachment",
+                    title: attachment.caption?.nilIfBlank ?? appText(
+                        "messages.mediaVideo",
+                        languageCode: appLanguage
+                    ),
+                    subtitle: attachment.mimeType?.nilIfBlank ?? appText(
+                        "messages.videoAttachment",
+                        languageCode: appLanguage
+                    ),
                     systemImage: "video.fill",
                     urlString: attachment.url
                 )
@@ -145,16 +164,28 @@ struct MessageAttachmentsView: View {
 
                         case .failure:
                             fallbackMediaCard(
-                                title: attachment.caption?.nilIfBlank ?? "Image",
-                                subtitle: attachment.mimeType?.nilIfBlank ?? "Image attachment",
+                                title: attachment.caption?.nilIfBlank ?? appText(
+                                    "messages.mediaPhoto",
+                                    languageCode: appLanguage
+                                ),
+                                subtitle: attachment.mimeType?.nilIfBlank ?? appText(
+                                    "messages.imageAttachment",
+                                    languageCode: appLanguage
+                                ),
                                 systemImage: "photo.fill"
                             )
                             .frame(width: min(maxWidth, 240))
 
                         @unknown default:
                             fallbackMediaCard(
-                                title: attachment.caption?.nilIfBlank ?? "Image",
-                                subtitle: attachment.mimeType?.nilIfBlank ?? "Image attachment",
+                                title: attachment.caption?.nilIfBlank ?? appText(
+                                    "messages.mediaPhoto",
+                                    languageCode: appLanguage
+                                ),
+                                subtitle: attachment.mimeType?.nilIfBlank ?? appText(
+                                    "messages.imageAttachment",
+                                    languageCode: appLanguage
+                                ),
                                 systemImage: "photo.fill"
                             )
                             .frame(width: min(maxWidth, 240))
@@ -164,8 +195,14 @@ struct MessageAttachmentsView: View {
                 .buttonStyle(.plain)
             } else {
                 fallbackMediaCard(
-                    title: attachment.caption?.nilIfBlank ?? "Image",
-                    subtitle: attachment.mimeType?.nilIfBlank ?? "Image attachment",
+                    title: attachment.caption?.nilIfBlank ?? appText(
+                        "messages.mediaPhoto",
+                        languageCode: appLanguage
+                    ),
+                    subtitle: attachment.mimeType?.nilIfBlank ?? appText(
+                        "messages.imageAttachment",
+                        languageCode: appLanguage
+                    ),
                     systemImage: "photo.fill"
                 )
                 .frame(width: min(maxWidth, 240))
@@ -206,7 +243,10 @@ struct MessageAttachmentsView: View {
                                 .frame(width: min(maxWidth, 240), height: 180)
                                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
-                            Text("GIF")
+                            Text(appText(
+                                "media.gif",
+                                languageCode: appLanguage
+                            ))
                                 .font(.caption2.bold())
                                 .padding(6)
                                 .background(.black.opacity(0.7))
@@ -226,8 +266,14 @@ struct MessageAttachmentsView: View {
 
             } else {
                 fallbackMediaCard(
-                    title: attachment.caption?.nilIfBlank ?? "GIF",
-                    subtitle: attachment.mimeType?.nilIfBlank ?? "GIF attachment",
+                    title: attachment.caption?.nilIfBlank ?? appText(
+                        "media.gif",
+                        languageCode: appLanguage
+                    ),
+                    subtitle: attachment.mimeType?.nilIfBlank ?? appText(
+                        "messages.gifAttachment",
+                        languageCode: appLanguage
+                    ),
                     systemImage: "photo"
                 )
                 .frame(width: min(maxWidth, 240))
@@ -246,12 +292,18 @@ struct MessageAttachmentsView: View {
 
     @ViewBuilder
     private func audioCard(_ attachment: AttachmentDTO) -> some View {
-        let title = attachment.caption?.nilIfBlank ?? "Audio"
+        let title = attachment.caption?.nilIfBlank ?? appText(
+            "messages.audio",
+            languageCode: appLanguage
+        )
         let subtitle: String = {
             if let dur = attachment.durationSec {
                 return formattedDuration(dur)
             }
-            return attachment.mimeType?.nilIfBlank ?? "Audio attachment"
+            return attachment.mimeType?.nilIfBlank ?? appText(
+                "messages.audioAttachment",
+                languageCode: appLanguage
+            )
         }()
 
         tappableFileCard(
@@ -359,6 +411,7 @@ struct MessageAttachmentsView: View {
 private struct AttachmentImageViewer: View {
     let imageURL: URL
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     private var isGIF: Bool {
         imageURL.pathExtension.lowercased() == "gif"
@@ -386,7 +439,12 @@ private struct AttachmentImageViewer: View {
                             VStack(spacing: 12) {
                                 Image(systemName: "exclamationmark.triangle")
                                     .font(.system(size: 28))
-                                Text("media.couldNotLoadImage")
+                                Text(
+                                    appText(
+                                        "media.couldNotLoadImage",
+                                        languageCode: appLanguage
+                                    )
+                                )
                                     .font(.headline)
                             }
                             .foregroundStyle(.white)
@@ -399,7 +457,12 @@ private struct AttachmentImageViewer: View {
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("common.done") {
+                    Button(
+                        appText(
+                            "common.done",
+                            languageCode: appLanguage
+                        )
+                    ) {
                         dismiss()
                     }
                     .foregroundStyle(.white)

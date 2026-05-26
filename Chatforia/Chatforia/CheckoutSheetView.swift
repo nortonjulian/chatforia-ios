@@ -6,23 +6,24 @@ struct CheckoutSheetView: View {
 
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     var body: some View {
         VStack(spacing: 20) {
-            Text("upgrade.confirmPurchase")
+            Text(appText("upgrade.confirmPurchase", languageCode: appLanguage))
                 .font(.title2.bold())
                 .foregroundStyle(themeManager.palette.primaryText)
 
             VStack(spacing: 10) {
-                Text(pack.title)
+                Text(pack.title(languageCode: appLanguage))
                     .font(.headline)
                     .foregroundStyle(themeManager.palette.primaryText)
 
-                Text(pack.displayDataAmount)
+                Text(pack.displayDataAmount(languageCode: appLanguage))
                     .font(.title3.bold())
                     .foregroundStyle(themeManager.palette.primaryText)
 
-                Text(pack.description)
+                Text(pack.description(languageCode: appLanguage))
                     .font(.footnote)
                     .foregroundStyle(themeManager.palette.secondaryText)
                     .multilineTextAlignment(.center)
@@ -31,9 +32,9 @@ struct CheckoutSheetView: View {
             Divider()
 
             VStack(spacing: 12) {
-                feature("Instant activation")
-                feature("No contract")
-                feature("Top up anytime")
+                feature(appText("upgrade.checkout.instantActivation", languageCode: appLanguage))
+                feature(appText("upgrade.checkout.noContract", languageCode: appLanguage))
+                feature(appText("upgrade.checkout.topUpAnytime", languageCode: appLanguage))
             }
 
             Spacer()
@@ -41,7 +42,7 @@ struct CheckoutSheetView: View {
             Button {
                 onConfirm()
             } label: {
-                Text(String(localized: "upgrade.checkout.buyAndActivate"))
+                Text(appText("upgrade.checkout.buyAndActivate", languageCode: appLanguage))
                     .font(.headline)
                     .foregroundStyle(themeManager.palette.buttonForeground)
                     .frame(maxWidth: .infinity)
@@ -60,7 +61,7 @@ struct CheckoutSheetView: View {
             }
             .buttonStyle(.plain)
 
-            Button(String(localized: "button_cancel")) {
+            Button(appText("button_cancel", languageCode: appLanguage)) {
                 dismiss()
             }
             .font(.footnote)

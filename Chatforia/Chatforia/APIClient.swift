@@ -25,11 +25,43 @@ enum APIError: Error, LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .invalidURL: return "Invalid URL."
-        case .unauthorized: return "Not authorized."
-        case .server(let status, let message): return "Server error (\(status)): \(message ?? "Unknown")"
-        case .decoding(let err): return "Failed to decode response: \(err.localizedDescription)"
-        case .network(let err): return err.localizedDescription
+
+        case .invalidURL:
+            return appText(
+                "api.invalidURL",
+                languageCode: appLanguage
+            )
+
+        case .unauthorized:
+            return appText(
+                "api.notAuthorized",
+                languageCode: appLanguage
+            )
+
+        case .server(let status, let message):
+            return String(
+                format: appText(
+                    "api.serverError",
+                    languageCode: appLanguage
+                ),
+                status,
+                message ?? appText(
+                    "common.unknown",
+                    languageCode: appLanguage
+                )
+            )
+
+        case .decoding(let err):
+            return String(
+                format: appText(
+                    "api.failedToDecodeResponse",
+                    languageCode: appLanguage
+                ),
+                err.localizedDescription
+            )
+
+        case .network(let err):
+            return err.localizedDescription
         }
     }
 }
@@ -41,6 +73,10 @@ struct EmptyResponse: Decodable {}
 final class APIClient {
     static let shared = APIClient()
     private init() {}
+    
+    private var appLanguage: String {
+        UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
+    }
 
     /// Build a URL from AppEnvironment.apiBaseURL and the request.path while preserving any query string in `request.path`.
     /// This avoids percent-encoding the `?` and query portion when appending the path.

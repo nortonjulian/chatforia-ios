@@ -3,6 +3,7 @@ import SwiftUI
 struct ActiveCallView: View {
     @EnvironmentObject private var callManager: CallManager
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     private var stateLabel: String {
         callManager.state.label
@@ -26,7 +27,13 @@ struct ActiveCallView: View {
                 Spacer()
 
                 VStack(spacing: 10) {
-                    Text(session?.displayName ?? "Call")
+                    Text(
+                        session?.displayName ??
+                        appText(
+                            "calls.call",
+                            languageCode: appLanguage
+                        )
+                    )
                         .font(.system(size: 32, weight: .bold))
                         .foregroundStyle(themeManager.palette.primaryText)
                         .multilineTextAlignment(.center)
@@ -41,7 +48,15 @@ struct ActiveCallView: View {
                 HStack(spacing: 26) {
                     CallControlButton(
                         systemName: (session?.isMuted ?? false) ? "mic.slash.fill" : "mic.fill",
-                        title: (session?.isMuted ?? false) ? "Unmute" : "Mute",
+                        title: (session?.isMuted ?? false)
+                            ? appText(
+                                "calls.unmute",
+                                languageCode: appLanguage
+                            )
+                            : appText(
+                                "calls.mute",
+                                languageCode: appLanguage
+                            ),
                         isActive: session?.isMuted ?? false
                     ) {
                         callManager.toggleMute()
@@ -49,7 +64,10 @@ struct ActiveCallView: View {
 
                     CallControlButton(
                         systemName: (session?.isSpeakerOn ?? false) ? "speaker.wave.3.fill" : "speaker.wave.2.fill",
-                        title: "Speaker",
+                        title: appText(
+                            "calls.speaker",
+                            languageCode: appLanguage
+                        ),
                         isActive: session?.isSpeakerOn ?? false
                     ) {
                         callManager.toggleSpeaker()
@@ -57,7 +75,10 @@ struct ActiveCallView: View {
 
                     CallControlButton(
                         systemName: "phone.down.fill",
-                        title: "End",
+                        title: appText(
+                            "calls.end",
+                            languageCode: appLanguage
+                        ),
                         isDestructive: true
                     ) {
                         callManager.hangup()

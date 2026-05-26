@@ -27,6 +27,7 @@ struct ChatMessageRowView: View {
     let onVideoTap: ((URL) -> Void)?
 
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
     @State private var didAppear = false
 
     var body: some View {
@@ -95,7 +96,10 @@ struct ChatMessageRowView: View {
                                     onRetryTap?()
                                 } label: {
                                     Label(
-                                        String(localized: "common.retry"),
+                                        appText(
+                                            "common.retry",
+                                            languageCode: appLanguage
+                                        ),
                                         systemImage: "arrow.clockwise"
                                     )
                                 }
@@ -323,7 +327,13 @@ struct ChatMessageRowView: View {
     private var senderDisplayName: String {
         let raw = msg.sender.username?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let raw, !raw.isEmpty { return raw }
-        return String(format: String(localized: "chat.user_id_format"), msg.sender.id)
+        return String(
+            format: appText(
+                "chat.user_id_format",
+                languageCode: appLanguage
+            ),
+            msg.sender.id
+        )
     }
 
     private var timestampText: String {
@@ -336,9 +346,15 @@ struct ChatMessageRowView: View {
 
     private var deleteMenuTitle: String {
         if canDeleteForEveryoneByRules {
-            return String(localized: "common.delete")
+            return appText(
+                "common.delete",
+                languageCode: appLanguage
+            )
         } else {
-            return String(localized: "messages.deleteForMe")
+            return appText(
+                "messages.deleteForMe",
+                languageCode: appLanguage
+            )
         }
     }
 
@@ -515,7 +531,10 @@ struct ChatMessageRowView: View {
 
         if deliveryState == .failed {
             return editedText(
-                prefix: String(localized: "common.failedRetry")
+                prefix: appText(
+                    "common.failedRetry",
+                    languageCode: appLanguage
+                )
             )
         }
 
@@ -526,17 +545,35 @@ struct ChatMessageRowView: View {
         let base: String? = {
             switch deliveryState {
             case .pending:
-                return String(localized: "common.pending")
+                return appText(
+                    "common.pending",
+                    languageCode: appLanguage
+                )
             case .sending:
-                return String(localized: "common.sending")
+                return appText(
+                    "common.sending",
+                    languageCode: appLanguage
+                )
             case .sent:
-                return String(localized: "common.sent")
+                return appText(
+                    "common.sent",
+                    languageCode: appLanguage
+                )
             case .delivered:
-                return String(localized: "common.delivered")
+                return appText(
+                    "common.delivered",
+                    languageCode: appLanguage
+                )
             case .read:
-                return String(localized: "common.read")
+                return appText(
+                    "common.read",
+                    languageCode: appLanguage
+                )
             case .failed:
-                return String(localized: "common.failedRetry")
+                return appText(
+                    "common.failedRetry",
+                    languageCode: appLanguage
+                )
             case .none:
                 return nil
             }
@@ -548,13 +585,16 @@ struct ChatMessageRowView: View {
     private func editedText(prefix: String?) -> String? {
         guard let prefix else {
             if msg.editedAt != nil {
-                return String(localized: "messages.edited")
+                return appText(
+                    "messages.edited",
+                    languageCode: appLanguage
+                )
             }
             return nil
         }
 
         if msg.editedAt != nil {
-            return "\(prefix) · \(String(localized: "messages.edited"))"
+            return "\(prefix) · \(appText("messages.edited", languageCode: appLanguage))"
         }
         return prefix
     }
@@ -564,22 +604,34 @@ struct ChatMessageRowView: View {
         guard !readers.isEmpty else { return nil }
 
         if !isGroupRoom {
-            return String(localized: "common.read")
+            return appText(
+                "common.read",
+                languageCode: appLanguage
+            )
         }
 
         if readers.count == 1 {
             let raw = readers[0].username?.trimmingCharacters(in: .whitespacesAndNewlines)
             if let raw, !raw.isEmpty {
                 return String(
-            format: String(localized: "messages.readByUser"),
-            raw
-        )
+                    format: appText(
+                        "messages.readByUser",
+                        languageCode: appLanguage
+                    ),
+                    raw
+                )
             }
-            return String(localized: "common.read")
+            return appText(
+                "common.read",
+                languageCode: appLanguage
+            )
         }
 
         return String(
-            format: String(localized: "messages.readByCount"),
+            format: appText(
+                "messages.readByCount",
+                languageCode: appLanguage
+            ),
             readers.count
         )
     }

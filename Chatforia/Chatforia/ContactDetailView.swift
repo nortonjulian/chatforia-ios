@@ -11,6 +11,7 @@ struct ContactDetailView: View {
     let onAction: (ContactDetailAction) -> Void
 
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     private var displayName: String {
         if let alias = contact.alias?.trimmingCharacters(in: .whitespacesAndNewlines), !alias.isEmpty {
@@ -25,7 +26,10 @@ struct ContactDetailView: View {
         if let externalPhone = contact.externalPhone?.trimmingCharacters(in: .whitespacesAndNewlines), !externalPhone.isEmpty {
             return externalPhone
         }
-        return String(localized: "ios.unknown_contact")
+        return appText(
+            "ios.unknown_contact",
+            languageCode: appLanguage
+        )
     }
 
     private var subtitle: String {
@@ -35,9 +39,9 @@ struct ContactDetailView: View {
         if let externalPhone = contact.externalPhone?.trimmingCharacters(in: .whitespacesAndNewlines), !externalPhone.isEmpty {
             return externalPhone
         }
-        return String(
-            localized:
-            "contacts.savedContact"
+        return appText(
+            "contacts.savedContact",
+            languageCode: appLanguage
         )
     }
 
@@ -75,10 +79,10 @@ struct ContactDetailView: View {
                         } label: {
                             actionRow(
                                 title:
-                            String(
-                                localized:
-                                "common.message"
-                            ),
+                                    appText(
+                                        "common.message",
+                                        languageCode: appLanguage
+                                    ),
                                 systemImage: "message.fill"
                             )
                         }
@@ -89,10 +93,10 @@ struct ContactDetailView: View {
                         } label: {
                             actionRow(
                                 title:
-                            String(
-                                localized:
-                                "common.call"
-                            ),
+                                    appText(
+                                        "common.call",
+                                        languageCode: appLanguage
+                                    ),
                                 systemImage: "phone.fill"
                             )
                         }
@@ -102,10 +106,10 @@ struct ContactDetailView: View {
                             } label: {
                                 actionRow(
                                     title:
-                                String(
-                                    localized:
-                                    "common.video"
-                                ),
+                                        appText(
+                                            "common.video",
+                                            languageCode: appLanguage
+                                        ),
                                     systemImage: "video.fill"
                                 )
                             }
@@ -117,9 +121,9 @@ struct ContactDetailView: View {
                     VStack(alignment: .leading, spacing: 14) {
                         detailLine(
                             title:
-                                String(
-                                    localized:
-                                    "common.name"
+                                appText(
+                                    "common.name",
+                                    languageCode: appLanguage
                                 ),
                             value: displayName
                         )
@@ -127,9 +131,9 @@ struct ContactDetailView: View {
                         if let externalName = contact.externalName, !externalName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                             detailLine(
                                 title:
-                                    String(
-                                        localized:
-                                        "contacts.externalName"
+                                    appText(
+                                        "contacts.externalName",
+                                        languageCode: appLanguage
                                     ),
                                 value: externalName
                             )
@@ -138,9 +142,9 @@ struct ContactDetailView: View {
                         if let phone = contact.externalPhone, !phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                             detailLine(
                                 title:
-                                    String(
-                                        localized:
-                                        "common.phone"
+                                    appText(
+                                        "common.phone",
+                                        languageCode: appLanguage
                                     ),
                                 value: phone
                             )
@@ -149,9 +153,9 @@ struct ContactDetailView: View {
                         if let username = contact.user?.username, !username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                             detailLine(
                                 title:
-                                    String(
-                                        localized:
-                                        "common.username"
+                                    appText(
+                                        "common.username",
+                                        languageCode: appLanguage
                                     ),
                                 value: "@\(username)"
                             )
@@ -166,9 +170,9 @@ struct ContactDetailView: View {
             }
         }
         .navigationTitle(
-            String(
-                localized:
-                "contacts.contact"
+            appText(
+                "contacts.contact",
+                languageCode: appLanguage
             )
         )
         .navigationBarTitleDisplayMode(.inline)

@@ -9,42 +9,67 @@ enum CallState: Equatable {
     case active(String)
     case ended
     case failed(String)
+    
+    private var appLanguage: String {
+        UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
+    }
 
     var label: String {
         switch self {
 
         case .idle:
-            return String(localized: "calls.idle")
+            return appText(
+                "calls.idle",
+                languageCode: appLanguage
+            )
 
         case .fetchingToken:
-            return String(localized: "calls.preparing")
+            return appText(
+                "calls.preparing",
+                languageCode: appLanguage
+            )
 
         case .dialing(let destination):
             return String(
-                format: String(localized: "calls.callingDestination"),
+                format: appText(
+                    "calls.callingDestination",
+                    languageCode: appLanguage
+                ),
                 destination.displayName
             )
 
         case .ringingIncoming(let name):
             return String(
-                format: String(localized: "calls.incomingCalling"),
+                format: appText(
+                    "calls.incomingCalling",
+                    languageCode: appLanguage
+                ),
                 name
             )
 
         case .connecting(let name):
             return String(
-                format: String(localized: "calls.connecting"),
+                format: appText(
+                    "calls.connecting",
+                    languageCode: appLanguage
+                ),
                 name
             )
 
         case .active(let name):
             return String(
-                format: String(localized: "calls.inCallWith"),
+                format: appText(
+                    "calls.inCallWith",
+                    languageCode: appLanguage
+                ),
                 name
             )
 
         case .ended:
-            return String(localized: "calls.ended")
+            return appText(
+                "calls.ended",
+                languageCode: appLanguage
+            )
 
         case .failed(let message):
             return message

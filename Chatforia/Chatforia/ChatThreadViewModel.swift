@@ -141,6 +141,10 @@ final class ChatThreadViewModel: ObservableObject {
     @Published var isLoadingSmartReplies: Bool = false
     
     @Published var isSendingGIF: Bool = false
+    
+    private var appLanguage: String {
+        UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
+    }
 
     private var expiryTask: Task<Void, Never>?
     private var typingStopTask: Task<Void, Never>?
@@ -537,7 +541,10 @@ final class ChatThreadViewModel: ObservableObject {
         }
 
         guard let token else {
-            errorText = String(localized: "ios.missing_auth_token")
+            errorText = appText(
+                "ios.missing_auth_token",
+                languageCode: appLanguage
+            )
             return
         }
 
@@ -630,7 +637,10 @@ final class ChatThreadViewModel: ObservableObject {
         senderPublicKey: String?
     ) async -> Bool {
         guard let token, !token.isEmpty else {
-            errorText = String(localized: "ios.missing_auth_token")
+            errorText = appText(
+                "ios.missing_auth_token",
+                languageCode: appLanguage
+            )
             return false
         }
 
@@ -721,7 +731,10 @@ final class ChatThreadViewModel: ObservableObject {
         senderPublicKey: String?
     ) async -> Bool {
         guard let token, !token.isEmpty else {
-            errorText = String(localized: "ios.missing_auth_token")
+            errorText = appText(
+                "ios.missing_auth_token",
+                languageCode: appLanguage
+            )
             return false
         }
 
@@ -855,7 +868,10 @@ final class ChatThreadViewModel: ObservableObject {
         senderPublicKey: String?
     ) async -> Bool {
         guard let token, !token.isEmpty else {
-            errorText = String(localized: "ios.missing_auth_token")
+            errorText = appText(
+                "ios.missing_auth_token",
+                languageCode: appLanguage
+            )
             return false
         }
 
@@ -996,7 +1012,10 @@ final class ChatThreadViewModel: ObservableObject {
         defer { isSendingGIF = false }
         
         guard let token, !token.isEmpty else {
-            errorText = String(localized: "ios.missing_auth_token")
+            errorText = appText(
+                "ios.missing_auth_token",
+                languageCode: appLanguage
+            )
             return false
         }
 
@@ -1121,7 +1140,10 @@ final class ChatThreadViewModel: ObservableObject {
         senderPublicKey: String?
     ) async -> Bool {
         guard let token, !token.isEmpty else {
-            errorText = String(localized: "ios.missing_auth_token")
+            errorText = appText(
+                "ios.missing_auth_token",
+                languageCode: appLanguage
+            )
             return false
         }
 
@@ -1587,7 +1609,10 @@ extension ChatThreadViewModel {
         token: String?
     ) async -> Bool {
         guard let token, !token.isEmpty else {
-            errorText = String(localized: "ios.missing_auth_token")
+            errorText = appText(
+                "ios.missing_auth_token",
+                languageCode: appLanguage
+            )
             return false
         }
 
@@ -1718,7 +1743,10 @@ extension ChatThreadViewModel {
         deleteForEveryone: Bool
     ) async -> Bool {
         guard let token, !token.isEmpty else {
-            errorText = String(localized: "ios.missing_auth_token")
+            errorText = appText(
+                "ios.missing_auth_token",
+                languageCode: appLanguage
+            )
             return false
         }
 
@@ -1760,7 +1788,10 @@ extension ChatThreadViewModel {
         token: String?
     ) async -> Bool {
         guard let token, !token.isEmpty else {
-            errorText = String(localized: "ios.missing_auth_token")
+            errorText = appText(
+                "ios.missing_auth_token",
+                languageCode: appLanguage
+            )
             return false
         }
 
@@ -1803,7 +1834,10 @@ extension ChatThreadViewModel {
         token: String?
     ) async -> Bool {
         guard let token, !token.isEmpty else {
-            errorText = String(localized: "ios.missing_auth_token")
+            errorText = appText(
+                "ios.missing_auth_token",
+                languageCode: appLanguage
+            )
             return false
         }
 

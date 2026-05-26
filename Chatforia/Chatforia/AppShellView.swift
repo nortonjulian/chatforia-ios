@@ -6,6 +6,7 @@ struct AppShellView: View {
     @EnvironmentObject var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
 
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     @State private var hasRequestedNotifications = false
 
@@ -18,7 +19,7 @@ struct AppShellView: View {
                 ChatsRootView()
                     .tabItem {
                         Label(
-                            String(localized: "tab_chats"),
+                            appText("tab_chats", languageCode: appLanguage),
                             systemImage: "bubble.left.and.bubble.right.fill"
                         )
                     }
@@ -28,7 +29,7 @@ struct AppShellView: View {
                 }
                 .tabItem {
                     Label(
-                        String(localized: "tab_calls"),
+                        appText("tab_calls", languageCode: appLanguage),
                         systemImage: "phone.fill"
                     )
                 }
@@ -36,7 +37,7 @@ struct AppShellView: View {
                 ContactsRootView()
                     .tabItem {
                         Label(
-                            String(localized: "tab_contacts"),
+                            appText("tab_contacts", languageCode: appLanguage),
                             systemImage: "person.2.fill"
                         )
                     }
@@ -44,11 +45,12 @@ struct AppShellView: View {
                 ProfileRootView(user: user)
                     .tabItem {
                         Label(
-                            String(localized: "tab_profile"),
+                            appText("tab_profile", languageCode: appLanguage),
                             systemImage: "person.crop.circle.fill"
                         )
                     }
             }
+            .id(appLanguage)
             .tint(themeManager.palette.tabSelected)
             .disabled(!auth.isAppReady)
             .opacity(auth.isAppReady ? 1 : 0.65)
@@ -61,13 +63,18 @@ struct AppShellView: View {
                     ProgressView()
                         .tint(themeManager.palette.accent)
 
-                    Text(String(localized: "loading_setting_things_up"))
+                    Text(appText("loading_setting_things_up", languageCode: appLanguage))
                         .font(.footnote)
                         .foregroundStyle(themeManager.palette.secondaryText)
                 }
                 .padding(18)
                 .background(themeManager.palette.cardBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .clipShape(
+                    RoundedRectangle(
+                        cornerRadius: 18,
+                        style: .continuous
+                    )
+                )
             }
         }
         .fullScreenCover(isPresented: .constant(false)) {

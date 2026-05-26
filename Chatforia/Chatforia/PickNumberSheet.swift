@@ -3,6 +3,7 @@ import SwiftUI
 struct PickNumberSheet: View {
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
     @Environment(\.dismiss) private var dismiss
 
     @StateObject var vm: PhoneNumberViewModel
@@ -23,7 +24,10 @@ struct PickNumberSheet: View {
             }
             .background(themeManager.palette.screenBackground.ignoresSafeArea())
             .navigationTitle(
-                String(localized: "phoneNumber.pickNumber")
+                appText(
+                    "phoneNumber.pickNumber",
+                    languageCode: appLanguage
+                )
             )
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -80,11 +84,22 @@ struct PickNumberSheet: View {
     private var searchControls: some View {
         VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("common.country")
+                Text(
+                    appText(
+                        "common.country",
+                        languageCode: appLanguage
+                    )
+                )
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(themeManager.palette.primaryText)
 
-                Picker("common.country", selection: $vm.selectedCountry) {
+                Picker(
+                    appText(
+                        "common.country",
+                        languageCode: appLanguage
+                    ),
+                    selection: $vm.selectedCountry
+                ) {
                     ForEach(vm.countryOptions) { option in
                         Text(option.name).tag(option.code)
                     }
@@ -103,12 +118,20 @@ struct PickNumberSheet: View {
 
             HStack(alignment: .bottom, spacing: 12) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("phoneNumber.areaCode")
+                    Text(
+                        appText(
+                            "phoneNumber.areaCode",
+                            languageCode: appLanguage
+                        )
+                    )
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(themeManager.palette.primaryText)
 
                     TextField(
-                        String(localized: "phoneNumber.exampleAreaCode"),
+                        appText(
+                            "phoneNumber.exampleAreaCode",
+                            languageCode: appLanguage
+                        ),
                         text: $vm.areaCode
                     )
                         .keyboardType(.numberPad)
@@ -135,8 +158,12 @@ struct PickNumberSheet: View {
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "magnifyingglass")
-                        Text("common.search")
-                            .fontWeight(.semibold)
+                        Text(
+                            appText(
+                                "common.search",
+                                languageCode: appLanguage
+                            )
+                        )                            .fontWeight(.semibold)
                     }
                     .padding(.horizontal, 18)
                     .padding(.vertical, 12)
@@ -149,18 +176,29 @@ struct PickNumberSheet: View {
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("phoneNumber.capability")
+                Text(
+                    appText(
+                        "phoneNumber.capability",
+                        languageCode: appLanguage
+                    )
+                )
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(themeManager.palette.primaryText)
 
-                Picker("phoneNumber.capability", selection: $vm.selectedCapability) {
-                    Text(String(localized: "phoneNumber.sms"))
+                Picker(
+                    appText(
+                        "phoneNumber.capability",
+                        languageCode: appLanguage
+                    ),
+                    selection: $vm.selectedCapability
+                ) {
+                    Text(appText("phoneNumber.sms", languageCode: appLanguage))
                         .tag("sms")
 
-                    Text(String(localized: "phoneNumber.voice"))
+                    Text(appText("phoneNumber.voice", languageCode: appLanguage))
                         .tag("voice")
 
-                    Text(String(localized: "phoneNumber.smsVoice"))
+                    Text(appText("phoneNumber.smsVoice", languageCode: appLanguage))
                         .tag("both")
                 }
                 .pickerStyle(.menu)
@@ -183,9 +221,9 @@ struct PickNumberSheet: View {
                 .foregroundStyle(themeManager.palette.secondaryText)
 
             Text(
-                String(
-                    localized:
-                    "phoneNumber.premiumProtected"
+                appText(
+                    "phoneNumber.premiumProtected",
+                    languageCode: appLanguage
                 )
             )
                 .font(.footnote)
@@ -196,7 +234,12 @@ struct PickNumberSheet: View {
     private var availableHeader: some View {
         VStack(spacing: 8) {
             Divider()
-            Text("dialer.availableNumbers")
+            Text(
+                appText(
+                    "dialer.availableNumbers",
+                    languageCode: appLanguage
+                )
+            )
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(themeManager.palette.secondaryText)
                 .frame(maxWidth: .infinity)
@@ -212,15 +255,18 @@ struct PickNumberSheet: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         } else if vm.isSearching {
             ProgressView(
-                String(localized:"common.searching")
+                appText(
+                    "common.searching",
+                    languageCode: appLanguage
+                )
             )
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.top, 16)
         } else if vm.availableNumbers.isEmpty {
             Text(
-                String(
-                    localized:
-                    "phoneNumber.areaCodeSearchHint"
+                appText(
+                    "phoneNumber.areaCodeSearchHint",
+                    languageCode: appLanguage
                 )
             )
                 .font(.subheadline)
@@ -240,7 +286,10 @@ struct PickNumberSheet: View {
         let e164 =
             number.e164
             ?? number.number
-            ?? String(localized:"common.unknown")
+            ?? appText(
+                "common.unknown",
+                languageCode: appLanguage
+            )
         let baseLocation = number.locality ?? number.local ?? number.display ?? ""
 
         let location =
@@ -282,8 +331,14 @@ struct PickNumberSheet: View {
 
                 Button(
                     vm.mode == .premium
-                        ? String(localized:"common.keep")
-                        : String(localized:"common.select")
+                        ? appText(
+                            "common.keep",
+                            languageCode: appLanguage
+                        )
+                        : appText(
+                            "common.select",
+                            languageCode: appLanguage
+                        )
                 ) {
                     if vm.mode == .premium && !auth.isPremium {
                         showUpgradeSheet = true

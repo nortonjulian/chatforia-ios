@@ -4,6 +4,7 @@ import TwilioVideo
 struct VideoCallView: View {
     @EnvironmentObject private var callManager: CallManager
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     // MARK: - Remote Tile Model
     private struct RemoteTile: Identifiable, Equatable {
@@ -29,7 +30,10 @@ struct VideoCallView: View {
     private func displayName(for identity: String) -> String {
         let trimmed = identity.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty
-            ? String(localized: "calls.participant")
+            ? appText(
+                "calls.participant",
+                languageCode: appLanguage
+            )
             : trimmed
     }
 
@@ -95,9 +99,9 @@ private extension VideoCallView {
                     .foregroundStyle(themeManager.palette.secondaryText)
 
                 Text(
-                    String(
-                        localized:
-                        "calls.waitingForParticipant"
+                    appText(
+                        "calls.waitingForParticipant",
+                        languageCode: appLanguage
                     )
                 )
                     .font(.headline)
@@ -189,9 +193,9 @@ private extension VideoCallView {
                                     .foregroundStyle(.white)
 
                                 Text(
-                                    String(
-                                        localized:
-                                        "calls.cameraOff"
+                                    appText(
+                                        "calls.cameraOff",
+                                        languageCode: appLanguage
                                     )
                                 )
                                     .font(.caption)
@@ -223,9 +227,9 @@ private extension VideoCallView {
         VStack(spacing: 8) {
             Text(
                 session?.displayName
-                ?? String(
-                    localized:
-                    "calls.videoCall"
+                ?? appText(
+                    "calls.videoCall",
+                    languageCode: appLanguage
                 )
             )
                 .font(.system(size: 28, weight: .bold))
@@ -251,8 +255,14 @@ private extension VideoCallView {
                 systemName: (session?.isMuted ?? false) ? "mic.slash.fill" : "mic.fill",
                 title:
                     (session?.isMuted ?? false)
-                    ? String(localized:"calls.unmute")
-                    : String(localized:"calls.mute"),
+                    ? appText(
+                        "calls.unmute",
+                        languageCode: appLanguage
+                    )
+                    : appText(
+                        "calls.mute",
+                        languageCode: appLanguage
+                    ),
                 isActive: session?.isMuted ?? false
             ) {
                 callManager.toggleMute()
@@ -261,9 +271,9 @@ private extension VideoCallView {
             VideoControlButton(
                 systemName: callManager.isVideoCameraEnabled ? "video.fill" : "video.slash.fill",
                 title:
-                    String(
-                        localized:
-                        "calls.camera"
+                    appText(
+                        "calls.camera",
+                        languageCode: appLanguage
                     )
             ) {
                 callManager.toggleVideoCamera()
@@ -272,9 +282,9 @@ private extension VideoCallView {
             VideoControlButton(
                 systemName: "arrow.triangle.2.circlepath.camera.fill",
                 title:
-                    String(
-                        localized:
-                        "calls.flip"
+                    appText(
+                        "calls.flip",
+                        languageCode: appLanguage
                     )
             ) {
                 callManager.flipVideoCamera()
@@ -283,9 +293,9 @@ private extension VideoCallView {
             VideoControlButton(
                 systemName: (session?.isSpeakerOn ?? false) ? "speaker.wave.3.fill" : "speaker.wave.2.fill",
                 title:
-                    String(
-                        localized:
-                        "calls.speaker"
+                    appText(
+                        "calls.speaker",
+                        languageCode: appLanguage
                     ),
                 isActive: session?.isSpeakerOn ?? false
             ) {
@@ -295,10 +305,10 @@ private extension VideoCallView {
             VideoControlButton(
                 systemName: "phone.down.fill",
                 title:
-                String(
-                    localized:
-                    "calls.end"
-                ),
+                    appText(
+                        "calls.end",
+                        languageCode: appLanguage
+                    ),
                 isDestructive: true
             ) {
                 callManager.hangup()

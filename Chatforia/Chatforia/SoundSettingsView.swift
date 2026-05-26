@@ -4,6 +4,7 @@ struct SoundSettingsView: View {
     @EnvironmentObject private var settingsVM: SettingsViewModel
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     @State private var upgradePrompt: UpgradePromptData?
 
@@ -15,7 +16,7 @@ struct SoundSettingsView: View {
         List {
             Section {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text(String(localized: "sound.volume"))
+                    Text(appText("sound.volume", languageCode: appLanguage))
                         .font(.headline)
 
                     Slider(
@@ -37,10 +38,10 @@ struct SoundSettingsView: View {
                 .padding(.vertical, 6)
             }
 
-            Section(String(localized: "sound.textTone")) {
+            Section(appText("sound.textTone", languageCode: appLanguage)) {
                 ForEach(AppMessageTones.all) { tone in
                     toneRow(
-                        title: tone.name,
+                        title: appText(tone.localizationKey, languageCode: appLanguage),
                         code: tone.code,
                         requiredPlan: tone.requiredPlan,
                         isSelected: settingsVM.messageTone == tone.code,
@@ -58,10 +59,10 @@ struct SoundSettingsView: View {
                 }
             }
 
-            Section(String(localized: "sheet_ringtone_title")) {
+            Section(appText("sheet_ringtone_title", languageCode: appLanguage)) {
                 ForEach(AppRingtones.all) { tone in
                     toneRow(
-                        title: tone.name,
+                        title: appText(tone.localizationKey, languageCode: appLanguage),
                         code: tone.code,
                         requiredPlan: tone.requiredPlan,
                         isSelected: settingsVM.ringtone == tone.code,
@@ -79,16 +80,13 @@ struct SoundSettingsView: View {
                 }
             }
         }
-        .navigationTitle(
-    String(localized: "sound.title")
-)
+        .navigationTitle(appText("sound.title", languageCode: appLanguage))
         .sheet(item: $upgradePrompt) { prompt in
             UpgradePromptSheet(
                 title: prompt.title,
                 message: prompt.message,
                 requiredPlan: prompt.requiredPlan,
                 onUpgradeTapped: {
-                    // Navigate to upgrade screen if you already have a route.
                     upgradePrompt = nil
                 }
             )
@@ -113,17 +111,11 @@ struct SoundSettingsView: View {
             Button {
                 if locked {
                     upgradePrompt = UpgradePromptData(
-                        title: String(localized: "sound.premiumTitle"),
-
-                    message:
-                    String(
-                        format:
-                            String(
-                                localized:
-                                "sound.upgradePreviewMessage"
-                            ),
-                        title
-                    ),
+                        title: appText("sound.premiumTitle", languageCode: appLanguage),
+                        message: String(
+                            format: appText("sound.upgradePreviewMessage", languageCode: appLanguage),
+                            title
+                        ),
                         requiredPlan: requiredPlan
                     )
                 } else {
@@ -137,13 +129,12 @@ struct SoundSettingsView: View {
 
                         if locked {
                             Text(
-                                String(
-                                    localized: "sound.requiresPlan"
-                                )
-                                + " \(requiredPlan.displayName)"
+                                appText("sound.requiresPlan", languageCode: appLanguage)
+                                + " "
+                                + planDisplayName(requiredPlan)
                             )
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                         }
                     }
 
@@ -163,17 +154,11 @@ struct SoundSettingsView: View {
             Button {
                 if locked {
                     upgradePrompt = UpgradePromptData(
-                        title: String(localized: "sound.premiumTitle"),
-
-                    message:
-                    String(
-                        format:
-                            String(
-                                localized:
-                                "sound.upgradeUnlockMessage"
-                            ),
-                        title
-                    ),
+                        title: appText("sound.premiumTitle", languageCode: appLanguage),
+                        message: String(
+                            format: appText("sound.upgradeUnlockMessage", languageCode: appLanguage),
+                            title
+                        ),
                         requiredPlan: requiredPlan
                     )
                 } else {
@@ -185,6 +170,17 @@ struct SoundSettingsView: View {
                     .foregroundStyle(locked ? .secondary : themeManager.palette.accent)
             }
             .buttonStyle(.plain)
+        }
+    }
+
+    private func planDisplayName(_ plan: AppPlan) -> String {
+        switch plan {
+        case .free:
+            return appText("billing.free", languageCode: appLanguage)
+        case .plus:
+            return appText("billing.plus", languageCode: appLanguage)
+        case .premium:
+            return appText("billing.premium", languageCode: appLanguage)
         }
     }
 

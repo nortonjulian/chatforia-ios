@@ -8,14 +8,25 @@ struct InvitePhoneContactsView: View {
     @State private var shareItems: [Any] = []
     @State private var isShowingShareSheet = false
     @State private var inviteErrorText: String?
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     var body: some View {
         List {
             Section {
                 if viewModel.isLoading {
-                    ProgressView(String(localized: "contacts.loadingContacts"))
+                    ProgressView(
+                        appText(
+                            "contacts.loadingContacts",
+                            languageCode: appLanguage
+                        )
+                    )
                 } else if viewModel.contacts.isEmpty {
-                    Text(String(localized: "contacts.noPhoneContactsFound"))
+                    Text(
+                        appText(
+                            "contacts.noPhoneContactsFound",
+                            languageCode: appLanguage
+                        )
+                    )
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(viewModel.contacts) { contact in
@@ -52,12 +63,22 @@ struct InvitePhoneContactsView: View {
                 }
             }
         }
-        .navigationTitle(String(localized: "contacts.inviteContacts"))
+        .navigationTitle(
+            appText(
+                "contacts.inviteContacts",
+                languageCode: appLanguage
+            )
+        )
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 if !viewModel.contacts.isEmpty {
-                    Button(String(localized: "common.selectAll")) { viewModel.selectAll() }
+                    Button(
+                        appText(
+                            "common.selectAll",
+                            languageCode: appLanguage
+                        )
+                    ) { viewModel.selectAll() }
                 }
             }
 
@@ -68,7 +89,12 @@ struct InvitePhoneContactsView: View {
                     if isCreatingInvite {
                         ProgressView()
                     } else {
-                        Text(String(localized: "common.invite"))
+                        Text(
+                            appText(
+                                "common.invite",
+                                languageCode: appLanguage
+                            )
+                        )
                     }
                 }
                 .disabled(isCreatingInvite || viewModel.selectedIDs.isEmpty)
@@ -86,13 +112,19 @@ struct InvitePhoneContactsView: View {
 
     private func inviteSelected() async {
         guard let token = auth.currentToken, !token.isEmpty else {
-            inviteErrorText = String(localized: "contacts.loginRequiredForInvites")
+            inviteErrorText = appText(
+                "contacts.loginRequiredForInvites",
+                languageCode: appLanguage
+            )
             return
         }
 
         let selectedContacts = viewModel.selectedContacts
         guard !selectedContacts.isEmpty else {
-            inviteErrorText = String(localized: "contacts.selectAtLeastOneContact")
+            inviteErrorText = appText(
+                "contacts.selectAtLeastOneContact",
+                languageCode: appLanguage
+            )
             return
         }
 

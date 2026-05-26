@@ -4,6 +4,7 @@ struct VoicemailInboxView: View {
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
     @EnvironmentObject private var callManager: CallManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
     @StateObject private var viewModel = VoicemailInboxViewModel()
 
     var body: some View {
@@ -21,7 +22,8 @@ struct VoicemailInboxView: View {
         .background(themeManager.palette.screenBackground.ignoresSafeArea())
         .task {
             guard let token = auth.currentToken, !token.isEmpty else {
-                viewModel.errorMessage = "You need to be signed in."
+                viewModel.errorMessage =
+                appText("auth.youNeedToBeSignedIn", languageCode: appLanguage)
                 return
             }
             await viewModel.load(token: token)
@@ -55,12 +57,18 @@ struct VoicemailInboxView: View {
                 )
             }
         }
-        .alert("Voicemail Error", isPresented: errorBinding) {
-            Button("common.ok", role: .cancel) {
+        .alert(
+            appText("voicemail.errorTitle", languageCode: appLanguage),
+            isPresented: errorBinding
+        ) {
+            Button(appText("common.ok", languageCode: appLanguage), role: .cancel) {
                 viewModel.errorMessage = nil
             }
         } message: {
-            Text(viewModel.errorMessage ?? "Something went wrong.")
+            Text(
+                viewModel.errorMessage
+                ?? appText("common.somethingWentWrong", languageCode: appLanguage)
+            )
         }
     }
 
@@ -104,7 +112,7 @@ struct VoicemailInboxView: View {
     private var loadingView: some View {
         VStack(spacing: 12) {
             ProgressView()
-            Text("voicemail.loading")
+            Text(appText("voicemail.loading", languageCode: appLanguage))
                 .font(.subheadline)
                 .foregroundStyle(themeManager.palette.secondaryText)
         }
@@ -117,7 +125,7 @@ struct VoicemailInboxView: View {
                 .font(.system(size: 28))
                 .foregroundStyle(themeManager.palette.accent)
 
-            Text("voicemail.couldNotLoad")
+            Text(appText("voicemail.couldNotLoad", languageCode: appLanguage))
                 .font(.headline)
                 .foregroundStyle(themeManager.palette.primaryText)
 
@@ -127,7 +135,9 @@ struct VoicemailInboxView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
 
-            Button("common.tryAgain") {
+            Button(
+                appText("common.tryAgain", languageCode: appLanguage)
+            ) {
                 guard let token = auth.currentToken, !token.isEmpty else { return }
                 Task {
                     await viewModel.load(token: token)
@@ -145,11 +155,11 @@ struct VoicemailInboxView: View {
                 .font(.system(size: 28))
                 .foregroundStyle(themeManager.palette.accent)
 
-            Text("voicemail.empty")
+            Text(appText("voicemail.empty", languageCode: appLanguage))
                 .font(.headline)
                 .foregroundStyle(themeManager.palette.primaryText)
 
-            Text("voicemail.emptySubtitle")
+            Text(appText("voicemail.emptySubtitle", languageCode: appLanguage))
                 .font(.subheadline)
                 .foregroundStyle(themeManager.palette.secondaryText)
                 .multilineTextAlignment(.center)

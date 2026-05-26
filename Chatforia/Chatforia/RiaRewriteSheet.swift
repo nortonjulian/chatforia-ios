@@ -11,13 +11,14 @@ struct RiaRewriteSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     private let tones = ["friendly", "shorter", "professional", "clearer"]
 
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 16) {
-                Text(String(localized: "ria.rewrite.original"))
+                Text(appText("ria.rewrite.original", languageCode: appLanguage))
                     .font(.headline)
                     .foregroundStyle(themeManager.palette.primaryText)
 
@@ -29,13 +30,13 @@ struct RiaRewriteSheet: View {
                     .background(themeManager.palette.cardBackground)
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-                Text(String(localized: "ria.rewrite.choose_tone"))
+                Text(appText("ria.rewrite.choose_tone", languageCode: appLanguage))
                     .font(.headline)
                     .foregroundStyle(themeManager.palette.primaryText)
 
                 HStack(spacing: 8) {
                     ForEach(tones, id: \.self) { tone in
-                        Button(String(localized: "ria.rewrite.tone.\(tone)")) {
+                        Button(appText("ria.rewrite.tone.\(tone)", languageCode: appLanguage)) {
                             onToneTap(tone)
                         }
                         .buttonStyle(.bordered)
@@ -44,7 +45,7 @@ struct RiaRewriteSheet: View {
                 }
 
                 if isLoading {
-                    ProgressView(String(localized: "ria.rewrite.rewriting"))
+                    ProgressView(appText("ria.rewrite.rewriting", languageCode: appLanguage))
                         .padding(.top, 8)
                 } else if let disabledReason, !disabledReason.isEmpty {
                     Text(disabledReason)
@@ -57,7 +58,7 @@ struct RiaRewriteSheet: View {
                         .foregroundStyle(.red)
                         .padding(.top, 8)
                 } else if !options.isEmpty {
-                    Text(String(localized: "ria.rewrite.suggestions"))
+                    Text(appText("ria.rewrite.suggestions", languageCode: appLanguage))
                         .font(.headline)
                         .foregroundStyle(themeManager.palette.primaryText)
 
@@ -81,7 +82,7 @@ struct RiaRewriteSheet: View {
                         }
                     }
                 } else {
-                    Text(String(localized: "ria.rewrite.empty"))
+                    Text(appText("ria.rewrite.empty", languageCode: appLanguage))
                         .font(.subheadline)
                         .foregroundStyle(themeManager.palette.secondaryText)
                         .padding(.top, 8)
@@ -91,7 +92,7 @@ struct RiaRewriteSheet: View {
             }
             .padding()
             .background(themeManager.palette.screenBackground)
-            .navigationTitle(String(localized: "ria.rewrite.title"))
+            .navigationTitle(appText("ria.rewrite.title", languageCode: appLanguage))
             .navigationBarTitleDisplayMode(.inline)
         }
     }

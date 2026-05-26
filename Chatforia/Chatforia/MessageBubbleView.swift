@@ -7,6 +7,7 @@ struct MessageBubbleView: View {
     let isGroupedWithNext: Bool
     
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
     @StateObject private var decryptedStore = DecryptedMessageTextStore.shared
     
     var body: some View {
@@ -156,9 +157,9 @@ struct MessageBubbleView: View {
 
         if msg.deletedForAll == true || msg.deletedBySender == true {
             Text(
-                String(
-                    localized:
-                    "messages.thisMessageWasDeleted"
+                appText(
+                    "messages.thisMessageWasDeleted",
+                    languageCode: appLanguage
                 )
             )
                 .italic()
@@ -190,9 +191,9 @@ struct MessageBubbleView: View {
         } else if msg.contentCiphertext != nil, !hasAttachments {
             Text(
                 "🔒 "
-                + String(
-                    localized:
-                    "messages.encryptedMessage"
+                + appText(
+                    "messages.encryptedMessage",
+                    languageCode: appLanguage
                 )
             )
 

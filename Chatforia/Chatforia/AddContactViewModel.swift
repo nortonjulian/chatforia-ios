@@ -8,11 +8,13 @@ enum AddContactMode: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 
     var title: String {
+        let language = UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
+
         switch self {
         case .username:
-            return String(localized: "auth.username")
+            return appText("auth.username", languageCode: language)
         case .phone:
-            return String(localized: "contacts.phone")
+            return appText("contacts.phone", languageCode: language)
         }
     }
 }
@@ -29,6 +31,10 @@ final class AddContactViewModel: ObservableObject {
     @Published var isSaving = false
     @Published var errorText: String?
     @Published var successText: String?
+    
+    private var appLanguage: String {
+        UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
+    }
 
     init(
         mode: AddContactMode = .username,
@@ -75,7 +81,10 @@ final class AddContactViewModel: ObservableObject {
                     code: 1,
                     userInfo: [
                         NSLocalizedDescriptionKey:
-                            String(localized: "contacts.enterUsername")
+                            appText(
+                                "contacts.enterUsername",
+                                languageCode: appLanguage
+                            )
                     ]
                 )
             }
@@ -93,7 +102,10 @@ final class AddContactViewModel: ObservableObject {
                     token: token
                 )
 
-                successText = String(localized: "contacts.contactSaved")
+                successText = appText(
+                    "contacts.contactSaved",
+                    languageCode: appLanguage
+                )
                 return contact
 
             } catch let error as APIError {
@@ -104,9 +116,9 @@ final class AddContactViewModel: ObservableObject {
                         code: 404,
                         userInfo: [
                             NSLocalizedDescriptionKey:
-                                String(
-                                    localized:
-                                    "contacts.noUserFoundUsePhone"
+                                appText(
+                                    "contacts.noUserFoundUsePhone",
+                                    languageCode: appLanguage
                                 )
                         ]
                     )
@@ -123,7 +135,10 @@ final class AddContactViewModel: ObservableObject {
                     code: 2,
                     userInfo: [
                         NSLocalizedDescriptionKey:
-                            String(localized: "contacts.enterValidPhone")
+                            appText(
+                                "contacts.enterValidPhone",
+                                languageCode: appLanguage
+                            )
                     ]
                 )
             }
@@ -136,7 +151,10 @@ final class AddContactViewModel: ObservableObject {
                 token: token
             )
 
-            successText = String(localized: "contacts.contactSaved")
+            successText = appText(
+                "contacts.contactSaved",
+                languageCode: appLanguage
+            )
             return contact
         }
     }

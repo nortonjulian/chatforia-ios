@@ -17,6 +17,10 @@ final class TwilioVoiceService: NSObject {
     static let shared = TwilioVoiceService()
 
     weak var delegate: TwilioVoiceServiceDelegate?
+    
+    private var appLanguage: String {
+        UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
+    }
 
     private var activeCall: Call?
     private var callInvite: CallInvite?
@@ -66,7 +70,12 @@ final class TwilioVoiceService: NSObject {
 
     func acceptIncomingCall() {
         guard let callInvite else {
-            delegate?.twilioVoiceDidFail("No incoming call to answer.")
+            delegate?.twilioVoiceDidFail(
+                appText(
+                    "calls.noIncomingCallToAnswer",
+                    languageCode: appLanguage
+                )
+            )
             return
         }
 
@@ -110,7 +119,12 @@ final class TwilioVoiceService: NSObject {
             let session = AVAudioSession.sharedInstance()
             try session.overrideOutputAudioPort(enabled ? .speaker : .none)
         } catch {
-            delegate?.twilioVoiceDidFail("Could not change audio output.")
+            delegate?.twilioVoiceDidFail(
+                appText(
+                    "calls.could_not_change_audio_output",
+                    languageCode: appLanguage
+                )
+            )
         }
     }
 
@@ -157,7 +171,11 @@ extension TwilioVoiceService: NotificationDelegate {
         Task { @MainActor in
             self.callInvite = callInvite
 
-            let from = callInvite.from ?? "Incoming Call"
+            let from = callInvite.from ??
+                appText(
+                    "calls.incomingCall",
+                    languageCode: appLanguage
+                )
             let backendCallId = self.pendingBackendCallId
             self.pendingBackendCallId = nil
 

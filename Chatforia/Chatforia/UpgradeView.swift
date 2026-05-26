@@ -9,6 +9,7 @@ enum UpgradeTrigger {
 struct UpgradeView: View {
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
     @Environment(\.dismiss) private var dismiss
 
     @State private var syncMessage: String?
@@ -49,7 +50,12 @@ struct UpgradeView: View {
             .padding()
         }
         .background(themeManager.palette.screenBackground.ignoresSafeArea())
-        .navigationTitle(String(localized: "common.upgrade"))
+        .navigationTitle(
+            appText(
+                "common.upgrade",
+                languageCode: appLanguage
+            )
+        )
         .navigationBarTitleDisplayMode(.inline)
         .task {
             retryCount = 0
@@ -79,12 +85,20 @@ struct UpgradeView: View {
             }
 
             VStack(spacing: 8) {
-                Text(String(localized: "upgrade.heroTitle"))
+                Text(
+                    appText(
+                        "upgrade.heroTitle",
+                        languageCode: appLanguage
+                    )
+                )
                     .font(.largeTitle.weight(.bold))
                     .foregroundStyle(themeManager.palette.primaryText)
                     .multilineTextAlignment(.center)
 
-                Text(String(localized: "upgrade.heroSubtitle"))
+                Text(appText(
+                    "upgrade.heroSubtitle",
+                    languageCode: appLanguage
+                ))
                     .font(.body)
                     .foregroundStyle(themeManager.palette.secondaryText)
                     .multilineTextAlignment(.center)
@@ -96,23 +110,32 @@ struct UpgradeView: View {
     private var keepNumberAlert: some View {
         featureCard(
             icon: "lock.fill",
-            title: String(localized: "upgrade.keepNumberTitle"),
-            subtitle: String(localized: "upgrade.keepNumberSubtitle"),
+            title: appText(
+                "upgrade.keepNumberTitle",
+                languageCode: appLanguage
+            ),
+            subtitle: appText(
+                "upgrade.keepNumberSubtitle",
+                languageCode: appLanguage
+            ),
             accent: themeManager.palette.accent
         )
     }
 
     private var plusCard: some View {
         planCard(
-            badge: String(localized: "upgrade.plusBadge"),
+            badge: appText("upgrade.plusBadge", languageCode: appLanguage),
             icon: "checkmark.seal.fill",
-            title: String(localized: "upgrade.plusTitle"),
-            subtitle: String(localized: "upgrade.plusSubtitle"),
+            title: appText("upgrade.plusTitle", languageCode: appLanguage),
+            subtitle: appText("upgrade.plusSubtitle", languageCode: appLanguage),
             features: [
-                String(localized: "upgrade.feature.noAds"),
-                String(localized: "upgrade.feature.messageForwarding"),
-                String(localized: "upgrade.feature.longerHistory"),
-                String(localized: "upgrade.feature.fasterSupport")
+                appText(
+                    "upgrade.feature.noAds",
+                    languageCode: appLanguage
+                ),
+                appText("upgrade.feature.messageForwarding", languageCode: appLanguage),
+                appText("upgrade.feature.longerHistory", languageCode: appLanguage),
+                appText("upgrade.feature.fasterSupport", languageCode: appLanguage)
             ],
             highlighted: false
         )
@@ -120,16 +143,16 @@ struct UpgradeView: View {
 
     private var premiumCard: some View {
         planCard(
-            badge: String(localized: "upgrade.premiumBadge"),
+            badge: appText("upgrade.premiumBadge", languageCode: appLanguage),
             icon: "sparkles",
-            title: String(localized: "upgrade.premiumTitle"),
-            subtitle: String(localized: "upgrade.premiumSubtitle"),
+            title: appText("upgrade.premiumTitle", languageCode: appLanguage),
+            subtitle: appText("upgrade.premiumSubtitle", languageCode: appLanguage),
             features: [
-                String(localized: "upgrade.feature.everythingInPlus"),
-                String(localized: "upgrade.feature.additionalThemes"),
-                String(localized: "upgrade.feature.tonesAndRingtones"),
-                String(localized: "upgrade.feature.aiTools"),
-                String(localized: "upgrade.feature.priorityFeatures")
+                appText("upgrade.feature.everythingInPlus", languageCode: appLanguage),
+                appText("upgrade.feature.additionalThemes", languageCode: appLanguage),
+                appText("upgrade.feature.tonesAndRingtones", languageCode: appLanguage),
+                appText("upgrade.feature.aiTools", languageCode: appLanguage),
+                appText("upgrade.feature.priorityFeatures", languageCode: appLanguage)
             ],
             highlighted: true
         )
@@ -166,7 +189,10 @@ struct UpgradeView: View {
                 Spacer()
 
                 if highlighted {
-                    Text(String(localized: "upgrade.bestExperience"))
+                    Text(appText(
+                        "upgrade.bestExperience",
+                        languageCode: appLanguage
+                    ))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(themeManager.palette.accent)
                 }
@@ -220,11 +246,11 @@ struct UpgradeView: View {
     private var customizationSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 6) {
-                Text(String(localized: "profile.customization"))
+                Text(appText("profile.customization", languageCode: appLanguage))
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(themeManager.palette.primaryText)
 
-                Text(String(localized: "upgrade.customizationSubtitle"))
+                Text(appText("upgrade.customizationSubtitle", languageCode: appLanguage))
                     .font(.subheadline)
                     .foregroundStyle(themeManager.palette.secondaryText)
             }
@@ -232,17 +258,17 @@ struct UpgradeView: View {
             HStack(spacing: 10) {
                 customizationPill(
                     icon: "paintpalette.fill",
-                    title: String(localized: "upgrade.pill.themes")
+                    title: appText("upgrade.pill.themes", languageCode: appLanguage)
                 )
 
                 customizationPill(
                     icon: "message.fill",
-                    title: String(localized: "upgrade.pill.messageTones")
+                    title: appText("upgrade.pill.messageTones", languageCode: appLanguage)
                 )
 
                 customizationPill(
                     icon: "bell.fill",
-                    title: String(localized: "upgrade.pill.ringtones")
+                    title: appText("upgrade.pill.ringtones", languageCode: appLanguage)
                 )
             }
         }
@@ -273,22 +299,22 @@ struct UpgradeView: View {
 
     private var subscriptionSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(String(localized: "upgrade.choosePlan"))
+            Text(appText("upgrade.choosePlan", languageCode: appLanguage))
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(themeManager.palette.primaryText)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            Text(String(localized: "upgrade.bestValueAnnual"))
+            Text(appText("upgrade.bestValueAnnual", languageCode: appLanguage))
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(themeManager.palette.accent)
 
             SubscriptionStoreView(groupID: subscriptionGroupID) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(String(localized: "common.upgradeWithApple"))
+                    Text(appText("common.upgradeWithApple", languageCode: appLanguage))
                         .font(.headline)
                         .foregroundStyle(themeManager.palette.primaryText)
 
-                    Text(String(localized: "upgrade.appleDescription"))
+                    Text(appText("upgrade.appleDescription", languageCode: appLanguage))
                         .font(.subheadline)
                         .foregroundStyle(themeManager.palette.secondaryText)
                 }
@@ -310,16 +336,22 @@ struct UpgradeView: View {
 
     private var legalSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Link(String(localized: "legal_privacy_policy"), destination: privacyURL)
+            Link(
+                appText(
+                    "legal_privacy_policy",
+                    languageCode: appLanguage
+                ),
+                destination: privacyURL
+            )
                 .font(.footnote.weight(.semibold))
 
-            Link(String(localized: "legal_terms_of_service"), destination: termsURL)
+            Link(appText("legal_terms_of_service", languageCode: appLanguage), destination: termsURL)
                 .font(.footnote.weight(.semibold))
 
-            Link(String(localized: "common.manageSubscription"), destination: manageSubscriptionsURL)
+            Link(appText("common.manageSubscription", languageCode: appLanguage), destination: manageSubscriptionsURL)
                 .font(.footnote.weight(.semibold))
 
-            Text(String(localized: "upgrade.autoRenewNotice"))
+            Text(appText("upgrade.autoRenewNotice", languageCode: appLanguage))
                 .font(.footnote)
                 .foregroundStyle(themeManager.palette.secondaryText)
         }
@@ -336,7 +368,7 @@ struct UpgradeView: View {
     private var actionSection: some View {
         VStack(spacing: 12) {
             ThemedOutlineButton(
-                title: String(localized: "upgrade.refreshPurchaseStatus"),
+                title: appText("upgrade.refreshPurchaseStatus", languageCode: appLanguage),
                 action: {
                     Task {
                         retryCount = 0
@@ -352,7 +384,7 @@ struct UpgradeView: View {
             }
 
             ThemedOutlineButton(
-                title: String(localized: "upgrade.maybeLater"),
+                title: appText("upgrade.maybeLater", languageCode: appLanguage),
                 action: {
                     dismiss()
                 }
@@ -393,14 +425,13 @@ struct UpgradeView: View {
 
     private func refreshPurchaseStatus(autoRetry: Bool = false) async {
         syncMessage = autoRetry
-            ? String(localized: "upgrade.finalizingSubscription")
-            : String(localized: "upgrade.checkingSubscription")
-
+            ? appText("upgrade.finalizingSubscription", languageCode: appLanguage)
+            : appText("upgrade.checkingSubscription", languageCode: appLanguage)
         await SubscriptionManager.shared.refreshEntitlements()
         await auth.refreshCurrentUser()
 
         if auth.isPaid {
-            syncMessage = String(localized: "upgrade.subscriptionActive")
+            syncMessage = appText("upgrade.subscriptionActive", languageCode: appLanguage)
             retryCount = 0
             return
         }
@@ -410,7 +441,7 @@ struct UpgradeView: View {
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             await refreshPurchaseStatus(autoRetry: true)
         } else {
-            syncMessage = String(localized: "upgrade.stillSyncing")
+            syncMessage = appText("upgrade.stillSyncing", languageCode: appLanguage)
         }
     }
 }

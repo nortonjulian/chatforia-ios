@@ -24,6 +24,10 @@ final class CallManager: ObservableObject {
     private var pendingDestination: CallDestination?
     private var pendingIsVideo: Bool = false
     private var pendingIncomingPayload: IncomingCallPayload?
+    
+    private var appLanguage: String {
+        UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
+    }
 
     private enum CallEndOutcome: Equatable {
         case localHangup
@@ -80,7 +84,10 @@ final class CallManager: ObservableObject {
     @objc private func handleSocketIncomingCall(_ notification: Notification) {
         guard let data = notification.userInfo else { return }
 
-        let fromNumber = data["fromNumber"] as? String ?? String(localized: "calls.unknown")
+        let fromNumber = data["fromNumber"] as? String ?? appText(
+            "calls.unknown",
+            languageCode: appLanguage
+        )
         let callId = data["callId"] as? Int
 
         let payload = IncomingCallPayload(
@@ -103,7 +110,10 @@ final class CallManager: ObservableObject {
         case "MISSED":
             markMissedCall()
         case "FAILED":
-            failCall(String(localized: "calls.call_failed"))
+            failCall(appText(
+                "calls.call_failed",
+                languageCode: appLanguage
+            ))
         case "DECLINED":
             completeCall(outcome: .declined)
         default:
@@ -114,7 +124,10 @@ final class CallManager: ObservableObject {
     @objc private func handleSocketVideoIncoming(_ notification: Notification) {
         guard let data = notification.userInfo else { return }
 
-        let callerName = data["callerName"] as? String ?? String(localized: "calls.videoCall")
+        let callerName = data["callerName"] as? String ?? appText(
+            "calls.videoCall",
+            languageCode: appLanguage
+        )
         let callerId = data["callerId"] as? Int ?? 0
         let callId = data["callId"] as? Int
         let roomName = data["roomName"] as? String ?? {
@@ -177,7 +190,10 @@ final class CallManager: ObservableObject {
     func startVideoCall(to destination: CallDestination, auth: AuthStore) {
         switch destination {
         case .phoneNumber:
-            failCall(String(localized: "calls.video_app_users_only"))
+            failCall(appText(
+                "calls.video_app_users_only",
+                languageCode: appLanguage
+            ))
         case .appUser, .videoRoom:
             Task {
                 await beginOutgoingCall(to: destination, auth: auth, isVideo: true)
@@ -293,7 +309,10 @@ final class CallManager: ObservableObject {
         // Create external call record BEFORE CallKit, but ONLY for phone numbers
         if case .phoneNumber(let number, _) = destination {
             guard let token = auth.currentToken, !token.isEmpty else {
-                failCall(String(localized: "error_missing_auth_token"))
+                failCall(appText(
+                    "error_missing_auth_token",
+                    languageCode: appLanguage
+                ))
                 return
             }
 
@@ -345,7 +364,10 @@ final class CallManager: ObservableObject {
         private func beginPendingOutgoingCall(uuid: UUID) {
         guard let auth = pendingAuth,
               let destination = pendingDestination else {
-            failCall(String(localized: "calls.missing_pending_context"))
+            failCall(appText(
+                "calls.missing_pending_context",
+                languageCode: appLanguage
+            ))
             return
         }
 
@@ -366,14 +388,14 @@ final class CallManager: ObservableObject {
         isVideo: Bool
     ) async {
         guard let token = auth.currentToken, !token.isEmpty else {
-            failCall(String(localized: "error_missing_auth_token"))
+            failCall(appText("error_missing_auth_token", languageCode: appLanguage))
             return
         }
 
         switch destination {
         case .phoneNumber(let number, let displayName):
             if isVideo {
-                failCall(String(localized: "calls.video_app_users_only"))
+                failCall(appText("calls.video_app_users_only", languageCode: appLanguage))
                 return
             }
 
@@ -415,7 +437,7 @@ final class CallManager: ObservableObject {
         case .appUser(let userId, let username):
             updateSession {
                 $0.status = .connecting
-                $0.displayName = username ?? String(localized: "calls.call")
+                $0.displayName = username ?? appText("calls.call", languageCode: appLanguage)
             }
             state = .fetchingToken
 
@@ -447,18 +469,18 @@ final class CallManager: ObservableObject {
 
             if isVideo {
                 guard let currentUser = auth.currentUser else {
-                    failCall(String(localized: "calls.missing_current_user"))
+                    failCall(appText("calls.missing_current_user", languageCode: appLanguage))
                     return
                 }
 
                 guard let backendCallId = activeSession?.backendCallId else {
-                    failCall(String(localized: "calls.missing_backend_call_id"))
+                    failCall(appText("calls.missing_backend_call_id", languageCode: appLanguage))
                     return
                 }
 
                 let roomName = "call_\(backendCallId)"
                 state = .connecting(
-                    username ?? String(localized: "calls.call")
+                    username ?? appText("calls.call", languageCode: appLanguage)
                 )
 
                 do {
@@ -474,7 +496,7 @@ final class CallManager: ObservableObject {
                 do {
                     let tokenResponse = try await twilioService.fetchToken(authToken: token)
                     state = .connecting(
-                        username ?? String(localized: "calls.call")
+                        username ?? appText("calls.call", languageCode: appLanguage)
                     )
 
                     try await twilioService.startCall(
@@ -488,13 +510,13 @@ final class CallManager: ObservableObject {
 
         case .videoRoom(_, let roomName, let displayName):
             guard isVideo else {
-                failCall(String(localized: "calls.room_video_only"))
+                failCall(appText("calls.room_video_only", languageCode: appLanguage))
                 return
             }
 
             updateSession {
                 $0.status = .connecting
-                $0.displayName = displayName ?? String(localized: "calls.group_video")
+                $0.displayName = displayName ?? appText("calls.group_video", languageCode: appLanguage)
                 $0.backendCallId = nil
             }
             state = .fetchingToken
@@ -507,7 +529,7 @@ final class CallManager: ObservableObject {
             }
 
             guard let currentUser = auth.currentUser else {
-                failCall(String(localized: "calls.missing_current_user"))
+                failCall(appText("calls.missing_current_user", languageCode: appLanguage))
                 return
             }
 
@@ -543,7 +565,10 @@ final class CallManager: ObservableObject {
             try session.overrideOutputAudioPort(isSpeakerOn ? .speaker : .none)
         } catch {
             state = .failed(
-                String(localized: "calls.could_not_change_audio_output")
+                appText(
+                    "calls.could_not_change_audio_output",
+                    languageCode: appLanguage
+                )
             )
         }
     }
@@ -641,7 +666,10 @@ final class CallManager: ObservableObject {
         case .failed:
             completeCall(
                 outcome: .failed(
-                    String(localized: "calls.call_failed")
+                    appText(
+                        "calls.call_failed",
+                        languageCode: appLanguage
+                    )
                 )
             )
         default:
@@ -902,17 +930,17 @@ extension CallManager: CallKitManagerDelegate {
 
     private func answerIncomingVideoCall() async {
         guard let token = TokenStore.shared.read(), !token.isEmpty else {
-            failCall(String(localized: "error_missing_auth_token"))
+            failCall(appText("error_missing_auth_token", languageCode: appLanguage))
             return
         }
 
         guard let currentUser = pendingAuth?.currentUser else {
-            failCall(String(localized: "calls.missing_current_user"))
+            failCall(appText("calls.missing_current_user", languageCode: appLanguage))
             return
         }
 
         guard let backendCallId = activeSession?.backendCallId else {
-            failCall(String(localized: "calls.missing_backend_call_id"))
+            failCall(appText("calls.missing_backend_call_id", languageCode: appLanguage))
             return
         }
 

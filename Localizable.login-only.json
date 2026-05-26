@@ -1,0 +1,6274 @@
+{
+  "sourceLanguage": "en",
+  "version": "1.2",
+  "missingKeys": [],
+  "strings": {
+    "common.welcomeBack": {
+      "localizations": {
+        "af": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welkom terug"
+          }
+        },
+        "ak": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "am": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مرحباً بعودتك"
+          }
+        },
+        "ay": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yenidən xoş gəlmisiniz"
+          }
+        },
+        "be": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Зноў вітаем"
+          }
+        },
+        "bg": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добре дошли обратно"
+          }
+        },
+        "bh": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "bm": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "আবার স্বাগতম"
+          }
+        },
+        "bo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "br": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "bs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "ca": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Benvinguts de nou"
+          }
+        },
+        "ceb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "ckb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "co": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vítejte zpět"
+          }
+        },
+        "cy": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Croeso'n ôl"
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Velkommen tilbage"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Willkommen zurück"
+          }
+        },
+        "dv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "dz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Καλώς ήρθατε πίσω"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "eo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bienvenido de nuevo"
+          }
+        },
+        "et": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tere tulemast tagasi"
+          }
+        },
+        "eu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ongi etorri berriro"
+          }
+        },
+        "fa": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "خوش آمدید"
+          }
+        },
+        "fa-AF": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "ff": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tervetuloa takaisin"
+          }
+        },
+        "fil": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bienvenue à nouveau"
+          }
+        },
+        "fy": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "ga": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "gd": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "gl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Benvidos de novo"
+          }
+        },
+        "gn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "gom": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "gu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ફરીથી સ્વાગત છે"
+          }
+        },
+        "ha": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "haw": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ברוכים השבים"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फिर से स्वागत है"
+          }
+        },
+        "hmn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dobrodošli natrag"
+          }
+        },
+        "ht": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Üdvözöljük újra"
+          }
+        },
+        "hy": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Բարի վերադարձ"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selamat datang kembali"
+          }
+        },
+        "ig": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "ilo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "is": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bentornato"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "おかえりなさい"
+          }
+        },
+        "jv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sugeng rawuh malih"
+          }
+        },
+        "ka": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "კვლავ გელოდებით"
+          }
+        },
+        "kk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Қайта қош келдіңіз"
+          }
+        },
+        "km": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "kn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "돌아온 것을 환영합니다"
+          }
+        },
+        "kri": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "ku": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "ky": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Кайра кош келиңиз"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bene redistis"
+          }
+        },
+        "lb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wëllkomm zréck"
+          }
+        },
+        "lg": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "ln": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "lo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "lt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sveiki sugrįžę"
+          }
+        },
+        "lv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laipni lūdzam atpakaļ"
+          }
+        },
+        "mai": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "mg": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "mi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "mk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добредојдовте назад"
+          }
+        },
+        "ml": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "വീണ്ടും സ്വാഗതം"
+          }
+        },
+        "mn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Дахин тавтай морилно уу"
+          }
+        },
+        "mni": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "mni-Mtei": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "mr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पुन्हा स्वागत आहे"
+          }
+        },
+        "ms": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selamat kembali"
+          }
+        },
+        "mt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Merħba lura"
+          }
+        },
+        "my": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ပြန်လာတာကို ကြိုဆိုပါတယ်"
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Velkommen tilbake"
+          }
+        },
+        "ne": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फेरि स्वागत छ"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welkom terug"
+          }
+        },
+        "nso": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "oc": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "om": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "or": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "pa": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ਫਿਰ ਤੋਂ ਸਵਾਗਤ ਹੈ"
+          }
+        },
+        "pam": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "pap": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Witamy z powrotem"
+          }
+        },
+        "prs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "ps": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bem-vindo de volta"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bem-vindo de volta"
+          }
+        },
+        "qu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bine ați revenit"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "С возвращением"
+          }
+        },
+        "rw": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "sa": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "scn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "sd": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "si": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vitajte späť"
+          }
+        },
+        "sl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dobrodošli nazaj"
+          }
+        },
+        "sm": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "sn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "so": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "sq": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mirë se keni ardhur përsëri"
+          }
+        },
+        "sr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добродошли назад"
+          }
+        },
+        "ss": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "st": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "su": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välkommen tillbaka"
+          }
+        },
+        "sw": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "szl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "ta": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "மீண்டும் நல்வரவு"
+          }
+        },
+        "te": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "మళ్ళీ స్వాగతం"
+          }
+        },
+        "tet": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "tg": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ยินดีต้อนรับกลับมา"
+          }
+        },
+        "ti": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "tk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "tn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "to": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "tpi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tekrar hoş geldiniz"
+          }
+        },
+        "ts": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "tt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "ug": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ласкаво просимо назад."
+          }
+        },
+        "ur": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "واپسی پر خوش آمدید"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yana xush kelibsiz"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chào mừng bạn quay lại"
+          }
+        },
+        "wo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "xh": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "yi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "yo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "yue": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "zgh": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome back"
+          }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "欢迎回来"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "欢迎回来"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "欢迎回来"
+          }
+        },
+        "zh-TW": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "欢迎回来"
+          }
+        },
+        "zu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Siyakwamukela futhi"
+          }
+        }
+      }
+    },
+    "common.welcomeToChatforia": {
+      "localizations": {
+        "af": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welkom by Chatforia"
+          }
+        },
+        "ak": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "am": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مرحباً بك في شاتفوريا"
+          }
+        },
+        "ay": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chatforia-ya xoş gəlmisiniz"
+          }
+        },
+        "be": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вітаем у Чатфарыі"
+          }
+        },
+        "bg": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добре дошли в Chatforia"
+          }
+        },
+        "bh": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "bm": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "চ্যাটফোরিয়ায় স্বাগতম"
+          }
+        },
+        "bo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "br": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "bs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "ca": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Benvinguts a Chatforia"
+          }
+        },
+        "ceb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "ckb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "co": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vítejte na Chatforia"
+          }
+        },
+        "cy": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Croeso i Chatforia"
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Velkommen til Chatforia"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Willkommen bei Chatforia"
+          }
+        },
+        "dv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "dz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Καλώς ήρθατε στη Chatforia"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "eo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bienvenido a Chatforia"
+          }
+        },
+        "et": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tere tulemast Chatforiasse"
+          }
+        },
+        "eu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ongi etorri Chatforia-ra"
+          }
+        },
+        "fa": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "به چتفوریا خوش آمدید"
+          }
+        },
+        "fa-AF": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "ff": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tervetuloa Chatforia"
+          }
+        },
+        "fil": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bienvenue à Chatforia"
+          }
+        },
+        "fy": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "ga": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "gd": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "gl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Benvidos a Chatforia"
+          }
+        },
+        "gn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "gom": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "gu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ચેટફોરિયામાં આપનું સ્વાગત છે"
+          }
+        },
+        "ha": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "haw": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ברוכים הבאים ל-Chatforia"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "चैटफोरिया में आपका स्वागत है"
+          }
+        },
+        "hmn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dobrodošli u Chatforiju"
+          }
+        },
+        "ht": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Üdvözöljük a Chatforia"
+          }
+        },
+        "hy": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Բարի գալուստ Չաթֆորիա"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selamat datang di Chatforia"
+          }
+        },
+        "ig": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "ilo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "is": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Benvenuti a Chatforia"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "チャットフォリアへようこそ"
+          }
+        },
+        "jv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sugeng rawuh ing Chatforia"
+          }
+        },
+        "ka": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "კეთილი იყოს თქვენი მობრძანება ჩატფორიაში"
+          }
+        },
+        "kk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chatforia-ға қош келдіңіз"
+          }
+        },
+        "km": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "kn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "채팅포리아에 오신 것을 환영합니다"
+          }
+        },
+        "kri": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "ku": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "ky": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chatforiaга кош келиңиз"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salvēte in Chatforiam"
+          }
+        },
+        "lb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wëllkomm zu Chatforia"
+          }
+        },
+        "lg": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "ln": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "lo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "lt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sveiki atvykę į Chatforia"
+          }
+        },
+        "lv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laipni lūgti Chatforia"
+          }
+        },
+        "mai": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "mg": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "mi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "mk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добредојдовте во Четфорија"
+          }
+        },
+        "ml": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ചാറ്റ്ഫോറിയയിലേക്ക് സ്വാഗതം"
+          }
+        },
+        "mn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Чатфориад тавтай морилно уу"
+          }
+        },
+        "mni": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "mni-Mtei": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "mr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "चॅटफोरियामध्ये आपले स्वागत आहे"
+          }
+        },
+        "ms": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selamat datang ke Chatforia"
+          }
+        },
+        "mt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Merħba f'Chatforia"
+          }
+        },
+        "my": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chatforia သို့ ကြိုဆိုပါသည်"
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Velkommen til Chatforia"
+          }
+        },
+        "ne": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "च्याटफोरियामा स्वागत छ"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welkom bij Chatforia"
+          }
+        },
+        "nso": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "oc": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "om": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "or": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "pa": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ਚੈਟਫੋਰੀਆ ਵਿੱਚ ਤੁਹਾਡਾ ਸੁਆਗਤ ਹੈ"
+          }
+        },
+        "pam": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "pap": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Witamy na Chatforii"
+          }
+        },
+        "prs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "ps": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bem-vindo ao Chatforia"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bem-vindo ao Chatforia"
+          }
+        },
+        "qu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bine ați venit la Chatforia"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добро пожаловать в Чатфорию"
+          }
+        },
+        "rw": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "sa": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "scn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "sd": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "si": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vitajte na stránke Chatforia"
+          }
+        },
+        "sl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dobrodošli v Chatforia"
+          }
+        },
+        "sm": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "sn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "so": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "sq": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mirë se vini në Chatforia"
+          }
+        },
+        "sr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добродошли у Чатфорију"
+          }
+        },
+        "ss": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "st": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "su": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välkommen till Chatforia"
+          }
+        },
+        "sw": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "szl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "ta": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "சட்போரியாவுக்கு வரவேற்கிறோம்"
+          }
+        },
+        "te": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "చాట్‌ఫోరియాకు స్వాగతం"
+          }
+        },
+        "tet": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "tg": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ยินดีต้อนรับสู่ Chatforia"
+          }
+        },
+        "ti": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "tk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "tn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "to": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "tpi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chatforia'ya Hoş Geldiniz"
+          }
+        },
+        "ts": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "tt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "ug": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ласкаво просимо до Chatforia"
+          }
+        },
+        "ur": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "چیٹفوریا میں خوش آمدید"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chatforia'ga xush kelibsiz"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chào mừng bạn đến với Chatforia"
+          }
+        },
+        "wo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "xh": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "yi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "yo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "yue": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "zgh": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Chatforia"
+          }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "欢迎来到 Chatforia"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "欢迎来到 Chatforia"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "欢迎来到 Chatforia"
+          }
+        },
+        "zh-TW": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "欢迎来到 Chatforia"
+          }
+        },
+        "zu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Siyakwamukela eChatforia"
+          }
+        }
+      }
+    },
+    "login.subtitleReturning": {
+      "extractionState": "stale",
+      "localizations": {
+        "af": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meld aan by jou Chatforia-rekening"
+          }
+        },
+        "ak": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "am": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تسجيل الدخول إلى حسابك في Chatforia"
+          }
+        },
+        "ay": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chatforia qillqantäwimar mantaña"
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chatforia hesabınıza daxil olun"
+          }
+        },
+        "be": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Увайдзіце ў свой уліковы запіс Chatforia"
+          }
+        },
+        "bg": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Влезте в профила си в Chatforia"
+          }
+        },
+        "bh": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अपने Chatforia अकाउंट में लॉग इन करीं"
+          }
+        },
+        "bm": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "আপনার Chatforia অ্যাকাউন্টে লগ ইন করুন"
+          }
+        },
+        "bo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "br": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "bs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prijavite se na svoj Chatforia račun"
+          }
+        },
+        "ca": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inicia la sessió al teu compte de Chatforia"
+          }
+        },
+        "ceb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mag-login sa imong Chatforia account"
+          }
+        },
+        "ckb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "co": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Přihlaste se ke svému účtu Chatforia"
+          }
+        },
+        "cy": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mewngofnodwch i'ch cyfrif Chatforia"
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log ind på din Chatforia-konto"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Melden Sie sich bei Ihrem Chatforia-Konto an"
+          }
+        },
+        "dv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "dz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Συνδεθείτε στο λογαριασμό σας στο Chatforia"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "eo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inicia sesión en tu cuenta de Chatforia"
+          }
+        },
+        "et": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logi sisse oma Chatforia kontole"
+          }
+        },
+        "eu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sartu zure Chatforia kontuan"
+          }
+        },
+        "fa": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "به حساب چتفوریا خود وارد شوید"
+          }
+        },
+        "fa-AF": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "وارد حساب چتفوریا خود شوید"
+          }
+        },
+        "ff": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kirjaudu sisään Chatforia-tilillesi"
+          }
+        },
+        "fil": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mag-log in sa iyong Chatforia account"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connectez-vous à votre compte Chatforia"
+          }
+        },
+        "fy": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "ga": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "gd": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "gl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inicia sesión na túa conta de Chatforia"
+          }
+        },
+        "gn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eike ne kuenta Chatforia-pe"
+          }
+        },
+        "gom": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "तुमच्या Chatforia खात्यांत लॉग इन करात"
+          }
+        },
+        "gu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "તમારા Chatforia એકાઉન્ટમાં લૉગ ઇન કરો"
+          }
+        },
+        "ha": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shiga asusunka na Chatforia"
+          }
+        },
+        "haw": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "התחבר לחשבון Chatforia שלך"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अपने Chatforia खाते में लॉग इन करें"
+          }
+        },
+        "hmn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prijavite se na svoj Chatforia račun"
+          }
+        },
+        "ht": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konekte sou kont Chatforia ou a"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jelentkezzen be Chatforia fiókjába"
+          }
+        },
+        "hy": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Մուտք գործեք ձեր Chatforia հաշիվ"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Masuk ke akun Chatforia Anda"
+          }
+        },
+        "ig": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Banye na akaụntụ Chatforia gị"
+          }
+        },
+        "ilo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "is": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skráðu þig inn á Chatforia-reikninginn þinn"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accedere al proprio account Chatforia"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "チャットフォリアアカウントにログイン"
+          }
+        },
+        "jv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mlebu menyang akun Chatforia sampeyan"
+          }
+        },
+        "ka": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "შედით თქვენს Chatforia-ს ანგარიშზე"
+          }
+        },
+        "kk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chatforia есептік жазбаңызға кіріңіз"
+          }
+        },
+        "km": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "kn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chatforia 계정에 로그인"
+          }
+        },
+        "kri": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "ku": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Têkeve hesabê xwe yê Chatforia"
+          }
+        },
+        "ky": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chatforia аккаунтуңузга кириңиз"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In rationem tuam Chatforiā ingredere."
+          }
+        },
+        "lb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mellt Iech bei Ärem Chatforia-Kont un"
+          }
+        },
+        "lg": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "ln": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kota na compte na yo ya Chatforia"
+          }
+        },
+        "lo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "lt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prisijunkite prie savo \"Chatforia\" paskyros"
+          }
+        },
+        "lv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Piesakieties savā Chatforia kontā"
+          }
+        },
+        "mai": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अपन Chatforia खाता मेँ लगइन करू"
+          }
+        },
+        "mg": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Midira ao amin'ny kaontinao Chatforia"
+          }
+        },
+        "mi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tomo ki tō pūkete Chatforia"
+          }
+        },
+        "mk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Најавете се на вашата сметка на Chatforia"
+          }
+        },
+        "ml": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "നിങ്ങളുടെ Chatforia അക്കൗണ്ടിലേക്ക് ലോഗിൻ ചെയ്യുക"
+          }
+        },
+        "mn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chatforia дансандаа нэвтрэх"
+          }
+        },
+        "mni": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "mr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "तुमच्या Chatforia खात्यात लॉग इन करा"
+          }
+        },
+        "ms": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log masuk ke akaun Chatforia anda"
+          }
+        },
+        "mt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Idħol fil-kont Chatforia tiegħek"
+          }
+        },
+        "my": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "သင့် Chatforia အကောင့်သို့ ဝင်ပါ။"
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logg inn på Chatforia-kontoen din"
+          }
+        },
+        "ne": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "तपाईंको Chatforia खातामा लग इन गर्नुहोस्"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in op je Chatforia-account"
+          }
+        },
+        "nso": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "oc": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connectatz-vos a vòstre compte Chatforia"
+          }
+        },
+        "om": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "or": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "pa": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ਆਪਣੇ Chatforia ਖਾਤੇ ਵਿੱਚ ਲੌਗ ਇਨ ਕਰੋ"
+          }
+        },
+        "pam": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mag-login ka king Chatforia account mu"
+          }
+        },
+        "pap": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zaloguj się na swoje konto Chatforia"
+          }
+        },
+        "ps": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Faça login em sua conta do Chatforia"
+          }
+        },
+        "qu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chatforia qillqaykiman yaykuy"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conectați-vă la contul dumneavoastră Chatforia"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Войдите в свою учетную запись Chatforia"
+          }
+        },
+        "rw": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "sa": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "तव चैटफोरिया खातायां प्रवेशं कुरु"
+          }
+        },
+        "scn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accedi a lu tò cuntu Chatforia"
+          }
+        },
+        "sd": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "si": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prihláste sa do svojho účtu Chatforia"
+          }
+        },
+        "sl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prijavi se v svoj račun Chatforia"
+          }
+        },
+        "sm": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "sn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "so": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "sq": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hyni në llogarinë tuaj në Chatforia"
+          }
+        },
+        "sr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пријавите се на свој Chatforia налог"
+          }
+        },
+        "ss": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "st": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kena akhaontong ea hau ea Chatforia"
+          }
+        },
+        "su": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lebet ka akun Chatforia anjeun"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga in på ditt Chatforia-konto"
+          }
+        },
+        "sw": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ingia kwenye akaunti yako ya Chatforia"
+          }
+        },
+        "szl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "ta": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "உங்கள் Chatforia கணக்கில் உள்நுழையவும்"
+          }
+        },
+        "te": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "మీ Chatforia ఖాతాకు లాగిన్ అవ్వండి"
+          }
+        },
+        "tet": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "tg": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ба ҳисоби Chatforia-и худ ворид шавед"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เข้าสู่ระบบบัญชี Chatforia ของคุณ"
+          }
+        },
+        "ti": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "tk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chatforia hasabyňyza gir"
+          }
+        },
+        "tn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tsena mo akhaontong ya gago ya Chatforia"
+          }
+        },
+        "to": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "tpi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chatforia hesabınıza giriş yapın"
+          }
+        },
+        "ts": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ngena eka akhawunti ya wena ya Chatforia"
+          }
+        },
+        "tt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chatforia аккаунтыгызга керегез"
+          }
+        },
+        "ug": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Увійдіть у свій обліковий запис Chatforia"
+          }
+        },
+        "ur": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اپنے Chatforia اکاؤنٹ میں لاگ ان کریں۔"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chatforia hisobingizga kiring"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập vào tài khoản Chatforia của bạn"
+          }
+        },
+        "wo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "xh": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "yi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "yo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "yue": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in to your Chatforia account"
+          }
+        },
+        "zgh": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kcem ɣer umiḍan Chatforia-ik"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登录您的 Chatforia 账户"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登入您的 Chatforia 帳戶"
+          }
+        },
+        "zu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ngena ku-akhawunti yakho yeChatforia"
+          }
+        }
+      }
+    },
+    "upgrade.auth.signInOrCreateAnAccount": {
+      "extractionState": "stale",
+      "localizations": {
+        "af": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opgradeer na Plus"
+          }
+        },
+        "ak": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "am": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تسجيل الدخول أو إنشاء حساب"
+          }
+        },
+        "ay": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Giriş edin və ya hesab yaradın"
+          }
+        },
+        "be": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Увайсці або стварыць уліковы запіс"
+          }
+        },
+        "bg": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Влезте или създайте акаунт"
+          }
+        },
+        "bh": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "bm": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "সাইন ইন করুন অথবা একটি অ্যাকাউন্ট তৈরি করুন"
+          }
+        },
+        "bo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "br": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "bs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "ca": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inicia la sessió o crea un compte"
+          }
+        },
+        "ceb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "ckb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "co": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Přihlaste se nebo si vytvořte účet"
+          }
+        },
+        "cy": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mewngofnodi neu greu cyfrif"
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log ind eller opret en konto"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anmelden oder ein Konto erstellen"
+          }
+        },
+        "dv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "dz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Συνδεθείτε ή δημιουργήστε έναν λογαριασμό"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "eo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Iniciar sesión o crear una cuenta"
+          }
+        },
+        "et": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logi sisse või loo konto"
+          }
+        },
+        "eu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sartu edo sortu kontu bat"
+          }
+        },
+        "fa": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ورود یا ایجاد حساب کاربری"
+          }
+        },
+        "fa-AF": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "ff": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kirjaudu sisään tai luo tili"
+          }
+        },
+        "fil": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "S'identifier ou créer un compte"
+          }
+        },
+        "fy": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "ga": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "gd": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "gl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Iniciar sesión ou crear unha conta"
+          }
+        },
+        "gn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "gom": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "gu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "સાઇન ઇન કરો અથવા એકાઉન્ટ બનાવો"
+          }
+        },
+        "ha": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "haw": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "התחבר או צור חשבון"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "साइन इन करें या खाता बनाएँ"
+          }
+        },
+        "hmn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prijavite se ili kreirajte račun"
+          }
+        },
+        "ht": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bejelentkezés vagy fiók létrehozása"
+          }
+        },
+        "hy": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Մուտք գործեք կամ ստեղծեք հաշիվ"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Masuk atau buat akun"
+          }
+        },
+        "ig": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "ilo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "is": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accedi o crea un account"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サインインまたはアカウント作成"
+          }
+        },
+        "jv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mlebu utawa nggawe akun"
+          }
+        },
+        "ka": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "შედით სისტემაში ან შექმენით ანგარიში"
+          }
+        },
+        "kk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Жүйеге кіру немесе есептік жазба құру"
+          }
+        },
+        "km": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "kn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "로그인 또는 계정 만들기"
+          }
+        },
+        "kri": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "ku": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "ky": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Кириңиз же аккаунт түзүңүз"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Intra vel rationem crea"
+          }
+        },
+        "lb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mellt Iech un oder erstellt e Kont"
+          }
+        },
+        "lg": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "ln": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "lo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "lt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prisijunkite arba sukurkite paskyrą"
+          }
+        },
+        "lv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pierakstīties vai izveidot kontu"
+          }
+        },
+        "mai": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "mg": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "mi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "mk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Најавете се или креирајте сметка"
+          }
+        },
+        "ml": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "സൈൻ ഇൻ ചെയ്യുക അല്ലെങ്കിൽ ഒരു അക്കൗണ്ട് ഉണ്ടാക്കുക"
+          }
+        },
+        "mn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нэвтрэх эсвэл шинэ данс үүсгэх"
+          }
+        },
+        "mni": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "mr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "साइन इन करा किंवा खाते तयार करा"
+          }
+        },
+        "ms": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log masuk atau buat akaun"
+          }
+        },
+        "mt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Idħol jew oħloq kont"
+          }
+        },
+        "my": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ဝင်ရောက်ရန် သို့မဟုတ် အကောင့်အသစ်ဖန်တီးရန်"
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logg inn eller opprett en konto"
+          }
+        },
+        "ne": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "साइन इन गर्नुहोस् वा खाता सिर्जना गर्नुहोस्"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aanmelden of een account aanmaken"
+          }
+        },
+        "nso": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "oc": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "om": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "or": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "pa": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ਲੌਗ ਇਨ ਕਰੋ ਜਾਂ ਖਾਤਾ ਬਣਾਓ"
+          }
+        },
+        "pam": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "pap": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zaloguj się lub utwórz konto"
+          }
+        },
+        "ps": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Faça login ou crie uma conta"
+          }
+        },
+        "qu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conectați-vă sau creați un cont"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Войдите или создайте учетную запись"
+          }
+        },
+        "rw": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "sa": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "scn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "sd": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "si": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prihláste sa alebo si vytvorte konto"
+          }
+        },
+        "sl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prijavite se ali ustvarite račun"
+          }
+        },
+        "sm": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "sn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "so": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "sq": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hyni ose krijoni një llogari"
+          }
+        },
+        "sr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пријавите се или креирајте налог"
+          }
+        },
+        "ss": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "st": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "su": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga in eller skapa ett konto"
+          }
+        },
+        "sw": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "szl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "ta": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "உள்நுழையவும் அல்லது கணக்கை உருவாக்கவும்"
+          }
+        },
+        "te": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "లాగిన్ అవ్వండి లేదా ఖాతాను సృష్టించండి"
+          }
+        },
+        "tet": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "tg": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ลงชื่อเข้าใช้หรือสร้างบัญชี"
+          }
+        },
+        "ti": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "tk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "tn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "to": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "tpi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oturum açın veya bir hesap oluşturun"
+          }
+        },
+        "ts": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "tt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "ug": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Увійдіть або створіть обліковий запис"
+          }
+        },
+        "ur": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "سائن ان کریں یا اکاؤنٹ بنائیں"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kirish yoki hisob yaratish"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập hoặc tạo tài khoản"
+          }
+        },
+        "wo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "xh": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "yi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "yo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "yue": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "zgh": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in or create an account"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登录或创建账户"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登录或创建账户"
+          }
+        },
+        "zu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ngena noma udale i-akhawunti"
+          }
+        }
+      }
+    },
+    "auth.forgotPassword": {
+      "localizations": {
+        "af": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skep 'n rekening"
+          }
+        },
+        "ak": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wo werɛ afi password?"
+          }
+        },
+        "am": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "የይለፍ ቃል ረሱ?"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "نسيت كلمة المرور؟"
+          }
+        },
+        "ay": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Imantat aru armt'tati?"
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Şifrəni unutmusunuz?"
+          }
+        },
+        "be": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Забылі параў?"
+          }
+        },
+        "bg": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Забравихте паролата си?"
+          }
+        },
+        "bh": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पासवर्ड भूल गइल बानी?"
+          }
+        },
+        "bm": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I ɲinana daɲɛgafe la?"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "পাসওয়ার্ড ভুলে গেছেন?"
+          }
+        },
+        "bo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "གསང་ཨང་བརྗེད་སོང་ངམ།"
+          }
+        },
+        "br": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forgot password?"
+          }
+        },
+        "bs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zaboravio/la lozinku?"
+          }
+        },
+        "ca": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Has oblidat la contrasenya?"
+          }
+        },
+        "ceb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nakalimot ka sa password?"
+          }
+        },
+        "ckb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "وشەی نهێنیت لەبیر چوو؟"
+          }
+        },
+        "co": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parolla d'intesa scurdata?"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zapomněli jste heslo?"
+          }
+        },
+        "cy": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anghofio cyfrinair?"
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Glemt adgangskode?"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passwort vergessen?"
+          }
+        },
+        "dv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ޕާސްވޯޑް ހަނދާން ނެތް?"
+          }
+        },
+        "dz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "བརྗེད གསང་ཚིག?"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ξεχάσατε τον κωδικό πρόσβασης;"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forgot password?"
+          }
+        },
+        "eo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forgot password?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Has olvidado la contraseña?"
+          }
+        },
+        "et": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unustasid parooli?"
+          }
+        },
+        "eu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pasahitza ahaztu duzu?"
+          }
+        },
+        "fa": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "رمز عبور را فراموش کرده‌اید?"
+          }
+        },
+        "fa-AF": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "رمز عبور را فراموش کرده‌اید؟"
+          }
+        },
+        "ff": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "gooto yejjitii finnde?"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unohditko salasanasi?"
+          }
+        },
+        "fil": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nakakalimutan mo ba ang password?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mot de passe oublié ?"
+          }
+        },
+        "fy": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wachtwurd fergetten?"
+          }
+        },
+        "ga": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dearmad focal faire?"
+          }
+        },
+        "gd": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dhìochuimhnich thu am facal-faire?"
+          }
+        },
+        "gl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esqueciches a contrasinal?"
+          }
+        },
+        "gn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nderesaráipa nde ñe'ẽñemígui?"
+          }
+        },
+        "gom": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पासवर्ड विसरल्यात?"
+          }
+        },
+        "gu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "પાસવર્ડ ભૂલી ગયા?"
+          }
+        },
+        "ha": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ka manta da kalmar sirri?"
+          }
+        },
+        "haw": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poina ka ʻōlelo huna?"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "שכחת סיסמה?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पासवर्ड भूल गए?"
+          }
+        },
+        "hmn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tsis nco qab lo lus zais?"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zaboravio/la lozinku?"
+          }
+        },
+        "ht": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ou bliye modpas ou?"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elfelejtette a jelszavát?"
+          }
+        },
+        "hy": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Մոռացե՞լ եք գաղտնաբառը"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lupa kata sandi?"
+          }
+        },
+        "ig": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forgot password?"
+          }
+        },
+        "ilo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nalipatan ti password?"
+          }
+        },
+        "is": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forgot password?"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hai dimenticato la password?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パスワードをお忘れですか？"
+          }
+        },
+        "jv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lali sandhi?"
+          }
+        },
+        "ka": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "დაივიწყეთ პაროლი?"
+          }
+        },
+        "kk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Құпиясөзіңізді ұмытып қалдыңыз ба?"
+          }
+        },
+        "km": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ភ្លេចពាក្យសម្ងាត់?"
+          }
+        },
+        "kn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ಪಾಸ್‌ವರ್ಡ್ ಮರೆತಿರಾ?"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "비밀번호를 잊으셨나요?"
+          }
+        },
+        "kri": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fɔgɔt paswɔd?"
+          }
+        },
+        "ku": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Şîfreya xwe ji bîr kirî?"
+          }
+        },
+        "ky": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сырга сөзүңүздү унутуп калдыңызбы?"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tesseramne oblitus es?"
+          }
+        },
+        "lb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passwuert vergiess?"
+          }
+        },
+        "lg": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wakyusiza ekigambo ky'ekyama?"
+          }
+        },
+        "ln": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Obosani liloba ya sekele?"
+          }
+        },
+        "lo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ລືມລະຫັດຜ່ານ?"
+          }
+        },
+        "lt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pamiršote slaptažodį?"
+          }
+        },
+        "lv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aizmirsāt paroli?"
+          }
+        },
+        "mai": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पासवर्ड बिसरि गेलहुँ?"
+          }
+        },
+        "mg": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adino ny tombokase?"
+          }
+        },
+        "mi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kua wareware koe i tō kupuhipa?"
+          }
+        },
+        "mk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ја заборавив лозинката?"
+          }
+        },
+        "ml": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "പാസ്‌വേഡ് മറന്നുപോയോ?"
+          }
+        },
+        "mn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нууц үгээ мартсан уу?"
+          }
+        },
+        "mni": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ꯄꯥꯁꯋꯥꯔꯗ ꯐꯣꯔꯒꯣꯇ?"
+          }
+        },
+        "mni-Mtei": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ꯄꯥꯁꯋꯥꯔꯗ ꯐꯣꯔꯒꯣꯇ?"
+          }
+        },
+        "mr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पासवर्ड विसरलात?"
+          }
+        },
+        "ms": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lupa kata laluan?"
+          }
+        },
+        "mt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Insejt il-password?"
+          }
+        },
+        "my": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "စကားဝှက် မေ့နေပါသလား။"
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Glemt passord?"
+          }
+        },
+        "ne": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पासवर्ड बिर्सनुभयो?"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wachtwoord vergeten?"
+          }
+        },
+        "nso": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lebetše phasewete?"
+          }
+        },
+        "oc": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forgot password?"
+          }
+        },
+        "om": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jecha darbii irraanfatteettaa?"
+          }
+        },
+        "or": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ପାସ୍‌ୱର୍ଡ୍ ଭୁଲି ଗଲେ?"
+          }
+        },
+        "pa": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ਪਾਸਵਰਡ ਭੁੱਲ ਗਏ?"
+          }
+        },
+        "pam": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nakalimutan ing password?"
+          }
+        },
+        "pap": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bo a lubida e password?"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nie pamiętasz hasła?"
+          }
+        },
+        "prs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "رمز عبور را فراموش کرده‌اید؟"
+          }
+        },
+        "ps": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "پټ نوم مو هېر شوی؟"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esqueceu-se da palavra-passe?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esqueceu-se da palavra-passe?"
+          }
+        },
+        "qu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pakallaykita qunqankichu?"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ați uitat parola?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Забыли пароль?"
+          }
+        },
+        "rw": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wibagirwa ijambo ry'ibanga?"
+          }
+        },
+        "sa": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कूटशब्दं विस्मृतवान्?"
+          }
+        },
+        "scn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hai scurdatu la password?"
+          }
+        },
+        "sd": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "پاس ورڊ وساريو؟"
+          }
+        },
+        "si": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "මුරපදය අමතක ද?"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zabudli ste heslo?"
+          }
+        },
+        "sl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pozabil geslo?"
+          }
+        },
+        "sm": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Galo le upu fa'ailoa?"
+          }
+        },
+        "sn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wakakangwa password?"
+          }
+        },
+        "so": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ma ilowday erayga sirta ah?"
+          }
+        },
+        "sq": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Harrove fjalëkalimin?"
+          }
+        },
+        "sr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Заборавио/ла си лозинку?"
+          }
+        },
+        "ss": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ukhohlwe iphasiwedi?"
+          }
+        },
+        "st": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O lebetse phasewete?"
+          }
+        },
+        "su": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poho sandhi?"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Glömt lösenord?"
+          }
+        },
+        "sw": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forgot password?"
+          }
+        },
+        "szl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zapomniałeś hasła?"
+          }
+        },
+        "ta": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "கடவுச்சொல்லை மறந்துவிட்டீர்களா?"
+          }
+        },
+        "te": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "పాస్‌వర్డ్ మర్చిపోయారా?"
+          }
+        },
+        "tet": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esquece password?"
+          }
+        },
+        "tg": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Паролро фаромӯш кардед?"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ลืมรหัสผ่าน?"
+          }
+        },
+        "ti": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ፓስወርድ ረሳዕካ?"
+          }
+        },
+        "tk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parolyňyzy unudanyňyzmy?"
+          }
+        },
+        "tn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O lebetse lephata?"
+          }
+        },
+        "to": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ngaohi password?"
+          }
+        },
+        "tpi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yupela lusim paswod?"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Şifrenizi mi unuttunuz?"
+          }
+        },
+        "ts": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "U rivale phasiwedi?"
+          }
+        },
+        "tt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Парольне оныттыгызмы?"
+          }
+        },
+        "ug": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "پارولنى ئۇنتۇپ قالدىڭىزمۇ؟"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Забули пароль?"
+          }
+        },
+        "ur": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "پاس ورڈ بھول گئے؟"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parolni unutdingizmi?"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quên mật khẩu?"
+          }
+        },
+        "wo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fàtte nga sa baatug baat?"
+          }
+        },
+        "xh": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ulibele igama lokugqitha?"
+          }
+        },
+        "yi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "פֿאַרגעסן פּאַראָל?"
+          }
+        },
+        "yo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gbagbe oruku abawole re?"
+          }
+        },
+        "yue": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "忘記密碼?"
+          }
+        },
+        "zgh": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tettuḍ ufrar?"
+          }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "忘记密码？"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "忘记密码？"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "忘記密碼？"
+          }
+        },
+        "zh-TW": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "忘記密碼？"
+          }
+        },
+        "zu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ukhohlwe iphasiwedi?"
+          }
+        }
+      }
+    },
+    "login.or": {
+      "extractionState": "stale",
+      "localizations": {
+        "af": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "of"
+          }
+        },
+        "ak": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "am": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أو"
+          }
+        },
+        "ay": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "və ya"
+          }
+        },
+        "be": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "або"
+          }
+        },
+        "bg": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "или"
+          }
+        },
+        "bh": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "bm": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "অথবা"
+          }
+        },
+        "bo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "br": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "bs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ili"
+          }
+        },
+        "ca": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "o"
+          }
+        },
+        "ceb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "ckb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "co": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "nebo"
+          }
+        },
+        "cy": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "neu"
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "eller"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "oder"
+          }
+        },
+        "dv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "dz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ή"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "eo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "o"
+          }
+        },
+        "et": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "või"
+          }
+        },
+        "eu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "edo"
+          }
+        },
+        "fa": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "یا"
+          }
+        },
+        "fa-AF": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "یا"
+          }
+        },
+        "ff": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tai"
+          }
+        },
+        "fil": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ou"
+          }
+        },
+        "fy": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "ga": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "nó"
+          }
+        },
+        "gd": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "gl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ou"
+          }
+        },
+        "gn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "gom": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "वा"
+          }
+        },
+        "gu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "અથવા"
+          }
+        },
+        "ha": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ko"
+          }
+        },
+        "haw": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "או"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "या"
+          }
+        },
+        "hmn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ili"
+          }
+        },
+        "ht": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "oswa"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "vagy"
+          }
+        },
+        "hy": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "կամ"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "atau"
+          }
+        },
+        "ig": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ma ọ bụ"
+          }
+        },
+        "ilo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "is": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "eða"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "o"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "または"
+          }
+        },
+        "jv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "utawa"
+          }
+        },
+        "ka": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ან"
+          }
+        },
+        "kk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "немесе"
+          }
+        },
+        "km": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "kn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "또는"
+          }
+        },
+        "kri": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "ku": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "ky": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "же"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "vel"
+          }
+        },
+        "lb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "oder"
+          }
+        },
+        "lg": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "ln": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "lo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "lt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "arba"
+          }
+        },
+        "lv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "vai"
+          }
+        },
+        "mai": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "वा"
+          }
+        },
+        "mg": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "na"
+          }
+        },
+        "mi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "mk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "или"
+          }
+        },
+        "ml": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "അല്ലെങ്കിൽ"
+          }
+        },
+        "mn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "эсвэл"
+          }
+        },
+        "mni": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "mr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "किंवा"
+          }
+        },
+        "ms": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "atau"
+          }
+        },
+        "mt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "jew"
+          }
+        },
+        "my": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "သို့မဟုတ်"
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "eller"
+          }
+        },
+        "ne": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "वा"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "of"
+          }
+        },
+        "nso": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "oc": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "o"
+          }
+        },
+        "om": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "or": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "pa": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ਜਾਂ"
+          }
+        },
+        "pam": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "o"
+          }
+        },
+        "pap": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "lub"
+          }
+        },
+        "ps": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ou"
+          }
+        },
+        "qu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sau"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "или"
+          }
+        },
+        "rw": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "sa": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "वा"
+          }
+        },
+        "scn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "sd": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "si": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "alebo"
+          }
+        },
+        "sl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ali"
+          }
+        },
+        "sm": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "sn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "so": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "sq": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ose"
+          }
+        },
+        "sr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "или"
+          }
+        },
+        "ss": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "st": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "kapa"
+          }
+        },
+        "su": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "eller"
+          }
+        },
+        "sw": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "au"
+          }
+        },
+        "szl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "ta": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "அல்லது"
+          }
+        },
+        "te": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "లేదా"
+          }
+        },
+        "tet": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "tg": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ё"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "หรือ"
+          }
+        },
+        "ti": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "tk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "tn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "to": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "tpi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "veya"
+          }
+        },
+        "ts": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "kumbe"
+          }
+        },
+        "tt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "яки"
+          }
+        },
+        "ug": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "або"
+          }
+        },
+        "ur": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "یا"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "yoki"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "hoặc"
+          }
+        },
+        "wo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "xh": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "yi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "yo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "yue": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or"
+          }
+        },
+        "zgh": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "neɣ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "或"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "或"
+          }
+        },
+        "zu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "noma"
+          }
+        }
+      }
+    },
+    "auth.continueWithGoogle": {
+      "localizations": {
+        "af": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gaan voort met Google…"
+          }
+        },
+        "ak": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "am": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تابع مع Google..."
+          }
+        },
+        "ay": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google ilə davam edin…"
+          }
+        },
+        "be": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Працягнуць з Google…"
+          }
+        },
+        "bg": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Продължете с Google..."
+          }
+        },
+        "bh": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "bm": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "গুগল দিয়ে চালিয়ে যান…"
+          }
+        },
+        "bo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "br": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "bs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "ca": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continua amb Google…"
+          }
+        },
+        "ceb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "ckb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "co": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pokračovat s Google..."
+          }
+        },
+        "cy": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parhau gyda Google…"
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fortsæt med Google..."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weiter mit Google..."
+          }
+        },
+        "dv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "dz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Συνεχίστε με το Google..."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "eo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuar con Google..."
+          }
+        },
+        "et": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jätka Google'iga..."
+          }
+        },
+        "eu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jarrai Google-rekin…"
+          }
+        },
+        "fa": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "با گوگل ادامه دهید…"
+          }
+        },
+        "fa-AF": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "ff": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jatka Googlen kanssa..."
+          }
+        },
+        "fil": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuer avec Google..."
+          }
+        },
+        "fy": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "ga": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "gd": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "gl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continúa con Google…"
+          }
+        },
+        "gn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "gom": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "gu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google સાથે ચાલુ રાખો…"
+          }
+        },
+        "ha": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "haw": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "המשך עם Google…"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google के साथ जारी रखें…"
+          }
+        },
+        "hmn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nastavite s Googleom…"
+          }
+        },
+        "ht": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Folytassa a Google..."
+          }
+        },
+        "hy": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Շարունակեք Google-ով…"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lanjutkan dengan Google..."
+          }
+        },
+        "ig": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "ilo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "is": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continua con Google..."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Googleで続ける..."
+          }
+        },
+        "jv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terus karo Google…"
+          }
+        },
+        "ka": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "გაგრძელება Google-ით…"
+          }
+        },
+        "kk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google-пен жалғастыру…"
+          }
+        },
+        "km": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "kn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google을 계속 사용하세요..."
+          }
+        },
+        "kri": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "ku": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "ky": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google менен уланта бер…"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perge cum Google…"
+          }
+        },
+        "lb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weider mat Google…"
+          }
+        },
+        "lg": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "ln": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "lo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "lt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tęsti su \"Google\"..."
+          }
+        },
+        "lv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turpināt ar Google..."
+          }
+        },
+        "mai": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "mg": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "mi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "mk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Продолжете со Google…"
+          }
+        },
+        "ml": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ഗൂഗിളിൽ തുടരുക…"
+          }
+        },
+        "mn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google-ээр үргэлжлүүлэх…"
+          }
+        },
+        "mni": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "mr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google ने सुरू ठेवा…"
+          }
+        },
+        "ms": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teruskan dengan Google…"
+          }
+        },
+        "mt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kompli ma' Google…"
+          }
+        },
+        "my": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google ဖြင့် ဆက်လက်…"
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fortsett med Google..."
+          }
+        },
+        "ne": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google सँग जारी राख्नुहोस्…"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Doorgaan met Google..."
+          }
+        },
+        "nso": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "oc": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "om": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "or": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "pa": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ਗੂਗਲ ਨਾਲ ਜਾਰੀ ਰੱਖੋ…"
+          }
+        },
+        "pam": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "pap": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kontynuuj z Google..."
+          }
+        },
+        "ps": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuar com o Google..."
+          }
+        },
+        "qu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuați cu Google..."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Продолжайте работать с Google..."
+          }
+        },
+        "rw": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "sa": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "scn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "sd": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "si": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pokračujte so službou Google..."
+          }
+        },
+        "sl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nadaljujte z Google..."
+          }
+        },
+        "sm": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "sn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "so": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "sq": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vazhdo me Google…"
+          }
+        },
+        "sr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Наставите са Гуглом…"
+          }
+        },
+        "ss": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "st": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "su": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fortsätt med Google..."
+          }
+        },
+        "sw": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "szl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "ta": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "கூகிளுடன் தொடரவும்…"
+          }
+        },
+        "te": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "గూగుల్‌తో కొనసాగండి…"
+          }
+        },
+        "tet": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "tg": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ดำเนินการต่อกับ Google..."
+          }
+        },
+        "ti": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "tk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "tn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "to": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "tpi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google ile devam edin..."
+          }
+        },
+        "ts": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "tt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "ug": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Продовжуйте з Google..."
+          }
+        },
+        "ur": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "گوگل کے ساتھ جاری رکھیں…"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google bilan davom eting…"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tiếp tục với Google…"
+          }
+        },
+        "wo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "xh": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "yi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "yo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "yue": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "zgh": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "继续与谷歌..."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "继续与谷歌..."
+          }
+        },
+        "zu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qhubeka ne-Google…"
+          }
+        }
+      }
+    },
+    "auth.dontHaveAnAccountYet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Don’t have an account yet?"
+          }
+        }
+      }
+    },
+    "Forgot password?": {},
+    "Log in to your Chatforia account": {},
+    "Sign in or create an account": {},
+    "or": {}
+  }
+}

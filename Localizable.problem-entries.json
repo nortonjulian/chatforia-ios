@@ -1,0 +1,958 @@
+{
+  "sourceLanguage": "en",
+  "version": "1.2",
+  "totalOriginalKeys": 3088,
+  "totalProblemKeys": 68,
+  "strings": {
+    "": {},
+    "—": {},
+    "%@ avatar": {},
+    "%lld": {},
+    "%lld%%": {},
+    "•": {},
+    "+": {},
+    "+15551234567": {},
+    "🔒 Encrypted message": {},
+    "0": {},
+    "13–17": {},
+    "18–24": {},
+    "23": {},
+    "25–34": {},
+    "35–49": {},
+    "50+": {},
+    "99+": {},
+    "auth.passwordsDoNotMatch": {},
+    "auth.sessionExpired": {},
+    "chat.user_id_format": {},
+    "common.or": {},
+    "common.you": {},
+    "contacts.savedContact": {},
+    "contacts.startChatforiaChat": {},
+    "encryption.reset.localFailure": {},
+    "encryption.restore.localFailure": {},
+    "encryption.rotate.action": {},
+    "encryption.rotate.backendNotConnected": {},
+    "encryption.rotate.backupWarning": {},
+    "encryption.rotate.header": {},
+    "encryption.rotate.messageAccessWarning": {},
+    "encryption.rotate.placeholder": {},
+    "encryption.rotate.riskWarning": {},
+    "encryption.rotate.subtitle": {},
+    "encryption.rotate.title": {},
+    "encryption.rotate.typeToContinue": {},
+    "encryptionRecovery.errors.decryptFailed": {},
+    "encryptionRecovery.errors.encodingFailed": {},
+    "encryptionRecovery.errors.invalidKeyMaterial": {},
+    "encryptionRecovery.errors.invalidPassword": {},
+    "encryptionRecovery.errors.keyMismatch": {},
+    "Forgot password?": {},
+    "GIF": {},
+    "ios.contact_not_linked_to_chatforia_user": {},
+    "ios.missing_auth_token": {},
+    "ios.tap_to_view_contact": {},
+    "ios.unknown_contact": {},
+    "Key": {
+      "extractionState": "manual"
+    },
+    "Log in to your Chatforia account": {},
+    "me@example.com": {},
+    "messages.sendTextToStartConversation": {},
+    "or": {},
+    "phoneNumber.pluralS": {
+      "extractionState": "manual",
+      "localizations": {
+        "af": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "ak": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "am": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "ay": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "be": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "с"
+          }
+        },
+        "bg": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "bh": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "bm": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "এস"
+          }
+        },
+        "bo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "br": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "bs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "ca": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "ceb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "ckb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "co": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "cy": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "dv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "dz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "eo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "et": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "eu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "fa": {
+          "stringUnit": {
+            "state": "translated",
+            "value": ""
+          }
+        },
+        "fa-AF": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "ff": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "fil": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "fy": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "ga": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "gd": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "gl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "gn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "gom": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "gu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "એસ"
+          }
+        },
+        "ha": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "haw": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "एस"
+          }
+        },
+        "hmn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "ht": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "hy": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "ig": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "ilo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "is": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "jv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "é"
+          }
+        },
+        "ka": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ს"
+          }
+        },
+        "kk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "с"
+          }
+        },
+        "km": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "kn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "kri": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "ku": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "ky": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "с"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "lb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "lg": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "ln": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "lo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "lt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "lv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "mai": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "mg": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "mi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "mk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "с"
+          }
+        },
+        "ml": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "എസ്"
+          }
+        },
+        "mn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "с"
+          }
+        },
+        "mni": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "mr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "एस"
+          }
+        },
+        "ms": {
+          "stringUnit": {
+            "state": "translated",
+            "value": ""
+          }
+        },
+        "mt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "my": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "များ"
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "ne": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "स"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "nso": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "oc": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "om": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "or": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "pa": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ਦੇ"
+          }
+        },
+        "pam": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "pap": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "ps": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "qu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "rw": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "sa": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "scn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "sd": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "si": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "sl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "sm": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "sn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "so": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "sq": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "sr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "с"
+          }
+        },
+        "ss": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "st": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "su": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "sw": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "szl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "ta": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "கள்"
+          }
+        },
+        "te": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "లు"
+          }
+        },
+        "tet": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "tg": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ส. (คำสละ)"
+          }
+        },
+        "ti": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "tk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "tn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "to": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "tpi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "ts": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "tt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "ug": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "ur": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ایس"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "wo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "xh": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "yi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "yo": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "yue": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "zgh": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
+          }
+        },
+        "zu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ama"
+          }
+        }
+      }
+    },
+    "premium_feature_available_on_format": {},
+    "Resend verification email": {},
+    "ria.rewrite.choose_tone": {},
+    "ria.rewrite.empty": {},
+    "ria.rewrite.original": {},
+    "ria.rewrite.rewriting": {},
+    "ria.rewrite.suggestions": {},
+    "ria.rewrite.title": {},
+    "ria.rewrite.tone.%@": {},
+    "role_%@": {},
+    "Sending...": {},
+    "Sign in or create an account": {},
+    "SMS": {},
+    "Voicemail Error": {},
+    "voicemail.tapToPlay": {}
+  }
+}

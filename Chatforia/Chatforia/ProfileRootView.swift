@@ -52,7 +52,12 @@ struct ProfileRootView: View {
                         VStack(spacing: 12) {
                             InviteAttributionBannerView(text: message)
 
-                            Button(String(localized: "button_message_inviter")) {
+                            Button(
+                                appText(
+                                    "button_message_inviter",
+                                    languageCode: appLanguage
+                                )
+                            ) {
                                 Task {
                                     if let room = await inviteFlow.openChatWithInviterIfPossible(
                                         auth: auth,
@@ -79,11 +84,21 @@ struct ProfileRootView: View {
                                     .foregroundStyle(themeManager.palette.accent)
 
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text(String(localized: "button_upgrade"))
+                                    Text(
+                                        appText(
+                                            "button_upgrade",
+                                            languageCode: appLanguage
+                                        )
+                                    )
                                         .font(.body.weight(.semibold))
                                         .foregroundStyle(themeManager.palette.primaryText)
 
-                                    Text(String(localized: "upgrade_choose_plus_or_premium"))
+                                    Text(
+                                        appText(
+                                            "upgrade_choose_plus_or_premium",
+                                            languageCode: appLanguage
+                                        )
+                                    )
                                         .font(.subheadline)
                                         .foregroundStyle(themeManager.palette.secondaryText)
                                 }
@@ -121,7 +136,9 @@ struct ProfileRootView: View {
                 .padding()
             }
             .background(themeManager.palette.screenBackground)
-            .navigationTitle(String(localized: "screen_profile"))
+            .navigationTitle(
+                appText("screen_profile", languageCode: appLanguage)
+            )
             .navigationBarTitleDisplayMode(.inline)
             
             .navigationDestination(isPresented: $showInviterChat) {
@@ -165,8 +182,8 @@ struct ProfileRootView: View {
             }
             .sheet(isPresented: $showingThemeSheet) {
                 PremiumPickerSheet(
-                    title: String(localized: "sheet_theme_title"),
-                    subtitle: String(localized: "sheet_theme_subtitle"),
+                    title: appText("sheet_theme_title", languageCode: appLanguage),
+                    subtitle: appText("sheet_theme_subtitle", languageCode: appLanguage),
                     selectedCode: vm.theme,
                     currentPlan: currentPlan,
                     options: AppThemes.all.map {
@@ -182,9 +199,15 @@ struct ProfileRootView: View {
                     },
                     onLockedTap: { option in
                         presentUpgrade(
-                            title: String(localized: "premium_theme_title"),
+                            title: appText(
+                                "premium_theme_title",
+                                languageCode: appLanguage
+                            ),
                             message: String(
-                                format: String(localized: "premium_feature_available_on_format"),
+                                format: appText(
+                                    "premium_feature_available_on_format",
+                                    languageCode: appLanguage
+                                ),
                                 option.name,
                                 option.requiredPlan.displayName
                             ),
@@ -196,8 +219,8 @@ struct ProfileRootView: View {
             }
             .sheet(isPresented: $showingMessageToneSheet) {
                 PremiumPickerSheet(
-                    title: String(localized: "sheet_message_tone_title"),
-                    subtitle: String(localized: "sheet_message_tone_subtitle"),
+                    title: appText("sheet_message_tone_title", languageCode: appLanguage),
+                    subtitle: appText("sheet_message_tone_title", languageCode: appLanguage),
                     selectedCode: vm.messageTone,
                     currentPlan: currentPlan,
                     options: AppMessageTones.all.map {
@@ -213,9 +236,15 @@ struct ProfileRootView: View {
                     },
                     onLockedTap: { option in
                         presentUpgrade(
-                            title: String(localized: "premium_message_tone_title"),
+                            title: appText(
+                                "premium_message_tone_title",
+                                languageCode: appLanguage
+                            ),
                             message: String(
-                                format: String(localized: "premium_feature_available_on_format"),
+                                format: appText(
+                                    "premium_feature_available_on_format",
+                                    languageCode: appLanguage
+                                ),
                                 option.name,
                                 option.requiredPlan.displayName
                             ),
@@ -227,8 +256,8 @@ struct ProfileRootView: View {
             }
             .sheet(isPresented: $showingRingtoneSheet) {
                 PremiumPickerSheet(
-                    title: String(localized: "sheet_ringtone_title"),
-                    subtitle: String(localized: "sheet_ringtone_subtitle"),
+                    title: appText("sheet_ringtone_title", languageCode: appLanguage),
+                    subtitle: appText("sheet_ringtone_subtitle", languageCode: appLanguage),
                     selectedCode: vm.ringtone,
                     currentPlan: currentPlan,
                     options: AppRingtones.all.map {
@@ -244,9 +273,15 @@ struct ProfileRootView: View {
                     },
                     onLockedTap: { option in
                         presentUpgrade(
-                            title: String(localized: "premium_ringtone_title"),
+                            title: appText(
+                                "premium_ringtone_title",
+                                languageCode: appLanguage
+                            ),
                             message: String(
-                                format: String(localized: "premium_feature_available_on_format"),
+                                format: appText(
+                                    "premium_feature_available_on_format",
+                                    languageCode: appLanguage
+                                ),
                                 option.name,
                                 option.requiredPlan.displayName
                             ),
@@ -292,7 +327,13 @@ struct ProfileRootView: View {
             let accent = themeManager.palette.accent
 
             PhotosPicker(selection: $selectedAvatarItem, matching: .images) {
-                Label(String(localized: "button_change_photo"), systemImage: "photo")
+                Label(
+                    appText(
+                        "button_change_photo",
+                        languageCode: appLanguage
+                    ),
+                    systemImage: "photo"
+                )
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(accent)
             }
@@ -303,14 +344,25 @@ struct ProfileRootView: View {
                         await removeAvatar()
                     }
                 } label: {
-                    Label(String(localized: "button_remove_photo"), systemImage: "trash")
+                    Label(
+                        appText(
+                            "button_remove_photo",
+                            languageCode: appLanguage
+                        ),
+                        systemImage: "trash"
+                    )
                         .font(.subheadline.weight(.medium))
                 }
                 .disabled(isUploadingAvatar)
             }
 
             if isUploadingAvatar {
-                ProgressView(String(localized: "status_uploading"))
+                ProgressView(
+                    appText(
+                        "status_uploading",
+                        languageCode: appLanguage
+                    )
+                )
                     .font(.caption)
                     .tint(themeManager.palette.accent)
             }
@@ -331,10 +383,12 @@ struct ProfileRootView: View {
     }
 
     private var accountSection: some View {
-        SectionCardView(title: String(localized: "section_account")) {
+        SectionCardView(
+            title: appText("section_account", languageCode: appLanguage)
+        ) {
             SettingsRowView(
                 systemImage: "person.crop.circle",
-                title: String(localized: "label_username"),
+                title: appText("label_username", languageCode: appLanguage),
                 value: auth.currentUser?.username ?? user.username
             )
 
@@ -342,7 +396,7 @@ struct ProfileRootView: View {
 
             SettingsRowView(
                 systemImage: "envelope",
-                title: String(localized: "label_email"),
+                title: appText("label_email", languageCode: appLanguage),
                 value: displayValue(auth.currentUser?.email ?? user.email)
             )
 
@@ -350,8 +404,8 @@ struct ProfileRootView: View {
                 Divider()
                 SettingsRowView(
                     systemImage: "briefcase",
-                    title: String(localized: "label_role"),
-                    value: String(localized: String.LocalizationValue("role_\(role.lowercased())"))
+                    title: appText("label_role", languageCode: appLanguage),
+                    value: appText("role_\(role.lowercased())", languageCode: appLanguage)
                 )
             }
 
@@ -359,7 +413,7 @@ struct ProfileRootView: View {
                 Divider()
                 SettingsRowView(
                     systemImage: "star",
-                    title: String(localized: "label_plan"),
+                    title: appText("label_plan", languageCode: appLanguage),
                     value: AppPlan(serverValue: plan).displayName.uppercased()
                 )
             }
@@ -368,7 +422,10 @@ struct ProfileRootView: View {
     
     private var legalSection: some View {
         SectionCardView(
-            title: String(localized: "section_legal_support")
+            title: appText(
+                "section_legal_support",
+                languageCode: appLanguage
+            )
         ) {
             VStack(spacing: 0) {
 
@@ -376,7 +433,10 @@ struct ProfileRootView: View {
                     openURL("https://chatforia.com/privacy")
                 } label: {
                     legalRow(
-                        String(localized: "legal_privacy_policy")
+                        appText(
+                            "legal_privacy_policy",
+                            languageCode: appLanguage
+                        )
                     )
                 }
                 .buttonStyle(.plain)
@@ -387,7 +447,10 @@ struct ProfileRootView: View {
                     openURL("https://chatforia.com/legal/terms")
                 } label: {
                     legalRow(
-                        String(localized: "legal_terms_of_service")
+                        appText(
+                            "legal_terms_of_service",
+                            languageCode: appLanguage
+                        )
                     )
                 }
                 .buttonStyle(.plain)
@@ -398,7 +461,10 @@ struct ProfileRootView: View {
                     openURL("https://chatforia.com/legal/sms")
                 } label: {
                     legalRow(
-                        String(localized: "legal_sms_policy")
+                        appText(
+                            "legal_sms_policy",
+                            languageCode: appLanguage
+                        )
                     )
                 }
                 .buttonStyle(.plain)
@@ -409,7 +475,10 @@ struct ProfileRootView: View {
                     openURL("mailto:support@chatforia.com")
                 } label: {
                     legalRow(
-                        String(localized: "legal_contact_support")
+                        appText(
+                            "legal_contact_support",
+                            languageCode: appLanguage
+                        )
                     )
                 }
                 .buttonStyle(.plain)
@@ -418,7 +487,7 @@ struct ProfileRootView: View {
     }
 
     private var planSection: some View {
-        SectionCardView(title: String(localized: "section_plan")) {
+        SectionCardView(title: appText("section_plan", languageCode: appLanguage)) {
             VStack(spacing: 0) {
                 NavigationLink {
                     PlanView()
@@ -430,11 +499,16 @@ struct ProfileRootView: View {
                             .frame(width: 22)
 
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(String(localized: "plan_billing"))
+                            Text(appText("plan_billing", languageCode: appLanguage))
                                 .font(.body)
                                 .foregroundStyle(themeManager.palette.primaryText)
 
-                            Text(String(format: String(localized: "current_plan_format"), currentPlan.displayName))
+                            Text(
+                                String(
+                                    format: appText("current_plan_format", languageCode: appLanguage),
+                                    currentPlan.displayName
+                                )
+                            )
                                 .font(.subheadline)
                                 .foregroundStyle(themeManager.palette.secondaryText)
                         }
@@ -458,11 +532,11 @@ struct ProfileRootView: View {
                             .frame(width: 22)
 
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(String(localized: "manage_billing"))
+                            Text(appText("manage_billing", languageCode: appLanguage))
                                 .font(.body)
                                 .foregroundStyle(themeManager.palette.primaryText)
 
-                            Text(String(localized: "available_on_current_plan"))
+                            Text(appText("available_on_current_plan", languageCode: appLanguage))
                                 .font(.subheadline)
                                 .foregroundStyle(themeManager.palette.secondaryText)
                         }
@@ -476,7 +550,7 @@ struct ProfileRootView: View {
     }
 
     private var wirelessSection: some View {
-        SectionCardView(title: String(localized: "section_wireless")) {
+        SectionCardView(title: appText("section_wireless", languageCode: appLanguage)) {
             NavigationLink {
                 WirelessHomeView()
             } label: {
@@ -487,11 +561,11 @@ struct ProfileRootView: View {
                         .frame(width: 22)
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(String(localized: "wireless_chatforia_mobile"))
+                        Text(appText("wireless_chatforia_mobile", languageCode: appLanguage))
                             .font(.body)
                             .foregroundStyle(themeManager.palette.primaryText)
 
-                        Text(String(localized: "wireless_esim_description"))
+                        Text(appText("wireless_esim_description", languageCode: appLanguage))
                             .font(.subheadline)
                             .foregroundStyle(themeManager.palette.secondaryText)
                     }
@@ -517,11 +591,11 @@ struct ProfileRootView: View {
                         .frame(width: 22)
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(String(localized: "wireless_phone_number"))
+                        Text(appText("wireless_phone_number", languageCode: appLanguage))
                             .font(.body)
                             .foregroundStyle(themeManager.palette.primaryText)
 
-                        Text(String(localized: "wireless_phone_number_description"))
+                        Text(appText("wireless_phone_number_description", languageCode: appLanguage))
                             .font(.subheadline)
                             .foregroundStyle(themeManager.palette.secondaryText)
                     }
@@ -538,37 +612,42 @@ struct ProfileRootView: View {
     }
 
     private var profileSettingsSection: some View {
-        SectionCardView(title: String(localized: "section_profile")) {
+        SectionCardView(
+            title: appText(
+                "section_profile",
+                languageCode: appLanguage
+            )
+        ) {
             VStack(alignment: .leading, spacing: 14) {
                 LanguageSelectionView(selectedLanguage: $vm.preferredLanguage)
 
                 Divider()
 
                 ThemedToggleRow(
-                    title: String(localized: "setting_auto_translate_messages"),
+                    title: appText("setting_auto_translate_messages", languageCode: appLanguage),
                     isOn: $vm.autoTranslate
                 )
 
                 ThemedToggleRow(
-                    title: String(localized: "setting_show_original_with_translation"),
+                    title: appText("setting_show_original_with_translation", languageCode: appLanguage),
                     isOn: $vm.showOriginalWithTranslation
                 )
 
                 ThemedToggleRow(
-                    title: String(localized: "setting_enable_read_receipts"),
+                    title: appText("setting_enable_read_receipts", languageCode: appLanguage),
                     isOn: $vm.showReadReceipts
                 )
                 
                 VStack(alignment: .leading, spacing: 6) {
                     ThemedToggleRow(
-                        title: String(localized: "setting_smart_reply_suggestions"),
+                        title: appText("setting_smart_reply_suggestions", languageCode: appLanguage),
                         isOn: Binding(
                             get: { vm.enableSmartReplies },
                             set: { vm.setEnableSmartReplies($0) }
                         )
                     )
 
-                    Text(String(localized: "setting_smart_reply_description"))
+                    Text(appText("setting_smart_reply_description", languageCode: appLanguage))
                         .font(.caption)
                         .foregroundStyle(themeManager.palette.secondaryText)
                 }
@@ -577,16 +656,16 @@ struct ProfileRootView: View {
     }
 
     private var appearanceSection: some View {
-        SectionCardView(title: String(localized: "section_appearance")) {
+        SectionCardView(title: appText("section_appearance", languageCode: appLanguage)) {
             VStack(alignment: .leading, spacing: 14) {
                 if !currentPlan.hasPremiumCustomization {
-                    Text(String(localized: "appearance_free_theme_notice"))
+                    Text(appText("appearance_free_theme_notice", languageCode: appLanguage))
                         .font(.footnote)
                         .foregroundStyle(themeManager.palette.secondaryText)
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(String(localized: "label_theme"))
+                    Text(appText("label_theme", languageCode: appLanguage))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(themeManager.palette.primaryText)
 
@@ -599,7 +678,12 @@ struct ProfileRootView: View {
                                     .font(.body.weight(.medium))
                                     .foregroundStyle(themeManager.palette.primaryText)
 
-                                Text(String(localized: AppThemes.requiredPlan(for: vm.theme) == .free ? "plan_free" : "plan_premium"))
+                                Text(
+                                    appText(
+                                        AppThemes.requiredPlan(for: vm.theme) == .free ? "plan_free" : "plan_premium",
+                                        languageCode: appLanguage
+                                    )
+                                )
                                     .font(.caption)
                                     .foregroundStyle(themeManager.palette.secondaryText)
                             }
@@ -625,16 +709,16 @@ struct ProfileRootView: View {
     }
 
     private var soundsSection: some View {
-        SectionCardView(title: String(localized: "section_sounds")) {
+        SectionCardView(title: appText("section_sounds", languageCode: appLanguage)) {
             VStack(alignment: .leading, spacing: 14) {
                 if !currentPlan.hasPremiumSounds {
-                    Text(String(localized: "sounds_free_notice"))
+                    Text(appText("sounds_free_notice", languageCode: appLanguage))
                         .font(.footnote)
                         .foregroundStyle(themeManager.palette.secondaryText)
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(String(localized: "label_message_tone"))
+                    Text(appText("label_message_tone", languageCode: appLanguage))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(themeManager.palette.primaryText)
 
@@ -647,7 +731,12 @@ struct ProfileRootView: View {
                                     .font(.body.weight(.medium))
                                     .foregroundStyle(themeManager.palette.primaryText)
 
-                                Text(String(localized: AppMessageTones.requiredPlan(for: vm.messageTone) == .free ? "plan_free" : "plan_premium"))
+                                Text(
+                                    appText(
+                                        AppMessageTones.requiredPlan(for: vm.messageTone) == .free ? "plan_free" : "plan_premium",
+                                        languageCode: appLanguage
+                                    )
+                                )
                                     .font(.caption)
                                     .foregroundStyle(themeManager.palette.secondaryText)
                             }
@@ -670,7 +759,7 @@ struct ProfileRootView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(String(localized: "label_ringtone"))
+                    Text(appText("label_ringtone", languageCode: appLanguage))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(themeManager.palette.primaryText)
 
@@ -683,7 +772,12 @@ struct ProfileRootView: View {
                                     .font(.body.weight(.medium))
                                     .foregroundStyle(themeManager.palette.primaryText)
 
-                                Text(String(localized: AppRingtones.requiredPlan(for: vm.ringtone) == .free ? "plan_free" : "plan_premium"))
+                                Text(
+                                    appText(
+                                        AppRingtones.requiredPlan(for: vm.ringtone) == .free ? "plan_free" : "plan_premium",
+                                        languageCode: appLanguage
+                                    )
+                                )
                                     .font(.caption)
                                     .foregroundStyle(themeManager.palette.secondaryText)
                             }
@@ -707,7 +801,7 @@ struct ProfileRootView: View {
 
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
-                        Text(String(localized: "label_volume"))
+                        Text(appText("label_volume", languageCode: appLanguage))
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(themeManager.palette.primaryText)
 
@@ -733,12 +827,16 @@ struct ProfileRootView: View {
 
     private var disappearingMessagesSection: some View {
         SectionCardView(
-            title: String(localized: "section_disappearing_messages")
+            title: appText(
+                "section_disappearing_messages",
+                languageCode: appLanguage
+            )
         ) {
             VStack(alignment: .leading, spacing: 14) {
                 ThemedToggleRow(
-                    title: String(
-                        localized: "setting_enable_disappearing_messages"
+                    title: appText(
+                        "setting_enable_disappearing_messages",
+                        languageCode: appLanguage
                     ),
                     isOn: Binding(
                         get: { vm.autoDeleteSeconds > 0 },
@@ -756,8 +854,9 @@ struct ProfileRootView: View {
                     ) {
                         Text(
                             String(
-                                format: String(
-                                    localized: "delete_after_seconds_format"
+                                format: appText(
+                                    "delete_after_seconds_format",
+                                    languageCode: appLanguage
                                 ),
                                 vm.autoDeleteSeconds
                             )
@@ -772,40 +871,48 @@ struct ProfileRootView: View {
 
     private var privacySection: some View {
         SectionCardView(
-            title: String(localized: "section_privacy")
+            title: appText(
+                "section_privacy",
+                languageCode: appLanguage
+            )
         ) {
             VStack(alignment: .leading, spacing: 14) {
                 ThemedToggleRow(
-                    title: String(
-                        localized: "setting_allow_explicit_content"
+                    title: appText(
+                        "setting_allow_explicit_content",
+                        languageCode: appLanguage
                     ),
                     isOn: $vm.allowExplicitContent
                 )
 
                 ThemedToggleRow(
-                    title: String(
-                        localized: "setting_blur_messages_default"
+                    title: appText(
+                        "setting_blur_messages_default",
+                        languageCode: appLanguage
                     ),
                     isOn: $vm.privacyBlurEnabled
                 )
 
                 ThemedToggleRow(
-                    title: String(
-                        localized: "setting_blur_when_unfocused"
+                    title: appText(
+                        "setting_blur_when_unfocused",
+                        languageCode: appLanguage
                     ),
                     isOn: $vm.privacyBlurOnUnfocus
                 )
 
                 ThemedToggleRow(
-                    title: String(
-                        localized: "setting_hold_to_reveal"
+                    title: appText(
+                        "setting_hold_to_reveal",
+                        languageCode: appLanguage
                     ),
                     isOn: $vm.privacyHoldToReveal
                 )
 
                 ThemedToggleRow(
-                    title: String(
-                        localized: "setting_notify_on_copy"
+                    title: appText(
+                        "setting_notify_on_copy",
+                        languageCode: appLanguage
                     ),
                     isOn: $vm.notifyOnCopy
                 )
@@ -814,21 +921,33 @@ struct ProfileRootView: View {
     }
 
     private var randomChatSection: some View {
-        SectionCardView(title: String(localized: "section_random_chat")) {
+        SectionCardView(title: appText(
+            "section_random_chat",
+            languageCode: appLanguage
+        )) {
             VStack(alignment: .leading, spacing: 14) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(String(localized: "label_your_age_range"))
+                    Text(appText(
+                        "label_your_age_range",
+                        languageCode: appLanguage
+                    ))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(themeManager.palette.primaryText)
 
                     Picker(
-                        String(localized: "label_your_age_range"),
+                        appText(
+                                "label_your_age_range",
+                                languageCode: appLanguage
+                            ),
                         selection: Binding(
                             get: { vm.ageBand ?? "" },
                             set: { vm.ageBand = $0.isEmpty ? nil : $0 }
                         )
                     ) {
-                        Text(String(localized: "select_age_range")).tag("")
+                        Text(appText(
+                            "select_age_range",
+                            languageCode: appLanguage
+                        )).tag("")
                         Text("13–17").tag("TEEN_13_17")
                         Text("18–24").tag("ADULT_18_24")
                         Text("25–34").tag("ADULT_25_34")
@@ -840,14 +959,20 @@ struct ProfileRootView: View {
                 }
 
                 ThemedToggleRow(
-                    title: String(localized: "setting_use_age_based_matching"),
+                    title: appText(
+                        "setting_use_age_based_matching",
+                        languageCode: appLanguage
+                    ),
                     isOn: $vm.wantsAgeFilter
                 )
                 .opacity(vm.ageBand == nil ? 0.55 : 1.0)
                 .disabled(vm.ageBand == nil)
 
                 ThemedToggleRow(
-                    title: String(localized: "setting_foria_remember"),
+                    title: appText(
+                        "setting_foria_remember",
+                        languageCode: appLanguage
+                    ),
                     isOn: $vm.foriaRemember
                 )
             }
@@ -855,20 +980,32 @@ struct ProfileRootView: View {
     }
 
     private var voicemailSection: some View {
-        SectionCardView(title: String(localized: "section_voicemail")) {
+        SectionCardView(title: appText(
+            "section_voicemail",
+            languageCode: appLanguage
+        )) {
             VStack(alignment: .leading, spacing: 14) {
                 ThemedToggleRow(
-                    title: String(localized: "setting_enable_voicemail"),
+                    title: appText(
+                        "setting_forward_voicemail_email",
+                        languageCode: appLanguage
+                    ),
                     isOn: $vm.voicemailEnabled
                 )
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(String(localized: "setting_auto_delete_voicemails_days"))
+                    Text(appText(
+                        "setting_auto_delete_voicemails_days",
+                        languageCode: appLanguage
+                    ))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(themeManager.palette.primaryText)
 
                     TextField(
-                        String(localized: "placeholder_keep_voicemails_forever"),
+                        appText(
+                            "placeholder_keep_voicemails_forever",
+                            languageCode: appLanguage
+                        ),
                         text: Binding(
                             get: { vm.voicemailAutoDeleteDays.map(String.init) ?? "" },
                             set: { vm.voicemailAutoDeleteDays = Int($0) }
@@ -879,12 +1016,15 @@ struct ProfileRootView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(String(localized: "setting_forward_voicemail_email"))
+                    Text(appText("setting_forward_voicemail_email", languageCode: appLanguage))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(themeManager.palette.primaryText)
 
                     TextField(
-                        String(localized: "placeholder_email_address"),
+                        appText(
+                            "placeholder_email_address",
+                            languageCode: appLanguage
+                        ),
                         text: $vm.voicemailForwardEmail
                     )
                     .textInputAutocapitalization(.never)
@@ -893,12 +1033,18 @@ struct ProfileRootView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(String(localized: "setting_text_fallback_greeting"))
+                    Text(appText(
+                        "setting_text_fallback_greeting",
+                        languageCode: appLanguage
+                    ))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(themeManager.palette.primaryText)
 
                     TextField(
-                        String(localized: "placeholder_greeting"),
+                        appText(
+                            "placeholder_greeting",
+                            languageCode: appLanguage
+                        ),
                         text: $vm.voicemailGreetingText,
                         axis: .vertical
                     )
@@ -911,7 +1057,10 @@ struct ProfileRootView: View {
 
     private var forwardingSection: some View {
         SectionCardView(
-            title: String(localized: "section_forwarding")
+            title: appText(
+                "section_forwarding",
+                languageCode: appLanguage
+            )
         ) {
             if currentPlan.canUseForwarding {
                 NavigationLink {
@@ -919,12 +1068,18 @@ struct ProfileRootView: View {
                 } label: {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(String(localized: "forwarding_manage"))
+                            Text(appText(
+                                "forwarding_manage",
+                                languageCode: appLanguage
+                            ))
                                 .font(.body.weight(.semibold))
                                 .foregroundStyle(themeManager.palette.primaryText)
 
                             Text(
-                                String(localized: "forwarding_description")
+                                appText(
+                                    "forwarding_description",
+                                    languageCode: appLanguage
+                                )
                             )
                                 .font(.footnote)
                                 .foregroundStyle(themeManager.palette.secondaryText)
@@ -941,22 +1096,36 @@ struct ProfileRootView: View {
             } else {
                 Button {
                     presentUpgrade(
-                        title: String(localized: "forwarding_requires_plus_title"),
-                        message: String(localized: "forwarding_requires_plus_message"),
+                        title: appText(
+                            "forwarding_requires_plus_title",
+                            languageCode: appLanguage
+                        ),
+                        message: appText(
+                            "forwarding_requires_plus_message",
+                            languageCode: appLanguage
+                        ),
                         requiredPlan: .plus
                     )
                 } label: {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
                             HStack(spacing: 6) {
-                                Text(String(localized: "forwarding_manage"))
+                                Text(
+                                    appText(
+                                        "forwarding_manage",
+                                        languageCode: appLanguage
+                                    )
+                                )
                                 Image(systemName: "lock.fill")
                             }
                             .font(.body.weight(.semibold))
                             .foregroundStyle(themeManager.palette.primaryText)
 
                             Text(
-                                String(localized: "forwarding_upgrade_prompt")
+                                appText(
+                                    "forwarding_upgrade_prompt",
+                                    languageCode: appLanguage
+                                )
                             )
                                 .font(.footnote)
                                 .foregroundStyle(themeManager.palette.secondaryText)
@@ -997,7 +1166,10 @@ struct ProfileRootView: View {
                     .padding(.vertical, 14)
             } else {
                 ThemedGradientButton(
-                    title: String(localized: "button_save_settings"),
+                    title: appText(
+                            "button_save_settings",
+                            languageCode: appLanguage
+                        ),
                     action: {
                         Task { await saveSettings() }
                     },
@@ -1036,7 +1208,12 @@ struct ProfileRootView: View {
                             .tint(.red)
                     } else {
                         Image(systemName: "trash")
-                        Text(String(localized: "button_delete_account"))
+                        Text(
+                            appText(
+                                "button_delete_account",
+                                languageCode: appLanguage
+                            )
+                        )
                             .fontWeight(.semibold)
                     }
                 }
@@ -1049,16 +1226,25 @@ struct ProfileRootView: View {
             .clipShape(RoundedRectangle(cornerRadius: 14))
         }
         .alert(
-            String(localized: "alert_delete_account_title"),
+            appText(
+                    "alert_delete_account_title",
+                    languageCode: appLanguage
+                ),
             isPresented: $showingDeleteAccountAlert
         ) {
             Button(
-                String(localized: "button_cancel"),
+                appText(
+                    "button_cancel",
+                    languageCode: appLanguage
+                ),
                 role: .cancel
             ) {}
 
             Button(
-                String(localized: "button_delete"),
+                appText(
+                    "button_delete",
+                    languageCode: appLanguage
+                ),
                 role: .destructive
             ) {
                 Task {
@@ -1067,14 +1253,20 @@ struct ProfileRootView: View {
             }
         } message: {
             Text(
-                String(localized: "delete_account_warning")
+                appText(
+                    "delete_account_warning",
+                    languageCode: appLanguage
+                )
             )
         }
     }
 
     private var logoutButtonSection: some View {
         ThemedOutlineButton(
-            title: String(localized: "button_log_out"),
+            title: appText(
+                    "button_log_out",
+                    languageCode: appLanguage
+                ),
             action: {
                 auth.logout()
             }
@@ -1088,20 +1280,23 @@ struct ProfileRootView: View {
     
     private var encryptionStatusText: String {
         if !AccountKeyManager.shared.hasAccountKeys() {
-            return String(localized: "security_status_recovery_needed")
+            return appText("security_status_recovery_needed", languageCode: appLanguage)
         }
 
         if isCheckingBackup {
-            return String(localized: "security_status_protected")
+            return appText("security_status_protected", languageCode: appLanguage)
         }
 
         if let hasRemoteBackup {
             return hasRemoteBackup
-                ? String(localized: "security_status_backup_saved")
-                : String(localized: "security_status_no_backup")
+                ? appText("security_status_backup_saved", languageCode: appLanguage)
+                : appText("security_status_no_backup", languageCode: appLanguage)
         }
 
-        return String(localized: "security_status_protected")
+        return appText(
+            "security_status_protected",
+            languageCode: appLanguage
+        )
     }
 
     private var encryptionStatusColor: Color {
@@ -1113,12 +1308,18 @@ struct ProfileRootView: View {
     
     private var securitySection: some View {
         SectionCardView(
-            title: String(localized: "section_security")
+            title: appText(
+                "section_security",
+                languageCode: appLanguage
+            )
         ) {
             VStack(alignment: .leading, spacing: 8) {
 
                 Text(
-                    String(localized: "security_backup_description")
+                    appText(
+                        "security_backup_description",
+                        languageCode: appLanguage
+                    )
                 )
                     .font(.footnote)
                     .foregroundStyle(themeManager.palette.secondaryText)
@@ -1134,7 +1335,12 @@ struct ProfileRootView: View {
                             .frame(width: 22)
 
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(String(localized: "security_encryption_key"))
+                            Text(
+                                appText(
+                                    "security_encryption_key",
+                                    languageCode: appLanguage
+                                )
+                            )
                                 .font(.body)
                                 .foregroundStyle(themeManager.palette.primaryText)
 
@@ -1151,7 +1357,10 @@ struct ProfileRootView: View {
                        hasRemoteBackup == false,
                        !isCheckingBackup {
                         Text(
-                            String(localized: "security_backup_recommended")
+                            appText(
+                                "security_backup_recommended",
+                                languageCode: appLanguage
+                            )
                         )
                             .font(.caption)
                             .foregroundStyle(themeManager.palette.secondaryText)
@@ -1165,8 +1374,14 @@ struct ProfileRootView: View {
                     } label: {
                         rowLabel(
                             icon: "icloud.and.arrow.up",
-                            title: String(localized: "security_backup_key_title"),
-                            subtitle: String(localized: "security_backup_key_subtitle")
+                            title: appText(
+                                "security_backup_key_title",
+                                languageCode: appLanguage
+                            ),
+                            subtitle: appText(
+                                "security_backup_key_subtitle",
+                                languageCode: appLanguage
+                            )
                         )
                     }
                     .buttonStyle(.plain)
@@ -1181,8 +1396,14 @@ struct ProfileRootView: View {
                         } label: {
                             rowLabel(
                                 icon: "icloud.and.arrow.down",
-                                title: String(localized: "security_restore_key_title"),
-                                subtitle: String(localized: "security_restore_key_subtitle")
+                                title: appText(
+                                    "security_restore_key_title",
+                                    languageCode: appLanguage
+                                ),
+                                subtitle: appText(
+                                    "security_restore_key_subtitle",
+                                    languageCode: appLanguage
+                                )
                             )
                         }
                         .buttonStyle(.plain)
@@ -1195,10 +1416,19 @@ struct ProfileRootView: View {
                     } label: {
                         rowLabel(
                             icon: "arrow.triangle.2.circlepath",
-                            title: String(localized: "security_rotate_key_title"),
+                            title: appText(
+                                "security_rotate_key_title",
+                                languageCode: appLanguage
+                            ),
                             subtitle: hasRemoteBackup == true
-                                ? String(localized: "security_rotate_key_ready")
-                                : String(localized: "security_rotate_key_backup_required")
+                                ? appText(
+                                    "security_rotate_key_ready",
+                                    languageCode: appLanguage
+                                )
+                                : appText(
+                                    "security_rotate_key_backup_required",
+                                    languageCode: appLanguage
+                                )
                         )
                     }
                     .buttonStyle(.plain)
@@ -1247,9 +1477,12 @@ struct ProfileRootView: View {
 
         guard AppThemes.isAvailable(code, for: currentPlan) else {
             presentUpgrade(
-                title: String(localized: "premium_theme_title"),
+                title: appText("premium_theme_title", languageCode: appLanguage),
                 message: String(
-                    format: String(localized: "premium_feature_available_on_format"),
+                    format: appText(
+                        "premium_feature_available_on_format",
+                        languageCode: appLanguage
+                    ),
                     themeName,
                     requiredPlan.displayName
                 ),
@@ -1289,9 +1522,12 @@ struct ProfileRootView: View {
 
         guard AppMessageTones.isAvailable(code, for: currentPlan) else {
             presentUpgrade(
-                title: String(localized: "premium_message_tone_title"),
+                title: appText("premium_message_tone_title", languageCode: appLanguage),
                 message: String(
-                    format: String(localized: "premium_feature_available_on_format"),
+                    format: appText(
+                        "premium_feature_available_on_format",
+                        languageCode: appLanguage
+                    ),
                     toneName,
                     requiredPlan.displayName
                 ),
@@ -1309,9 +1545,12 @@ struct ProfileRootView: View {
 
         guard AppRingtones.isAvailable(code, for: currentPlan) else {
             presentUpgrade(
-                title: String(localized: "premium_ringtone_title"),
+                title: appText("premium_ringtone_title", languageCode: appLanguage),
                 message: String(
-                    format: String(localized: "premium_feature_available_on_format"),
+                    format: appText(
+                        "premium_feature_available_on_format",
+                        languageCode: appLanguage
+                    ),
                     ringtoneName,
                     requiredPlan.displayName
                 ),
@@ -1335,7 +1574,7 @@ struct ProfileRootView: View {
 
         guard let token = auth.currentToken, !token.isEmpty else {
             avatarUploadError =
-            String(localized: "error_missing_auth_token")
+            appText("error_missing_auth_token", languageCode: appLanguage)
             auth.handleInvalidSession()
             return
         }
@@ -1345,7 +1584,7 @@ struct ProfileRootView: View {
 
             guard let data = try await item.loadTransferable(type: Data.self) else {
                 avatarUploadError =
-                    String(localized: "error_could_not_read_image")
+                appText("error_could_not_read_image", languageCode: appLanguage)
                 isUploadingAvatar = false
                 return
             }
@@ -1372,7 +1611,10 @@ struct ProfileRootView: View {
 
         guard let token = auth.currentToken, !token.isEmpty else {
             avatarUploadError =
-                String(localized: "error_missing_auth_token")
+            appText(
+                "error_missing_auth_token",
+                languageCode: appLanguage
+            )
             auth.handleInvalidSession()
             return
         }
@@ -1436,7 +1678,7 @@ struct ProfileRootView: View {
             themeManager.apply(code: themeToApply)
 
             vm.saveSuccessMessage =
-                String(localized: "settings_saved")
+                appText("settings_saved", languageCode: appLanguage)
         } catch {
             vm.saveError = error.localizedDescription
         }

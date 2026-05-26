@@ -3,6 +3,7 @@ import SwiftUI
 struct InviteFriendsView: View {
     @EnvironmentObject private var auth: AuthStore
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     @State private var isCreatingInvite = false
     @State private var errorText: String?
@@ -17,7 +18,7 @@ struct InviteFriendsView: View {
                         Task { await shareGenericInvite() }
                     } label: {
                         Label(
-                            String(localized: "invite.shareInviteLink"),
+                            appText("invite.shareInviteLink", languageCode: appLanguage),
                             systemImage: "square.and.arrow.up"
                         )
                     }
@@ -27,7 +28,7 @@ struct InviteFriendsView: View {
                         InvitePhoneContactsView()
                     } label: {
                         Label(
-                            String(localized: "invite.fromPhoneContacts"),
+                            appText("invite.fromPhoneContacts", languageCode: appLanguage),
                             systemImage: "person.crop.circle.badge.plus"
                         )
                     }
@@ -41,12 +42,12 @@ struct InviteFriendsView: View {
                 }
             }
             .navigationTitle(
-                String(localized: "invite.title")
+                appText("invite.title", languageCode: appLanguage)
             )
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(String(localized: "common.done")) {
+                    Button(appText("common.done", languageCode: appLanguage)) {
                         dismiss()
                     }
                 }
@@ -59,9 +60,7 @@ struct InviteFriendsView: View {
 
     private func shareGenericInvite() async {
         guard let token = auth.currentToken, !token.isEmpty else {
-            errorText = String(
-                localized: "invite.mustBeLoggedIn"
-            )
+            errorText = appText("invite.mustBeLoggedIn", languageCode: appLanguage)
             return
         }
 

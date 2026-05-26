@@ -7,22 +7,26 @@ struct ThemedMenuField: View {
     let action: () -> Void
 
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title)
+
+            Text(appText(title, languageCode: appLanguage))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(themeManager.palette.primaryText)
 
             Button(action: action) {
                 HStack(spacing: 12) {
+
                     VStack(alignment: .leading, spacing: 4) {
+
                         Text(value)
                             .font(.body.weight(.medium))
                             .foregroundStyle(themeManager.palette.primaryText)
 
                         if let subtitle, !subtitle.isEmpty {
-                            Text(subtitle)
+                            Text(appText(subtitle, languageCode: appLanguage))
                                 .font(.caption)
                                 .foregroundStyle(themeManager.palette.secondaryText)
                         }
@@ -40,7 +44,12 @@ struct ThemedMenuField: View {
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .stroke(themeManager.palette.border, lineWidth: 1)
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .clipShape(
+                    RoundedRectangle(
+                        cornerRadius: 14,
+                        style: .continuous
+                    )
+                )
             }
             .buttonStyle(.plain)
         }

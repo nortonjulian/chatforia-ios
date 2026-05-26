@@ -33,6 +33,7 @@ struct SMSThreadView: View {
     @StateObject private var numberVM = PhoneNumberViewModel()
     @State private var showNumberPicker = false
     @EnvironmentObject private var auth: AuthStore
+    @AppStorage("chatforia_language") private var appLanguage = "en"
     
     init(conversation: ConversationDTO) {
             self.conversation = conversation
@@ -183,23 +184,17 @@ struct SMSThreadView: View {
         if vm.isLoading && vm.messages.isEmpty {
             LoadingStateView(
             title:
-                String(
-                    localized:
-                    "sms.loading"
-                ),
+                appText("sms.loading", languageCode: appLanguage),
             subtitle:
-                String(
-                    localized:
-                    "sms.loadingSubtitle"
-                )
+                appText("sms.loadingSubtitle", languageCode: appLanguage)
         )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
         } else if vm.messages.isEmpty {
             EmptyStateView(
                 systemImage: "message",
-                title: String(localized: "messages.noMessagesYet"),
-                subtitle: String(localized: "messages.sendTextToStartConversation")
+                title: appText("messages.noMessagesYet", languageCode: appLanguage),
+                subtitle: appText("messages.sendTextToStartConversation", languageCode: appLanguage)
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
@@ -269,9 +264,9 @@ struct SMSThreadView: View {
 
         if numberVM.currentNumber == nil {
             vm.errorText =
-            String(
-                localized:
-                "sms.chooseNumberBeforeSending"
+            appText(
+                "sms.chooseNumberBeforeSending",
+                languageCode: appLanguage
             )
             showNumberPicker = true
             return
@@ -279,10 +274,10 @@ struct SMSThreadView: View {
 
         guard let to = vm.resolvedPhone(fallback: activeConversation.phone) else {
             vm.errorText =
-                String(
-                    localized:
-                    "sms.missingDestinationNumber"
-                )
+            appText(
+                "sms.missingDestinationNumber",
+                languageCode: appLanguage
+            )
             return
         }
 
@@ -294,9 +289,9 @@ struct SMSThreadView: View {
 
             guard !urls.isEmpty else {
                 vm.errorText =
-                String(
-                    localized:
-                    "media.uploadFailed"
+                appText(
+                    "media.uploadFailed",
+                    languageCode: appLanguage
                 )
                 return
             }
@@ -456,6 +451,7 @@ private struct SMSMessageRowView: View {
     let isHighlighted: Bool
 
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 8) {
@@ -541,7 +537,10 @@ private struct SMSMessageRowView: View {
                         .foregroundStyle(themeManager.palette.secondaryText)
 
                     if msg.editedAt != nil {
-                        Text(String(localized: "messages.edited"))
+                        Text(appText(
+                            "messages.edited",
+                            languageCode: appLanguage
+                        ))
                             .font(.caption2)
                             .foregroundStyle(themeManager.palette.secondaryText)
                     }
@@ -610,6 +609,7 @@ private struct SMSAuthenticatedImageCard: View {
     let title: String
     let maxWidth: CGFloat
 
+    @AppStorage("chatforia_language") private var appLanguage = "en"
     @State private var image: UIImage?
     @State private var isLoading = false
     @State private var failed = false
@@ -642,9 +642,9 @@ private struct SMSAuthenticatedImageCard: View {
 
                         Text(
                             failed
-                                ? String(
-                                    localized:
-                                    "media.couldNotLoadImage"
+                                ? appText(
+                                    "media.couldNotLoadImage",
+                                    languageCode: appLanguage
                                 )
                                 : title
                         )
@@ -704,6 +704,7 @@ private struct SMSAuthenticatedImageCard: View {
 private struct SMSFullscreenImageView: View {
     let image: UIImage
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("chatforia_language") private var appLanguage = "en"
     @State private var scale: CGFloat = 1
     @State private var lastScale: CGFloat = 1
 
@@ -741,7 +742,10 @@ private struct SMSFullscreenImageView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(
-                        String(localized:"common.done")
+                        appText(
+                            "common.done",
+                            languageCode: appLanguage
+                        )
                     ) {
                         dismiss()
                     }
@@ -758,6 +762,7 @@ private struct SMSGenericAttachmentCard: View {
     let item: SMSMediaItemDTO
 
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     var body: some View {
         HStack(spacing: 10) {
@@ -772,9 +777,9 @@ private struct SMSGenericAttachmentCard: View {
                     .lineLimit(1)
 
                 Text(item.contentType?.nilIfBlank
-                ?? String(
-                    localized:
-                    "media.protectedMedia"
+                ?? appText(
+                    "media.protectedMedia",
+                    languageCode: appLanguage
                 ))
                     .font(.caption)
                     .foregroundStyle(themeManager.palette.secondaryText)
@@ -784,10 +789,10 @@ private struct SMSGenericAttachmentCard: View {
             Spacer(minLength: 0)
 
             Text(
-            String(
-                localized:
-                "sms.inThread"
-            )
+                appText(
+                    "sms.inThread",
+                    languageCode: appLanguage
+                )
         )
                 .font(.caption2)
                 .foregroundStyle(themeManager.palette.secondaryText)

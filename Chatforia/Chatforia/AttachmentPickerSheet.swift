@@ -5,6 +5,7 @@ struct AttachmentPickerSheet: View {
     let onGIF: () -> Void
 
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     var body: some View {
         VStack(spacing: 20) {
@@ -16,19 +17,28 @@ struct AttachmentPickerSheet: View {
             HStack(spacing: 30) {
                 attachmentButton(
                     icon: "photo",
-                    label: String(localized: "messages.mediaPhoto"),
+                    label: appText(
+                        "messages.mediaPhoto",
+                        languageCode: appLanguage
+                    ),
                     action: onPhoto
                 )
                 
                 attachmentButton(
                     icon: "video",
-                    label: String(localized: "messages.mediaVideo"),
+                    label: appText(
+                        "messages.mediaVideo",
+                        languageCode: appLanguage
+                    ),
                     action: onPhoto // reuse same picker
                 )
 
                 attachmentButton(
                     icon: "sparkles",
-                    label: String(localized: "media.gif"),
+                    label: appText(
+                        "media.gif",
+                        languageCode: appLanguage
+                    ),
                     action: onGIF
                 )
             }

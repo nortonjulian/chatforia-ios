@@ -1,0 +1,1200 @@
+Chatforia/Chatforia/SendQueueManager.swift:11
+  private let stateQueue = DispatchQueue(label: "com.chatforia.sendqueue.state", qos: .userInitiated)
+
+Chatforia/Chatforia/RiaRewriteSheet.swift:20
+  Text(String(localized: "ria.rewrite.original"))
+
+Chatforia/Chatforia/RiaRewriteSheet.swift:32
+  Text(String(localized: "ria.rewrite.choose_tone"))
+
+Chatforia/Chatforia/RiaRewriteSheet.swift:38
+  Button(String(localized: "ria.rewrite.tone.\(tone)")) {
+
+Chatforia/Chatforia/RiaRewriteSheet.swift:60
+  Text(String(localized: "ria.rewrite.suggestions"))
+
+Chatforia/Chatforia/RiaRewriteSheet.swift:84
+  Text(String(localized: "ria.rewrite.empty"))
+
+Chatforia/Chatforia/RiaRewriteSheet.swift:94
+  .navigationTitle(String(localized: "ria.rewrite.title"))
+
+Chatforia/Chatforia/ProfileRootView.swift:55
+  Button(String(localized: "button_message_inviter")) {
+
+Chatforia/Chatforia/ProfileRootView.swift:82
+  Text(String(localized: "button_upgrade"))
+
+Chatforia/Chatforia/ProfileRootView.swift:86
+  Text(String(localized: "upgrade_choose_plus_or_premium"))
+
+Chatforia/Chatforia/ProfileRootView.swift:124
+  .navigationTitle(String(localized: "screen_profile"))
+
+Chatforia/Chatforia/ProfileRootView.swift:168
+  title: String(localized: "sheet_theme_title"),
+
+Chatforia/Chatforia/ProfileRootView.swift:169
+  subtitle: String(localized: "sheet_theme_subtitle"),
+
+Chatforia/Chatforia/ProfileRootView.swift:185
+  title: String(localized: "premium_theme_title"),
+
+Chatforia/Chatforia/ProfileRootView.swift:199
+  title: String(localized: "sheet_message_tone_title"),
+
+Chatforia/Chatforia/ProfileRootView.swift:200
+  subtitle: String(localized: "sheet_message_tone_subtitle"),
+
+Chatforia/Chatforia/ProfileRootView.swift:216
+  title: String(localized: "premium_message_tone_title"),
+
+Chatforia/Chatforia/ProfileRootView.swift:230
+  title: String(localized: "sheet_ringtone_title"),
+
+Chatforia/Chatforia/ProfileRootView.swift:231
+  subtitle: String(localized: "sheet_ringtone_subtitle"),
+
+Chatforia/Chatforia/ProfileRootView.swift:247
+  title: String(localized: "premium_ringtone_title"),
+
+Chatforia/Chatforia/ProfileRootView.swift:334
+  SectionCardView(title: String(localized: "section_account")) {
+
+Chatforia/Chatforia/ProfileRootView.swift:337
+  title: String(localized: "label_username"),
+
+Chatforia/Chatforia/ProfileRootView.swift:345
+  title: String(localized: "label_email"),
+
+Chatforia/Chatforia/ProfileRootView.swift:353
+  title: String(localized: "label_role"),
+
+Chatforia/Chatforia/ProfileRootView.swift:362
+  title: String(localized: "label_plan"),
+
+Chatforia/Chatforia/ProfileRootView.swift:371
+  title: String(localized: "section_legal_support")
+
+Chatforia/Chatforia/ProfileRootView.swift:421
+  SectionCardView(title: String(localized: "section_plan")) {
+
+Chatforia/Chatforia/ProfileRootView.swift:433
+  Text(String(localized: "plan_billing"))
+
+Chatforia/Chatforia/ProfileRootView.swift:437
+  Text(String(format: String(localized: "current_plan_format"), currentPlan.displayName))
+
+Chatforia/Chatforia/ProfileRootView.swift:461
+  Text(String(localized: "manage_billing"))
+
+Chatforia/Chatforia/ProfileRootView.swift:465
+  Text(String(localized: "available_on_current_plan"))
+
+Chatforia/Chatforia/ProfileRootView.swift:479
+  SectionCardView(title: String(localized: "section_wireless")) {
+
+Chatforia/Chatforia/ProfileRootView.swift:490
+  Text(String(localized: "wireless_chatforia_mobile"))
+
+Chatforia/Chatforia/ProfileRootView.swift:494
+  Text(String(localized: "wireless_esim_description"))
+
+Chatforia/Chatforia/ProfileRootView.swift:520
+  Text(String(localized: "wireless_phone_number"))
+
+Chatforia/Chatforia/ProfileRootView.swift:524
+  Text(String(localized: "wireless_phone_number_description"))
+
+Chatforia/Chatforia/ProfileRootView.swift:541
+  SectionCardView(title: String(localized: "section_profile")) {
+
+Chatforia/Chatforia/ProfileRootView.swift:548
+  title: String(localized: "setting_auto_translate_messages"),
+
+Chatforia/Chatforia/ProfileRootView.swift:553
+  title: String(localized: "setting_show_original_with_translation"),
+
+Chatforia/Chatforia/ProfileRootView.swift:558
+  title: String(localized: "setting_enable_read_receipts"),
+
+Chatforia/Chatforia/ProfileRootView.swift:564
+  title: String(localized: "setting_smart_reply_suggestions"),
+
+Chatforia/Chatforia/ProfileRootView.swift:571
+  Text(String(localized: "setting_smart_reply_description"))
+
+Chatforia/Chatforia/ProfileRootView.swift:580
+  SectionCardView(title: String(localized: "section_appearance")) {
+
+Chatforia/Chatforia/ProfileRootView.swift:583
+  Text(String(localized: "appearance_free_theme_notice"))
+
+Chatforia/Chatforia/ProfileRootView.swift:589
+  Text(String(localized: "label_theme"))
+
+Chatforia/Chatforia/ProfileRootView.swift:628
+  SectionCardView(title: String(localized: "section_sounds")) {
+
+Chatforia/Chatforia/ProfileRootView.swift:631
+  Text(String(localized: "sounds_free_notice"))
+
+Chatforia/Chatforia/ProfileRootView.swift:637
+  Text(String(localized: "label_message_tone"))
+
+Chatforia/Chatforia/ProfileRootView.swift:673
+  Text(String(localized: "label_ringtone"))
+
+Chatforia/Chatforia/ProfileRootView.swift:710
+  Text(String(localized: "label_volume"))
+
+Chatforia/Chatforia/ProfileRootView.swift:716
+  Text("\(vm.soundVolume)%")
+
+Chatforia/Chatforia/ProfileRootView.swift:736
+  title: String(localized: "section_disappearing_messages")
+
+Chatforia/Chatforia/ProfileRootView.swift:775
+  title: String(localized: "section_privacy")
+
+Chatforia/Chatforia/ProfileRootView.swift:817
+  SectionCardView(title: String(localized: "section_random_chat")) {
+
+Chatforia/Chatforia/ProfileRootView.swift:820
+  Text(String(localized: "label_your_age_range"))
+
+Chatforia/Chatforia/ProfileRootView.swift:831
+  Text(String(localized: "select_age_range")).tag("")
+
+Chatforia/Chatforia/ProfileRootView.swift:832
+  Text("13–17").tag("TEEN_13_17")
+
+Chatforia/Chatforia/ProfileRootView.swift:833
+  Text("18–24").tag("ADULT_18_24")
+
+Chatforia/Chatforia/ProfileRootView.swift:834
+  Text("25–34").tag("ADULT_25_34")
+
+Chatforia/Chatforia/ProfileRootView.swift:835
+  Text("35–49").tag("ADULT_35_49")
+
+Chatforia/Chatforia/ProfileRootView.swift:836
+  Text("50+").tag("ADULT_50_PLUS")
+
+Chatforia/Chatforia/ProfileRootView.swift:843
+  title: String(localized: "setting_use_age_based_matching"),
+
+Chatforia/Chatforia/ProfileRootView.swift:850
+  title: String(localized: "setting_foria_remember"),
+
+Chatforia/Chatforia/ProfileRootView.swift:858
+  SectionCardView(title: String(localized: "section_voicemail")) {
+
+Chatforia/Chatforia/ProfileRootView.swift:861
+  title: String(localized: "setting_enable_voicemail"),
+
+Chatforia/Chatforia/ProfileRootView.swift:866
+  Text(String(localized: "setting_auto_delete_voicemails_days"))
+
+Chatforia/Chatforia/ProfileRootView.swift:882
+  Text(String(localized: "setting_forward_voicemail_email"))
+
+Chatforia/Chatforia/ProfileRootView.swift:896
+  Text(String(localized: "setting_text_fallback_greeting"))
+
+Chatforia/Chatforia/ProfileRootView.swift:914
+  title: String(localized: "section_forwarding")
+
+Chatforia/Chatforia/ProfileRootView.swift:922
+  Text(String(localized: "forwarding_manage"))
+
+Chatforia/Chatforia/ProfileRootView.swift:944
+  title: String(localized: "forwarding_requires_plus_title"),
+
+Chatforia/Chatforia/ProfileRootView.swift:952
+  Text(String(localized: "forwarding_manage"))
+
+Chatforia/Chatforia/ProfileRootView.swift:1000
+  title: String(localized: "button_save_settings"),
+
+Chatforia/Chatforia/ProfileRootView.swift:1039
+  Text(String(localized: "button_delete_account"))
+
+Chatforia/Chatforia/ProfileRootView.swift:1077
+  title: String(localized: "button_log_out"),
+
+Chatforia/Chatforia/ProfileRootView.swift:1116
+  title: String(localized: "section_security")
+
+Chatforia/Chatforia/ProfileRootView.swift:1137
+  Text(String(localized: "security_encryption_key"))
+
+Chatforia/Chatforia/ProfileRootView.swift:1168
+  title: String(localized: "security_backup_key_title"),
+
+Chatforia/Chatforia/ProfileRootView.swift:1169
+  subtitle: String(localized: "security_backup_key_subtitle")
+
+Chatforia/Chatforia/ProfileRootView.swift:1184
+  title: String(localized: "security_restore_key_title"),
+
+Chatforia/Chatforia/ProfileRootView.swift:1185
+  subtitle: String(localized: "security_restore_key_subtitle")
+
+Chatforia/Chatforia/ProfileRootView.swift:1198
+  title: String(localized: "security_rotate_key_title"),
+
+Chatforia/Chatforia/ProfileRootView.swift:1250
+  title: String(localized: "premium_theme_title"),
+
+Chatforia/Chatforia/ProfileRootView.swift:1292
+  title: String(localized: "premium_message_tone_title"),
+
+Chatforia/Chatforia/ProfileRootView.swift:1312
+  title: String(localized: "premium_ringtone_title"),
+
+Chatforia/Chatforia/VoicemailDetailView.swift:31
+  title: String(localized: "voicemail.title"),
+
+Chatforia/Chatforia/VoicemailDetailView.swift:61
+  label: String(localized: "voicemail.from"),
+
+Chatforia/Chatforia/VoicemailDetailView.swift:66
+  label: String(localized: "voicemail.to"),
+
+Chatforia/Chatforia/VoicemailDetailView.swift:71
+  label: String(localized: "voicemail.received"),
+
+Chatforia/Chatforia/VoicemailDetailView.swift:78
+  label: String(localized: "voicemail.duration"),
+
+Chatforia/Chatforia/WirelessHomeView.swift:54
+  .navigationTitle(String(localized:"ios.wireless"))
+
+Chatforia/Chatforia/WirelessHomeView.swift:84
+  SectionCardView(title: String(localized:"ios.current_usage")) {
+
+Chatforia/Chatforia/WirelessHomeView.swift:142
+  title: String(localized: "ios.used"),
+
+Chatforia/Chatforia/WirelessHomeView.swift:147
+  title: String(localized: "ios.left"),
+
+Chatforia/Chatforia/WirelessHomeView.swift:152
+  title: String(localized: "ios.expires"),
+
+Chatforia/Chatforia/WirelessHomeView.swift:275
+  SectionCardView(title: String(localized:"ios.manage")) {
+
+Chatforia/Chatforia/WirelessHomeView.swift:277
+  ThemedOutlineButton(title:String(localized:"ios.manage_wireless")) {
+
+Chatforia/Chatforia/WirelessHomeView.swift:277
+  ThemedOutlineButton(title:String(localized:"ios.manage_wireless")) {
+
+Chatforia/Chatforia/WirelessHomeView.swift:281
+  ThemedOutlineButton(title:String(localized:"ios.port_my_number")) {
+
+Chatforia/Chatforia/WirelessHomeView.swift:281
+  ThemedOutlineButton(title:String(localized:"ios.port_my_number")) {
+
+Chatforia/Chatforia/WirelessHomeView.swift:290
+  SectionCardView(title: String(localized:"ios.chatforia_mobile")) {
+
+Chatforia/Chatforia/WirelessHomeView.swift:430
+  SectionCardView(title: String(localized:"ios.your_esim")) {
+
+Chatforia/Chatforia/UpgradePromptSheet.swift:40
+  Text(String(format: String(localized: "upgrade.requires_plan_format"), requiredPlan.displayName))
+
+Chatforia/Chatforia/UpgradePromptSheet.swift:74
+  title: String(localized: "common.notNow"),
+
+Chatforia/Chatforia/UpgradePromptSheet.swift:85
+  .navigationTitle(String(localized: "common.upgradeRequired"))
+
+Chatforia/Chatforia/UpgradePromptSheet.swift:95
+  Button(String(localized: "common.close")) {
+
+Chatforia/Chatforia/ContactsRootView.swift:44
+  .navigationTitle(String(localized: "tab_contacts"))
+
+Chatforia/Chatforia/ContactsRootView.swift:146
+  title: String(localized: "ios.loading_contacts"),
+
+Chatforia/Chatforia/ContactsRootView.swift:147
+  subtitle: String(localized: "ios.pulling_in_your_saved_people")
+
+Chatforia/Chatforia/ContactsRootView.swift:154
+  title: String(localized: "ios.couldn_t_load_contacts"),
+
+Chatforia/Chatforia/ContactsRootView.swift:166
+  title: String(localized: "ios.no_contacts_found"),
+
+Chatforia/Chatforia/ContactsRootView.swift:167
+  subtitle: String(localized: "ios.try_a_different_name_or_username")
+
+Chatforia/Chatforia/ContactsRootView.swift:174
+  title: String(localized: "ios.no_contacts_yet"),
+
+Chatforia/Chatforia/ContactsRootView.swift:175
+  subtitle: String(localized: "ios.add_contacts_manually_import_from_phone_or_start_new_conversation"),
+
+Chatforia/Chatforia/InvitePhoneContactsView.swift:18
+  Text(String(localized: "contacts.noPhoneContactsFound"))
+
+Chatforia/Chatforia/InvitePhoneContactsView.swift:55
+  .navigationTitle(String(localized: "contacts.inviteContacts"))
+
+Chatforia/Chatforia/InvitePhoneContactsView.swift:60
+  Button(String(localized: "common.selectAll")) { viewModel.selectAll() }
+
+Chatforia/Chatforia/InvitePhoneContactsView.swift:71
+  Text(String(localized: "common.invite"))
+
+Chatforia/Chatforia/ChatsRootView.swift:39
+  title: String(localized: "ios.loading_chats"),
+
+Chatforia/Chatforia/ChatsRootView.swift:40
+  subtitle: String(localized: "ios.pulling_in_your_latest_conversations")
+
+Chatforia/Chatforia/ChatsRootView.swift:47
+  title: String(localized: "ios.couldn_t_load_chats"),
+
+Chatforia/Chatforia/ChatsRootView.swift:60
+  title: String(localized: "ios.no_results"),
+
+Chatforia/Chatforia/ChatsRootView.swift:61
+  subtitle: String(localized: "ios.try_searching_for_a_different_name_or_message")
+
+Chatforia/Chatforia/ChatsRootView.swift:68
+  title: String(localized: "ios.no_chats_yet"),
+
+Chatforia/Chatforia/ChatsRootView.swift:69
+  subtitle: String(localized: "ios.tap_the_plus_button_to_start_your_first_conversation")
+
+Chatforia/Chatforia/ChatsRootView.swift:177
+  .navigationTitle(String(localized: "tab_chats"))
+
+Chatforia/Chatforia/ChatsRootView.swift:180
+  prompt: Text(String(localized: "ios.search_chats"))
+
+Chatforia/Chatforia/ChatsRootView.swift:258
+  Button(String(localized: "button_cancel"), role: .cancel) {
+
+Chatforia/Chatforia/ChatsRootView.swift:525
+  title: String(localized: "ios.unsupported_conversation"),
+
+Chatforia/Chatforia/RandomMatchingView.swift:15
+  Text(String(localized: "ios.finding_someone"))
+
+Chatforia/Chatforia/RandomMatchingView.swift:19
+  Text(String(localized: "ios.we_re_looking_for_someone_who_s_open_to_chat_right_now"))
+
+Chatforia/Chatforia/RandomMatchingView.swift:31
+  Text(String(localized: "button_cancel"))
+
+Chatforia/Chatforia/RandomMatchingView.swift:38
+  .navigationTitle(String(localized: "section_random_chat"))
+
+Chatforia/Chatforia/ChatThreadSearchSheet.swift:31
+  .searchable(text: $searchText, prompt: Text("messages.searchMessages"))
+
+Chatforia/Chatforia/ChatThreadSearchSheet.swift:32
+  .navigationTitle(String(localized: "ios.search_in_chat"))
+
+Chatforia/Chatforia/RestoreEncryptionKeyView.swift:27
+  Text(String(localized: "encryption.restore.title"))
+
+Chatforia/Chatforia/RestoreEncryptionKeyView.swift:33
+  Text(String(localized: "encryption.restore.instructions"))
+
+Chatforia/Chatforia/RestoreEncryptionKeyView.swift:40
+  Text(String(localized: "encryption.restore.noBackup"))
+
+Chatforia/Chatforia/RestoreEncryptionKeyView.swift:56
+  Button("common.done") {
+
+Chatforia/Chatforia/RestoreEncryptionKeyView.swift:92
+  Text(String(localized: "encryption.restore.restoreKey"))
+
+Chatforia/Chatforia/RestoreEncryptionKeyView.swift:102
+  Text(String(localized: "encryption.reset.title"))
+
+Chatforia/Chatforia/RestoreEncryptionKeyView.swift:106
+  Text(String(localized: "encryption.reset.description"))
+
+Chatforia/Chatforia/RestoreEncryptionKeyView.swift:147
+  Button(String(localized: "button_cancel"), role: .cancel) {}
+
+Chatforia/Chatforia/AddContactView.swift:62
+  title: String(localized: "auth.username"),
+
+Chatforia/Chatforia/AddContactView.swift:70
+  title: String(localized: "contacts.phoneNumber"),
+
+Chatforia/Chatforia/AddContactView.swift:77
+  title: String(localized: "common.name"),
+
+Chatforia/Chatforia/AddContactView.swift:83
+  title: String(localized: "contacts.aliasOptional"),
+
+Chatforia/Chatforia/AddContactView.swift:88
+  title: String(localized: "contacts.favorite"),
+
+Chatforia/Chatforia/ChatThreadViewModel.swift:535
+  errorText = "Invalid roomId (client)."
+
+Chatforia/Chatforia/ChatThreadViewModel.swift:574
+  errorText = "loadMessages: \(error.localizedDescription)"
+
+Chatforia/Chatforia/ChatThreadViewModel.swift:620
+  self.errorText = "loadOlderMessagesIfNeeded: \(error.localizedDescription)"
+
+Chatforia/Chatforia/ChatThreadViewModel.swift:709
+  errorText = "Couldn’t send message. \(error.localizedDescription)"
+
+Chatforia/Chatforia/ChatThreadViewModel.swift:729
+  errorText = "Image data is empty."
+
+Chatforia/Chatforia/ChatThreadViewModel.swift:841
+  errorText = "Couldn’t send image. \(error.localizedDescription)"
+
+Chatforia/Chatforia/ChatThreadViewModel.swift:863
+  errorText = "Video data is empty."
+
+Chatforia/Chatforia/ChatThreadViewModel.swift:980
+  errorText = "Couldn’t send video. \(error.localizedDescription)"
+
+Chatforia/Chatforia/ChatThreadViewModel.swift:1004
+  errorText = "GIF data is empty."
+
+Chatforia/Chatforia/ChatThreadViewModel.swift:1109
+  errorText = "Couldn’t send GIF. \(error.localizedDescription)"
+
+Chatforia/Chatforia/ChatThreadViewModel.swift:1214
+  errorText = "Couldn’t send audio. \(error.localizedDescription)"
+
+Chatforia/Chatforia/ChatThreadViewModel.swift:1651
+  errorText = "Missing encryption context."
+
+Chatforia/Chatforia/ChatThreadViewModel.swift:1696
+  errorText = "Couldn’t edit message."
+
+Chatforia/Chatforia/ChatThreadViewModel.swift:1710
+  errorText = "Edit failed: \(error.localizedDescription)"
+
+Chatforia/Chatforia/ChatThreadViewModel.swift:1752
+  errorText = "Couldn’t delete message."
+
+Chatforia/Chatforia/ChatThreadViewModel.swift:1795
+  errorText = "Couldn’t archive conversation."
+
+Chatforia/Chatforia/ChatThreadViewModel.swift:1829
+  errorText = "Couldn’t delete conversation."
+
+Chatforia/Chatforia/DecryptedMessageTextView.swift:16
+  Text("🔒 Encrypted message")
+
+Chatforia/Chatforia/GIFService.swift:154
+  title: title?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfBlank ?? "GIF",
+
+Chatforia/Chatforia/InviteFriendsView.swift:49
+  Button(String(localized: "common.done")) {
+
+Chatforia/Chatforia/LoginView.swift:84
+  Text(String(localized: hasLoggedInBefore ? "common.welcomeBack" : "common.welcomeToChatforia"))
+
+Chatforia/Chatforia/LoginView.swift:89
+  Text(String(localized: hasLoggedInBefore ? "login.subtitleReturning" : "upgrade.auth.signInOrCreateAnAccount"))
+
+Chatforia/Chatforia/LoginView.swift:99
+  title: activeOAuthProvider == "google" ? "Continue with Google…" : "Google"
+
+Chatforia/Chatforia/LoginView.swift:106
+  title: activeOAuthProvider == "apple" ? "Continue with Apple…" : "Apple"
+
+Chatforia/Chatforia/LoginView.swift:118
+  Text("or")
+
+Chatforia/Chatforia/LoginView.swift:132
+  NavigationLink("Forgot password?") {
+
+Chatforia/Chatforia/LoginView.swift:133
+  Text("auth.forgotPassword")
+
+Chatforia/Chatforia/LoginView.swift:134
+  .navigationTitle("auth.forgotPassword")
+
+Chatforia/Chatforia/LoginView.swift:151
+  Text(resendLoading ? "Sending..." : "Resend verification email")
+
+Chatforia/Chatforia/LoginView.swift:166
+  title: "Email or username",
+
+Chatforia/Chatforia/LoginView.swift:173
+  title: "Password",
+
+Chatforia/Chatforia/LoginView.swift:179
+  title: isLoading ? "Logging in..." : "Log In",
+
+Chatforia/Chatforia/LoginView.swift:186
+  Text("auth.dontHaveAnAccountYet")
+
+Chatforia/Chatforia/LoginView.swift:193
+  Text("auth.createAccount")
+
+Chatforia/Chatforia/LoginView.swift:242
+  resendSuccess = "Verification email sent. Check your inbox."
+
+Chatforia/Chatforia/LoginView.swift:244
+  errorText = "Failed to resend verification email."
+
+Chatforia/Chatforia/LoginView.swift:289
+  errorText = "Please verify your email before logging in."
+
+Chatforia/Chatforia/ChatMessageRowView.swift:80
+  Button("common.edit", systemImage: "pencil") {
+
+Chatforia/Chatforia/ChatMessageRowView.swift:105
+  Button("common.report", systemImage: "flag") {
+
+Chatforia/Chatforia/ChatMessageRowView.swift:141
+  Button("common.edit", systemImage: "pencil") {
+
+Chatforia/Chatforia/ChatMessageRowView.swift:165
+  Button("common.report", systemImage: "flag") {
+
+Chatforia/Chatforia/ChatMessageRowView.swift:251
+  Text("\(pair.value)")
+
+Chatforia/Chatforia/VoicemailInboxView.swift:58
+  .alert("Voicemail Error", isPresented: errorBinding) {
+
+Chatforia/Chatforia/VoicemailInboxView.swift:59
+  Button("common.ok", role: .cancel) {
+
+Chatforia/Chatforia/VoicemailInboxView.swift:63
+  Text(viewModel.errorMessage ?? "Something went wrong.")
+
+Chatforia/Chatforia/VoicemailInboxView.swift:107
+  Text("voicemail.loading")
+
+Chatforia/Chatforia/VoicemailInboxView.swift:120
+  Text("voicemail.couldNotLoad")
+
+Chatforia/Chatforia/VoicemailInboxView.swift:130
+  Button("common.tryAgain") {
+
+Chatforia/Chatforia/VoicemailInboxView.swift:148
+  Text("voicemail.empty")
+
+Chatforia/Chatforia/VoicemailInboxView.swift:152
+  Text("voicemail.emptySubtitle")
+
+Chatforia/Chatforia/PickNumberSheet.swift:83
+  Text("common.country")
+
+Chatforia/Chatforia/PickNumberSheet.swift:106
+  Text("phoneNumber.areaCode")
+
+Chatforia/Chatforia/PickNumberSheet.swift:138
+  Text("common.search")
+
+Chatforia/Chatforia/PickNumberSheet.swift:152
+  Text("phoneNumber.capability")
+
+Chatforia/Chatforia/PickNumberSheet.swift:157
+  Text(String(localized: "phoneNumber.sms"))
+
+Chatforia/Chatforia/PickNumberSheet.swift:160
+  Text(String(localized: "phoneNumber.voice"))
+
+Chatforia/Chatforia/PickNumberSheet.swift:163
+  Text(String(localized: "phoneNumber.smsVoice"))
+
+Chatforia/Chatforia/PickNumberSheet.swift:199
+  Text("dialer.availableNumbers")
+
+Chatforia/Chatforia/CallHistoryView.swift:47
+  .navigationTitle(String(localized: "tab_calls"))
+
+Chatforia/Chatforia/CallHistoryView.swift:57
+  Text(String(localized:"dialer.openDialPad"))
+
+Chatforia/Chatforia/CallHistoryView.swift:87
+  title: String(localized: "calls.couldntLoadHistory"),
+
+Chatforia/Chatforia/CallHistoryView.swift:92
+  title: String(localized: "callHistory.emptyTitle"),
+
+Chatforia/Chatforia/PremiumPickerSheet.swift:41
+  title: "Free",
+
+Chatforia/Chatforia/PremiumPickerSheet.swift:47
+  title: String(localized: "plan_premium"),
+
+Chatforia/Chatforia/PremiumPickerSheet.swift:59
+  Button(String(localized: "common.done")) {
+
+Chatforia/Chatforia/PremiumPickerSheet.swift:75
+  Text(String(localized: "billing.currentPlan"))
+
+Chatforia/Chatforia/ActiveCallView.swift:29
+  Text(session?.displayName ?? "Call")
+
+Chatforia/Chatforia/ActiveCallView.swift:44
+  title: (session?.isMuted ?? false) ? "Unmute" : "Mute",
+
+Chatforia/Chatforia/ActiveCallView.swift:52
+  title: "Speaker",
+
+Chatforia/Chatforia/ActiveCallView.swift:60
+  title: "End",
+
+Chatforia/Chatforia/MessageAttachmentsView.swift:41
+  title: attachment.caption?.nilIfBlank ?? fileNameFromURL(attachment.url) ?? "File",
+
+Chatforia/Chatforia/MessageAttachmentsView.swift:42
+  subtitle: attachment.mimeType?.nilIfBlank ?? "File attachment",
+
+Chatforia/Chatforia/MessageAttachmentsView.swift:48
+  title: attachment.caption?.nilIfBlank ?? "Attachment",
+
+Chatforia/Chatforia/MessageAttachmentsView.swift:49
+  subtitle: attachment.mimeType?.nilIfBlank ?? "Attachment",
+
+Chatforia/Chatforia/MessageAttachmentsView.swift:94
+  title: attachment.caption?.nilIfBlank ?? "Video",
+
+Chatforia/Chatforia/MessageAttachmentsView.swift:95
+  subtitle: attachment.mimeType?.nilIfBlank ?? "Video attachment",
+
+Chatforia/Chatforia/MessageAttachmentsView.swift:148
+  title: attachment.caption?.nilIfBlank ?? "Image",
+
+Chatforia/Chatforia/MessageAttachmentsView.swift:149
+  subtitle: attachment.mimeType?.nilIfBlank ?? "Image attachment",
+
+Chatforia/Chatforia/MessageAttachmentsView.swift:156
+  title: attachment.caption?.nilIfBlank ?? "Image",
+
+Chatforia/Chatforia/MessageAttachmentsView.swift:157
+  subtitle: attachment.mimeType?.nilIfBlank ?? "Image attachment",
+
+Chatforia/Chatforia/MessageAttachmentsView.swift:167
+  title: attachment.caption?.nilIfBlank ?? "Image",
+
+Chatforia/Chatforia/MessageAttachmentsView.swift:168
+  subtitle: attachment.mimeType?.nilIfBlank ?? "Image attachment",
+
+Chatforia/Chatforia/MessageAttachmentsView.swift:209
+  Text("GIF")
+
+Chatforia/Chatforia/MessageAttachmentsView.swift:229
+  title: attachment.caption?.nilIfBlank ?? "GIF",
+
+Chatforia/Chatforia/MessageAttachmentsView.swift:230
+  subtitle: attachment.mimeType?.nilIfBlank ?? "GIF attachment",
+
+Chatforia/Chatforia/MessageAttachmentsView.swift:389
+  Text("media.couldNotLoadImage")
+
+Chatforia/Chatforia/MessageAttachmentsView.swift:402
+  Button("common.done") {
+
+Chatforia/Chatforia/StartChatViewModel.swift:214
+  errorText = "Unable to fetch results. Please try again."
+
+Chatforia/Chatforia/StartChatViewModel.swift:263
+  errorText = "Unable to fetch contacts."
+
+Chatforia/Chatforia/PlanView.swift:22
+  .navigationTitle(String(localized: "billing.planAndBilling"))
+
+Chatforia/Chatforia/PlanView.swift:32
+  SectionCardView(title: String(localized: "billing.myPlan")) {
+
+Chatforia/Chatforia/PlanView.swift:34
+  Text(String(localized: "billing.currentPlan"))
+
+Chatforia/Chatforia/PlanView.swift:62
+  title: String(localized: "common.upgrade")
+
+Chatforia/Chatforia/PlanView.swift:69
+  title: String(localized: "upgrade.to_premium")
+
+Chatforia/Chatforia/PlanView.swift:75
+  title: String(localized: "common.manageSubscription")
+
+Chatforia/Chatforia/PlanView.swift:82
+  title: String(localized: "common.manageSubscription")
+
+Chatforia/Chatforia/PlanView.swift:101
+  Text(String(localized: "billing.plus"))
+
+Chatforia/Chatforia/PlanView.swift:106
+  Text(String(localized: "billing.premium"))
+
+Chatforia/Chatforia/PlanView.swift:122
+  SectionCardView(title: String(localized: "billing.includedTitle")) {
+
+Chatforia/Chatforia/SoundSettingsView.swift:18
+  Text(String(localized: "sound.volume"))
+
+Chatforia/Chatforia/SoundSettingsView.swift:33
+  Text("\(settingsVM.soundVolume)%")
+
+Chatforia/Chatforia/SoundSettingsView.swift:116
+  title: String(localized: "sound.premiumTitle"),
+
+Chatforia/Chatforia/SoundSettingsView.swift:166
+  title: String(localized: "sound.premiumTitle"),
+
+Chatforia/Chatforia/ChatThreadView.swift:208
+  Button("messages.deleteForEveryone", role: .destructive){
+
+Chatforia/Chatforia/ChatThreadView.swift:221
+  Button(String(localized: "button_cancel"), role: .cancel) {
+
+Chatforia/Chatforia/ChatThreadView.swift:380
+  Button(String(localized: "button_cancel")) {
+
+Chatforia/Chatforia/ChatThreadView.swift:461
+  Text(String(localized: "common.send"))
+
+Chatforia/Chatforia/ChatThreadView.swift:850
+  Button(String(localized:"gif.shortTitle")) {
+
+Chatforia/Chatforia/ChatThreadView.swift:903
+  Button(String(localized: "button_cancel")) {
+
+Chatforia/Chatforia/ChatThreadView.swift:913
+  Button(String(localized: "common.save")) {
+
+Chatforia/Chatforia/RiaChatView.swift:107
+  .navigationTitle(String(localized: "ios.ria"))
+
+Chatforia/Chatforia/RiaChatView.swift:121
+  Text(String(localized: "ios.ria"))
+
+Chatforia/Chatforia/RiaChatView.swift:125
+  Text(String(localized: "ios.ai"))
+
+Chatforia/Chatforia/ESIMActivationView.swift:20
+  .navigationTitle(String(localized: "esim.activate"))
+
+Chatforia/Chatforia/ESIMActivationView.swift:26
+  Button(String(localized: "common.ok"), role: .cancel) {}
+
+Chatforia/Chatforia/ESIMActivationView.swift:61
+  Text(String(localized: "common.status"))
+
+Chatforia/Chatforia/ESIMActivationView.swift:100
+  Text(String(localized: "common.install"))
+
+Chatforia/Chatforia/ESIMActivationView.swift:180
+  Text(String(localized: "esim.activationDetails"))
+
+Chatforia/Chatforia/ESIMActivationView.swift:184
+  detailRow(title: "esim.plan", value: viewModel.payload.planName)
+
+Chatforia/Chatforia/ESIMActivationView.swift:185
+  detailRow(title: "esim.lpaUri", value: viewModel.explicitLpaText)
+
+Chatforia/Chatforia/ESIMActivationView.swift:186
+  detailRow(title: "esim.activationCode", value: viewModel.installationCodeText)
+
+Chatforia/Chatforia/ESIMActivationView.swift:187
+  detailRow(title: "esim.confirmationCode", value: viewModel.confirmationCodeText)
+
+Chatforia/Chatforia/ESIMActivationView.swift:188
+  detailRow(title: "esim.smdpAddress", value: viewModel.smdpAddressText)
+
+Chatforia/Chatforia/ESIMActivationView.swift:189
+  detailRow(title: "esim.iccid", value: viewModel.iccidText)
+
+Chatforia/Chatforia/MessageStore.swift:15
+  private let lock = DispatchQueue(label: "chatforia.messageStore.lock", attributes: .concurrent)
+
+Chatforia/Chatforia/ChatListRowView.swift:33
+  Text("SMS")
+
+Chatforia/Chatforia/AppShellView.swift:64
+  Text(String(localized: "loading_setting_things_up"))
+
+Chatforia/Chatforia/BatchSortDebouncer.swift:5
+  private let queue = DispatchQueue(label: "com.chatforia.batchSort", qos: .userInitiated)
+
+Chatforia/Chatforia/ImportPhoneContactsView.swift:35
+  title: String(localized: "ios.couldn_t_load_contacts"),
+
+Chatforia/Chatforia/ImportPhoneContactsView.swift:73
+  Button(String(localized: "common.clear")) {
+
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:32
+  .navigationTitle(String(localized: "encryption.backUpKey"))
+
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:36
+  Button(String(localized: "common.done")) {
+
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:53
+  Text(String(localized: "encryption.backup.headerTitle"))
+
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:58
+  Text(String(localized: "encryption.backup.headerSubtitle"))
+
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:66
+  Text(String(localized: "common.howThisWorks"))
+
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:72
+  title: String(localized: "encryption.backup.protectedTitle"),
+
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:73
+  subtitle: String(localized: "encryption.backup.protectedSubtitle")
+
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:78
+  title: String(localized: "encryption.backup.restoreDeviceTitle"),
+
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:79
+  subtitle: String(localized: "encryption.backup.restoreDeviceSubtitle")
+
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:84
+  title: String(localized: "encryption.backup.passwordWarningTitle"),
+
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:85
+  subtitle: String(localized: "encryption.backup.passwordWarningSubtitle")
+
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:99
+  Text(String(localized: "encryptionRecovery.actions.createBackup"))
+
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:104
+  Text(String(localized: "encryption.backupPassword"))
+
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:109
+  title: "encryption.backupPassword",
+
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:113
+  Text(String(localized: "encryption.backup.minimumLength"))
+
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:119
+  Text(String(localized: "auth.confirmPassword"))
+
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:124
+  title: "auth.confirmPassword",
+
+Chatforia/Chatforia/BackupEncryptionKeyView.swift:179
+  Text(String(localized: "encryption.backup.footerNote"))
+
+Chatforia/Chatforia/SMSThreadSearchSheet.swift:43
+  prompt: Text("messages.searchMessages")
+
+Chatforia/Chatforia/SMSThreadSearchSheet.swift:45
+  .navigationTitle(String(localized: "messages.searchInThread"))
+
+Chatforia/Chatforia/MessageReceiptSheet.swift:20
+  Text(String(localized: "messages.noOneReadYet"))
+
+Chatforia/Chatforia/MessageReceiptSheet.swift:42
+  Text(String(localized: "common.read"))
+
+Chatforia/Chatforia/MessageReceiptSheet.swift:60
+  .navigationTitle(String(localized: "messages.messageInfo"))
+
+Chatforia/Chatforia/MessageReceiptSheet.swift:64
+  Button(String(localized: "common.done")) {
+
+Chatforia/Chatforia/MessageComposerView.swift:318
+  Text(String(localized: "messages.voiceNoteReady"))
+
+Chatforia/Chatforia/MessageComposerView.swift:332
+  Button(String(localized: "button_cancel")) {
+
+Chatforia/Chatforia/MessageComposerView.swift:343
+  Text(String(localized: "common.send"))
+
+Chatforia/Chatforia/ImportPhoneContactsViewModel.swift:29
+  errorText = "Contacts access was not granted."
+
+Chatforia/Chatforia/WirelessCatalog.swift:87
+  title: "Global 3 GB",
+
+Chatforia/Chatforia/WirelessCatalog.swift:95
+  title: "Global 5 GB",
+
+Chatforia/Chatforia/WirelessCatalog.swift:103
+  title: "Global 10 GB",
+
+Chatforia/Chatforia/WirelessCatalog.swift:115
+  title: "Europe Unlimited",
+
+Chatforia/Chatforia/WirelessCatalog.swift:123
+  title: "Europe 3 GB",
+
+Chatforia/Chatforia/WirelessCatalog.swift:131
+  title: "Europe 5 GB",
+
+Chatforia/Chatforia/WirelessCatalog.swift:139
+  title: "Europe 10 GB",
+
+Chatforia/Chatforia/WirelessCatalog.swift:147
+  title: "Europe 20 GB",
+
+Chatforia/Chatforia/WirelessCatalog.swift:159
+  title: "Local Unlimited",
+
+Chatforia/Chatforia/WirelessCatalog.swift:167
+  title: "Local 3 GB",
+
+Chatforia/Chatforia/WirelessCatalog.swift:175
+  title: "Local 5 GB",
+
+Chatforia/Chatforia/WirelessCatalog.swift:183
+  title: "Local 10 GB",
+
+Chatforia/Chatforia/WirelessCatalog.swift:191
+  title: "Local 20 GB",
+
+Chatforia/Chatforia/StartChatView.swift:21
+  title: String(localized: "ios.searching"),
+
+Chatforia/Chatforia/StartChatView.swift:22
+  subtitle: String(localized: "ios.looking_for_people_you_can_message")
+
+Chatforia/Chatforia/StartChatView.swift:27
+  title: String(localized: "ios.search_unavailable"),
+
+Chatforia/Chatforia/StartChatView.swift:33
+  title: String(localized: "common.startConversation"),
+
+Chatforia/Chatforia/StartChatView.swift:34
+  subtitle: String(localized: "ios.search_by_username_contact_or_phone")
+
+Chatforia/Chatforia/StartChatView.swift:42
+  title: String(localized: "ios.no_users_found"),
+
+Chatforia/Chatforia/StartChatView.swift:43
+  subtitle: String(localized: "ios.try_different_username_contact_or_phone")
+
+Chatforia/Chatforia/StartChatView.swift:105
+  Text(String(localized: "contacts.startChatforiaChat"))
+
+Chatforia/Chatforia/StartChatView.swift:137
+  prompt: Text("ios.username_contact_name_or_phone_number")
+
+Chatforia/Chatforia/StartChatView.swift:144
+  Button(String(localized: "button_cancel")) {
+
+Chatforia/Chatforia/StartChatView.swift:151
+  Text(String(localized: "common.newConversation"))
+
+Chatforia/Chatforia/StartChatView.swift:191
+  subtitle: String(localized: "ios.text_this_number")
+
+Chatforia/Chatforia/StartChatView.swift:205
+  subtitle: String(localized: "ios.invite_to_chatforia")
+
+Chatforia/Chatforia/RegisterView.swift:32
+  Text("auth.createYourAccount")
+
+Chatforia/Chatforia/RegisterView.swift:73
+  Text(String(localized:"common.or"))
+
+Chatforia/Chatforia/RegisterView.swift:86
+  title: String(localized:"auth.smsConsent"),
+
+Chatforia/Chatforia/RegisterView.swift:121
+  title: String(localized:"auth.username"),
+
+Chatforia/Chatforia/RegisterView.swift:127
+  title: String(localized:"auth.email"),
+
+Chatforia/Chatforia/RegisterView.swift:134
+  title: String(localized:"auth.password"),
+
+Chatforia/Chatforia/RegisterView.swift:140
+  title: String(localized:"auth.phoneOptional"),
+
+Chatforia/Chatforia/RegisterView.swift:146
+  title: "Phone (optional)",
+
+Chatforia/Chatforia/RegisterView.swift:153
+  Text("auth.alreadyHaveAnAccount")
+
+Chatforia/Chatforia/RegisterView.swift:185
+  .navigationTitle(String(localized: "common.register"))
+
+Chatforia/Chatforia/DialerView.swift:69
+  Text(String(localized: "dialer.dial"))
+
+Chatforia/Chatforia/DialerView.swift:75
+  Button(String(localized: "common.done")) {
+
+Chatforia/Chatforia/DialerView.swift:147
+  Text(String(localized: "common.suggested"))
+
+Chatforia/Chatforia/ForwardingSettingsView.swift:11
+  title: String(localized:"forwarding.callTextForwarding")
+
+Chatforia/Chatforia/ForwardingSettingsView.swift:48
+  Text("forwarding.destinationPhoneE164")
+
+Chatforia/Chatforia/ForwardingSettingsView.swift:66
+  Text("forwarding.destinationEmail")
+
+Chatforia/Chatforia/ForwardingSettingsView.swift:111
+  Text("settings.startHour")
+
+Chatforia/Chatforia/ForwardingSettingsView.swift:126
+  Text("settings.endHour")
+
+Chatforia/Chatforia/ForwardingSettingsView.swift:164
+  Text("forwarding.saveForwarding")
+
+Chatforia/Chatforia/ChatsViewModel.swift:336
+  errorText = "Failed to archive conversation."
+
+Chatforia/Chatforia/ChatsViewModel.swift:348
+  errorText = "Missing conversation id."
+
+Chatforia/Chatforia/UpgradeView.swift:52
+  .navigationTitle(String(localized: "common.upgrade"))
+
+Chatforia/Chatforia/UpgradeView.swift:82
+  Text(String(localized: "upgrade.heroTitle"))
+
+Chatforia/Chatforia/UpgradeView.swift:87
+  Text(String(localized: "upgrade.heroSubtitle"))
+
+Chatforia/Chatforia/UpgradeView.swift:99
+  title: String(localized: "upgrade.keepNumberTitle"),
+
+Chatforia/Chatforia/UpgradeView.swift:100
+  subtitle: String(localized: "upgrade.keepNumberSubtitle"),
+
+Chatforia/Chatforia/UpgradeView.swift:109
+  title: String(localized: "upgrade.plusTitle"),
+
+Chatforia/Chatforia/UpgradeView.swift:110
+  subtitle: String(localized: "upgrade.plusSubtitle"),
+
+Chatforia/Chatforia/UpgradeView.swift:125
+  title: String(localized: "upgrade.premiumTitle"),
+
+Chatforia/Chatforia/UpgradeView.swift:126
+  subtitle: String(localized: "upgrade.premiumSubtitle"),
+
+Chatforia/Chatforia/UpgradeView.swift:169
+  Text(String(localized: "upgrade.bestExperience"))
+
+Chatforia/Chatforia/UpgradeView.swift:223
+  Text(String(localized: "profile.customization"))
+
+Chatforia/Chatforia/UpgradeView.swift:227
+  Text(String(localized: "upgrade.customizationSubtitle"))
+
+Chatforia/Chatforia/UpgradeView.swift:235
+  title: String(localized: "upgrade.pill.themes")
+
+Chatforia/Chatforia/UpgradeView.swift:240
+  title: String(localized: "upgrade.pill.messageTones")
+
+Chatforia/Chatforia/UpgradeView.swift:245
+  title: String(localized: "upgrade.pill.ringtones")
+
+Chatforia/Chatforia/UpgradeView.swift:276
+  Text(String(localized: "upgrade.choosePlan"))
+
+Chatforia/Chatforia/UpgradeView.swift:281
+  Text(String(localized: "upgrade.bestValueAnnual"))
+
+Chatforia/Chatforia/UpgradeView.swift:287
+  Text(String(localized: "common.upgradeWithApple"))
+
+Chatforia/Chatforia/UpgradeView.swift:291
+  Text(String(localized: "upgrade.appleDescription"))
+
+Chatforia/Chatforia/UpgradeView.swift:322
+  Text(String(localized: "upgrade.autoRenewNotice"))
+
+Chatforia/Chatforia/UpgradeView.swift:339
+  title: String(localized: "upgrade.refreshPurchaseStatus"),
+
+Chatforia/Chatforia/UpgradeView.swift:355
+  title: String(localized: "upgrade.maybeLater"),
+
+Chatforia/Chatforia/AttachmentPickerSheet.swift:19
+  label: String(localized: "messages.mediaPhoto"),
+
+Chatforia/Chatforia/AttachmentPickerSheet.swift:25
+  label: String(localized: "messages.mediaVideo"),
+
+Chatforia/Chatforia/AttachmentPickerSheet.swift:31
+  label: String(localized: "media.gif"),
+
+Chatforia/Chatforia/UnreadBadgeView.swift:10
+  Text(count > 99 ? "99+" : "\(count)")
+
+Chatforia/Chatforia/RotateEncryptionKeyView.swift:38
+  Button(String(localized: "common.done")) {
+
+Chatforia/Chatforia/RotateEncryptionKeyView.swift:72
+  Text(String(localized: "common.beforeYouContinue"))
+
+Chatforia/Chatforia/OnboardingView.swift:75
+  Text("common.welcome")
+
+Chatforia/Chatforia/OnboardingView.swift:108
+  Text("common.welcomeToChatforia")
+
+Chatforia/Chatforia/OnboardingView.swift:128
+  Text("auth.chooseUsername")
+
+Chatforia/Chatforia/OnboardingView.swift:173
+  Text("profile.chooseLanguage")
+
+Chatforia/Chatforia/OnboardingView.swift:227
+  title: String(localized: "common.back")
+
+Chatforia/Chatforia/SMSThreadView.swift:201
+  title: String(localized: "messages.noMessagesYet"),
+
+Chatforia/Chatforia/SMSThreadView.swift:202
+  subtitle: String(localized: "messages.sendTextToStartConversation")
+
+Chatforia/Chatforia/SMSThreadView.swift:544
+  Text(String(localized: "messages.edited"))
+
+Chatforia/Chatforia/CheckoutSheetView.swift:12
+  Text("upgrade.confirmPurchase")
+
+Chatforia/Chatforia/CheckoutSheetView.swift:44
+  Text(String(localized: "upgrade.checkout.buyAndActivate"))
+
+Chatforia/Chatforia/CheckoutSheetView.swift:63
+  Button(String(localized: "button_cancel")) {
+
+Chatforia/Chatforia/GIFPickerView.swift:65
+  Button(String(localized: "button_cancel")) {
+
+Chatforia/Chatforia/GIFPickerView.swift:154
+  Text("GIF")
+
+Chatforia/Chatforia/ReportMessageSheet.swift:37
+  Text(String(localized: "report.onlyThisMessage"))
+
+Chatforia/Chatforia/ReportMessageSheet.swift:40
+  Text(String(localized: "report.thisPlusPrevious5"))
+
+Chatforia/Chatforia/ReportMessageSheet.swift:43
+  Text(String(localized: "report.thisPlusPrevious10"))
+
+Chatforia/Chatforia/ReportMessageSheet.swift:46
+  Text(String(localized: "report.thisPlusPrevious20"))
+
+Chatforia/Chatforia/ReportMessageSheet.swift:91
+  .navigationTitle(String(localized: "report.title"))
+
+Chatforia/Chatforia/ReportMessageSheet.swift:107
+  Button(String(localized: "common.submit")) {
+

@@ -6,6 +6,7 @@ struct MessageReceiptSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     private var readers: [UserSummaryDTO] {
         let readBy = message.readBy ?? []
@@ -17,7 +18,7 @@ struct MessageReceiptSheet: View {
             List {
                 if readers.isEmpty {
                     Section {
-                        Text(String(localized: "messages.noOneReadYet"))
+                        Text(appText("messages.noOneReadYet", languageCode: appLanguage))
                             .foregroundStyle(themeManager.palette.secondaryText)
                     }
                     .listRowBackground(themeManager.palette.cardBackground)
@@ -39,7 +40,12 @@ struct MessageReceiptSheet: View {
                                         .font(.body)
                                         .foregroundStyle(themeManager.palette.primaryText)
 
-                                    Text(String(localized: "common.read"))
+                                    Text(
+                                        appText(
+                                            "messages.messageInfo",
+                                            languageCode: appLanguage
+                                        )
+                                    )
                                         .font(.caption)
                                         .foregroundStyle(themeManager.palette.secondaryText)
                                 }
@@ -57,11 +63,11 @@ struct MessageReceiptSheet: View {
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
             .background(themeManager.palette.screenBackground)
-            .navigationTitle(String(localized: "messages.messageInfo"))
+            .navigationTitle(appText("messages.messageInfo", languageCode: appLanguage))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(String(localized: "common.done")) {
+                    Button(appText("common.done", languageCode: appLanguage)) {
                         dismiss()
                     }
                     .foregroundStyle(themeManager.palette.accent)
@@ -73,16 +79,16 @@ struct MessageReceiptSheet: View {
     private var headerTitle: String {
         if isGroupRoom {
             if readers.count == 1 {
-                return String(localized: "messages.seenByOnePerson")
+                return appText("messages.seenByOnePerson", languageCode: appLanguage)
             }
 
             return String(
-                format: String(localized: "messages.seenByPeopleCount"),
+                format: appText("messages.seenByPeopleCount", languageCode: appLanguage),
                 readers.count
             )
         }
 
-        return String(localized: "messages.seen")
+        return appText("messages.seen", languageCode: appLanguage)
     }
 
     private func displayName(for user: UserSummaryDTO) -> String {
@@ -93,7 +99,7 @@ struct MessageReceiptSheet: View {
         }
 
         return String(
-            format: String(localized: "common.userWithId"),
+            format: appText("common.userWithId", languageCode: appLanguage),
             user.id
         )
     }

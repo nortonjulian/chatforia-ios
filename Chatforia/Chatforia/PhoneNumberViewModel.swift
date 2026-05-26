@@ -15,6 +15,10 @@ final class PhoneNumberViewModel: ObservableObject {
     @Published var isSearching = false
     @Published var isLeasing = false
     @Published var errorText: String?
+    
+    private var appLanguage: String {
+        UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
+    }
 
     var countryOptions: [CountryOption] {
         SupportedCountries.options
@@ -83,8 +87,14 @@ final class PhoneNumberViewModel: ObservableObject {
                     response.error ??
                     response.message ??
                     (mode == .premium
-                     ? String(localized: "phoneNumber.noInventory")
-                     : String(localized: "phoneNumber.noFreeNumbersForAreaCode"))
+                     ? appText(
+                        "phoneNumber.noInventory",
+                        languageCode: appLanguage
+                    )
+                     : appText(
+                        "phoneNumber.noFreeNumbersForAreaCode",
+                        languageCode: appLanguage
+                    ))
             }
         } catch {
             errorText = error.localizedDescription

@@ -3,6 +3,7 @@ import SwiftUI
 struct PlanView: View {
     @EnvironmentObject var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     @State private var showUpgrade = false
 
@@ -19,7 +20,7 @@ struct PlanView: View {
             .padding()
         }
         .background(themeManager.palette.screenBackground)
-        .navigationTitle(String(localized: "billing.planAndBilling"))
+        .navigationTitle(appText("billing.planAndBilling", languageCode: appLanguage))
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(isPresented: $showUpgrade) {
             UpgradeView()
@@ -29,13 +30,13 @@ struct PlanView: View {
     }
 
     private var currentPlanSection: some View {
-        SectionCardView(title: String(localized: "billing.myPlan")) {
+        SectionCardView(title: appText("billing.myPlan", languageCode: appLanguage)) {
             VStack(alignment: .leading, spacing: 14) {
-                Text(String(localized: "billing.currentPlan"))
+                Text(appText("billing.currentPlan", languageCode: appLanguage))
                     .font(.subheadline)
                     .foregroundStyle(themeManager.palette.secondaryText)
 
-                Text(currentPlan.displayName)
+                Text(currentPlanDisplayName)
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(themeManager.palette.primaryText)
 
@@ -48,7 +49,7 @@ struct PlanView: View {
     }
 
     private var billingSection: some View {
-        SectionCardView(title: String(localized: "billing.comparePlans")) {
+        SectionCardView(title: appText("billing.comparePlans", languageCode: appLanguage)) {
             VStack(spacing: 16) {
                 planComparisonSection
 
@@ -59,27 +60,27 @@ struct PlanView: View {
                 switch currentPlan {
                 case .free:
                     ThemedOutlineButton(
-                        title: String(localized: "common.upgrade")
+                        title: appText("common.upgrade", languageCode: appLanguage)
                     ) {
                         showUpgrade = true
                     }
 
                 case .plus:
                     ThemedOutlineButton(
-                        title: String(localized: "upgrade.to_premium")
+                        title: appText("upgrade.to_premium", languageCode: appLanguage)
                     ) {
                         showUpgrade = true
                     }
 
                     ThemedOutlineButton(
-                        title: String(localized: "common.manageSubscription")
+                        title: appText("common.manageSubscription", languageCode: appLanguage)
                     ) {
                         openManageSubscriptions()
                     }
 
                 case .premium:
                     ThemedOutlineButton(
-                        title: String(localized: "common.manageSubscription")
+                        title: appText("common.manageSubscription", languageCode: appLanguage)
                     ) {
                         openManageSubscriptions()
                     }
@@ -91,50 +92,50 @@ struct PlanView: View {
 
     private var planComparisonSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(String(localized: "billing.compareDescription"))
+            Text(appText("billing.compareDescription", languageCode: appLanguage))
                 .font(.footnote)
                 .foregroundStyle(themeManager.palette.secondaryText)
 
             HStack {
                 Spacer()
 
-                Text(String(localized: "billing.plus"))
+                Text(appText("billing.plus", languageCode: appLanguage))
                     .font(.caption.weight(.medium))
                     .foregroundStyle(themeManager.palette.secondaryText)
                     .frame(width: 40)
 
-                Text(String(localized: "billing.premium"))
+                Text(appText("billing.premium", languageCode: appLanguage))
                     .font(.caption.weight(.medium))
                     .foregroundStyle(themeManager.palette.secondaryText)
                     .frame(width: 60)
             }
 
-            planRow(String(localized: "billing.feature.adFree"), plus: true, premium: true)
-            planRow(String(localized: "billing.feature.longerHistory"), plus: true, premium: true)
-            planRow(String(localized: "billing.feature.forwarding"), plus: true, premium: true)
-            planRow(String(localized: "billing.feature.aiTools"), plus: false, premium: true)
-            planRow(String(localized: "billing.feature.premiumThemes"), plus: false, premium: true)
-            planRow(String(localized: "billing.feature.prioritySupport"), plus: false, premium: true)
+            planRow(appText("billing.feature.adFree", languageCode: appLanguage), plus: true, premium: true)
+            planRow(appText("billing.feature.longerHistory", languageCode: appLanguage), plus: true, premium: true)
+            planRow(appText("billing.feature.forwarding", languageCode: appLanguage), plus: true, premium: true)
+            planRow(appText("billing.feature.aiTools", languageCode: appLanguage), plus: false, premium: true)
+            planRow(appText("billing.feature.premiumThemes", languageCode: appLanguage), plus: false, premium: true)
+            planRow(appText("billing.feature.prioritySupport", languageCode: appLanguage), plus: false, premium: true)
         }
     }
 
     private var includedSection: some View {
-        SectionCardView(title: String(localized: "billing.includedTitle")) {
+        SectionCardView(title: appText("billing.includedTitle", languageCode: appLanguage)) {
             VStack(alignment: .leading, spacing: 12) {
-                featureRow(String(localized: "billing.included.messaging"))
-                featureRow(String(localized: "billing.included.translation"))
-                featureRow(String(localized: "billing.included.mediaSharing"))
+                featureRow(appText("billing.included.messaging", languageCode: appLanguage))
+                featureRow(appText("billing.included.translation", languageCode: appLanguage))
+                featureRow(appText("billing.included.mediaSharing", languageCode: appLanguage))
 
                 if currentPlan == .plus || currentPlan == .premium {
-                    featureRow(String(localized: "billing.included.expandedAccess"))
-                    featureRow(String(localized: "billing.included.enhancedFeatures"))
+                    featureRow(appText("billing.included.expandedAccess", languageCode: appLanguage))
+                    featureRow(appText("billing.included.enhancedFeatures", languageCode: appLanguage))
                 }
 
                 if currentPlan == .premium {
-                    featureRow(String(localized: "billing.included.premiumThemes"))
-                    featureRow(String(localized: "billing.included.premiumSounds"))
-                    featureRow(String(localized: "billing.included.aiTools"))
-                    featureRow(String(localized: "billing.included.prioritySupport"))
+                    featureRow(appText("billing.included.premiumThemes", languageCode: appLanguage))
+                    featureRow(appText("billing.included.premiumSounds", languageCode: appLanguage))
+                    featureRow(appText("billing.included.aiTools", languageCode: appLanguage))
+                    featureRow(appText("billing.included.prioritySupport", languageCode: appLanguage))
                 }
             }
             .padding(.vertical, 8)
@@ -190,14 +191,25 @@ struct PlanView: View {
         AppPlan(serverValue: auth.currentUser?.normalizedPlan)
     }
 
+    private var currentPlanDisplayName: String {
+        switch currentPlan {
+        case .free:
+            return appText("billing.free", languageCode: appLanguage)
+        case .plus:
+            return appText("billing.plus", languageCode: appLanguage)
+        case .premium:
+            return appText("billing.premium", languageCode: appLanguage)
+        }
+    }
+
     private var planDescription: String {
         switch currentPlan {
         case .free:
-            return String(localized: "billing.description.free")
+            return appText("billing.description.free", languageCode: appLanguage)
         case .plus:
-            return String(localized: "billing.description.plus")
+            return appText("billing.description.plus", languageCode: appLanguage)
         case .premium:
-            return String(localized: "billing.description.premium")
+            return appText("billing.description.premium", languageCode: appLanguage)
         }
     }
 

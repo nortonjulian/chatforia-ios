@@ -6,6 +6,7 @@ struct RiaChatView: View {
 
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     @State private var draft = ""
     @State private var memoryEnabled = true
@@ -53,9 +54,11 @@ struct RiaChatView: View {
                                         .padding(.vertical, 10)
                                         .background(themeManager.palette.cardBackground)
                                         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+
                                     Spacer(minLength: 40)
                                 } else {
                                     Spacer(minLength: 40)
+
                                     Text(msg.content)
                                         .font(.body)
                                         .foregroundStyle(themeManager.palette.composerButtonForeground)
@@ -84,6 +87,7 @@ struct RiaChatView: View {
                                     .padding(.vertical, 10)
                                     .background(themeManager.palette.cardBackground)
                                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+
                                 Spacer()
                             }
                         }
@@ -104,12 +108,13 @@ struct RiaChatView: View {
             composer
         }
         .background(themeManager.palette.screenBackground.ignoresSafeArea())
-        .navigationTitle(String(localized: "ios.ria"))
+        .navigationTitle(appText("ios.ria", languageCode: appLanguage))
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             if let user = auth.currentUser {
                 settingsVM.load(from: user)
             }
+
             settingsVM.loadLocalAISettings()
             memoryEnabled = settingsVM.foriaRemember
         }
@@ -118,11 +123,11 @@ struct RiaChatView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
-                Text(String(localized: "ios.ria"))
+                Text(appText("ios.ria", languageCode: appLanguage))
                     .font(.title3.weight(.bold))
                     .foregroundStyle(themeManager.palette.primaryText)
 
-                Text(String(localized: "ios.ai"))
+                Text(appText("ios.ai", languageCode: appLanguage))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(themeManager.palette.accent)
                     .padding(.horizontal, 8)
@@ -131,12 +136,7 @@ struct RiaChatView: View {
                     .clipShape(Capsule())
             }
 
-            Text(
-                String(
-                    localized:
-                    "ios.chat_with_ria_anytime_separate_from_random_human_matching"
-                )
-            )
+            Text(appText("ios.chat_with_ria_anytime_separate_from_random_human_matching", languageCode: appLanguage))
                 .font(.subheadline)
                 .foregroundStyle(themeManager.palette.secondaryText)
         }
@@ -152,9 +152,7 @@ struct RiaChatView: View {
     }
 
     private var systemIntroPill: some View {
-        Text(
-            String(localized:"ios.you_re_now_chatting_with_ria")
-        )
+        Text(appText("ios.you_re_now_chatting_with_ria", languageCode: appLanguage))
             .font(.caption2.weight(.semibold))
             .foregroundStyle(themeManager.palette.secondaryText.opacity(0.85))
             .padding(.horizontal, 12)
@@ -167,18 +165,22 @@ struct RiaChatView: View {
 
     private var composer: some View {
         HStack(alignment: .bottom, spacing: 10) {
-            TextField(String(localized: "messages.messageRia"), text: $draft, axis: .vertical)
-                .textFieldStyle(.plain)
-                .foregroundStyle(themeManager.palette.primaryText)
-                .lineLimit(1...5)
-                .padding(.vertical, 11)
-                .padding(.horizontal, 12)
-                .background(themeManager.palette.composerFieldBackground)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .stroke(themeManager.palette.composerBorder, lineWidth: 1)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            TextField(
+                appText("messages.messageRia", languageCode: appLanguage),
+                text: $draft,
+                axis: .vertical
+            )
+            .textFieldStyle(.plain)
+            .foregroundStyle(themeManager.palette.primaryText)
+            .lineLimit(1...5)
+            .padding(.vertical, 11)
+            .padding(.horizontal, 12)
+            .background(themeManager.palette.composerFieldBackground)
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(themeManager.palette.composerBorder, lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
 
             Button {
                 let text = draft
