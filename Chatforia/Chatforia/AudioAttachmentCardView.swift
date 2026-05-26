@@ -125,9 +125,21 @@ struct AudioAttachmentCardView: View {
 
     private var stateText: String {
         if playback.isLoading {
-            return "Loading…"
+            return String(
+                localized:
+                "common.loading"
+            )
         }
-        return playback.isPlaying ? "Playing" : "Tap to play"
+
+        return playback.isPlaying
+            ? String(
+                localized:
+                "audio.playing"
+            )
+            : String(
+                localized:
+                "audio.tapToPlay"
+            )
     }
 
     private var primaryText: Color {

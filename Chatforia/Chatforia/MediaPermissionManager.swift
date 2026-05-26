@@ -10,13 +10,16 @@ enum MediaPermissionError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .cameraDenied:
-            return "Camera access is denied. Enable it in Settings."
+            return String(localized: "media.cameraDenied")
+
         case .microphoneDenied:
-            return "Microphone access is denied. Enable it in Settings."
+            return String(localized: "media.microphoneDenied")
+
         case .cameraRestricted:
-            return "Camera access is restricted on this device."
+            return String(localized: "media.cameraRestricted")
+
         case .microphoneRestricted:
-            return "Microphone access is restricted on this device."
+            return String(localized: "media.microphoneRestricted")
         }
     }
 }

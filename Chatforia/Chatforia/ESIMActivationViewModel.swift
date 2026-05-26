@@ -12,14 +12,17 @@ final class ESIMActivationViewModel: ObservableObject {
     }
 
     var titleText: String {
-        isActive ? "Your eSIM is active" : "Your eSIM is ready"
+        isActive
+            ? String(localized: "esim.activeTitle")
+            : String(localized: "esim.readyTitle")
     }
 
     var subtitleText: String {
         if let planName = nonEmpty(payload.planName) {
             return planName
         }
-        return "Install your eSIM to start using your data pack."
+
+        return String(localized: "esim.installSubtitle")
     }
 
     var installationCodeText: String? {
@@ -47,13 +50,21 @@ final class ESIMActivationViewModel: ObservableObject {
     }
 
     var isActive: Bool {
-        let status = payload.status.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let status = payload.status
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+
         return status == "active"
     }
 
     var installButtonTitle: String {
-        if isInstalling { return "Opening…" }
-        return isActive ? "Installed" : "Install eSIM"
+        if isInstalling {
+            return String(localized: "common.opening")
+        }
+
+        return isActive
+            ? String(localized: "esim.installed")
+            : String(localized: "esim.install")
     }
 
     var canInstall: Bool {
@@ -86,13 +97,15 @@ final class ESIMActivationViewModel: ObservableObject {
 
     func beginInstall() async -> URL? {
         errorMessage = nil
+
         guard let url = installURL else {
-            errorMessage = "This eSIM doesn’t have a valid install link yet."
+            errorMessage = String(localized: "esim.invalidInstallLink")
             return nil
         }
 
         isInstalling = true
         defer { isInstalling = false }
+
         return url
     }
 
@@ -111,7 +124,10 @@ final class ESIMActivationViewModel: ObservableObject {
 
     private func normalizedInstallURL(from raw: String) -> URL? {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
+
+        guard !trimmed.isEmpty else {
+            return nil
+        }
 
         if trimmed.lowercased().hasPrefix("lpa:") {
             return URL(string: trimmed)
@@ -125,8 +141,12 @@ final class ESIMActivationViewModel: ObservableObject {
     }
 
     private func nonEmpty(_ value: String?) -> String? {
-        guard let value else { return nil }
+        guard let value else {
+            return nil
+        }
+
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+
         return trimmed.isEmpty ? nil : trimmed
     }
 }

@@ -17,7 +17,7 @@ struct MessageReceiptSheet: View {
             List {
                 if readers.isEmpty {
                     Section {
-                        Text("No one has read this message yet.")
+                        Text(String(localized: "messages.noOneReadYet"))
                             .foregroundStyle(themeManager.palette.secondaryText)
                     }
                     .listRowBackground(themeManager.palette.cardBackground)
@@ -39,7 +39,7 @@ struct MessageReceiptSheet: View {
                                         .font(.body)
                                         .foregroundStyle(themeManager.palette.primaryText)
 
-                                    Text("common.read")
+                                    Text(String(localized: "common.read"))
                                         .font(.caption)
                                         .foregroundStyle(themeManager.palette.secondaryText)
                                 }
@@ -57,11 +57,11 @@ struct MessageReceiptSheet: View {
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
             .background(themeManager.palette.screenBackground)
-            .navigationTitle("messages.messageInfo")
+            .navigationTitle(String(localized: "messages.messageInfo"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("common.done") {
+                    Button(String(localized: "common.done")) {
                         dismiss()
                     }
                     .foregroundStyle(themeManager.palette.accent)
@@ -72,20 +72,35 @@ struct MessageReceiptSheet: View {
 
     private var headerTitle: String {
         if isGroupRoom {
-            return readers.count == 1 ? "Seen by 1 person" : "Seen by \(readers.count) people"
-        } else {
-            return "Seen"
+            if readers.count == 1 {
+                return String(localized: "messages.seenByOnePerson")
+            }
+
+            return String(
+                format: String(localized: "messages.seenByPeopleCount"),
+                readers.count
+            )
         }
+
+        return String(localized: "messages.seen")
     }
 
     private func displayName(for user: UserSummaryDTO) -> String {
         let raw = user.username?.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let raw, !raw.isEmpty { return raw }
-        return "User \(user.id)"
+
+        if let raw, !raw.isEmpty {
+            return raw
+        }
+
+        return String(
+            format: String(localized: "common.userWithId"),
+            user.id
+        )
     }
 
     private func initials(for user: UserSummaryDTO) -> String {
         let name = displayName(for: user)
+
         let parts = name
             .split(separator: " ")
             .prefix(2)

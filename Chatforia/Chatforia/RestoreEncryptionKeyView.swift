@@ -113,7 +113,12 @@ struct RestoreEncryptionKeyView: View {
                             if isResetting {
                                 ProgressView()
                             } else {
-                                Text("Reset Encryption")
+                                Text(
+                            String(
+                                localized:
+                                "encryption.reset.title"
+                            )
+                        )
                             }
                         }
                         .disabled(isRestoring || isResetting)
@@ -170,7 +175,11 @@ struct RestoreEncryptionKeyView: View {
                 dismiss()
             } else {
                 auth.forceKeyRestore(message: String(localized: "encryption.reset.deviceMismatch"))
-                errorMessage = "Encryption reset did not complete correctly on this device."
+                errorMessage =
+            String(
+                localized:
+                "encryption.reset.localFailure"
+            )
             }
         } catch {
             errorMessage = error.localizedDescription
@@ -196,7 +205,11 @@ struct RestoreEncryptionKeyView: View {
         }
 
         guard let token = auth.currentToken, !token.isEmpty else {
-            errorMessage = "Your session expired. Please sign in again."
+            errorMessage =
+            String(
+                localized:
+                "auth.sessionExpiredSignInAgain"
+            )
             successMessage = nil
             return
         }
@@ -223,7 +236,11 @@ struct RestoreEncryptionKeyView: View {
                 dismiss()
             } else {
                 auth.forceKeyRestore(message: String(localized: "encryption.restore.deviceMismatch"))
-                errorMessage = "Key restore did not complete correctly on this device."
+                errorMessage =
+                String(
+                    localized:
+                    "encryption.restore.localFailure"
+                )
             }
         } catch {
             errorMessage = error.localizedDescription

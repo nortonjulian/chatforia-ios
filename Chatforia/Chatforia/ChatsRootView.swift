@@ -123,7 +123,10 @@ struct ChatsRootView: View {
                                             pendingConversation = conversation
                                             showDeleteConfirm = true
                                         } label: {
-                                            Label("common.delete", systemImage: "trash")
+                                            Label(
+                                                String(localized: "common.delete"),
+                                                systemImage: "trash"
+                                            )
                                         }
                                     }
                                     .listRowBackground(themeManager.palette.cardBackground)
@@ -172,7 +175,10 @@ struct ChatsRootView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
             .navigationTitle(String(localized: "tab_chats"))
-            .searchable(text: $vm.searchText, prompt: Text("ios.search_chats"))
+            .searchable(
+                text: $vm.searchText,
+                prompt: Text(String(localized: "ios.search_chats"))
+            )
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button {
@@ -253,7 +259,12 @@ struct ChatsRootView: View {
                     pendingConversation = nil
                 }
             } message: {
-                Text("ios.this_will_remove_the_conversation_from_your_list")
+                Text(
+                    String(
+                        localized:
+                        "ios.this_will_remove_the_conversation_from_your_list"
+                    )
+                )
             }
             .task {
                 if !didSetupRandomMatchListener {
@@ -471,7 +482,7 @@ struct ChatsRootView: View {
             let base: String
 
             if kinds.contains("GIF") {
-                base = "🎞 GIF"
+                base = "🎞 \(String(localized: "ios.gif"))"
             } else if kinds.contains("IMAGE") {
                 base = "📷 \(String(localized: "ios.photo"))"
             } else if kinds.contains("AUDIO") {

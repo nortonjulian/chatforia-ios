@@ -6,6 +6,25 @@ struct MessageToneOption: Identifiable, Hashable {
     let requiredPlan: AppPlan
 
     var id: String { code }
+
+    var localizationKey: String {
+        switch code {
+        case "Default.mp3": return "sounds.default"
+        case "Vibrate.mp3": return "sounds.vibrate"
+        case "Dreamer.mp3": return "sounds.dreamer"
+        case "Happy Message.mp3": return "sounds.happyMessage"
+        case "Notify.mp3": return "sounds.notify"
+        case "Pop.mp3": return "sounds.pop"
+        case "Pulsating Sound.mp3": return "sounds.pulsatingSound"
+        case "Text Message.mp3": return "sounds.textMessage"
+        case "Xylophone.mp3": return "sounds.xylophone"
+        default: return "sounds.default"
+        }
+    }
+
+    var localizedName: String {
+        String(localized: String.LocalizationValue(localizationKey))
+    }
 }
 
 enum AppMessageTones {
@@ -32,6 +51,6 @@ enum AppMessageTones {
     }
 
     static func name(for code: String) -> String {
-        all.first(where: { $0.code == code })?.name ?? code
+        all.first(where: { $0.code == code })?.localizedName ?? code
     }
 }

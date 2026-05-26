@@ -13,20 +13,27 @@ enum ReportReason: String, CaseIterable, Identifiable, Codable {
 
     var title: String {
         switch self {
+
         case .harassment:
-            return "Harassment"
+            return String(localized: "report.harassment")
+
         case .threats:
-            return "Threats"
+            return String(localized: "report.threats")
+
         case .hate:
-            return "Hate or abusive conduct"
+            return String(localized: "report.hate")
+
         case .sexualContent:
-            return "Sexual content"
+            return String(localized: "report.sexualContent")
+
         case .spamScam:
-            return "Spam or scam"
+            return String(localized: "report.spamScam")
+
         case .impersonation:
-            return "Impersonation"
+            return String(localized: "report.impersonation")
+
         case .other:
-            return "Other"
+            return String(localized: "report.other")
         }
     }
 }

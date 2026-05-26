@@ -6,6 +6,30 @@ struct RingtoneOption: Identifiable, Hashable {
     let requiredPlan: AppPlan
 
     var id: String { code }
+
+    var localizationKey: String {
+        switch code {
+        case "Classic.mp3": return "sounds.classic"
+        case "Urgency.mp3": return "sounds.urgency"
+        case "Bells.mp3": return "sounds.bells"
+        case "Chimes.mp3": return "sounds.chimes"
+        case "Digital Phone.mp3": return "sounds.digitalPhone"
+        case "Melodic.mp3": return "sounds.melodic"
+        case "Organ Notes.mp3": return "sounds.organNotes"
+        case "Sound Reality.mp3": return "sounds.soundReality"
+        case "Street.mp3": return "sounds.street"
+        case "Universfield.mp3": return "sounds.universfield"
+        default: return "sounds.classic"
+        }
+    }
+
+    var localizedName: String {
+        String(
+            localized: String.LocalizationValue(
+                localizationKey
+            )
+        )
+    }
 }
 
 enum AppRingtones {
@@ -33,6 +57,6 @@ enum AppRingtones {
     }
 
     static func name(for code: String) -> String {
-        all.first(where: { $0.code == code })?.name ?? code
+        all.first(where: { $0.code == code })?.localizedName ?? code
     }
 }

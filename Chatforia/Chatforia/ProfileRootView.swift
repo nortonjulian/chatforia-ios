@@ -173,7 +173,7 @@ struct ProfileRootView: View {
                         PremiumSelectableOption(
                             id: $0.code,
                             code: $0.code,
-                            name: $0.name,
+                            name: $0.localizedName,
                             requiredPlan: $0.requiredPlan
                         )
                     },
@@ -204,7 +204,7 @@ struct ProfileRootView: View {
                         PremiumSelectableOption(
                             id: $0.code,
                             code: $0.code,
-                            name: $0.name,
+                            name: $0.localizedName,
                             requiredPlan: $0.requiredPlan
                         )
                     },
@@ -235,7 +235,7 @@ struct ProfileRootView: View {
                         PremiumSelectableOption(
                             id: $0.code,
                             code: $0.code,
-                            name: $0.name,
+                            name: $0.localizedName,
                             requiredPlan: $0.requiredPlan
                         )
                     },
@@ -351,7 +351,7 @@ struct ProfileRootView: View {
                 SettingsRowView(
                     systemImage: "briefcase",
                     title: String(localized: "label_role"),
-                    value: role
+                    value: String(localized: String.LocalizationValue("role_\(role.lowercased())"))
                 )
             }
 
@@ -360,7 +360,7 @@ struct ProfileRootView: View {
                 SettingsRowView(
                     systemImage: "star",
                     title: String(localized: "label_plan"),
-                    value: plan
+                    value: AppPlan(serverValue: plan).displayName.uppercased()
                 )
             }
         }

@@ -10,6 +10,18 @@ struct ThemeOption: Identifiable, Hashable {
     var isLockedForFree: Bool {
         requiredPlan != .free
     }
+
+    var localizationKey: String {
+        "themes.\(code)"
+    }
+
+    var localizedName: String {
+        String(
+            localized: String.LocalizationValue(
+                localizationKey
+            )
+        )
+    }
 }
 
 enum AppThemes {
@@ -35,7 +47,8 @@ enum AppThemes {
     }
 
     static func name(for code: String) -> String {
-        all.first(where: { $0.code == code })?.name ?? code.capitalized
+        all.first(where: { $0.code == code })?.localizedName
+            ?? code.capitalized
     }
 
     static func requiredPlan(for code: String) -> AppPlan {

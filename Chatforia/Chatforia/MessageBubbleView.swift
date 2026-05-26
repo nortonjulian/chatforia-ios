@@ -155,7 +155,12 @@ struct MessageBubbleView: View {
         }()
 
         if msg.deletedForAll == true || msg.deletedBySender == true {
-            Text("This message was deleted")
+            Text(
+                String(
+                    localized:
+                    "messages.thisMessageWasDeleted"
+                )
+            )
                 .italic()
                 .foregroundStyle(
                     isMe
@@ -183,7 +188,13 @@ struct MessageBubbleView: View {
             )
 
         } else if msg.contentCiphertext != nil, !hasAttachments {
-            Text("🔒 Encrypted message")
+            Text(
+                "🔒 "
+                + String(
+                    localized:
+                    "messages.encryptedMessage"
+                )
+            )
 
         } else if hasAttachments {
             EmptyView()

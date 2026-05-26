@@ -86,7 +86,12 @@ struct WirelessHomeView: View {
                 if isLoadingStatus {
                     HStack(spacing: 10) {
                         ProgressView()
-                        Text("ios.loading_usage")
+                       Text(
+                            String(
+                                localized:
+                                "ios.loading_usage"
+                            )
+                        )
                             .font(.footnote)
                             .foregroundStyle(themeManager.palette.secondaryText)
                     }
@@ -152,13 +157,23 @@ struct WirelessHomeView: View {
                     .padding(.vertical, 8)
 
                 } else if let status = wirelessStatus, status.mode == "NONE" {
-                    Text("ios.no_active_data_pack_yet_buy_a_pack_below_to_start_tracking_usage")
+                    Text(
+                        String(
+                            localized:
+                            "ios.no_active_data_pack_yet_buy_a_pack_below_to_start_tracking_usage"
+                        )
+                    )
                         .font(.footnote)
                         .foregroundStyle(themeManager.palette.secondaryText)
                         .padding(.vertical, 8)
 
                 } else {
-                    Text("ios.usage_details_will_appear_once_your_data_pack_is_active")
+                    Text(
+                        String(
+                            localized:
+                            "ios.usage_details_will_appear_once_your_data_pack_is_active"
+                        )
+                    )
                         .font(.footnote)
                         .foregroundStyle(themeManager.palette.secondaryText)
                         .padding(.vertical, 8)
@@ -274,11 +289,21 @@ struct WirelessHomeView: View {
     private var heroSection: some View {
         SectionCardView(title: String(localized:"ios.chatforia_mobile")) {
             VStack(alignment: .leading, spacing: 12) {
-                Text("ios.stay_connected_when_youre_traveling_or_away_from_wifi")
+                Text(
+                    String(
+                        localized:
+                        "ios.stay_connected_when_youre_traveling_or_away_from_wifi"
+                    )
+                )
                     .font(.headline)
                     .foregroundStyle(themeManager.palette.primaryText)
 
-                Text("ios.choose_a_one_time_esim_data_pack_for_local_europe_or_global_coverage")
+                Text(
+                    String(
+                        localized:
+                        "ios.choose_a_one_time_esim_data_pack_for_local_europe_or_global_coverage"
+                    )
+                )
                     .font(.footnote)
                     .foregroundStyle(themeManager.palette.secondaryText)
             }
@@ -287,9 +312,21 @@ struct WirelessHomeView: View {
     }
 
     private var scopePickerSection: some View {
-        SectionCardView(title: "wireless.coverage") {
+        SectionCardView(
+            title:
+                String(
+                    localized:
+                    "wireless.coverage"
+                )
+        ) {
             VStack(alignment: .leading, spacing: 14) {
-                Picker("wireless.coverage", selection: $selectedScope) {
+                Picker(
+                    String(
+                        localized:
+                        "wireless.coverage"
+                    ),
+                    selection: $selectedScope
+                ) {
                     ForEach(EsimScope.allCases) { scope in
                         Text(scope.displayName).tag(scope)
                     }
@@ -300,7 +337,12 @@ struct WirelessHomeView: View {
                     .font(.footnote)
                     .foregroundStyle(themeManager.palette.secondaryText)
 
-                Text("ios.we_dont_sell_data_packs_under_3_gb")
+                Text(
+                    String(
+                        localized:
+                        "ios.we_dont_sell_data_packs_under_3_gb"
+                    )
+                )
                     .font(.footnote)
                     .foregroundStyle(themeManager.palette.secondaryText)
             }
@@ -452,7 +494,12 @@ struct WirelessHomeView: View {
     }
 
     private var disclaimerSection: some View {
-        Text("ios.esim_data_packs_require_an_esim_compatible_and_unlocked_device")
+        Text(
+            String(
+                localized:
+                "ios.esim_data_packs_require_an_esim_compatible_and_unlocked_device"
+            )
+        )
             .font(.caption)
             .foregroundStyle(themeManager.palette.secondaryText)
             .multilineTextAlignment(.leading)

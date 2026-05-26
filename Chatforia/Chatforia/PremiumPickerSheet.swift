@@ -44,8 +44,8 @@ struct PremiumPickerSheet: View {
                         )
 
                         optionSection(
-                            title: "Premium",
-                            caption: "Visible below and unlockable with Premium.",
+                            title: String(localized: "plan_premium"),
+                            caption: String(localized: "premiumpicker_premium_caption"),
                             items: premiumOptions
                         )
                     }
@@ -56,7 +56,7 @@ struct PremiumPickerSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("common.done") {
+                    Button(String(localized: "common.done")) {
                         dismiss()
                     }
                     .foregroundStyle(themeManager.palette.accent)
@@ -72,7 +72,7 @@ struct PremiumPickerSheet: View {
                 .foregroundStyle(themeManager.palette.secondaryText)
 
             HStack(spacing: 8) {
-                Text("billing.currentPlan")
+                Text(String(localized: "billing.currentPlan"))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(themeManager.palette.secondaryText)
 
@@ -102,7 +102,7 @@ struct PremiumPickerSheet: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(title.uppercased())
+                Text(title.localizedUppercase)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(themeManager.palette.secondaryText)
 
@@ -135,8 +135,11 @@ struct PremiumPickerSheet: View {
 
                                 Text(
                                     locked
-                                        ? String(format: NSLocalizedString("premium.requiresPlan", comment: ""), item.requiredPlan.displayName)
-                                        : NSLocalizedString("common.availableNow", comment: "")
+                                        ? String(
+                                            format: String(localized: "premium.requiresPlan"),
+                                            item.requiredPlan.displayName
+                                        )
+                                        : String(localized: "common.availableNow")
                                 )
                                     .font(.caption)
                                     .foregroundStyle(themeManager.palette.secondaryText)

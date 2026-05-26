@@ -570,12 +570,18 @@ struct ChatMessageRowView: View {
         if readers.count == 1 {
             let raw = readers[0].username?.trimmingCharacters(in: .whitespacesAndNewlines)
             if let raw, !raw.isEmpty {
-                return "Read by \(raw)"
+                return String(
+            format: String(localized: "messages.readByUser"),
+            raw
+        )
             }
             return String(localized: "common.read")
         }
 
-        return "Read by \(readers.count)"
+        return String(
+            format: String(localized: "messages.readByCount"),
+            readers.count
+        )
     }
 
     private var resolvedReceiptColor: Color {

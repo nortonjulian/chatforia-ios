@@ -17,12 +17,18 @@ struct ESIMActivationView: View {
             .padding()
         }
         .background(themeManager.palette.screenBackground.ignoresSafeArea())
-        .navigationTitle("esim.activate")
+        .navigationTitle(String(localized: "esim.activate"))
         .navigationBarTitleDisplayMode(.inline)
-        .alert("Unable to install eSIM", isPresented: errorBinding) {
-            Button("common.ok", role: .cancel) {}
+        .alert(
+            String(localized: "esim.unableToInstall"),
+            isPresented: errorBinding
+        ) {
+            Button(String(localized: "common.ok"), role: .cancel) {}
         } message: {
-            Text(viewModel.errorMessage ?? "Please try again.")
+            Text(
+                viewModel.errorMessage
+                ?? String(localized: "common.tryAgain")
+            )
         }
     }
 
@@ -51,17 +57,31 @@ struct ESIMActivationView: View {
 
     private var statusSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Status")
+
+            Text(String(localized: "common.status"))
                 .font(.headline)
                 .foregroundStyle(themeManager.palette.primaryText)
 
             HStack(spacing: 10) {
-                Image(systemName: viewModel.isActive ? "checkmark.circle.fill" : "clock.badge.checkmark.fill")
-                    .foregroundStyle(viewModel.isActive ? themeManager.palette.accent : themeManager.palette.buttonEnd)
+                Image(
+                    systemName:
+                        viewModel.isActive
+                        ? "checkmark.circle.fill"
+                        : "clock.badge.checkmark.fill"
+                )
+                .foregroundStyle(
+                    viewModel.isActive
+                    ? themeManager.palette.accent
+                    : themeManager.palette.buttonEnd
+                )
 
-                Text(viewModel.isActive ? "Service active" : "Ready to install")
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(themeManager.palette.primaryText)
+                Text(
+                    viewModel.isActive
+                    ? String(localized: "esim.serviceActive")
+                    : String(localized: "esim.readyToInstall")
+                )
+                .font(.body.weight(.semibold))
+                .foregroundStyle(themeManager.palette.primaryText)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -76,17 +96,26 @@ struct ESIMActivationView: View {
 
     private var installSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("common.install")
+
+            Text(String(localized: "common.install"))
                 .font(.headline)
                 .foregroundStyle(themeManager.palette.primaryText)
 
-            Text("Install directly on this iPhone, or use the activation details below on another supported device.")
-                .font(.footnote)
-                .foregroundStyle(themeManager.palette.secondaryText)
+            Text(
+                String(
+                    localized:
+                    "esim.installDirectlyOrUseDetails"
+                )
+            )
+            .font(.footnote)
+            .foregroundStyle(themeManager.palette.secondaryText)
 
             Button {
                 Task {
-                    guard let url = await viewModel.beginInstall() else { return }
+                    guard let url = await viewModel.beginInstall() else {
+                        return
+                    }
+
                     openURL(url)
                 }
             } label: {
@@ -105,16 +134,34 @@ struct ESIMActivationView: View {
                             endPoint: .trailing
                         )
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .clipShape(
+                        RoundedRectangle(
+                            cornerRadius: 18,
+                            style: .continuous
+                        )
+                    )
             }
             .buttonStyle(.plain)
-            .disabled(!viewModel.canInstall || viewModel.isActive || viewModel.isInstalling)
-            .opacity((!viewModel.canInstall || viewModel.isActive) ? 0.55 : 1)
+            .disabled(
+                !viewModel.canInstall
+                || viewModel.isActive
+                || viewModel.isInstalling
+            )
+            .opacity(
+                (!viewModel.canInstall || viewModel.isActive)
+                ? 0.55
+                : 1
+            )
 
             if !viewModel.canInstall {
-                Text("Your carrier hasn’t provided a valid install link yet. You can still use the manual activation details below when available.")
-                    .font(.caption)
-                    .foregroundStyle(themeManager.palette.secondaryText)
+                Text(
+                    String(
+                        localized:
+                        "esim.noValidInstallLink"
+                    )
+                )
+                .font(.caption)
+                .foregroundStyle(themeManager.palette.secondaryText)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -129,7 +176,8 @@ struct ESIMActivationView: View {
 
     private var detailsSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("esim.activationDetails")
+
+            Text(String(localized: "esim.activationDetails"))
                 .font(.headline)
                 .foregroundStyle(themeManager.palette.primaryText)
 
@@ -151,10 +199,15 @@ struct ESIMActivationView: View {
     }
 
     private var supportSection: some View {
-        Text("eSIM installation steps can vary by device. Make sure your iPhone is unlocked and eSIM-compatible before installing. If direct install is unavailable, use the activation details above in Settings > Cellular > Add eSIM.")
-            .font(.caption)
-            .foregroundStyle(themeManager.palette.secondaryText)
-            .frame(maxWidth: .infinity, alignment: .leading)
+        Text(
+            String(
+                localized:
+                "esim.installationSupportText"
+            )
+        )
+        .font(.caption)
+        .foregroundStyle(themeManager.palette.secondaryText)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder

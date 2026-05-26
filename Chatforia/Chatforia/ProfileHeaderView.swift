@@ -33,7 +33,7 @@ struct ProfileHeaderView: View {
                     .foregroundStyle(themeManager.palette.secondaryText)
 
                 if let plan, !plan.isEmpty {
-                    Text(plan.capitalized)
+                    Text(AppPlan(serverValue: plan).displayName)
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(themeManager.palette.accent)
                         .padding(.horizontal, 12)

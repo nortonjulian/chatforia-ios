@@ -13,7 +13,7 @@ struct SectionCardView<Content: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(title.uppercased())
+            Text(title.localizedUppercase)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(themeManager.palette.secondaryText)
                 .tracking(0.8)

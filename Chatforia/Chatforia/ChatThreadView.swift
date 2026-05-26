@@ -182,7 +182,7 @@ struct ChatThreadView: View {
             }
         }
         .confirmationDialog(
-            "messages.deleteMessageTitle",
+            String(localized: "messages.deleteMessageTitle"),
             isPresented: Binding(
                 get: { deletingMessage != nil },
                 set: { if !$0 { deletingMessage = nil } }
@@ -190,7 +190,10 @@ struct ChatThreadView: View {
             titleVisibility: .visible
         ) {
             if let msg = deletingMessage {
-                Button("messages.deleteForMe", role: .destructive) {
+                Button(
+                    String(localized: "messages.deleteForEveryone"),
+                    role: .destructive
+                ) {
                     Task {
                         let _ = await vm.deleteMessage(
                             messageId: msg.id,
@@ -232,7 +235,9 @@ extension ChatThreadView {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if vm.messages.isEmpty {
-                Text("messages.noMessagesYet")
+                Text(
+                    String(localized:"messages.noMessagesYet")
+                )
                     .foregroundStyle(themeManager.palette.secondaryText)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -319,7 +324,9 @@ extension ChatThreadView {
 
                                 VStack(spacing: 6) {
                                     Image(systemName: "exclamationmark.triangle")
-                                    Text("gif.couldNotLoad")
+                                    Text(
+                                        String(localized: "gif.couldNotLoad")
+                                    )
                                         .font(.caption)
                                 }
                                 .foregroundStyle(themeManager.palette.secondaryText)
@@ -350,11 +357,20 @@ extension ChatThreadView {
             } else if !isProcessingVideo && (pendingImageData != nil || pendingVideoURL != nil) {
                 HStack(spacing: 10) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(pendingVideoURL != nil ? "Video ready" : "Photo ready")
+                        Text(
+                            pendingVideoURL != nil
+                                ? String(localized:"messages.videoReady")
+                                : String(localized:"messages.photoReady")
+                        )
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(themeManager.palette.primaryText)
 
-                        Text("messages.addCaptionThenSend")
+                        Text(
+                        String(
+                            localized:
+                            "messages.addCaptionThenSend"
+                        )
+                    )
                             .font(.caption)
                             .foregroundStyle(themeManager.palette.secondaryText)
                     }
@@ -398,7 +414,8 @@ extension ChatThreadView {
                                     pendingVideoURL = nil
 
                                     isProcessingVideo = true
-                                    videoProcessingStatus = "Uploading video..."
+                                    videoProcessingStatus =
+                                    String(localized:"messages.uploadingVideo")
 
                                     let videoData = try Data(contentsOf: videoURL)
 
@@ -428,7 +445,15 @@ extension ChatThreadView {
                                     isProcessingVideo = false
                                     videoProcessingStatus = nil
                                     pendingVideoURL = videoURL
-                                    vm.errorText = "Couldn’t load selected video. \(error.localizedDescription)"
+                                    vm.errorText =
+                                    String(
+                                        format:
+                                            String(
+                                                localized:
+                                                "messages.selectedVideoLoadFailed"
+                                            ),
+                                        error.localizedDescription
+                                    )
                                 }
                             }
                         }
@@ -479,11 +504,19 @@ extension ChatThreadView {
                         .scaleEffect(0.9)
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(videoProcessingStatus ?? "Processing video...")
+                        Text(
+                            videoProcessingStatus
+                            ?? String(localized:"messages.processingVideo")
+                        )
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(themeManager.palette.primaryText)
 
-                        Text("Please keep Chatforia open while this finishes.")
+                        Text(
+                            String(
+                                localized:
+                                "messages.keepChatforiaOpen"
+                            )
+                        )
                             .font(.caption)
                             .foregroundStyle(themeManager.palette.secondaryText)
                     }
@@ -589,7 +622,11 @@ extension ChatThreadView {
             let (data, _) = try await URLSession.shared.data(from: url)
             guard !data.isEmpty else {
                 await MainActor.run {
-                    vm.errorText = "GIF data is empty."
+                    vm.errorText =
+                    String(
+                        localized:
+                        "gif.emptyData"
+                    )
                 }
                 return
             }
@@ -614,7 +651,15 @@ extension ChatThreadView {
             }
         } catch {
             await MainActor.run {
-                vm.errorText = "Couldn’t send GIF. \(error.localizedDescription)"
+                vm.errorText =
+                String(
+                    format:
+                        String(
+                            localized:
+                            "gif.sendFailed"
+                        ),
+                    error.localizedDescription
+                )
             }
         }
     }
@@ -646,7 +691,11 @@ extension ChatThreadView {
             do {
                 pendingVideoURL = nil
                 isProcessingVideo = true
-                videoProcessingStatus = "Uploading video..."
+                videoProcessingStatus =
+                String(
+                    localized:
+                    "messages.uploadingVideo"
+                )
 
                 let videoData = try Data(contentsOf: videoURL)
 
@@ -675,7 +724,15 @@ extension ChatThreadView {
                 isProcessingVideo = false
                 videoProcessingStatus = nil
                 pendingVideoURL = videoURL
-                vm.errorText = "Couldn’t load selected video. \(error.localizedDescription)"
+                vm.errorText =
+                String(
+                    format:
+                        String(
+                            localized:
+                            "messages.videoLoadFailed"
+                        ),
+                    error.localizedDescription
+                )
             }
         }
     }
@@ -775,25 +832,38 @@ extension ChatThreadView {
     }
 
     private var roomDisplayTitle: String {
-        room.name ?? "Chat #\(room.id)"
+        room.name
+        ?? String(
+            format:
+                String(
+                    localized:
+                    "chat.roomNumber"
+                ),
+            room.id
+        )
     }
     
     private var editMessageSheet: some View {
         NavigationStack {
             VStack(spacing: 16) {
                 HStack(spacing: 12) {
-                    Button("GIF") {
+                    Button(String(localized:"gif.shortTitle")) {
                         showEditGIFPicker = true
                     }
 
-                    Button("messages.emoji") {
+                    Button(
+                        String(localized:"messages.emoji")
+                    ) {
                         if !isEditEditorFocused {
                             isEditEditorFocused = true
                         }
                     }
 
                     if editPendingGIFURL != nil {
-                        Button("Remove GIF", role: .destructive) {
+                        Button(
+                        String(localized:"gif.remove"),
+                        role: .destructive
+                    ) {
                             editPendingGIFURL = nil
                         }
                     }
@@ -824,7 +894,9 @@ extension ChatThreadView {
                 Spacer()
             }
             .padding()
-            .navigationTitle("messages.editMessage")
+            .navigationTitle(
+                String(localized:"messages.editMessage")
+            )
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

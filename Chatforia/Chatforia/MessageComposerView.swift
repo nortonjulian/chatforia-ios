@@ -153,7 +153,9 @@ struct MessageComposerView: View {
                 .disabled(isSending || isSendingVoice || trimmedDraft.isEmpty || hasVoiceDraft || isRecordingVoice)
 
                 TextField(
-                    isCaptioningPendingMedia ? "messages.addCaption" : "messages.message",
+                    isCaptioningPendingMedia
+                        ? String(localized:"messages.addCaption")
+                        : String(localized:"messages.message"),
                     text: $draft,
                     axis: .vertical
                 )
@@ -262,7 +264,9 @@ struct MessageComposerView: View {
                     .fill(Color.red)
                     .frame(width: 10, height: 10)
 
-                Text("Recording…")
+                Text(
+                        String(localized:"messages.recording")
+                    )
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(themeManager.palette.primaryText)
 
@@ -311,11 +315,14 @@ struct MessageComposerView: View {
             .disabled(isSendingVoice)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("Voice note ready")
+                Text(String(localized: "messages.voiceNoteReady"))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(themeManager.palette.primaryText)
 
-                Text(voiceDraftDurationText ?? "0:00")
+                Text(
+                    voiceDraftDurationText
+                    ?? String(localized: "common.zeroDuration")
+                )
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(themeManager.palette.secondaryText)
             }

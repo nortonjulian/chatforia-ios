@@ -4,7 +4,7 @@ struct RotateEncryptionKeyView: View {
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.dismiss) private var dismiss
-    
+
     let onCompleted: (() async -> Void)? = nil
 
     @State private var confirmationText = ""
@@ -29,11 +29,13 @@ struct RotateEncryptionKeyView: View {
                     .padding(20)
                 }
             }
-            .navigationTitle("Rotate Encryption Key")
+            .navigationTitle(
+                String(localized: "encryption.rotate.title")
+            )
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("common.done") {
+                    Button(String(localized: "common.done")) {
                         dismiss()
                     }
                     .disabled(isRotating)
@@ -50,26 +52,38 @@ struct RotateEncryptionKeyView: View {
                     .font(.system(size: 26, weight: .semibold))
                     .foregroundStyle(themeManager.palette.accent)
 
-                Text("Rotate Your Encryption Key")
-                    .font(.title3.weight(.bold))
-                    .foregroundStyle(themeManager.palette.primaryText)
+                Text(
+                    String(localized: "encryption.rotate.header")
+                )
+                .font(.title3.weight(.bold))
+                .foregroundStyle(themeManager.palette.primaryText)
             }
 
-            Text("This creates a new encryption key for your account.")
-                .font(.subheadline)
-                .foregroundStyle(themeManager.palette.secondaryText)
+            Text(
+                String(localized: "encryption.rotate.subtitle")
+            )
+            .font(.subheadline)
+            .foregroundStyle(themeManager.palette.secondaryText)
         }
     }
 
     private var warningCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("common.beforeYouContinue")
+            Text(String(localized: "common.beforeYouContinue"))
                 .font(.headline)
                 .foregroundStyle(themeManager.palette.primaryText)
 
-            warningRow("Back up your current key first.")
-            warningRow("Older encrypted messages may become inaccessible unless migration support exists.")
-            warningRow("Only do this if you understand the risk.")
+            warningRow(
+                String(localized: "encryption.rotate.backupWarning")
+            )
+
+            warningRow(
+                String(localized: "encryption.rotate.messageAccessWarning")
+            )
+
+            warningRow(
+                String(localized: "encryption.rotate.riskWarning")
+            )
         }
         .padding(16)
         .background(themeManager.palette.cardBackground)
@@ -82,14 +96,19 @@ struct RotateEncryptionKeyView: View {
 
     private var confirmCard: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Type ROTATE to continue")
-                .font(.headline)
-                .foregroundStyle(themeManager.palette.primaryText)
+            Text(
+                String(localized: "encryption.rotate.typeToContinue")
+            )
+            .font(.headline)
+            .foregroundStyle(themeManager.palette.primaryText)
 
-            TextField("ROTATE", text: $confirmationText)
-                .textInputAutocapitalization(.characters)
-                .autocorrectionDisabled()
-                .textFieldStyle(.roundedBorder)
+            TextField(
+                String(localized: "encryption.rotate.placeholder"),
+                text: $confirmationText
+            )
+            .textInputAutocapitalization(.characters)
+            .autocorrectionDisabled()
+            .textFieldStyle(.roundedBorder)
 
             if let errorMessage, !errorMessage.isEmpty {
                 Text(errorMessage)
@@ -110,15 +129,18 @@ struct RotateEncryptionKeyView: View {
             } label: {
                 HStack {
                     Spacer()
+
                     if isRotating {
                         ProgressView()
                     }
+
                     Text(
                         isRotating
                         ? String(localized: "encryptionRecovery.messages.rotating")
-                        : "Rotate Encryption Key"
+                        : String(localized: "encryption.rotate.action")
                     )
-                        .fontWeight(.semibold)
+                    .fontWeight(.semibold)
+
                     Spacer()
                 }
                 .padding(.vertical, 14)
@@ -147,7 +169,9 @@ struct RotateEncryptionKeyView: View {
     }
 
     private func rotateKey() async {
-        errorMessage = "Rotation backend not connected yet."
+        errorMessage = String(
+            localized: "encryption.rotate.backendNotConnected"
+        )
         successMessage = nil
     }
 }

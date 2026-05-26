@@ -109,7 +109,10 @@ final class ChatsViewModel: ObservableObject {
             }
 
             if payload["deletedForAll"] as? Bool == true {
-                return "Message deleted"
+                return String(
+                    localized:
+                    "messages.messageDeleted"
+                )
             }
 
             if let attachments = payload["attachments"] as? [[String: Any]], !attachments.isEmpty {
@@ -211,9 +214,23 @@ final class ChatsViewModel: ObservableObject {
             if let phone = item.phone?.trimmingCharacters(in: .whitespacesAndNewlines), !phone.isEmpty {
                 return phone
             }
-            return "SMS #\(id)"
+            return String(
+                format:
+                    String(
+                        localized:
+                        "sms.threadNumber"
+                    ),
+                id
+            )
         default:
-            return "Chat #\(id)"
+            return String(
+                format:
+                    String(
+                        localized:
+                        "chat.roomNumber"
+                    ),
+                id
+            )
         }
     }
 
@@ -282,7 +299,11 @@ final class ChatsViewModel: ObservableObject {
         }
 
         guard let conversationId = conversation.id else {
-            errorText = "Missing conversation id."
+            errorText =
+            String(
+                localized:
+                "chat.missingConversationId"
+            )
             return false
         }
 
@@ -346,7 +367,11 @@ final class ChatsViewModel: ObservableObject {
             conversations = sortedConversations(conversations)
             errorText = nil
         } catch {
-            errorText = "Failed to delete conversation."
+            errorText =
+                String(
+                    localized:
+                    "chat.deleteFailed"
+                )
         }
     }
 

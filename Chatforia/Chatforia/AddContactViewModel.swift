@@ -9,8 +9,10 @@ enum AddContactMode: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .username: return "Username"
-        case .phone: return "Phone"
+        case .username:
+            return String(localized: "auth.username")
+        case .phone:
+            return String(localized: "contacts.phone")
         }
     }
 }
@@ -66,11 +68,15 @@ final class AddContactViewModel: ObservableObject {
         switch mode {
         case .username:
             let trimmedUsername = username.trimmingCharacters(in: .whitespacesAndNewlines)
+
             guard !trimmedUsername.isEmpty else {
                 throw NSError(
                     domain: "AddContactViewModel",
                     code: 1,
-                    userInfo: [NSLocalizedDescriptionKey: "Enter a username."]
+                    userInfo: [
+                        NSLocalizedDescriptionKey:
+                            String(localized: "contacts.enterUsername")
+                    ]
                 )
             }
 
@@ -87,8 +93,9 @@ final class AddContactViewModel: ObservableObject {
                     token: token
                 )
 
-                successText = "Contact saved."
+                successText = String(localized: "contacts.contactSaved")
                 return contact
+
             } catch let error as APIError {
                 switch error {
                 case .server(let status, _) where status == 404:
@@ -97,9 +104,13 @@ final class AddContactViewModel: ObservableObject {
                         code: 404,
                         userInfo: [
                             NSLocalizedDescriptionKey:
-                                "No Chatforia user found with that username. Use the Phone tab to save them by number."
+                                String(
+                                    localized:
+                                    "contacts.noUserFoundUsePhone"
+                                )
                         ]
                     )
+
                 default:
                     throw error
                 }
@@ -110,7 +121,10 @@ final class AddContactViewModel: ObservableObject {
                 throw NSError(
                     domain: "AddContactViewModel",
                     code: 2,
-                    userInfo: [NSLocalizedDescriptionKey: "Enter a valid phone number."]
+                    userInfo: [
+                        NSLocalizedDescriptionKey:
+                            String(localized: "contacts.enterValidPhone")
+                    ]
                 )
             }
 
@@ -122,7 +136,7 @@ final class AddContactViewModel: ObservableObject {
                 token: token
             )
 
-            successText = "Contact saved."
+            successText = String(localized: "contacts.contactSaved")
             return contact
         }
     }

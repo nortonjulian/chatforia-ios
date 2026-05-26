@@ -31,11 +31,11 @@ struct DateSeparatorView: View {
         let calendar = Calendar.current
 
         if calendar.isDateInToday(date) {
-            return "Today"
+            return String(localized: "common.today")
         }
 
         if calendar.isDateInYesterday(date) {
-            return "Yesterday"
+            return String(localized: "common.yesterday")
         }
 
         let formatter = DateFormatter()

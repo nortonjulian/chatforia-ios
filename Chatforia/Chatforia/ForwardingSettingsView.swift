@@ -7,9 +7,16 @@ struct ForwardingSettingsView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                SectionCardView(title: "Call & Text Forwarding") {
+                SectionCardView(
+                        title: String(localized:"forwarding.callTextForwarding")
+                    ) {
                     VStack(alignment: .leading, spacing: 14) {
-                        Text("Forward incoming calls and texts to your verified phone or email. Outgoing calls/texts can show your Chatforia number.")
+                        Text(
+                            String(
+                                localized:
+                                "forwarding.description"
+                            )
+                        )
                             .font(.footnote)
                             .foregroundStyle(.secondary)
 
@@ -77,7 +84,12 @@ struct ForwardingSettingsView: View {
                         Toggle("forwarding.enableCallForwarding", isOn: $vm.forwardingEnabledCalls)
 
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("Destination (E.164) for calls")
+                            Text(
+                                String(
+                                    localized:
+                                    "forwarding.destinationCallsE164"
+                                )
+                            )
                                 .font(.subheadline.weight(.semibold))
 
                             TextField("+15551234567", text: $vm.forwardToPhoneE164)
@@ -133,7 +145,9 @@ struct ForwardingSettingsView: View {
                         }
 
                         HStack {
-                            Button("Reset") {
+                            Button(
+                                String(localized:"common.reset")
+                            ) {
                                 vm.reset()
                             }
                             .buttonStyle(.bordered)
@@ -159,7 +173,9 @@ struct ForwardingSettingsView: View {
             .padding()
         }
         .background(Color(uiColor: .systemGroupedBackground))
-        .navigationTitle("forwarding.title")
+        .navigationTitle(
+            String(localized:"forwarding.title")
+        )
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await load()
@@ -200,7 +216,11 @@ struct ForwardingSettingsView: View {
                 token: token
             )
             vm.load(from: saved)
-            vm.banner = "Forwarding settings saved"
+            vm.banner =
+            String(
+                localized:
+                "forwarding.saved"
+            )
         } catch {
             vm.errorMessage = error.localizedDescription
         }

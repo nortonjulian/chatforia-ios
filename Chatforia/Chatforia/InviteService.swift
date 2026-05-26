@@ -69,11 +69,19 @@ final class InviteService {
     ) -> String {
         let name = inviterUsername?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let name, !name.isEmpty {
-            return "\(name) invited you to Chatforia — a better way to message globally. Join here: \(inviteURL)"
+            return String(
+                format: String(localized: "invite.shareMessageWithName"),
+                name,
+                inviteURL
+            )
         }
-        return "Join me on Chatforia — a better way to message globally. Join here: \(inviteURL)"
-    }
-}
+
+        return String(
+            format: String(localized: "invite.shareMessageGeneric"),
+            inviteURL
+        )
+            }
+        }
 
 private extension String {
     var nilIfEmpty: String? {

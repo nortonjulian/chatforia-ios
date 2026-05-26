@@ -28,7 +28,9 @@ struct VideoCallView: View {
 
     private func displayName(for identity: String) -> String {
         let trimmed = identity.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? "Participant" : trimmed
+        return trimmed.isEmpty
+            ? String(localized: "calls.participant")
+            : trimmed
     }
 
     // MARK: - Body
@@ -92,7 +94,12 @@ private extension VideoCallView {
                     .font(.system(size: 40, weight: .semibold))
                     .foregroundStyle(themeManager.palette.secondaryText)
 
-                Text("Waiting for participant…")
+                Text(
+                    String(
+                        localized:
+                        "calls.waitingForParticipant"
+                    )
+                )
                     .font(.headline)
                     .foregroundStyle(themeManager.palette.secondaryText)
             }
@@ -181,7 +188,12 @@ private extension VideoCallView {
                                     .font(.system(size: 22, weight: .medium))
                                     .foregroundStyle(.white)
 
-                                Text("calls.cameraOff")
+                                Text(
+                                    String(
+                                        localized:
+                                        "calls.cameraOff"
+                                    )
+                                )
                                     .font(.caption)
                                     .foregroundStyle(.white.opacity(0.9))
                             }
@@ -209,7 +221,13 @@ private extension VideoCallView {
 
     func topBar(session: CallSession?) -> some View {
         VStack(spacing: 8) {
-            Text(session?.displayName ?? "Video Call")
+            Text(
+                session?.displayName
+                ?? String(
+                    localized:
+                    "calls.videoCall"
+                )
+            )
                 .font(.system(size: 28, weight: .bold))
                 .foregroundStyle(.white)
 
@@ -231,7 +249,10 @@ private extension VideoCallView {
         HStack(spacing: 18) {
             VideoControlButton(
                 systemName: (session?.isMuted ?? false) ? "mic.slash.fill" : "mic.fill",
-                title: (session?.isMuted ?? false) ? "Unmute" : "Mute",
+                title:
+                    (session?.isMuted ?? false)
+                    ? String(localized:"calls.unmute")
+                    : String(localized:"calls.mute"),
                 isActive: session?.isMuted ?? false
             ) {
                 callManager.toggleMute()
@@ -239,21 +260,33 @@ private extension VideoCallView {
 
             VideoControlButton(
                 systemName: callManager.isVideoCameraEnabled ? "video.fill" : "video.slash.fill",
-                title: "Camera"
+                title:
+                    String(
+                        localized:
+                        "calls.camera"
+                    )
             ) {
                 callManager.toggleVideoCamera()
             }
 
             VideoControlButton(
                 systemName: "arrow.triangle.2.circlepath.camera.fill",
-                title: "Flip"
+                title:
+                    String(
+                        localized:
+                        "calls.flip"
+                    )
             ) {
                 callManager.flipVideoCamera()
             }
 
             VideoControlButton(
                 systemName: (session?.isSpeakerOn ?? false) ? "speaker.wave.3.fill" : "speaker.wave.2.fill",
-                title: "Speaker",
+                title:
+                    String(
+                        localized:
+                        "calls.speaker"
+                    ),
                 isActive: session?.isSpeakerOn ?? false
             ) {
                 callManager.toggleSpeaker()
@@ -261,7 +294,11 @@ private extension VideoCallView {
 
             VideoControlButton(
                 systemName: "phone.down.fill",
-                title: "End",
+                title:
+                String(
+                    localized:
+                    "calls.end"
+                ),
                 isDestructive: true
             ) {
                 callManager.hangup()

@@ -22,7 +22,9 @@ struct GIFPickerView: View {
 
                 Group {
                     if isLoading && results.isEmpty {
-                        ProgressView("media.loadingGifs")
+                        ProgressView(
+                            String(localized:"media.loadingGifs")
+                        )
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else if let errorText, results.isEmpty {
                         ContentUnavailableView(
@@ -32,9 +34,15 @@ struct GIFPickerView: View {
                         )
                     } else if results.isEmpty {
                         ContentUnavailableView(
-                            "No GIFs found",
+                        String(localized:"gif.noResults"),
                             systemImage: "magnifyingglass",
-                            description: Text("Try a different search.")
+                            description:
+                        Text(
+                            String(
+                                localized:
+                                "gif.tryDifferentSearch"
+                            )
+                        )
                         )
                     } else {
                         ScrollView {
@@ -48,7 +56,9 @@ struct GIFPickerView: View {
                     }
                 }
             }
-            .navigationTitle("GIFs")
+            .navigationTitle(
+                String(localized:"gif.title")
+            )
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -74,7 +84,10 @@ struct GIFPickerView: View {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
 
-            TextField("Search GIFs", text: $query)
+            TextField(
+                String(localized:"gif.search"),
+                text: $query
+            )
                 .textInputAutocapitalization(.never)
                 .disableAutocorrection(true)
 

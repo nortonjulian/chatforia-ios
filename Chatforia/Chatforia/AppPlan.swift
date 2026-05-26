@@ -7,21 +7,22 @@ enum AppPlan: String, CaseIterable {
 
     init(serverValue: String?) {
         switch (serverValue ?? "").uppercased() {
-        case "PLUS":
-            self = .plus
-        case "PREMIUM":
-            self = .premium
-        default:
-            self = .free
+        case "PLUS": self = .plus
+        case "PREMIUM": self = .premium
+        default: self = .free
+        }
+    }
+
+    var localizationKey: String {
+        switch self {
+        case .free: return "plan_free"
+        case .plus: return "plan_plus"
+        case .premium: return "plan_premium"
         }
     }
 
     var displayName: String {
-        switch self {
-        case .free: return "Free"
-        case .plus: return "Plus"
-        case .premium: return "Premium"
-        }
+        String(localized: String.LocalizationValue(localizationKey))
     }
 
     var rank: Int {

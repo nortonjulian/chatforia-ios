@@ -8,31 +8,49 @@ enum NumberPickMode: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .free: return "Available number"
-        case .premium: return "Premium number 🔒"
+
+        case .free:
+            return String(localized: "phoneNumber.availableNumber")
+
+        case .premium:
+            return String(localized: "phoneNumber.premiumNumber")
         }
     }
 
     var subtitle: String {
         switch self {
+
         case .free:
-            return "Free number that may be lost after inactivity."
+            return String(
+                localized:
+                "phoneNumber.freeNumberSubtitle"
+            )
+
         case .premium:
-            return "Keep and protect your number (no recycling)"
+            return String(
+                localized:
+                "phoneNumber.premiumNumberSubtitle"
+            )
         }
     }
 
     var forSale: Bool {
         switch self {
-        case .free: return false
-        case .premium: return true
+        case .free:
+            return false
+
+        case .premium:
+            return true
         }
     }
 
     var requiresPremium: Bool {
         switch self {
-        case .free: return false
-        case .premium: return true
+        case .free:
+            return false
+
+        case .premium:
+            return true
         }
     }
 }

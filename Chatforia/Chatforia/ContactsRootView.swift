@@ -62,7 +62,10 @@ struct ContactsRootView: View {
                         Button {
                             showingAddContact = true
                         } label: {
-                            Label("contacts.addContact", systemImage: "person.badge.plus")
+                            Label(
+                                String(localized: "contacts.addContact"),
+                                systemImage: "person.badge.plus"
+                            )
 
                         }
 
@@ -150,7 +153,7 @@ struct ContactsRootView: View {
                     systemImage: "person.crop.circle.badge.exclamationmark",
                     title: String(localized: "ios.couldn_t_load_contacts"),
                     subtitle: errorText,
-                    buttonTitle: "common.tryAgain",
+                    buttonTitle: String(localized: "common.tryAgain"),
                     buttonAction: {
                         Task { await reload() }
                     }

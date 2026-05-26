@@ -182,9 +182,17 @@ struct SMSThreadView: View {
     private var content: some View {
         if vm.isLoading && vm.messages.isEmpty {
             LoadingStateView(
-                title: "Loading SMS…",
-                subtitle: "Pulling in your latest text messages."
-            )
+            title:
+                String(
+                    localized:
+                    "sms.loading"
+                ),
+            subtitle:
+                String(
+                    localized:
+                    "sms.loadingSubtitle"
+                )
+        )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
         } else if vm.messages.isEmpty {
@@ -260,13 +268,21 @@ struct SMSThreadView: View {
         await numberVM.loadCurrentNumber(token: token)
 
         if numberVM.currentNumber == nil {
-            vm.errorText = "Choose a Chatforia number before sending SMS."
+            vm.errorText =
+            String(
+                localized:
+                "sms.chooseNumberBeforeSending"
+            )
             showNumberPicker = true
             return
         }
 
         guard let to = vm.resolvedPhone(fallback: activeConversation.phone) else {
-            vm.errorText = "Missing destination phone number."
+            vm.errorText =
+                String(
+                    localized:
+                    "sms.missingDestinationNumber"
+                )
             return
         }
 
@@ -277,7 +293,11 @@ struct SMSThreadView: View {
             selectedPhotos.removeAll()
 
             guard !urls.isEmpty else {
-                vm.errorText = "Could not upload selected image(s)."
+                vm.errorText =
+                String(
+                    localized:
+                    "media.uploadFailed"
+                )
                 return
             }
 
@@ -620,7 +640,14 @@ private struct SMSAuthenticatedImageCard: View {
                             .font(.system(size: 28))
                             .foregroundStyle(.secondary)
 
-                        Text(failed ? "media.couldNotLoadImage" : title)
+                        Text(
+                            failed
+                                ? String(
+                                    localized:
+                                    "media.couldNotLoadImage"
+                                )
+                                : title
+                        )
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -713,7 +740,9 @@ private struct SMSFullscreenImageView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("common.done") {
+                    Button(
+                        String(localized:"common.done")
+                    ) {
                         dismiss()
                     }
                     .foregroundStyle(.white)
@@ -742,7 +771,11 @@ private struct SMSGenericAttachmentCard: View {
                     .foregroundStyle(themeManager.palette.primaryText)
                     .lineLimit(1)
 
-                Text(item.contentType?.nilIfBlank ?? "Protected media")
+                Text(item.contentType?.nilIfBlank
+                ?? String(
+                    localized:
+                    "media.protectedMedia"
+                ))
                     .font(.caption)
                     .foregroundStyle(themeManager.palette.secondaryText)
                     .lineLimit(1)
@@ -750,7 +783,12 @@ private struct SMSGenericAttachmentCard: View {
 
             Spacer(minLength: 0)
 
-            Text("In thread")
+            Text(
+            String(
+                localized:
+                "sms.inThread"
+            )
+        )
                 .font(.caption2)
                 .foregroundStyle(themeManager.palette.secondaryText)
         }

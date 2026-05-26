@@ -101,13 +101,22 @@ struct SMSMessageDTO: Decodable, Identifiable, Equatable, Sendable {
     var displayFallbackText: String {
         if hasText { return trimmedBody ?? "" }
         if hasMedia {
-            if media.contains(where: { $0.isImage }) { return "Photo" }
-            if media.contains(where: { $0.isVideo }) { return "Video" }
-            if media.contains(where: { $0.isAudio }) { return "Audio" }
-            return "Attachment"
+            if media.contains(where: { $0.isImage }) {
+            return String(localized: "media.photo")
         }
-        return ""
-    }
+
+        if media.contains(where: { $0.isVideo }) {
+            return String(localized: "media.video")
+        }
+
+        if media.contains(where: { $0.isAudio }) {
+            return String(localized: "media.audio")
+        }
+
+        return String(localized: "media.attachment")
+                }
+                return ""
+            }
 
     static func optimisticOutgoing(threadId: Int, to: String, body: String) -> SMSMessageDTO {
         SMSMessageDTO(
@@ -163,12 +172,21 @@ struct SMSMediaItemDTO: Codable, Equatable, Sendable {
     }
 
     var displayLabel: String {
-        if isImage { return "Photo" }
-        if isVideo { return "Video" }
-        if isAudio { return "Audio" }
-        return "Attachment"
-    }
-}
+        if isImage {
+            return String(localized: "media.photo")
+        }
+
+        if isVideo {
+            return String(localized: "media.video")
+        }
+
+        if isAudio {
+            return String(localized: "media.audio")
+        }
+
+        return String(localized: "media.attachment")
+            }
+        }
 
 private extension String {
     var nilIfBlank: String? {

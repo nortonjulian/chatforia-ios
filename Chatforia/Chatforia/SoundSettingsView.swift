@@ -15,7 +15,7 @@ struct SoundSettingsView: View {
         List {
             Section {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Volume")
+                    Text(String(localized: "sound.volume"))
                         .font(.headline)
 
                     Slider(
@@ -37,7 +37,7 @@ struct SoundSettingsView: View {
                 .padding(.vertical, 6)
             }
 
-            Section("Text Tone") {
+            Section(String(localized: "sound.textTone")) {
                 ForEach(AppMessageTones.all) { tone in
                     toneRow(
                         title: tone.name,
@@ -79,7 +79,9 @@ struct SoundSettingsView: View {
                 }
             }
         }
-        .navigationTitle("Sounds")
+        .navigationTitle(
+    String(localized: "sound.title")
+)
         .sheet(item: $upgradePrompt) { prompt in
             UpgradePromptSheet(
                 title: prompt.title,
@@ -111,8 +113,17 @@ struct SoundSettingsView: View {
             Button {
                 if locked {
                     upgradePrompt = UpgradePromptData(
-                        title: "Premium Sound",
-                        message: "\(title) is a premium sound. Upgrade to unlock premium text tones and ringtones.",
+                        title: String(localized: "sound.premiumTitle"),
+
+                    message:
+                    String(
+                        format:
+                            String(
+                                localized:
+                                "sound.upgradePreviewMessage"
+                            ),
+                        title
+                    ),
                         requiredPlan: requiredPlan
                     )
                 } else {
@@ -125,7 +136,12 @@ struct SoundSettingsView: View {
                             .foregroundStyle(.primary)
 
                         if locked {
-                            Text("Requires \(requiredPlan.displayName)")
+                            Text(
+                                String(
+                                    localized: "sound.requiresPlan"
+                                )
+                                + " \(requiredPlan.displayName)"
+                            )
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -147,8 +163,17 @@ struct SoundSettingsView: View {
             Button {
                 if locked {
                     upgradePrompt = UpgradePromptData(
-                        title: "Premium Sound",
-                        message: "\(title) is a premium sound. Upgrade to preview and use it.",
+                        title: String(localized: "sound.premiumTitle"),
+
+                    message:
+                    String(
+                        format:
+                            String(
+                                localized:
+                                "sound.upgradeUnlockMessage"
+                            ),
+                        title
+                    ),
                         requiredPlan: requiredPlan
                     )
                 } else {

@@ -9,20 +9,36 @@ enum EsimScope: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .local: return "Local"
-        case .europe: return "Europe"
-        case .global: return "Global"
+        case .local:
+            return String(localized: "esim.local")
+
+        case .europe:
+            return String(localized: "esim.europe")
+
+        case .global:
+            return String(localized: "esim.global")
         }
     }
 
     var subtitle: String {
         switch self {
         case .local:
-            return "Coverage for your current country or nearby local use."
+            return String(
+                localized:
+                "esim.localSubtitle"
+            )
+
         case .europe:
-            return "Regional coverage across Europe."
+            return String(
+                localized:
+                "esim.europeSubtitle"
+            )
+
         case .global:
-            return "Broader international coverage for travel."
+            return String(
+                localized:
+                "esim.globalSubtitle"
+            )
         }
     }
 }
@@ -36,7 +52,9 @@ struct DataPackOption: Identifiable, Hashable {
     let description: String
 
     var displayDataAmount: String {
-        gb == 0 ? "Unlimited" : "\(gb) GB"
+        gb == 0
+            ? String(localized:"esim.unlimited")
+            : "\(gb) GB"
     }
 }
 
@@ -50,8 +68,16 @@ enum WirelessCatalog {
                     product: "chatforia_esim_global_unlimited",
                     scope: .global,
                     gb: 0,
-                    title: "Global Unlimited",
-                    description: "Best for heavy usage, streaming, and never worrying about data limits."
+                    title:
+                    String(
+                        localized:
+                        "esim.globalUnlimited"
+                    ),
+                    description:
+                    String(
+                        localized:
+                        "esim.heavyUsageDescription"
+                    )
                 ),
                 DataPackOption(
                     id: "chatforia_esim_global_3",

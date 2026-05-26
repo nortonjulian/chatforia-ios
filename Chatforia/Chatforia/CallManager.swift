@@ -114,7 +114,7 @@ final class CallManager: ObservableObject {
     @objc private func handleSocketVideoIncoming(_ notification: Notification) {
         guard let data = notification.userInfo else { return }
 
-        let callerName = data["callerName"] as? String ?? String(localized: "calls.video_call")
+        let callerName = data["callerName"] as? String ?? String(localized: "calls.videoCall")
         let callerId = data["callerId"] as? Int ?? 0
         let callId = data["callId"] as? Int
         let roomName = data["roomName"] as? String ?? {

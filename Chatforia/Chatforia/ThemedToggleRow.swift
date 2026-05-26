@@ -14,7 +14,7 @@ struct ThemedToggleRow: View {
                     .font(.body)
                     .foregroundStyle(themeManager.palette.primaryText)
 
-                if let subtitle, !subtitle.isEmpty {
+                if let subtitle, !subtitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     Text(subtitle)
                         .font(.caption)
                         .foregroundStyle(themeManager.palette.secondaryText)

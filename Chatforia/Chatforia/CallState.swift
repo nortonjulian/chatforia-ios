@@ -12,22 +12,57 @@ enum CallState: Equatable {
 
     var label: String {
         switch self {
-        case .idle: return "Idle"
-        case .fetchingToken: return "Preparing call…"
-        case .dialing(let destination): return "Calling \(destination.displayName)…"
-        case .ringingIncoming(let name): return "\(name) is calling…"
-        case .connecting(let name): return "Connecting to \(name)…"
-        case .active(let name): return "In call with \(name)"
-        case .ended: return "Call ended"
-        case .failed(let message): return message
+
+        case .idle:
+            return String(localized: "calls.idle")
+
+        case .fetchingToken:
+            return String(localized: "calls.preparing")
+
+        case .dialing(let destination):
+            return String(
+                format: String(localized: "calls.callingDestination"),
+                destination.displayName
+            )
+
+        case .ringingIncoming(let name):
+            return String(
+                format: String(localized: "calls.incomingCalling"),
+                name
+            )
+
+        case .connecting(let name):
+            return String(
+                format: String(localized: "calls.connecting"),
+                name
+            )
+
+        case .active(let name):
+            return String(
+                format: String(localized: "calls.inCallWith"),
+                name
+            )
+
+        case .ended:
+            return String(localized: "calls.ended")
+
+        case .failed(let message):
+            return message
         }
     }
 
     var isInCallFlow: Bool {
         switch self {
-        case .fetchingToken, .dialing, .ringingIncoming, .connecting, .active:
+        case .fetchingToken,
+             .dialing,
+             .ringingIncoming,
+             .connecting,
+             .active:
             return true
-        case .idle, .ended, .failed:
+
+        case .idle,
+             .ended,
+             .failed:
             return false
         }
     }

@@ -1,11 +1,6 @@
-../chatforia-ios/Chatforia/Chatforia/ChatThreadSearchSheet.swift:68:            return "Encrypted message"
-../chatforia-ios/Chatforia/Chatforia/RestoreEncryptionKeyView.swift:116:                                Text("Reset Encryption")
-../chatforia-ios/Chatforia/Chatforia/AddContactView.swift:86:                                Text("Use this tab only for existing Chatforia users.")
-../chatforia-ios/Chatforia/Chatforia/AddContactView.swift:91:                                Text("Save any phone number, even if they are not on Chatforia.")
 ../chatforia-ios/Chatforia/Chatforia/GIFService.swift:19:            return "Missing GIF API key."
 ../chatforia-ios/Chatforia/Chatforia/GIFService.swift:21:            return "Invalid GIF response."
 ../chatforia-ios/Chatforia/Chatforia/GIFService.swift:23:            return "Invalid GIF URL."
-../chatforia-ios/Chatforia/Chatforia/LanguageSelectionView.swift:9:            Text("Preferred Language")
 ../chatforia-ios/Chatforia/Chatforia/SettingsViewModel.swift:123:            return "Default.mp3"
 ../chatforia-ios/Chatforia/Chatforia/SettingsViewModel.swift:125:            return "Vibrate.mp3"
 ../chatforia-ios/Chatforia/Chatforia/SettingsViewModel.swift:127:            return "Dreamer.mp3"
@@ -29,17 +24,10 @@
 ../chatforia-ios/Chatforia/Chatforia/SettingsViewModel.swift:168:            return "Universfield.mp3"
 ../chatforia-ios/Chatforia/Chatforia/SettingsViewModel.swift:170:            return "Classic.mp3"
 ../chatforia-ios/Chatforia/Chatforia/SettingsViewModel.swift:172:            return "Classic.mp3"
-../chatforia-ios/Chatforia/Chatforia/ChatMessageRowView.swift:573:                return "Read by \(raw)"
-../chatforia-ios/Chatforia/Chatforia/ChatMessageRowView.swift:578:        return "Read by \(readers.count)"
 ../chatforia-ios/Chatforia/Chatforia/APIClient.swift:28:        case .invalidURL: return "Invalid URL."
 ../chatforia-ios/Chatforia/Chatforia/APIClient.swift:29:        case .unauthorized: return "Not authorized."
 ../chatforia-ios/Chatforia/Chatforia/APIClient.swift:30:        case .server(let status, let message): return "Server error (\(status)): \(message ?? "Unknown")"
 ../chatforia-ios/Chatforia/Chatforia/APIClient.swift:31:        case .decoding(let err): return "Failed to decode response: \(err.localizedDescription)"
-../chatforia-ios/Chatforia/Chatforia/AudioAttachmentCardView.swift:128:            return "Loading…"
-../chatforia-ios/Chatforia/Chatforia/ESIMActivationViewModel.swift:22:        return "Install your eSIM to start using your data pack."
-../chatforia-ios/Chatforia/Chatforia/ESIMActivationViewModel.swift:55:        if isInstalling { return "Opening…" }
-../chatforia-ios/Chatforia/Chatforia/InviteService.swift:74:        return "Join me on Chatforia — a better way to message globally. Join here: \(inviteURL)"
-../chatforia-ios/Chatforia/Chatforia/VideoCallView.swift:95:                Text("Waiting for participant…")
 ../chatforia-ios/Chatforia/Chatforia/ESIMService.swift:144:        return "LPA:1$\(smdp)$\(activationCode)"
 ../chatforia-ios/Chatforia/Chatforia/ESIMService.swift:151:            return "EU"
 ../chatforia-ios/Chatforia/Chatforia/ESIMService.swift:154:            return "UK"
@@ -49,9 +37,6 @@
 ../chatforia-ios/Chatforia/Chatforia/ESIMService.swift:166:        return "US"
 ../chatforia-ios/Chatforia/Chatforia/ESIMService.swift:221:            return "The server returned an invalid response."
 ../chatforia-ios/Chatforia/Chatforia/ESIMService.swift:223:            return "Failed to read eSIM data: \(error.localizedDescription)"
-../chatforia-ios/Chatforia/Chatforia/ContactDetailView.swift:38:        return "Saved contact"
-../chatforia-ios/Chatforia/Chatforia/DateSeparatorView.swift:34:            return "Today"
-../chatforia-ios/Chatforia/Chatforia/DateSeparatorView.swift:38:            return "Yesterday"
 ../chatforia-ios/Chatforia/Chatforia/MessageCryptoService.swift:13:            return "Invalid recipient public key."
 ../chatforia-ios/Chatforia/Chatforia/MessageCryptoService.swift:15:            return "Invalid UTF-8 plaintext."
 ../chatforia-ios/Chatforia/Chatforia/MessageCryptoService.swift:17:            return "Missing sender public key."
@@ -64,54 +49,18 @@
 ../chatforia-ios/Chatforia/Chatforia/DevicePairingCrypto.swift:24:            return "Wrapped payload nonce is invalid."
 ../chatforia-ios/Chatforia/Chatforia/DevicePairingCrypto.swift:26:            return "Wrapped payload ciphertext is invalid."
 ../chatforia-ios/Chatforia/Chatforia/DevicePairingCrypto.swift:28:            return "Wrapped payload JSON is invalid."
-../chatforia-ios/Chatforia/Chatforia/SoundSettingsView.swift:18:                    Text("Volume")
-../chatforia-ios/Chatforia/Chatforia/SoundSettingsView.swift:82:        .navigationTitle("Sounds")
-../chatforia-ios/Chatforia/Chatforia/SoundSettingsView.swift:128:                            Text("Requires \(requiredPlan.displayName)")
-../chatforia-ios/Chatforia/Chatforia/ChatThreadView.swift:486:                        Text("Please keep Chatforia open while this finishes.")
-../chatforia-ios/Chatforia/Chatforia/ChatThreadView.swift:785:                    Button("GIF") {
-../chatforia-ios/Chatforia/Chatforia/ChatThreadView.swift:796:                        Button("Remove GIF", role: .destructive) {
-../chatforia-ios/Chatforia/Chatforia/ESIMActivationView.swift:54:            Text("Status")
-../chatforia-ios/Chatforia/Chatforia/ESIMActivationView.swift:83:            Text("Install directly on this iPhone, or use the activation details below on another supported device.")
-../chatforia-ios/Chatforia/Chatforia/ESIMActivationView.swift:115:                Text("Your carrier hasn’t provided a valid install link yet. You can still use the manual activation details below when available.")
 ../chatforia-ios/Chatforia/Chatforia/ChatListRowView.swift:33:                        Text("SMS")
 ../chatforia-ios/Chatforia/Chatforia/ChatListRowView.swift:103:        guard !cleaned.isEmpty else { return "C" }
-../chatforia-ios/Chatforia/Chatforia/CallState.swift:15:        case .idle: return "Idle"
-../chatforia-ios/Chatforia/Chatforia/CallState.swift:16:        case .fetchingToken: return "Preparing call…"
-../chatforia-ios/Chatforia/Chatforia/CallState.swift:17:        case .dialing(let destination): return "Calling \(destination.displayName)…"
-../chatforia-ios/Chatforia/Chatforia/CallState.swift:19:        case .connecting(let name): return "Connecting to \(name)…"
-../chatforia-ios/Chatforia/Chatforia/CallState.swift:20:        case .active(let name): return "In call with \(name)"
-../chatforia-ios/Chatforia/Chatforia/CallState.swift:21:        case .ended: return "Call ended"
-../chatforia-ios/Chatforia/Chatforia/AddContactViewModel.swift:12:        case .username: return "Username"
-../chatforia-ios/Chatforia/Chatforia/AddContactViewModel.swift:13:        case .phone: return "Phone"
 ../chatforia-ios/Chatforia/Chatforia/SMSThreadViewModel.swift:205:            return "SMS #\(id)"
 ../chatforia-ios/Chatforia/Chatforia/SMSThreadViewModel.swift:208:        return "SMS"
 ../chatforia-ios/Chatforia/Chatforia/DeviceKeyManager.swift:72:        return "Apple Device"
-../chatforia-ios/Chatforia/Chatforia/ImportPhoneContactsView.swift:44:                                    Button("Select All") {
-../chatforia-ios/Chatforia/Chatforia/SMSThreadSearchSheet.swift:42:            .navigationTitle("Search in thread")
-../chatforia-ios/Chatforia/Chatforia/MessageReceiptSheet.swift:20:                        Text("No one has read this message yet.")
-../chatforia-ios/Chatforia/Chatforia/MessageReceiptSheet.swift:77:            return "Seen"
-../chatforia-ios/Chatforia/Chatforia/MessageReceiptSheet.swift:84:        return "User \(user.id)"
-../chatforia-ios/Chatforia/Chatforia/MessageBubbleView.swift:158:            Text("This message was deleted")
 ../chatforia-ios/Chatforia/Chatforia/VideoCompressionService.swift:14:            return "Video track not found."
 ../chatforia-ios/Chatforia/Chatforia/VideoCompressionService.swift:16:            return "Could not create compression session."
 ../chatforia-ios/Chatforia/Chatforia/VideoCompressionService.swift:18:            return "Compression failed: \(message)"
 ../chatforia-ios/Chatforia/Chatforia/VideoCompressionService.swift:20:            return "Compressed video file is missing."
-../chatforia-ios/Chatforia/Chatforia/MessageComposerView.swift:265:                Text("Recording…")
-../chatforia-ios/Chatforia/Chatforia/MessageComposerView.swift:314:                Text("Voice note ready")
-../chatforia-ios/Chatforia/Chatforia/MediaPermissionManager.swift:13:            return "Camera access is denied. Enable it in Settings."
-../chatforia-ios/Chatforia/Chatforia/MediaPermissionManager.swift:15:            return "Microphone access is denied. Enable it in Settings."
-../chatforia-ios/Chatforia/Chatforia/MediaPermissionManager.swift:17:            return "Camera access is restricted on this device."
-../chatforia-ios/Chatforia/Chatforia/MediaPermissionManager.swift:19:            return "Microphone access is restricted on this device."
-../chatforia-ios/Chatforia/Chatforia/WirelessCatalog.swift:12:        case .local: return "Local"
-../chatforia-ios/Chatforia/Chatforia/WirelessCatalog.swift:13:        case .europe: return "Europe"
-../chatforia-ios/Chatforia/Chatforia/WirelessCatalog.swift:14:        case .global: return "Global"
-../chatforia-ios/Chatforia/Chatforia/WirelessCatalog.swift:21:            return "Coverage for your current country or nearby local use."
-../chatforia-ios/Chatforia/Chatforia/WirelessCatalog.swift:23:            return "Regional coverage across Europe."
-../chatforia-ios/Chatforia/Chatforia/WirelessCatalog.swift:25:            return "Broader international coverage for travel."
 ../chatforia-ios/Chatforia/Chatforia/AppPlan.swift:21:        case .free: return "Free"
 ../chatforia-ios/Chatforia/Chatforia/AppPlan.swift:22:        case .plus: return "Plus"
 ../chatforia-ios/Chatforia/Chatforia/AppPlan.swift:23:        case .premium: return "Premium"
-../chatforia-ios/Chatforia/Chatforia/TimestampFormatter.swift:46:            return "Yesterday"
 ../chatforia-ios/Chatforia/Chatforia/DialerView.swift:428:        case "2": return "ABC"
 ../chatforia-ios/Chatforia/Chatforia/DialerView.swift:429:        case "3": return "DEF"
 ../chatforia-ios/Chatforia/Chatforia/DialerView.swift:430:        case "4": return "GHI"
@@ -120,42 +69,4 @@
 ../chatforia-ios/Chatforia/Chatforia/DialerView.swift:433:        case "7": return "PQRS"
 ../chatforia-ios/Chatforia/Chatforia/DialerView.swift:434:        case "8": return "TUV"
 ../chatforia-ios/Chatforia/Chatforia/DialerView.swift:435:        case "9": return "WXYZ"
-../chatforia-ios/Chatforia/Chatforia/ForwardingSettingsView.swift:12:                        Text("Forward incoming calls and texts to your verified phone or email. Outgoing calls/texts can show your Chatforia number.")
-../chatforia-ios/Chatforia/Chatforia/ForwardingSettingsView.swift:80:                            Text("Destination (E.164) for calls")
-../chatforia-ios/Chatforia/Chatforia/ForwardingSettingsView.swift:136:                            Button("Reset") {
-../chatforia-ios/Chatforia/Chatforia/ChatsViewModel.swift:112:                return "Message deleted"
-../chatforia-ios/Chatforia/Chatforia/ChatsViewModel.swift:214:            return "SMS #\(id)"
-../chatforia-ios/Chatforia/Chatforia/ChatsViewModel.swift:216:            return "Chat #\(id)"
-../chatforia-ios/Chatforia/Chatforia/RotateEncryptionKeyView.swift:32:            .navigationTitle("Rotate Encryption Key")
-../chatforia-ios/Chatforia/Chatforia/RotateEncryptionKeyView.swift:53:                Text("Rotate Your Encryption Key")
-../chatforia-ios/Chatforia/Chatforia/RotateEncryptionKeyView.swift:58:            Text("This creates a new encryption key for your account.")
-../chatforia-ios/Chatforia/Chatforia/RotateEncryptionKeyView.swift:85:            Text("Type ROTATE to continue")
-../chatforia-ios/Chatforia/Chatforia/SMSThreadView.swift:753:            Text("In thread")
-../chatforia-ios/Chatforia/Chatforia/SMSMessageDTO.swift:104:            if media.contains(where: { $0.isImage }) { return "Photo" }
-../chatforia-ios/Chatforia/Chatforia/SMSMessageDTO.swift:105:            if media.contains(where: { $0.isVideo }) { return "Video" }
-../chatforia-ios/Chatforia/Chatforia/SMSMessageDTO.swift:106:            if media.contains(where: { $0.isAudio }) { return "Audio" }
-../chatforia-ios/Chatforia/Chatforia/SMSMessageDTO.swift:107:            return "Attachment"
-../chatforia-ios/Chatforia/Chatforia/SMSMessageDTO.swift:166:        if isImage { return "Photo" }
-../chatforia-ios/Chatforia/Chatforia/SMSMessageDTO.swift:167:        if isVideo { return "Video" }
-../chatforia-ios/Chatforia/Chatforia/SMSMessageDTO.swift:168:        if isAudio { return "Audio" }
-../chatforia-ios/Chatforia/Chatforia/SMSMessageDTO.swift:169:        return "Attachment"
-../chatforia-ios/Chatforia/Chatforia/ReportReason.swift:17:            return "Harassment"
-../chatforia-ios/Chatforia/Chatforia/ReportReason.swift:19:            return "Threats"
-../chatforia-ios/Chatforia/Chatforia/ReportReason.swift:21:            return "Hate or abusive conduct"
-../chatforia-ios/Chatforia/Chatforia/ReportReason.swift:23:            return "Sexual content"
-../chatforia-ios/Chatforia/Chatforia/ReportReason.swift:25:            return "Spam or scam"
-../chatforia-ios/Chatforia/Chatforia/ReportReason.swift:27:            return "Impersonation"
-../chatforia-ios/Chatforia/Chatforia/ReportReason.swift:29:            return "Other"
-../chatforia-ios/Chatforia/Chatforia/GIFPickerView.swift:37:                            description: Text("Try a different search.")
-../chatforia-ios/Chatforia/Chatforia/GIFPickerView.swift:51:            .navigationTitle("GIFs")
-../chatforia-ios/Chatforia/Chatforia/GIFPickerView.swift:141:                Text("GIF")
-../chatforia-ios/Chatforia/Chatforia/ReportMessageSheet.swift:29:                        Text("Only this message").tag(0)
-../chatforia-ios/Chatforia/Chatforia/ReportMessageSheet.swift:30:                        Text("This + previous 5").tag(5)
-../chatforia-ios/Chatforia/Chatforia/ReportMessageSheet.swift:31:                        Text("This + previous 10").tag(10)
-../chatforia-ios/Chatforia/Chatforia/ReportMessageSheet.swift:32:                        Text("This + previous 20").tag(20)
-../chatforia-ios/Chatforia/Chatforia/ReportMessageSheet.swift:48:                        Text("Reporting message from **\(senderName)**")
-../chatforia-ios/Chatforia/Chatforia/ReportMessageSheet.swift:64:            .navigationTitle("Report Message")
-../chatforia-ios/Chatforia/Chatforia/NumberPickMode.swift:11:        case .free: return "Available number"
-../chatforia-ios/Chatforia/Chatforia/NumberPickMode.swift:12:        case .premium: return "Premium number 🔒"
-../chatforia-ios/Chatforia/Chatforia/NumberPickMode.swift:19:            return "Free number that may be lost after inactivity."
-../chatforia-ios/Chatforia/Chatforia/NumberPickMode.swift:21:            return "Keep and protect your number (no recycling)"
+../chatforia-ios/Chatforia/Chatforia/GIFPickerView.swift:154:                Text("GIF")

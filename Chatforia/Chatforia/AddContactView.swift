@@ -39,7 +39,11 @@ struct AddContactView: View {
 
                 ScrollView {
                     VStack(spacing: 18) {
-                        Picker("Mode", selection: $vm.mode) {
+
+                        Picker(
+                            String(localized: "contacts.mode"),
+                            selection: $vm.mode
+                        ) {
                             ForEach(AddContactMode.allCases) { mode in
                                 Text(mode.title).tag(mode)
                             }
@@ -51,88 +55,148 @@ struct AddContactView: View {
                         }
 
                         VStack(spacing: 14) {
+
                             if vm.mode == .username {
+
                                 ThemedTextField(
-                                    title: "Username",
+                                    title: String(localized: "auth.username"),
                                     text: $vm.username,
                                     contentType: .username
                                 )
+
                             } else {
+
                                 ThemedTextField(
-                                    title: "Phone Number",
+                                    title: String(localized: "contacts.phoneNumber"),
                                     text: $vm.phoneNumber,
                                     keyboard: .phonePad,
                                     contentType: .telephoneNumber
                                 )
 
                                 ThemedTextField(
-                                    title: "Name",
+                                    title: String(localized: "common.name"),
                                     text: $vm.externalName
                                 )
                             }
 
                             ThemedTextField(
-                                title: "Alias (optional)",
+                                title: String(localized: "contacts.aliasOptional"),
                                 text: $vm.alias
                             )
 
                             ThemedToggleRow(
-                                title: "Favorite",
-                                subtitle: "Pin this person as a favorite contact.",
+                                title: String(localized: "contacts.favorite"),
+                                subtitle: String(
+                                    localized: "contacts.favoriteSubtitle"
+                                ),
                                 isOn: $vm.favorite
                             )
 
                             if vm.mode == .username {
-                                Text("Use this tab only for existing Chatforia users.")
-                                    .font(.footnote)
-                                    .foregroundStyle(themeManager.palette.secondaryText)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                                Text(
+                                    String(
+                                        localized:
+                                        "contacts.usernameModeHelp"
+                                    )
+                                )
+                                .font(.footnote)
+                                .foregroundStyle(
+                                    themeManager.palette.secondaryText
+                                )
+                                .frame(
+                                    maxWidth: .infinity,
+                                    alignment: .leading
+                                )
+
                             } else {
-                                Text("Save any phone number, even if they are not on Chatforia.")
-                                    .font(.footnote)
-                                    .foregroundStyle(themeManager.palette.secondaryText)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                                Text(
+                                    String(
+                                        localized:
+                                        "contacts.phoneModeHelp"
+                                    )
+                                )
+                                .font(.footnote)
+                                .foregroundStyle(
+                                    themeManager.palette.secondaryText
+                                )
+                                .frame(
+                                    maxWidth: .infinity,
+                                    alignment: .leading
+                                )
                             }
 
-                            if let errorText = vm.errorText, !errorText.isEmpty {
+                            if let errorText = vm.errorText,
+                               !errorText.isEmpty {
+
                                 Text(errorText)
                                     .font(.footnote)
                                     .foregroundStyle(.red)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .frame(
+                                        maxWidth: .infinity,
+                                        alignment: .leading
+                                    )
                             }
 
-                            if let successText = vm.successText, !successText.isEmpty {
+                            if let successText = vm.successText,
+                               !successText.isEmpty {
+
                                 Text(successText)
                                     .font(.footnote)
                                     .foregroundStyle(.green)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .frame(
+                                        maxWidth: .infinity,
+                                        alignment: .leading
+                                    )
                             }
                         }
                         .padding(18)
                         .background(themeManager.palette.cardBackground)
                         .overlay(
-                            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                .stroke(themeManager.palette.border, lineWidth: 1)
+                            RoundedRectangle(
+                                cornerRadius: 20,
+                                style: .continuous
+                            )
+                            .stroke(
+                                themeManager.palette.border,
+                                lineWidth: 1
+                            )
                         )
-                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        .clipShape(
+                            RoundedRectangle(
+                                cornerRadius: 20,
+                                style: .continuous
+                            )
+                        )
 
                         ThemedGradientButton(
-                            title: vm.isSaving ? "Saving..." : "Save Contact",
+                            title:
+                                vm.isSaving
+                                ? String(localized: "common.saving")
+                                : String(localized: "contacts.saveContact"),
+
                             action: {
                                 Task { await save() }
                             },
+
                             isFullWidth: true,
-                            isDisabled: vm.isSaving || !vm.canSave
+                            isDisabled:
+                                vm.isSaving || !vm.canSave
                         )
                     }
                     .padding()
                 }
             }
-            .navigationTitle("contacts.addContact")
+            .navigationTitle(
+                String(localized: "contacts.addContact")
+            )
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button(String(localized: "button_cancel")) {
+                    Button(
+                        String(localized: "button_cancel")
+                    ) {
                         dismiss()
                     }
                     .foregroundStyle(themeManager.palette.accent)

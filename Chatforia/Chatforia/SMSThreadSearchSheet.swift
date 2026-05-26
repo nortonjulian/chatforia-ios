@@ -22,11 +22,11 @@ struct SMSThreadSearchSheet: View {
 
                             Text(
                                 message.isOutgoing
-                                ? String(localized: "common.sent")
-                                : String(localized: "common.received")
+                                    ? String(localized: "common.sent")
+                                    : String(localized: "common.received")
                             )
-                                .font(.caption2.weight(.semibold))
-                                .foregroundStyle(.secondary)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.secondary)
                         }
 
                         Text(snippet(for: message))
@@ -38,8 +38,11 @@ struct SMSThreadSearchSheet: View {
                 }
                 .buttonStyle(.plain)
             }
-            .searchable(text: $searchText, prompt: Text("messages.searchMessages"))
-            .navigationTitle("Search in thread")
+            .searchable(
+                text: $searchText,
+                prompt: Text("messages.searchMessages")
+            )
+            .navigationTitle(String(localized: "messages.searchInThread"))
             .navigationBarTitleDisplayMode(.inline)
         }
     }
@@ -66,7 +69,8 @@ struct SMSThreadSearchSheet: View {
     }
 
     private func snippet(for message: SMSMessageDTO) -> String {
-        let body = (message.body ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let body = (message.body ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
 
         if !body.isEmpty {
             return String(body.prefix(240))
@@ -78,7 +82,7 @@ struct SMSThreadSearchSheet: View {
                 .joined(separator: ", ")
         }
 
-        return "[No text]"
+        return String(localized: "messages.noText")
     }
 
     private func timestampText(for message: SMSMessageDTO) -> String {
@@ -91,8 +95,16 @@ struct SMSThreadSearchSheet: View {
     private func normalize(_ text: String) -> String {
         text
             .lowercased()
-            .replacingOccurrences(of: "[^a-z0-9\\s]", with: "", options: .regularExpression)
-            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .replacingOccurrences(
+                of: "[^a-z0-9\\s]",
+                with: "",
+                options: .regularExpression
+            )
+            .replacingOccurrences(
+                of: "\\s+",
+                with: " ",
+                options: .regularExpression
+            )
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

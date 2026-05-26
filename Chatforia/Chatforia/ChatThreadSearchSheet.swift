@@ -65,7 +65,7 @@ struct ChatThreadSearchSheet: View {
         }
 
         if message.contentCiphertext != nil {
-            return "Encrypted message"
+            return String(localized: "messages.encryptedMessage")
         }
 
         return "—"

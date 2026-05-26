@@ -18,8 +18,16 @@ struct ImportPhoneContactsView: View {
                 Group {
                     if vm.isLoading {
                         LoadingStateView(
-                            title: "Loading phone contacts…",
-                            subtitle: "Reading contacts from your iPhone."
+                            title:
+                                String(
+                                    localized:
+                                    "contacts.loadingPhoneContacts"
+                                ),
+                            subtitle:
+                                String(
+                                    localized:
+                                    "contacts.readingContactsFromIPhone"
+                                )
                         )
                     } else if let errorText = vm.errorText, !errorText.isEmpty, vm.contacts.isEmpty {
                         EmptyStateView(
@@ -34,14 +42,28 @@ struct ImportPhoneContactsView: View {
                     } else if vm.contacts.isEmpty {
                         EmptyStateView(
                             systemImage: "person.crop.circle.badge.plus",
-                            title: "No phone contacts found",
-                            subtitle: "There are no importable contacts available."
+                            title:
+                            String(
+                                localized:
+                                "contacts.noPhoneContactsFound"
+                            ),
+
+                        subtitle:
+                            String(
+                                localized:
+                                "contacts.noImportableContacts"
+                            )
                         )
                     } else {
                         List {
                             Section {
                                 HStack {
-                                    Button("Select All") {
+                                    Button(
+                                    String(
+                                        localized:
+                                        "common.selectAll"
+                                    )
+                                ) {
                                         vm.selectAll()
                                     }
                                     .foregroundStyle(themeManager.palette.accent)
@@ -87,18 +109,29 @@ struct ImportPhoneContactsView: View {
                     }
                 }
             }
-            .navigationTitle("contacts.importContacts")
+            .navigationTitle(
+                String(
+                    localized:
+                    "contacts.importContacts"
+                )
+            )
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("common.close") {
+                    Button(
+                        String(localized:"common.close")
+                    ) {
                         dismiss()
                     }
                     .foregroundStyle(themeManager.palette.accent)
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(vm.isImporting ? "common.importing" : "common.import") {
+                    Button(
+                        vm.isImporting
+                            ? "common.importing"
+                            : "common.import"
+                    ) {
                         Task { await importSelected() }
                     }
                     .disabled(vm.isImporting || vm.selectedIDs.isEmpty)

@@ -35,7 +35,10 @@ struct ContactDetailView: View {
         if let externalPhone = contact.externalPhone?.trimmingCharacters(in: .whitespacesAndNewlines), !externalPhone.isEmpty {
             return externalPhone
         }
-        return "Saved contact"
+        return String(
+            localized:
+            "contacts.savedContact"
+        )
     }
 
     var body: some View {
@@ -71,7 +74,11 @@ struct ContactDetailView: View {
                             onAction(.message)
                         } label: {
                             actionRow(
-                                title: "Message",
+                                title:
+                            String(
+                                localized:
+                                "common.message"
+                            ),
                                 systemImage: "message.fill"
                             )
                         }
@@ -81,7 +88,11 @@ struct ContactDetailView: View {
                             onAction(.call)
                         } label: {
                             actionRow(
-                                title: "Call",
+                                title:
+                            String(
+                                localized:
+                                "common.call"
+                            ),
                                 systemImage: "phone.fill"
                             )
                         }
@@ -90,7 +101,11 @@ struct ContactDetailView: View {
                                 onAction(.video)
                             } label: {
                                 actionRow(
-                                    title: "Video",
+                                    title:
+                                String(
+                                    localized:
+                                    "common.video"
+                                ),
                                     systemImage: "video.fill"
                                 )
                             }
@@ -100,18 +115,46 @@ struct ContactDetailView: View {
                         .padding(.top, 8)
 
                     VStack(alignment: .leading, spacing: 14) {
-                        detailLine(title: "Name", value: displayName)
+                        detailLine(
+                            title:
+                                String(
+                                    localized:
+                                    "common.name"
+                                ),
+                            value: displayName
+                        )
 
                         if let externalName = contact.externalName, !externalName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                            detailLine(title: "External Name", value: externalName)
+                            detailLine(
+                                title:
+                                    String(
+                                        localized:
+                                        "contacts.externalName"
+                                    ),
+                                value: externalName
+                            )
                         }
 
                         if let phone = contact.externalPhone, !phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                            detailLine(title: "Phone", value: phone)
+                            detailLine(
+                                title:
+                                    String(
+                                        localized:
+                                        "common.phone"
+                                    ),
+                                value: phone
+                            )
                         }
 
                         if let username = contact.user?.username, !username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                            detailLine(title: "Username", value: "@\(username)")
+                            detailLine(
+                                title:
+                                    String(
+                                        localized:
+                                        "common.username"
+                                    ),
+                                value: "@\(username)"
+                            )
                         }
                     }
                     .padding(16)
@@ -122,7 +165,12 @@ struct ContactDetailView: View {
                 .padding()
             }
         }
-        .navigationTitle("contacts.contact")
+        .navigationTitle(
+            String(
+                localized:
+                "contacts.contact"
+            )
+        )
         .navigationBarTitleDisplayMode(.inline)
     }
 

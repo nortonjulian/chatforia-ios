@@ -43,7 +43,10 @@ enum TimestampFormatter {
         }
 
         if calendar.isDateInYesterday(date) {
-            return "Yesterday"
+            return String(
+                localized:
+                "common.yesterday"
+            )
         }
 
         let daysAgo = calendar.dateComponents([.day], from: date, to: now).day ?? 999
