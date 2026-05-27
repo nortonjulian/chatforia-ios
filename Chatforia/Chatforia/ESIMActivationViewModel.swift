@@ -1,8 +1,11 @@
 import Foundation
 import Combine
+import SwiftUI
 
 @MainActor
 final class ESIMActivationViewModel: ObservableObject {
+    @AppStorage("chatforia_language") private var appLanguage = "en"
+
     @Published var payload: ESIMActivationDTO
     @Published var isInstalling: Bool = false
     @Published var errorMessage: String?
@@ -13,8 +16,8 @@ final class ESIMActivationViewModel: ObservableObject {
 
     var titleText: String {
         isActive
-            ? String(localized: "esim.activeTitle")
-            : String(localized: "esim.readyTitle")
+            ? appText("esim.activeTitle", languageCode: appLanguage)
+            : appText("esim.readyTitle", languageCode: appLanguage)
     }
 
     var subtitleText: String {
@@ -22,7 +25,7 @@ final class ESIMActivationViewModel: ObservableObject {
             return planName
         }
 
-        return String(localized: "esim.installSubtitle")
+        return appText("esim.installSubtitle", languageCode: appLanguage)
     }
 
     var installationCodeText: String? {
@@ -59,12 +62,12 @@ final class ESIMActivationViewModel: ObservableObject {
 
     var installButtonTitle: String {
         if isInstalling {
-            return String(localized: "common.opening")
+            return appText("common.opening", languageCode: appLanguage)
         }
 
         return isActive
-            ? String(localized: "esim.installed")
-            : String(localized: "esim.install")
+            ? appText("esim.installed", languageCode: appLanguage)
+            : appText("esim.install", languageCode: appLanguage)
     }
 
     var canInstall: Bool {
@@ -99,7 +102,7 @@ final class ESIMActivationViewModel: ObservableObject {
         errorMessage = nil
 
         guard let url = installURL else {
-            errorMessage = String(localized: "esim.invalidInstallLink")
+            errorMessage = appText("esim.invalidInstallLink", languageCode: appLanguage)
             return nil
         }
 

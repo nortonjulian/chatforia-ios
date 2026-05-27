@@ -111,8 +111,9 @@ struct OnboardingView: View {
                 .multilineTextAlignment(.center)
 
             Text(
-                String(
-                    localized: "onboarding.welcomeSubtitle"
+                appText(
+                    "onboarding.welcomeSubtitle",
+                    languageCode: appLanguage
                 )
             )
             .font(.body)
@@ -131,8 +132,9 @@ struct OnboardingView: View {
                 .multilineTextAlignment(.center)
 
             Text(
-                String(
-                    localized: "onboarding.usernameSubtitle"
+                appText(
+                    "onboarding.usernameSubtitle",
+                    languageCode: appLanguage
                 )
             )
             .font(.body)
@@ -140,7 +142,10 @@ struct OnboardingView: View {
             .multilineTextAlignment(.center)
 
             TextField(
-                String(localized: "auth.username"),
+                appText(
+                    "auth.username",
+                    languageCode: appLanguage
+                ),
                 text: $username
             )
             .textInputAutocapitalization(.never)
@@ -176,8 +181,9 @@ struct OnboardingView: View {
                 .multilineTextAlignment(.center)
 
             Text(
-                String(
-                    localized: "onboarding.languageSubtitle"
+                appText(
+                    "onboarding.languageSubtitle",
+                    languageCode: appLanguage
                 )
             )
             .font(.body)
@@ -200,15 +206,19 @@ struct OnboardingView: View {
                 .foregroundStyle(themeManager.palette.accent)
 
             Text(
-                String(localized: "onboarding.readyTitle")
+                appText(
+                    "onboarding.readyTitle",
+                    languageCode: appLanguage
+                )
             )
             .font(.system(size: 30, weight: .bold))
             .foregroundStyle(themeManager.palette.primaryText)
             .multilineTextAlignment(.center)
 
             Text(
-                String(
-                    localized: "onboarding.readySubtitle"
+                appText(
+                    "onboarding.readySubtitle",
+                    languageCode: appLanguage
                 )
             )
             .font(.body)
@@ -224,7 +234,10 @@ struct OnboardingView: View {
             if step > 0 {
 
                 ThemedOutlineButton(
-                    title: String(localized: "common.back")
+                    title: appText(
+                        "common.back",
+                        languageCode: appLanguage
+                    )
                 ) {
                     errorText = nil
 
@@ -252,22 +265,37 @@ struct OnboardingView: View {
     private var buttonTitle: String {
 
         if isSaving {
-            return String(localized: "common.saving")
+            return appText(
+                "common.saving",
+                languageCode: appLanguage
+            )
         }
 
         switch step {
 
         case 0:
-            return String(localized: "common.continue")
+            return appText(
+                "common.continue",
+                languageCode: appLanguage
+            )
 
         case 1:
-            return String(localized: "onboarding.saveUsername")
+            return appText(
+                "onboarding.saveUsername",
+                languageCode: appLanguage
+            )
 
         case 2:
-            return String(localized: "onboarding.saveLanguage")
+            return appText(
+                "onboarding.saveLanguage",
+                languageCode: appLanguage
+            )
 
         default:
-            return String(localized: "onboarding.startChatting")
+            return appText(
+                "onboarding.startChatting",
+                languageCode: appLanguage
+            )
         }
     }
 
@@ -306,8 +334,9 @@ struct OnboardingView: View {
         guard let token = auth.currentToken,
               !token.isEmpty else {
 
-            errorText = String(
-                localized: "ios.missing_auth_token"
+            errorText = appText(
+                "ios.missing_auth_token",
+                languageCode: appLanguage
             )
             return
         }
@@ -317,15 +346,17 @@ struct OnboardingView: View {
             .lowercased()
 
         guard !trimmed.isEmpty else {
-            errorText = String(
-                localized: "onboarding.chooseUsernameError"
+            errorText = appText(
+                "onboarding.chooseUsernameError",
+                languageCode: appLanguage
             )
             return
         }
 
         guard trimmed.count >= 3 else {
-            errorText = String(
-                localized: "onboarding.usernameTooShort"
+            errorText = appText(
+                "onboarding.usernameTooShort",
+                languageCode: appLanguage
             )
             return
         }
@@ -365,8 +396,9 @@ struct OnboardingView: View {
         guard let token = auth.currentToken,
               !token.isEmpty else {
 
-            errorText = String(
-                localized: "ios.missing_auth_token"
+            errorText = appText(
+                "ios.missing_auth_token",
+                languageCode: appLanguage
             )
 
             auth.handleInvalidSession()

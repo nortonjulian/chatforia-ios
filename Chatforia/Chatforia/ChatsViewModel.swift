@@ -8,6 +8,10 @@ final class ChatsViewModel: ObservableObject {
     @Published var errorText: String?
     @Published var searchText: String = ""
     
+    private var appLanguage: String {
+        UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
+    }
+    
     private var cancellables = Set<AnyCancellable>()
 
     static let conversationsBasePath = "conversations"
@@ -253,7 +257,10 @@ final class ChatsViewModel: ObservableObject {
 
     func loadConversations(token: String?) async {
         guard let token else {
-            errorText = String(localized: "ios.missing_auth_token")
+            errorText = appText(
+                "ios.missing_auth_token",
+                languageCode: appLanguage
+            )
             conversations = []
             return
         }
@@ -294,7 +301,10 @@ final class ChatsViewModel: ObservableObject {
 
     func archiveConversation(_ conversation: ConversationDTO, token: String?) async -> Bool {
         guard let token, !token.isEmpty else {
-            errorText = String(localized: "ios.missing_auth_token")
+            errorText = appText(
+                "ios.missing_auth_token",
+                languageCode: appLanguage
+            )
             return false
         }
 
@@ -340,7 +350,10 @@ final class ChatsViewModel: ObservableObject {
 
     func deleteConversation(_ conversation: ConversationDTO, token: String?) async {
         guard let token else {
-            errorText = String(localized: "ios.missing_auth_token")
+            errorText = appText(
+                "ios.missing_auth_token",
+                languageCode: appLanguage
+            )
             return
         }
 

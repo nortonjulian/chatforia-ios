@@ -22,6 +22,10 @@ enum APIError: Error, LocalizedError {
     case server(status: Int, message: String?)
     case decoding(Error)
     case network(Error)
+    
+    private var appLanguage: String {
+            UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
+    }
 
     var errorDescription: String? {
         switch self {

@@ -3,6 +3,7 @@ import SwiftUI
 struct RotateEncryptionKeyView: View {
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
     @Environment(\.dismiss) private var dismiss
 
     let onCompleted: (() async -> Void)? = nil
@@ -29,13 +30,11 @@ struct RotateEncryptionKeyView: View {
                     .padding(20)
                 }
             }
-            .navigationTitle(
-                String(localized: "encryption.rotate.title")
-            )
+            .navigationTitle(appText("encryption.rotate.title", languageCode: appLanguage))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(String(localized: "common.done")) {
+                    Button(appText("common.done", languageCode: appLanguage)) {
                         dismiss()
                     }
                     .disabled(isRotating)
@@ -52,38 +51,28 @@ struct RotateEncryptionKeyView: View {
                     .font(.system(size: 26, weight: .semibold))
                     .foregroundStyle(themeManager.palette.accent)
 
-                Text(
-                    String(localized: "encryption.rotate.header")
-                )
-                .font(.title3.weight(.bold))
-                .foregroundStyle(themeManager.palette.primaryText)
+                Text(appText("encryption.rotate.header", languageCode: appLanguage))
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(themeManager.palette.primaryText)
             }
 
-            Text(
-                String(localized: "encryption.rotate.subtitle")
-            )
-            .font(.subheadline)
-            .foregroundStyle(themeManager.palette.secondaryText)
+            Text(appText("encryption.rotate.subtitle", languageCode: appLanguage))
+                .font(.subheadline)
+                .foregroundStyle(themeManager.palette.secondaryText)
         }
     }
 
     private var warningCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(String(localized: "common.beforeYouContinue"))
+            Text(appText("common.beforeYouContinue", languageCode: appLanguage))
                 .font(.headline)
                 .foregroundStyle(themeManager.palette.primaryText)
 
-            warningRow(
-                String(localized: "encryption.rotate.backupWarning")
-            )
+            warningRow(appText("encryption.rotate.backupWarning", languageCode: appLanguage))
 
-            warningRow(
-                String(localized: "encryption.rotate.messageAccessWarning")
-            )
+            warningRow(appText("encryption.rotate.messageAccessWarning", languageCode: appLanguage))
 
-            warningRow(
-                String(localized: "encryption.rotate.riskWarning")
-            )
+            warningRow(appText("encryption.rotate.riskWarning", languageCode: appLanguage))
         }
         .padding(16)
         .background(themeManager.palette.cardBackground)
@@ -96,14 +85,12 @@ struct RotateEncryptionKeyView: View {
 
     private var confirmCard: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(
-                String(localized: "encryption.rotate.typeToContinue")
-            )
-            .font(.headline)
-            .foregroundStyle(themeManager.palette.primaryText)
+            Text(appText("encryption.rotate.typeToContinue", languageCode: appLanguage))
+                .font(.headline)
+                .foregroundStyle(themeManager.palette.primaryText)
 
             TextField(
-                String(localized: "encryption.rotate.placeholder"),
+                appText("encryption.rotate.placeholder", languageCode: appLanguage),
                 text: $confirmationText
             )
             .textInputAutocapitalization(.characters)
@@ -136,8 +123,8 @@ struct RotateEncryptionKeyView: View {
 
                     Text(
                         isRotating
-                        ? String(localized: "encryptionRecovery.messages.rotating")
-                        : String(localized: "encryption.rotate.action")
+                        ? appText("encryptionRecovery.messages.rotating", languageCode: appLanguage)
+                        : appText("encryption.rotate.action", languageCode: appLanguage)
                     )
                     .fontWeight(.semibold)
 
@@ -169,9 +156,7 @@ struct RotateEncryptionKeyView: View {
     }
 
     private func rotateKey() async {
-        errorMessage = String(
-            localized: "encryption.rotate.backendNotConnected"
-        )
+        errorMessage = appText("encryption.rotate.backendNotConnected", languageCode: appLanguage)
         successMessage = nil
     }
 }

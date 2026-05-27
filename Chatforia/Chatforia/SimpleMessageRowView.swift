@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct SimpleMessageRowView: View {
+    @AppStorage("chatforia_language") private var appLanguage = "en"
+
     let msg: MessageDTO
     let isMe: Bool
     let isGroupChat: Bool
@@ -92,8 +94,15 @@ struct SimpleMessageRowView: View {
 
     private var senderDisplayName: String {
         let raw = msg.sender.username?.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let raw, !raw.isEmpty { return raw }
-        return String(format: String(localized: "chat.user_id_format"), msg.sender.id)
+
+        if let raw, !raw.isEmpty {
+            return raw
+        }
+
+        return String(
+            format: appText("chat.user_id_format", languageCode: appLanguage),
+            msg.sender.id
+        )
     }
 
     private var initials: String {
@@ -120,7 +129,7 @@ struct SimpleMessageRowView: View {
     private var hasVisibleAttachments: Bool {
         !visibleAttachments.isEmpty && msg.deletedForAll != true
     }
-    
+
     private var decryptedText: String? {
         let text = DecryptedMessageTextStore.shared.text(for: msg.id)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -158,7 +167,7 @@ struct SimpleMessageRowView: View {
 
     private var displayText: String {
         if msg.deletedForAll == true {
-            return String(localized: "messages.thisMessageWasDeleted")
+            return appText("messages.thisMessageWasDeleted", languageCode: appLanguage)
         }
 
         if let decryptedText, !decryptedText.isEmpty {
@@ -176,9 +185,9 @@ struct SimpleMessageRowView: View {
         }
 
         if msg.contentCiphertext != nil {
-            return String(localized: "chat.encryptedUnavailable")
+            return appText("chat.encryptedUnavailable", languageCode: appLanguage)
         }
 
-        return String(localized: "common.emptyDash")
+        return appText("common.emptyDash", languageCode: appLanguage)
     }
 }

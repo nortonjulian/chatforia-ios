@@ -4,6 +4,8 @@ struct GIFPickerView: View {
     let onSelect: (URL) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("chatforia_language") private var appLanguage = "en"
+
     @State private var query = ""
     @State private var results: [GIFPickerItem] = []
     @State private var isLoading = false
@@ -22,27 +24,21 @@ struct GIFPickerView: View {
 
                 Group {
                     if isLoading && results.isEmpty {
-                        ProgressView(
-                            String(localized:"media.loadingGifs")
-                        )
+                        ProgressView(appText("media.loadingGifs", languageCode: appLanguage))
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else if let errorText, results.isEmpty {
                         ContentUnavailableView(
-                            "gif.couldNotLoadPlural",
+                            appText("gif.couldNotLoadPlural", languageCode: appLanguage),
                             systemImage: "exclamationmark.triangle",
                             description: Text(errorText)
                         )
                     } else if results.isEmpty {
                         ContentUnavailableView(
-                        String(localized:"gif.noResults"),
+                            appText("gif.noResults", languageCode: appLanguage),
                             systemImage: "magnifyingglass",
-                            description:
-                        Text(
-                            String(
-                                localized:
-                                "gif.tryDifferentSearch"
+                            description: Text(
+                                appText("gif.tryDifferentSearch", languageCode: appLanguage)
                             )
-                        )
                         )
                     } else {
                         ScrollView {
@@ -56,13 +52,11 @@ struct GIFPickerView: View {
                     }
                 }
             }
-            .navigationTitle(
-                String(localized:"gif.title")
-            )
+            .navigationTitle(appText("gif.title", languageCode: appLanguage))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(String(localized: "button_cancel")) {
+                    Button(appText("button_cancel", languageCode: appLanguage)) {
                         dismiss()
                     }
                 }
@@ -85,11 +79,11 @@ struct GIFPickerView: View {
                 .foregroundStyle(.secondary)
 
             TextField(
-                String(localized:"gif.search"),
+                appText("gif.search", languageCode: appLanguage),
                 text: $query
             )
-                .textInputAutocapitalization(.never)
-                .disableAutocorrection(true)
+            .textInputAutocapitalization(.never)
+            .disableAutocorrection(true)
 
             if !query.isEmpty {
                 Button {

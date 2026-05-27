@@ -536,7 +536,10 @@ final class ChatThreadViewModel: ObservableObject {
 
     func loadMessages(roomId: Int, token: String?) async {
         guard roomId > 0 else {
-            errorText = "Invalid roomId (client)."
+            errorText = appText(
+                "ios.invalid_room_id_client",
+                languageCode: appLanguage
+            )
             return
         }
 
@@ -716,7 +719,8 @@ final class ChatThreadViewModel: ObservableObject {
                 clientMessageId: clientMessageId,
                 state: .failed
             )
-            errorText = "Couldn’t send message. \(error.localizedDescription)"
+            errorText =
+                "\(appText("chat.sendMessageFailed", languageCode: appLanguage)) \(error.localizedDescription)"
             return false
         }
     }
@@ -739,7 +743,10 @@ final class ChatThreadViewModel: ObservableObject {
         }
 
         guard !imageData.isEmpty else {
-            errorText = "Image data is empty."
+            errorText = appText(
+                "chat.imageDataEmpty",
+                languageCode: appLanguage
+            )
             return false
         }
 
@@ -851,7 +858,8 @@ final class ChatThreadViewModel: ObservableObject {
                 clientMessageId: clientMessageId,
                 state: .failed
             )
-            errorText = "Couldn’t send image. \(error.localizedDescription)"
+            errorText =
+                "\(appText("chat.sendImageFailed", languageCode: appLanguage)) \(error.localizedDescription)"
             return false
         }
     }
@@ -876,7 +884,10 @@ final class ChatThreadViewModel: ObservableObject {
         }
 
         guard !videoData.isEmpty else {
-            errorText = "Video data is empty."
+            errorText = appText(
+                "chat.videoDataEmpty",
+                languageCode: appLanguage
+            )
             return false
         }
 
@@ -993,7 +1004,8 @@ final class ChatThreadViewModel: ObservableObject {
                 clientMessageId: clientMessageId,
                 state: .failed
             )
-            errorText = "Couldn’t send video. \(error.localizedDescription)"
+            errorText =
+                "\(appText("chat.sendVideoFailed", languageCode: appLanguage)) \(error.localizedDescription)"
             return false
         }
     }
@@ -1020,7 +1032,10 @@ final class ChatThreadViewModel: ObservableObject {
         }
 
         guard !gifData.isEmpty else {
-            errorText = "GIF data is empty."
+            errorText = appText(
+                "gif.emptyData",
+                languageCode: appLanguage
+            )
             return false
         }
 
@@ -1125,7 +1140,8 @@ final class ChatThreadViewModel: ObservableObject {
             return true
         } catch {
             MessageStore.shared.setDeliveryState(clientMessageId: clientMessageId, state: .failed)
-            errorText = "Couldn’t send GIF. \(error.localizedDescription)"
+            errorText =
+                "\(appText("gif.sendFailed", languageCode: appLanguage)) \(error.localizedDescription)"
             return false
         }
     }
@@ -1233,7 +1249,8 @@ final class ChatThreadViewModel: ObservableObject {
                 clientMessageId: clientMessageId,
                 state: .failed
             )
-            errorText = "Couldn’t send audio. \(error.localizedDescription)"
+            errorText =
+                "\(appText("chat.sendAudioFailed", languageCode: appLanguage)) \(error.localizedDescription)"
             return false
         }
     }
@@ -1564,7 +1581,10 @@ extension ChatThreadViewModel {
         _ = roomId
 
         guard let token, !token.isEmpty else {
-            reportErrorText = "Missing auth token."
+            reportErrorText = appText(
+                "ios.missing_auth_token",
+                languageCode: appLanguage
+            )
             return false
         }
 
@@ -1673,7 +1693,10 @@ extension ChatThreadViewModel {
             if isEncrypted {
                 guard let roomId = message.chatRoomId,
                       let senderId = currentUserId else {
-                    errorText = "Missing encryption context."
+                    errorText = appText(
+                        "encryption.missing_context",
+                        languageCode: appLanguage
+                    )
                     return false
                 }
 
@@ -1718,7 +1741,10 @@ extension ChatThreadViewModel {
             )
 
             guard let updated = envelope.message else {
-                errorText = "Couldn’t edit message."
+                errorText = appText(
+                    "chat.editMessageFailed",
+                    languageCode: appLanguage
+                )
                 return false
             }
 
@@ -1732,7 +1758,8 @@ extension ChatThreadViewModel {
             refreshFromMessageStore()
             return true
         } catch {
-            errorText = "Edit failed: \(error.localizedDescription)"
+            errorText =
+                "\(appText("chat.editFailed", languageCode: appLanguage)) \(error.localizedDescription)"
             return false
         }
     }
@@ -1777,7 +1804,10 @@ extension ChatThreadViewModel {
 
             return true
         } catch {
-            errorText = "Couldn’t delete message."
+            errorText = appText(
+                "chat.deleteMessageFailed",
+                languageCode: appLanguage
+            )
             return false
         }
     }
@@ -1823,7 +1853,10 @@ extension ChatThreadViewModel {
 
             return true
         } catch {
-            errorText = "Couldn’t archive conversation."
+            errorText = appText(
+                "chat.archiveConversationFailed",
+                languageCode: appLanguage
+            )
             return false
         }
     }
@@ -1860,7 +1893,10 @@ extension ChatThreadViewModel {
 
             return true
         } catch {
-            errorText = "Couldn’t delete conversation."
+            errorText = appText(
+                "chat.deleteConversationFailed",
+                languageCode: appLanguage
+            )
             return false
         }
     }

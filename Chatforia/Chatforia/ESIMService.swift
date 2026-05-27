@@ -29,7 +29,7 @@ final class ESIMService {
             body: requestBody
         )
 
-        return mapReserveResponseToDTO(response, fallbackPlanName: pack.title)
+        return mapReserveResponseToDTO(response, fallbackPlanName: pack.title(languageCode: "en"))
     }
 
     func fetchCurrentActivation() async throws -> ESIMActivationDTO? {

@@ -43,6 +43,12 @@ struct ContactSearchResultDTO: Codable, Identifiable, Equatable {
     let createdAt: Date?
     let userId: Int?
     let user: ContactUserDTO?
+    
+    private var appLanguage: String {
+        UserDefaults.standard.string(
+            forKey: "chatforia_language"
+        ) ?? "en"
+    }
 
     var displayName: String {
         if let alias, !alias.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -57,7 +63,10 @@ struct ContactSearchResultDTO: Codable, Identifiable, Equatable {
         if let externalPhone, !externalPhone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return externalPhone
         }
-        return String(localized: "ios.unknown_contact")
+        return appText(
+            "ios.unknown_contact",
+            languageCode: appLanguage
+        )
     }
 }
 
@@ -83,6 +92,10 @@ final class StartChatViewModel: ObservableObject {
     @Published var isCreating: Bool = false
     @Published var errorText: String?
     @Published var contactResults: [ContactSearchResultDTO] = []
+    
+    private var appLanguage: String {
+        UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
+    }
 
     private var searchTask: Task<Void, Never>?
 
@@ -143,7 +156,10 @@ final class StartChatViewModel: ObservableObject {
 
     func searchUsers(query: String, currentUserId: Int?) async {
         guard let token = TokenStore.shared.read(), !token.isEmpty else {
-            errorText = String(localized: "ios.missing_auth_token")
+            errorText = appText(
+                "ios.missing_auth_token",
+                languageCode: appLanguage
+            )
             results = []
             contactResults = []
             return
@@ -211,7 +227,10 @@ final class StartChatViewModel: ObservableObject {
         contactResults = fetchedContacts
 
         if !hadAnySuccess {
-            errorText = "Unable to fetch results. Please try again."
+            errorText = appText(
+                "startChat.fetchResultsFailed",
+                languageCode: appLanguage
+            )
         } else if userSearchFailed {
             errorText = nil
         } else {
@@ -221,7 +240,10 @@ final class StartChatViewModel: ObservableObject {
     
     func searchContactsOnly(query: String) async {
         guard let token = TokenStore.shared.read(), !token.isEmpty else {
-            errorText = String(localized: "ios.missing_auth_token")
+            errorText = appText(
+                "ios.missing_auth_token",
+                languageCode: appLanguage
+            )
             contactResults = []
             return
         }
@@ -260,7 +282,10 @@ final class StartChatViewModel: ObservableObject {
 
             results = [] // 👈 important: hide user results in phone mode
         } catch {
-            errorText = "Unable to fetch contacts."
+            errorText = appText(
+                "startChat.fetchContactsFailed",
+                languageCode: appLanguage
+            )
             contactResults = []
         }
     }
@@ -317,7 +342,12 @@ final class StartChatViewModel: ObservableObject {
         throw NSError(
             domain: "StartChatViewModel",
             code: 99,
-            userInfo: [NSLocalizedDescriptionKey: "This contact could not be opened."]
+            userInfo: [
+                NSLocalizedDescriptionKey: appText(
+                    "startChat.contactOpenFailed",
+                    languageCode: appLanguage
+                )
+            ]
         )
     }
 
@@ -347,7 +377,12 @@ final class StartChatViewModel: ObservableObject {
             throw NSError(
                 domain: "StartChatViewModel",
                 code: 1,
-                userInfo: [NSLocalizedDescriptionKey: "Enter a valid phone number."]
+                userInfo: [
+                    NSLocalizedDescriptionKey: appText(
+                        "startChat.enterValidPhone",
+                        languageCode: appLanguage
+                    )
+                ]
             )
         }
 

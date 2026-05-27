@@ -3,6 +3,7 @@ import SwiftUI
 struct RestoreEncryptionKeyView: View {
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
     @Environment(\.dismiss) private var dismiss
 
     let onCompleted: (() async -> Void)? = nil
@@ -24,20 +25,30 @@ struct RestoreEncryptionKeyView: View {
 
             ScrollView {
                 VStack(spacing: 20) {
-                    Text(String(localized: "encryption.restore.title"))
+                    Text(
+                        appText(
+                            "encryption.restore.title",
+                            languageCode: appLanguage
+                        )
+                    )
                         .font(.system(size: 28, weight: .bold))
                         .foregroundStyle(themeManager.palette.primaryText)
                         .padding(.top, 24)
 
                     VStack(alignment: .leading, spacing: 12) {
-                        Text(String(localized: "encryption.restore.instructions"))
+                        Text(appText("encryption.restore.instructions", languageCode: appLanguage))
                             .font(.subheadline)
                             .foregroundStyle(themeManager.palette.secondaryText)
 
                         if isCheckingBackup {
-                            ProgressView("encryption.checkingBackup")
+                            ProgressView(
+                                appText(
+                                    "encryption.checkingBackup",
+                                    languageCode: appLanguage
+                                )
+                            )
                         } else if hasRemoteBackup == false || hasRemoteBackup == nil {
-                            Text(String(localized: "encryption.restore.noBackup"))
+                            Text(appText("encryption.restore.noBackup", languageCode: appLanguage))
                                 .font(.footnote)
                                 .foregroundStyle(themeManager.palette.secondaryText)
 
@@ -53,7 +64,12 @@ struct RestoreEncryptionKeyView: View {
                                     .foregroundStyle(.green)
                             }
 
-                            Button("common.done") {
+                            Button(
+                                appText(
+                                    "common.done",
+                                    languageCode: appLanguage
+                                )
+                            ) {
                                 Task {
                                     await auth.refreshCurrentUser()
 
@@ -61,15 +77,26 @@ struct RestoreEncryptionKeyView: View {
                                         auth.markKeyRestoreComplete()
                                         dismiss()
                                     } else {
-                                        auth.forceKeyRestore(message: "This device still does not have the correct encryption key.")
-                                        errorMessage = "This device still does not have the correct encryption key."
+                                        let message = appText(
+                                            "encryption.restore.correctKeyMissing",
+                                            languageCode: appLanguage
+                                        )
+
+                                        auth.forceKeyRestore(message: message)
+                                        errorMessage = message
                                     }
                                 }
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
                         } else {
-                            SecureField("encryption.backupPassword", text: $backupPassword)
+                            SecureField(
+                                appText(
+                                    "encryption.backupPassword",
+                                    languageCode: appLanguage
+                                ),
+                                text: $backupPassword
+                            )
 
                             if let errorMessage {
                                 Text(errorMessage)
@@ -89,7 +116,7 @@ struct RestoreEncryptionKeyView: View {
                                 if isRestoring {
                                     ProgressView()
                                 } else {
-                                    Text(String(localized: "encryption.restore.restoreKey"))
+                                    Text(appText("encryption.restore.restoreKey", languageCode: appLanguage))
                                 }
                             }
                             .disabled(isRestoring || backupPassword.isEmpty)
@@ -99,11 +126,17 @@ struct RestoreEncryptionKeyView: View {
                     Divider()
 
                     VStack(alignment: .leading, spacing: 10) {
-                        Text(String(localized: "encryption.reset.title"))
+                        Text(appText(
+                            "encryption.reset.title",
+                            languageCode: appLanguage
+                        ))
                             .font(.headline)
                             .foregroundStyle(themeManager.palette.primaryText)
 
-                        Text(String(localized: "encryption.reset.description"))
+                        Text(appText(
+                            "encryption.reset.description",
+                            languageCode: appLanguage
+                        ))
                             .font(.footnote)
                             .foregroundStyle(themeManager.palette.secondaryText)
 
@@ -134,21 +167,31 @@ struct RestoreEncryptionKeyView: View {
             isCheckingBackup = false
         }
         .confirmationDialog(
-            String(localized: "encryption.reset.confirmationTitle"),
+            appText(
+                "encryption.reset.confirmationTitle",
+                languageCode: appLanguage
+            ),
             isPresented: $showResetConfirm,
             titleVisibility: .visible
         ) {
             Button(
-                String(localized: "encryption.reset.title"),
+                appText(
+                    "encryption.reset.title",
+                    languageCode: appLanguage
+                ),
                 role: .destructive
             ) {
                 Task { await resetEncryption() }
             }
-            Button(String(localized: "button_cancel"), role: .cancel) {}
+            Button(appText(
+                "button_cancel",
+                languageCode: appLanguage
+            ), role: .cancel) {}
         } message: {
             Text(
-                String(
-                    localized: "encryption.reset.confirmationMessage"
+                appText(
+                    "encryption.reset.confirmationMessage",
+                    languageCode: appLanguage
                 )
             )
         }
@@ -156,7 +199,10 @@ struct RestoreEncryptionKeyView: View {
     
     private func resetEncryption() async {
         guard let token = auth.currentToken, !token.isEmpty else {
-            errorMessage = String(localized: "auth.sessionExpired")
+            errorMessage = appText(
+                "auth.sessionExpired",
+                languageCode: appLanguage
+            )
             return
         }
 
@@ -170,16 +216,22 @@ struct RestoreEncryptionKeyView: View {
             try? await Task.sleep(nanoseconds: 500_000_000)
 
             if hasMatchingAccountKey() {
-                successMessage = String(localized: "encryption.reset.success")
+                successMessage = appText(
+                    "encryption.reset.success",
+                    languageCode: appLanguage
+                )
                 auth.markKeyRestoreComplete()
                 dismiss()
             } else {
-                auth.forceKeyRestore(message: String(localized: "encryption.reset.deviceMismatch"))
+                auth.forceKeyRestore(message: appText(
+                    "encryption.reset.deviceMismatch",
+                    languageCode: appLanguage
+                ))
                 errorMessage =
-            String(
-                localized:
-                "encryption.reset.localFailure"
-            )
+                appText(
+                    "encryption.reset.localFailure",
+                    languageCode: appLanguage
+                )
             }
         } catch {
             errorMessage = error.localizedDescription
@@ -200,15 +252,18 @@ struct RestoreEncryptionKeyView: View {
 
     private func restoreKey() async {
         guard hasRemoteBackup == true else {
-            errorMessage = String(localized: "encryption.restore.noBackupFirst")
+            errorMessage = appText(
+                "encryption.restore.noBackupFirst",
+                languageCode: appLanguage
+            )
             return
         }
 
         guard let token = auth.currentToken, !token.isEmpty else {
             errorMessage =
-            String(
-                localized:
-                "auth.sessionExpiredSignInAgain"
+            appText(
+                "auth.sessionExpiredSignInAgain",
+                languageCode: appLanguage
             )
             successMessage = nil
             return
@@ -224,7 +279,10 @@ struct RestoreEncryptionKeyView: View {
                 password: backupPassword
             )
 
-            successMessage = String(localized: "encryption.restore.success")
+            successMessage = appText(
+                "encryption.restore.success",
+                languageCode: appLanguage
+            )
             backupPassword = ""
 
             await onCompleted?()
@@ -235,11 +293,14 @@ struct RestoreEncryptionKeyView: View {
                 auth.markKeyRestoreComplete()
                 dismiss()
             } else {
-                auth.forceKeyRestore(message: String(localized: "encryption.restore.deviceMismatch"))
+                auth.forceKeyRestore(message: appText(
+                    "encryption.restore.deviceMismatch",
+                    languageCode: appLanguage
+                ))
                 errorMessage =
-                String(
-                    localized:
-                    "encryption.restore.localFailure"
+                appText(
+                    "encryption.restore.localFailure",
+                    languageCode: appLanguage
                 )
             }
         } catch {

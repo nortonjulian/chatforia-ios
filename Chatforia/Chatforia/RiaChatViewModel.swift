@@ -10,6 +10,10 @@ final class RiaChatViewModel: ObservableObject {
 
     private let service = RiaService()
 
+    private var appLanguage: String {
+        UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
+    }
+
     func sendMessage(
         token: String?,
         text: String,
@@ -50,20 +54,24 @@ final class RiaChatViewModel: ObservableObject {
             messages.append(aiMsg)
         } catch {
             let message = error.localizedDescription.lowercased()
-            if message.contains("strict_e2ee") || message.contains("strict e2ee") {
-                aiDisabledReason = String(localized: "ios.ria_unavailable_strict_e2ee")
-            } else if (error as? URLError)?.code == .timedOut {
-                lastError = String(localized: "ios.ria_took_too_long")
-            } else {
-                let message = error.localizedDescription.lowercased()
 
-                if message.contains("strict_e2ee") || message.contains("strict e2ee") {
-                    aiDisabledReason = String(localized: "ios.ria_unavailable_strict_e2ee")
-                } else if message.contains("429") || message.contains("quota") || message.contains("billing") {
-                    lastError = String(localized: "ios.ria_billing_not_set_up")
-                } else {
-                    lastError = error.localizedDescription
-                }
+            if message.contains("strict_e2ee") || message.contains("strict e2ee") {
+                aiDisabledReason = appText(
+                    "ios.ria_unavailable_strict_e2ee",
+                    languageCode: appLanguage
+                )
+            } else if (error as? URLError)?.code == .timedOut {
+                lastError = appText(
+                    "ios.ria_took_too_long",
+                    languageCode: appLanguage
+                )
+            } else if message.contains("429") || message.contains("quota") || message.contains("billing") {
+                lastError = appText(
+                    "ios.ria_billing_not_set_up",
+                    languageCode: appLanguage
+                )
+            } else {
+                lastError = error.localizedDescription
             }
         }
 

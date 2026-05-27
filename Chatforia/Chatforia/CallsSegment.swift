@@ -18,7 +18,11 @@ enum CallsSegment: String, CaseIterable, Identifiable {
         }
     }
 
+    private var appLanguage: String {
+        UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
+    }
+
     var localizedTitle: String {
-        String(localized: String.LocalizationValue(titleKey))
+        appText(titleKey, languageCode: appLanguage)
     }
 }

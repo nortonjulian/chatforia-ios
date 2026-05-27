@@ -8,6 +8,10 @@ final class SMSThreadViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var isSending: Bool = false
     @Published var errorText: String?
+    
+    private var appLanguage: String {
+        UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
+    }
 
     private var observers: [NSObjectProtocol] = []
 
@@ -56,7 +60,10 @@ final class SMSThreadViewModel: ObservableObject {
     
     func loadThread(threadId: Int, token: String?) async {
         guard let token else {
-            errorText = String(localized: "ios.missing_auth_token")
+            errorText = appText(
+                "ios.missing_auth_token",
+                languageCode: appLanguage
+            )
             return
         }
 
@@ -90,7 +97,10 @@ final class SMSThreadViewModel: ObservableObject {
         guard !trimmed.isEmpty else { return nil }
 
         guard let token else {
-            errorText = String(localized: "ios.missing_auth_token")
+            errorText = appText(
+                "ios.missing_auth_token",
+                languageCode: appLanguage
+            )
             return nil
         }
 
@@ -150,7 +160,10 @@ final class SMSThreadViewModel: ObservableObject {
         guard !mediaUrls.isEmpty else { return nil }
 
         guard let token else {
-            errorText = String(localized: "ios.missing_auth_token")
+            errorText = appText(
+                "ios.missing_auth_token",
+                languageCode: appLanguage
+            )
             return nil
         }
 

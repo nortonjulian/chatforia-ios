@@ -18,6 +18,7 @@ struct PremiumPickerSheet: View {
 
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     private var freeOptions: [PremiumSelectableOption] {
         options.filter { $0.requiredPlan == .free }
@@ -38,14 +39,14 @@ struct PremiumPickerSheet: View {
                         headerCard
 
                         optionSection(
-                            title: "Free",
-                            caption: "Included on your current plan.",
+                            title: appText("plan_free", languageCode: appLanguage),
+                            caption: appText("premiumpicker_free_caption", languageCode: appLanguage),
                             items: freeOptions
                         )
 
                         optionSection(
-                            title: String(localized: "plan_premium"),
-                            caption: String(localized: "premiumpicker_premium_caption"),
+                            title: appText("plan_premium", languageCode: appLanguage),
+                            caption: appText("premiumpicker_premium_caption", languageCode: appLanguage),
                             items: premiumOptions
                         )
                     }
@@ -56,7 +57,7 @@ struct PremiumPickerSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(String(localized: "common.done")) {
+                    Button(appText("common.done", languageCode: appLanguage)) {
                         dismiss()
                     }
                     .foregroundStyle(themeManager.palette.accent)
@@ -72,7 +73,7 @@ struct PremiumPickerSheet: View {
                 .foregroundStyle(themeManager.palette.secondaryText)
 
             HStack(spacing: 8) {
-                Text(String(localized: "billing.currentPlan"))
+                Text(appText("billing.currentPlan", languageCode: appLanguage))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(themeManager.palette.secondaryText)
 
@@ -136,13 +137,13 @@ struct PremiumPickerSheet: View {
                                 Text(
                                     locked
                                         ? String(
-                                            format: String(localized: "premium.requiresPlan"),
+                                            format: appText("premium.requiresPlan", languageCode: appLanguage),
                                             item.requiredPlan.displayName
                                         )
-                                        : String(localized: "common.availableNow")
+                                        : appText("common.availableNow", languageCode: appLanguage)
                                 )
-                                    .font(.caption)
-                                    .foregroundStyle(themeManager.palette.secondaryText)
+                                .font(.caption)
+                                .foregroundStyle(themeManager.palette.secondaryText)
                             }
 
                             Spacer()

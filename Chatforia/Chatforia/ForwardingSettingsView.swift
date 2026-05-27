@@ -2,19 +2,23 @@ import SwiftUI
 
 struct ForwardingSettingsView: View {
     @EnvironmentObject var auth: AuthStore
+    @AppStorage("chatforia_language") private var appLanguage = "en"
     @StateObject private var vm = ForwardingSettingsViewModel()
 
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
                 SectionCardView(
-                        title: String(localized:"forwarding.callTextForwarding")
+                    title: appText(
+                        "forwarding.callTextForwarding",
+                        languageCode: appLanguage
+                    )
                     ) {
                     VStack(alignment: .leading, spacing: 14) {
                         Text(
-                            String(
-                                localized:
-                                "forwarding.description"
+                            appText(
+                                "forwarding.description",
+                                languageCode: appLanguage
                             )
                         )
                             .font(.footnote)
@@ -34,7 +38,10 @@ struct ForwardingSettingsView: View {
 
                         Divider()
 
-                        Toggle("forwarding.enableTextForwarding", isOn: $vm.forwardingEnabledSms)
+                        Toggle(
+                            appText("forwarding.enableTextForwarding", languageCode: appLanguage),
+                            isOn: $vm.forwardingEnabledSms
+                        )
 
                         if let smsError = vm.validationErrors["smsToggle"], vm.forwardingEnabledSms {
                             Text(smsError)
@@ -42,10 +49,13 @@ struct ForwardingSettingsView: View {
                                 .foregroundStyle(.red)
                         }
 
-                        Toggle("forwarding.forwardTextsToPhone", isOn: $vm.forwardSmsToPhone)
+                        Toggle(
+                            appText("forwarding.forwardTextsToPhone", languageCode: appLanguage),
+                            isOn: $vm.forwardSmsToPhone
+                        )
 
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("forwarding.destinationPhoneE164")
+                            Text(appText("forwarding.destinationPhoneE164", languageCode: appLanguage))
                                 .font(.subheadline.weight(.semibold))
 
                             TextField("+15551234567", text: $vm.forwardPhoneNumber)
@@ -60,10 +70,13 @@ struct ForwardingSettingsView: View {
                             }
                         }
 
-                        Toggle("forwarding.forwardTextsToEmail", isOn: $vm.forwardSmsToEmail)
+                        Toggle(
+                            appText("forwarding.forwardTextsToEmail", languageCode: appLanguage),
+                            isOn: $vm.forwardSmsToEmail
+                        )
 
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("forwarding.destinationEmail")
+                            Text(appText("forwarding.destinationEmail", languageCode: appLanguage))
                                 .font(.subheadline.weight(.semibold))
 
                             TextField("me@example.com", text: $vm.forwardEmail)
@@ -81,13 +94,19 @@ struct ForwardingSettingsView: View {
 
                         Divider()
 
-                        Toggle("forwarding.enableCallForwarding", isOn: $vm.forwardingEnabledCalls)
+                        Toggle(
+                            appText(
+                                "forwarding.enableCallForwarding",
+                                languageCode: appLanguage
+                            ),
+                            isOn: $vm.forwardingEnabledCalls
+                        )
 
                         VStack(alignment: .leading, spacing: 6) {
                             Text(
-                                String(
-                                    localized:
-                                    "forwarding.destinationCallsE164"
+                                appText(
+                                    "forwarding.destinationCallsE164",
+                                    languageCode: appLanguage
                                 )
                             )
                                 .font(.subheadline.weight(.semibold))
@@ -108,7 +127,7 @@ struct ForwardingSettingsView: View {
 
                         HStack {
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("settings.startHour")
+                                Text(appText("settings.startHour", languageCode: appLanguage))
                                     .font(.subheadline.weight(.semibold))
 
                                 TextField(
@@ -123,7 +142,7 @@ struct ForwardingSettingsView: View {
                             }
 
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("settings.endHour")
+                                Text(appText("settings.endHour", languageCode: appLanguage))
                                     .font(.subheadline.weight(.semibold))
 
                                 TextField(
@@ -146,7 +165,10 @@ struct ForwardingSettingsView: View {
 
                         HStack {
                             Button(
-                                String(localized:"common.reset")
+                                appText(
+                                    "common.reset",
+                                    languageCode: appLanguage
+                                )
                             ) {
                                 vm.reset()
                             }
@@ -161,7 +183,7 @@ struct ForwardingSettingsView: View {
                                 if vm.isSaving {
                                     ProgressView()
                                 } else {
-                                    Text("forwarding.saveForwarding")
+                                    Text(appText("forwarding.saveForwarding", languageCode: appLanguage))
                                 }
                             }
                             .buttonStyle(.borderedProminent)
@@ -174,7 +196,10 @@ struct ForwardingSettingsView: View {
         }
         .background(Color(uiColor: .systemGroupedBackground))
         .navigationTitle(
-            String(localized:"forwarding.title")
+            appText(
+                "forwarding.title",
+                languageCode: appLanguage
+            )
         )
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -216,10 +241,9 @@ struct ForwardingSettingsView: View {
                 token: token
             )
             vm.load(from: saved)
-            vm.banner =
-            String(
-                localized:
-                "forwarding.saved"
+            vm.banner = appText(
+                "forwarding.saved",
+                languageCode: appLanguage
             )
         } catch {
             vm.errorMessage = error.localizedDescription

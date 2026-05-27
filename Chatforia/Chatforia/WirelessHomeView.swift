@@ -334,16 +334,21 @@ struct WirelessHomeView: View {
         ) {
             VStack(alignment: .leading, spacing: 14) {
                 Picker(
-                    appText("wireless.coverage", languageCode: appLanguage),
-                    selection: $selectedScope
+                    selection: $selectedScope,
+                    label: Text(appText("wireless.coverage", languageCode: appLanguage))
                 ) {
                     ForEach(EsimScope.allCases) { scope in
-                        Text(scope.displayName).tag(scope)
+                        Text(
+                            scope.displayName(languageCode: appLanguage)
+                        )
+                            .tag(scope)
                     }
                 }
                 .pickerStyle(.segmented)
 
-                Text(selectedScope.subtitle)
+                Text(
+                    selectedScope.subtitle(languageCode: appLanguage)
+                )
                     .font(.footnote)
                     .foregroundStyle(themeManager.palette.secondaryText)
 
@@ -369,9 +374,13 @@ struct WirelessHomeView: View {
     }
 
     private func dataPackCard(_ pack: DataPackOption) -> some View {
-        SectionCardView(title: pack.title) {
+        SectionCardView(
+            title: pack.title(languageCode: appLanguage)
+        ) {
             VStack(alignment: .leading, spacing: 14) {
-                Text(pack.displayDataAmount)
+                Text(
+                    pack.displayDataAmount(languageCode: appLanguage)
+                )
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(themeManager.palette.primaryText)
 
@@ -379,7 +388,9 @@ struct WirelessHomeView: View {
                     .font(.title3.bold())
                     .foregroundStyle(themeManager.palette.primaryText)
 
-                Text(pack.description)
+                Text(
+                    pack.description(languageCode: appLanguage)
+                )
                     .font(.footnote)
                     .foregroundStyle(themeManager.palette.secondaryText)
 

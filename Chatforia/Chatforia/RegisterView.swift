@@ -3,6 +3,7 @@ import SwiftUI
 struct RegisterView: View {
     @EnvironmentObject var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     @State private var username = ""
     @State private var email = ""
@@ -29,13 +30,21 @@ struct RegisterView: View {
             ScrollView {
                 VStack(spacing: 20) {
                     VStack(spacing: 8) {
-                        Text("auth.createYourAccount")
+                        Text(
+                            appText(
+                                "auth.createYourAccount",
+                                languageCode: appLanguage
+                            )
+                        )
                             .font(.system(size: 30, weight: .bold))
                             .foregroundStyle(themeManager.palette.primaryText)
                             .multilineTextAlignment(.center)
 
                         Text(
-                            String(localized:"auth.signupSubtitle")
+                            appText(
+                                "auth.signupSubtitle",
+                                languageCode: appLanguage
+                            )
                         )
                             .font(.subheadline)
                             .foregroundStyle(themeManager.palette.secondaryText)
@@ -47,8 +56,14 @@ struct RegisterView: View {
                         HStack(spacing: 12) {
                             ThemedOutlineButton(
                                 title: isOAuthLoading
-                                ? String(localized:"auth.continueWithGoogle")
-                                : String(localized:"auth.google")
+                                ? appText(
+                                    "auth.continueWithGoogle",
+                                    languageCode: appLanguage
+                                )
+                                : appText(
+                                    "auth.google",
+                                    languageCode: appLanguage
+                                )
                             ) {
                                 Task { await handleGoogle() }
                             }
@@ -56,8 +71,14 @@ struct RegisterView: View {
 
                             ThemedOutlineButton(
                                 title: isOAuthLoading
-                                ? String(localized:"auth.continueWithApple")
-                                : String(localized:"auth.apple")
+                                ? appText(
+                                    "auth.continueWithApple",
+                                    languageCode: appLanguage
+                                )
+                                : appText(
+                                    "auth.apple",
+                                    languageCode: appLanguage
+                                )
                             ) {
                                 Task { await handleApple() }
                             }
@@ -70,7 +91,12 @@ struct RegisterView: View {
                                 .fill(themeManager.palette.border)
                                 .frame(height: 1)
 
-                            Text(String(localized:"common.or"))
+                            Text(
+                                appText(
+                                    "common.or",
+                                    languageCode: appLanguage
+                                )
+                            )
                                 .font(.footnote)
                                 .foregroundStyle(themeManager.palette.secondaryText)
                                 .padding(.horizontal, 8)
@@ -83,12 +109,15 @@ struct RegisterView: View {
 
                         if !phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                             ThemedToggleRow(
-                                title: String(localized:"auth.smsConsent"),
-                                subtitle:
-                                String(
-                                    localized:
-                                    "auth.smsConsentSubtitle"
+                                title: appText(
+                                    "auth.smsConsent",
+                                    languageCode: appLanguage
                                 ),
+                                subtitle:
+                                    appText(
+                                        "auth.smsConsentSubtitle",
+                                        languageCode: appLanguage
+                                    ),
                                 isOn: $smsConsent
                             )
                         }
@@ -110,52 +139,81 @@ struct RegisterView: View {
                         ThemedGradientButton(
                             title:
                             isSubmitting
-                             ? String(localized:"auth.creatingAccount")
-                             : String(localized:"auth.createAccount"),
+                             ? appText(
+                                "auth.creatingAccount",
+                                languageCode: appLanguage
+                            )
+                             : appText(
+                                "auth.createAccount",
+                                languageCode: appLanguage
+                            ),
                             action: { Task { await submit() } },
                             isFullWidth: true,
                             isDisabled: isSubmitting
                         )
                         
                         ThemedTextField(
-                            title: String(localized:"auth.username"),
+                            title: appText(
+                                "auth.username",
+                                languageCode: appLanguage
+                            ),
                             text: $username,
                             contentType: .username
                         )
 
                         ThemedTextField(
-                            title: String(localized:"auth.email"),
+                            title: appText(
+                                "auth.email",
+                                languageCode: appLanguage
+                            ),
                             text: $email,
                             keyboard: .emailAddress,
                             contentType: .emailAddress
                         )
 
                         ThemedSecureField(
-                            title: String(localized:"auth.password"),
+                            title: appText(
+                                "auth.password",
+                                languageCode: appLanguage
+                            ),
                             text: $password,
                             contentType: .newPassword
                         )
 
                         ThemedSecureField(
-                            title: String(localized:"auth.phoneOptional"),
+                            title: appText(
+                                "auth.confirmPassword",
+                                languageCode: appLanguage
+                            ),
                             text: $confirmPassword,
                             contentType: .newPassword
                         )
 
                         ThemedTextField(
-                            title: "Phone (optional)",
+                            title: appText(
+                                "auth.phoneOptional",
+                                languageCode: appLanguage
+                            ),
                             text: $phone,
                             keyboard: .phonePad,
                             contentType: .telephoneNumber
                         )
 
                         VStack(spacing: 6) {
-                            Text("auth.alreadyHaveAnAccount")
+                            Text(
+                                appText(
+                                    "auth.alreadyHaveAnAccount",
+                                    languageCode: appLanguage
+                                )
+                            )
                                 .font(.footnote)
                                 .foregroundStyle(themeManager.palette.secondaryText)
 
                             Text(
-                                String(localized:"auth.loginPreviousScreen")
+                                appText(
+                                    "auth.loginPreviousScreen",
+                                    languageCode: appLanguage
+                                )
                             )
                                 .font(.footnote.weight(.semibold))
                                 .foregroundStyle(themeManager.palette.accent)
@@ -163,7 +221,10 @@ struct RegisterView: View {
                         .padding(.top, 4)
 
                         Text(
-                            String(localized:"auth.termsAgreement")
+                            appText(
+                                "auth.termsAgreement",
+                                languageCode: appLanguage
+                            )
                         )
                             .font(.footnote)
                             .foregroundStyle(themeManager.palette.secondaryText)
@@ -182,7 +243,12 @@ struct RegisterView: View {
                 .padding()
             }
         }
-        .navigationTitle(String(localized: "common.register"))
+        .navigationTitle(
+            appText(
+                "common.register",
+                languageCode: appLanguage
+            )
+        )
         .navigationBarTitleDisplayMode(.inline)
     }
     
@@ -259,32 +325,50 @@ struct RegisterView: View {
         let trimmedPhone = phone.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !trimmedUsername.isEmpty else {
-            errorMessage = String(localized: "auth.usernameRequired")
+            errorMessage = appText(
+                "auth.usernameRequired",
+                languageCode: appLanguage
+            )
             return
         }
 
         guard isValidEmail(trimmedEmail) else {
-            errorMessage = String(localized: "auth.validEmailRequired")
+            errorMessage = appText(
+                "auth.validEmailRequired",
+                languageCode: appLanguage
+            )
             return
         }
 
         guard !password.isEmpty else {
-            errorMessage = String(localized: "auth.passwordRequired")
+            errorMessage = appText(
+                "auth.passwordRequired",
+                languageCode: appLanguage
+            )
             return
         }
 
         guard password.count >= 6 else {
-            errorMessage = String(localized: "auth.passwordMinLength")
+            errorMessage = appText(
+                "auth.passwordMinLength",
+                languageCode: appLanguage
+            )
             return
         }
 
         guard password == confirmPassword else {
-            errorMessage = String(localized: "auth.passwordsDontMatch")
+            errorMessage = appText(
+                "auth.passwordsDontMatch",
+                languageCode: appLanguage
+            )
             return
         }
 
         if !trimmedPhone.isEmpty && !smsConsent {
-            errorMessage = String(localized: "auth.smsConsentRequired")
+            errorMessage = appText(
+                "auth.smsConsentRequired",
+                languageCode: appLanguage
+            )
             return
         }
 
@@ -318,7 +402,10 @@ struct RegisterView: View {
                             privateKeyBase64: privateKey
                         )
                     } catch {
-                        errorMessage = "Your account was created, but secure key setup failed on this device. Please try again."
+                        errorMessage = appText(
+                            "auth.secureKeySetupFailed",
+                            languageCode: appLanguage
+                        )
                         return
                     }
                 }
@@ -328,7 +415,10 @@ struct RegisterView: View {
             }
 
             successMessage =
-                String(localized: "auth.verifyEmailAfterSignup")
+            appText(
+                "auth.verifyEmailAfterSignup",
+                languageCode: appLanguage
+            )
         } catch {
             errorMessage = friendlyRegistrationError(error)
         }

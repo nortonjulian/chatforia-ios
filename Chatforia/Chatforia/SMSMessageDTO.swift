@@ -1,6 +1,9 @@
 import Foundation
+import SwiftUI
 
 struct SMSMessageDTO: Decodable, Identifiable, Equatable, Sendable {
+    @AppStorage("chatforia_language") private static var appLanguage = "en"
+
     let id: Int
     let threadId: Int?
     let direction: String
@@ -100,23 +103,25 @@ struct SMSMessageDTO: Decodable, Identifiable, Equatable, Sendable {
 
     var displayFallbackText: String {
         if hasText { return trimmedBody ?? "" }
+
         if hasMedia {
             if media.contains(where: { $0.isImage }) {
-            return String(localized: "media.photo")
-        }
-
-        if media.contains(where: { $0.isVideo }) {
-            return String(localized: "media.video")
-        }
-
-        if media.contains(where: { $0.isAudio }) {
-            return String(localized: "media.audio")
-        }
-
-        return String(localized: "media.attachment")
-                }
-                return ""
+                return appText("media.photo", languageCode: Self.appLanguage)
             }
+
+            if media.contains(where: { $0.isVideo }) {
+                return appText("media.video", languageCode: Self.appLanguage)
+            }
+
+            if media.contains(where: { $0.isAudio }) {
+                return appText("media.audio", languageCode: Self.appLanguage)
+            }
+
+            return appText("media.attachment", languageCode: Self.appLanguage)
+        }
+
+        return ""
+    }
 
     static func optimisticOutgoing(threadId: Int, to: String, body: String) -> SMSMessageDTO {
         SMSMessageDTO(
@@ -136,6 +141,8 @@ struct SMSMessageDTO: Decodable, Identifiable, Equatable, Sendable {
 }
 
 struct SMSMediaItemDTO: Codable, Equatable, Sendable {
+    @AppStorage("chatforia_language") private static var appLanguage = "en"
+
     let url: String
     let contentType: String?
 
@@ -155,38 +162,51 @@ struct SMSMediaItemDTO: Codable, Equatable, Sendable {
 
     var isImage: Bool {
         if normalizedContentType.hasPrefix("image/") { return true }
+
         let u = url.lowercased()
-        return u.contains(".jpg") || u.contains(".jpeg") || u.contains(".png") || u.contains(".gif") || u.contains(".webp")
+        return u.contains(".jpg")
+            || u.contains(".jpeg")
+            || u.contains(".png")
+            || u.contains(".gif")
+            || u.contains(".webp")
     }
 
     var isVideo: Bool {
         if normalizedContentType.hasPrefix("video/") { return true }
+
         let u = url.lowercased()
-        return u.contains(".mp4") || u.contains(".mov") || u.contains(".webm")
+        return u.contains(".mp4")
+            || u.contains(".mov")
+            || u.contains(".webm")
     }
 
     var isAudio: Bool {
         if normalizedContentType.hasPrefix("audio/") { return true }
+
         let u = url.lowercased()
-        return u.contains(".mp3") || u.contains(".m4a") || u.contains(".wav") || u.contains(".aac") || u.contains(".ogg")
+        return u.contains(".mp3")
+            || u.contains(".m4a")
+            || u.contains(".wav")
+            || u.contains(".aac")
+            || u.contains(".ogg")
     }
 
     var displayLabel: String {
         if isImage {
-            return String(localized: "media.photo")
+            return appText("media.photo", languageCode: Self.appLanguage)
         }
 
         if isVideo {
-            return String(localized: "media.video")
+            return appText("media.video", languageCode: Self.appLanguage)
         }
 
         if isAudio {
-            return String(localized: "media.audio")
+            return appText("media.audio", languageCode: Self.appLanguage)
         }
 
-        return String(localized: "media.attachment")
-            }
-        }
+        return appText("media.attachment", languageCode: Self.appLanguage)
+    }
+}
 
 private extension String {
     var nilIfBlank: String? {

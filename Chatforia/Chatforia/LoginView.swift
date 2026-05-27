@@ -17,6 +17,7 @@ struct LoginRequest: Encodable {
 struct LoginView: View {
     @EnvironmentObject var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     @State private var identifier = ""
     @State private var password = ""
@@ -81,12 +82,26 @@ struct LoginView: View {
                 ScrollView {
                     VStack(spacing: 20) {
                         VStack(spacing: 8) {
-                            Text(String(localized: hasLoggedInBefore ? "common.welcomeBack" : "common.welcomeToChatforia"))
+                            Text(
+                                appText(
+                                    hasLoggedInBefore
+                                    ? "common.welcomeBack"
+                                    : "common.welcomeToChatforia",
+                                    languageCode: appLanguage
+                                )
+                            )
                                 .font(.system(size: 30, weight: .bold))
                                 .foregroundStyle(themeManager.palette.primaryText)
                                 .multilineTextAlignment(.center)
 
-                            Text(String(localized: hasLoggedInBefore ? "login.subtitleReturning" : "upgrade.auth.signInOrCreateAnAccount"))
+                            Text(
+                                appText(
+                                    hasLoggedInBefore
+                                    ? "login.subtitleReturning"
+                                    : "upgrade.auth.signInOrCreateAnAccount",
+                                    languageCode: appLanguage
+                                )
+                            )
                                 .font(.subheadline)
                                 .foregroundStyle(themeManager.palette.secondaryText)
                                 .multilineTextAlignment(.center)
@@ -103,7 +118,10 @@ struct LoginView: View {
                                 .disabled(isLoading || activeOAuthProvider != nil)
 
                                 ThemedOutlineButton(
-                                    title: activeOAuthProvider == "apple" ? "Continue with Apple…" : "Apple"
+                                    title:
+                                        activeOAuthProvider == "apple"
+                                        ? appText("auth.continueWithApple", languageCode: appLanguage)
+                                        : appText("auth.apple", languageCode: appLanguage)
                                 ) {
                                     Task { await handleApple() }
                                 }
@@ -115,7 +133,12 @@ struct LoginView: View {
                                     .fill(themeManager.palette.border)
                                     .frame(height: 1)
 
-                                Text("or")
+                                Text(
+                                    appText(
+                                        "common.or",
+                                        languageCode: appLanguage
+                                    )
+                                )
                                     .font(.footnote)
                                     .foregroundStyle(themeManager.palette.secondaryText)
                                     .padding(.horizontal, 8)
@@ -129,9 +152,24 @@ struct LoginView: View {
                             HStack {
                                 Spacer()
 
-                                NavigationLink("Forgot password?") {
-                                    Text("auth.forgotPassword")
-                                        .navigationTitle("auth.forgotPassword")
+                                NavigationLink(
+                                    appText(
+                                        "auth.forgotPasswordQuestion",
+                                        languageCode: appLanguage
+                                    )
+                                ) {
+                                    Text(
+                                        appText(
+                                            "auth.forgotPassword",
+                                            languageCode: appLanguage
+                                        )
+                                    )
+                                    .navigationTitle(
+                                        appText(
+                                            "auth.forgotPassword",
+                                            languageCode: appLanguage
+                                        )
+                                    )
                                 }
                                 .font(.footnote)
                                 .foregroundStyle(themeManager.palette.accent)
@@ -148,7 +186,11 @@ struct LoginView: View {
                                 Button {
                                     Task { await resendVerificationEmail() }
                                 } label: {
-                                    Text(resendLoading ? "Sending..." : "Resend verification email")
+                                    Text(
+                                        resendLoading
+                                        ? appText("auth.sending", languageCode: appLanguage)
+                                        : appText("auth.resendVerificationEmail", languageCode: appLanguage)
+                                    )
                                         .font(.footnote.weight(.semibold))
                                         .foregroundStyle(themeManager.palette.accent)
                                 }
@@ -163,34 +205,53 @@ struct LoginView: View {
                             }
 
                             ThemedTextField(
-                                title: "Email or username",
+                                title: appText(
+                                    "auth.emailOrUsername",
+                                    languageCode: appLanguage
+                                ),
                                 text: $identifier,
                                 keyboard: .emailAddress,
                                 contentType: .username
                             )
 
                             ThemedSecureField(
-                                title: "Password",
+                                title: appText(
+                                    "auth.password",
+                                    languageCode: appLanguage
+                                ),
                                 text: $password,
                                 contentType: .password
                             )
 
                             ThemedGradientButton(
-                                title: isLoading ? "Logging in..." : "Log In",
+                                title:
+                                    isLoading
+                                    ? appText("auth.loggingIn", languageCode: appLanguage)
+                                    : appText("auth.logIn", languageCode: appLanguage),
                                 action: { Task { await login() } },
                                 isFullWidth: true,
                                 isDisabled: isLoading || identifier.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || password.isEmpty
                             )
 
                             VStack(spacing: 6) {
-                                Text("auth.dontHaveAnAccountYet")
+                                Text(
+                                    appText(
+                                        "auth.dontHaveAnAccountYet",
+                                        languageCode: appLanguage
+                                    )
+                                )
                                     .font(.footnote)
                                     .foregroundStyle(themeManager.palette.secondaryText)
 
                                 NavigationLink {
                                     RegisterView()
                                 } label: {
-                                    Text("auth.createAccount")
+                                    Text(
+                                        appText(
+                                            "auth.createAccount",
+                                            languageCode: appLanguage
+                                        )
+                                    )
                                         .font(.footnote.weight(.semibold))
                                         .foregroundStyle(themeManager.palette.accent)
                                 }
@@ -239,9 +300,15 @@ struct LoginView: View {
                 token: nil
             )
 
-            resendSuccess = "Verification email sent. Check your inbox."
+            resendSuccess = appText(
+                "auth.verificationEmailSent",
+                languageCode: appLanguage
+            )
         } catch {
-            errorText = "Failed to resend verification email."
+            errorText = appText(
+                "auth.resendVerificationFailed",
+                languageCode: appLanguage
+            )
         }
     }
 
@@ -286,7 +353,10 @@ struct LoginView: View {
             let message = error.localizedDescription
 
             if message.lowercased().contains("email_not_verified") {
-                errorText = "Please verify your email before logging in."
+                errorText = appText(
+                    "auth.verifyEmailBeforeLogin",
+                    languageCode: appLanguage
+                )
                 resendEmail = identifier
                 showResendVerification = true
                 return

@@ -9,18 +9,22 @@ enum RemoteKeyBackupError: Error, LocalizedError {
     case decryptFailed
     case keyMismatch
 
+    private var appLanguage: String {
+        UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
+    }
+
     var errorDescription: String? {
         switch self {
         case .invalidPassword:
-            return String(localized: "encryptionRecovery.errors.invalidPassword")
+            return appText("encryptionRecovery.errors.invalidPassword", languageCode: appLanguage)
         case .invalidKeyMaterial:
-            return String(localized: "encryptionRecovery.errors.invalidKeyMaterial")
+            return appText("encryptionRecovery.errors.invalidKeyMaterial", languageCode: appLanguage)
         case .encodingFailed:
-            return String(localized: "encryptionRecovery.errors.encodingFailed")
+            return appText("encryptionRecovery.errors.encodingFailed", languageCode: appLanguage)
         case .decryptFailed:
-            return String(localized: "encryptionRecovery.errors.decryptFailed")
+            return appText("encryptionRecovery.errors.decryptFailed", languageCode: appLanguage)
         case .keyMismatch:
-            return String(localized: "encryptionRecovery.errors.keyMismatch")
+            return appText("encryptionRecovery.errors.keyMismatch", languageCode: appLanguage)
         }
     }
 }
