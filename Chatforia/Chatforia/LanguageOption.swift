@@ -36,7 +36,7 @@ enum AppLanguages {
         .init(code: "hr", name: "Croatian"),
         .init(code: "cs", name: "Czech"),
         .init(code: "da", name: "Danish"),
-        .init(code: "prs", name: "Dari (Afghan Persian)"),
+        .init(code: "fa-AF", name: "Dari"),
         .init(code: "dv", name: "Dhivehi"),
         .init(code: "nl", name: "Dutch"),
         .init(code: "dz", name: "Dzongkha"),

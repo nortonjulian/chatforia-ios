@@ -8,17 +8,12 @@ final class RegistrationService {
         phone: String? = nil,
         smsConsent: Bool? = nil
     ) async throws -> RegistrationResponseDTO {
-        let cleanedPhone: String? = {
-            let trimmed = phone?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            return trimmed.isEmpty ? nil : trimmed
-        }()
-
-        let request = RegistrationRequestDTO(
-            username: username.trimmingCharacters(in: .whitespacesAndNewlines),
-            email: email.trimmingCharacters(in: .whitespacesAndNewlines),
+        let request = makeRegistrationRequest(
+            username: username,
+            email: email,
             password: password,
-            phone: cleanedPhone,
-            smsConsent: cleanedPhone == nil ? nil : smsConsent
+            phone: phone,
+            smsConsent: smsConsent
         )
 
         let body = try JSONEncoder().encode(request)
@@ -34,5 +29,26 @@ final class RegistrationService {
         )
 
         return response
+    }
+
+    internal func makeRegistrationRequest(
+        username: String,
+        email: String,
+        password: String,
+        phone: String? = nil,
+        smsConsent: Bool? = nil
+    ) -> RegistrationRequestDTO {
+        let cleanedPhone: String? = {
+            let trimmed = phone?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return trimmed.isEmpty ? nil : trimmed
+        }()
+
+        return RegistrationRequestDTO(
+            username: username.trimmingCharacters(in: .whitespacesAndNewlines),
+            email: email.trimmingCharacters(in: .whitespacesAndNewlines),
+            password: password,
+            phone: cleanedPhone,
+            smsConsent: cleanedPhone == nil ? nil : smsConsent
+        )
     }
 }

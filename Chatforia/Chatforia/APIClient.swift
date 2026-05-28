@@ -84,7 +84,7 @@ final class APIClient {
 
     /// Build a URL from AppEnvironment.apiBaseURL and the request.path while preserving any query string in `request.path`.
     /// This avoids percent-encoding the `?` and query portion when appending the path.
-    private func buildURL(from request: APIRequest) throws -> URL {
+    internal func buildURL(from request: APIRequest) throws -> URL {
         let pathAndQuery = request.path
         guard var baseComponents = URLComponents(url: AppEnvironment.apiBaseURL, resolvingAgainstBaseURL: false) else {
             throw APIError.invalidURL

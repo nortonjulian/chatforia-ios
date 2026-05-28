@@ -2,6 +2,26 @@ import Foundation
 import Combine
 
 @MainActor
+
+protocol TokenStoring {
+    func read() -> String?
+    func save(_ token: String)
+    func clear()
+}
+
+protocol SocketManaging {
+    func connect(token: String)
+    func disconnect()
+}
+
+protocol APIClientSending {
+    func send<T: Decodable>(_ request: APIRequest, token: String?) async throws -> T
+}
+
+extension TokenStore: TokenStoring {}
+extension SocketManager: SocketManaging {}
+extension APIClient: APIClientSending {}
+
 final class AuthStore: NSObject, ObservableObject {
 
     enum State {
@@ -30,8 +50,9 @@ final class AuthStore: NSObject, ObservableObject {
     @Published var subscriptionPlan: SubscriptionPlan = .free
     @Published var isAppReady: Bool = false
 
-    private let tokenStore = TokenStore.shared
-    private(set) var socket = SocketManager.shared
+    private let tokenStore: TokenStoring
+    private let apiClient: APIClientSending
+    private(set) var socket: SocketManaging
     
     private var appLanguage: String {
         UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
@@ -41,7 +62,15 @@ final class AuthStore: NSObject, ObservableObject {
     var isPremium: Bool { subscriptionPlan == .premium }
     var isPaid: Bool { isPlus || isPremium }
 
-    override init() {
+    init(
+        tokenStore: TokenStoring = TokenStore.shared,
+        apiClient: APIClientSending = APIClient.shared,
+        socket: SocketManaging = SocketManager.shared
+    ) {
+        self.tokenStore = tokenStore
+        self.apiClient = apiClient
+        self.socket = socket
+
         super.init()
 
         NotificationCenter.default.addObserver(
@@ -95,7 +124,7 @@ final class AuthStore: NSObject, ObservableObject {
         }
 
         do {
-            let response: MeResponse = try await APIClient.shared.send(
+            let response: MeResponse = try await apiClient.send(
                 APIRequest(path: "auth/me", method: .GET, requiresAuth: true),
                 token: token
             )

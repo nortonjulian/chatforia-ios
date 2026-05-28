@@ -22,8 +22,8 @@ struct MessageToneOption: Identifiable, Hashable {
         }
     }
 
-    var localizedName: String {
-        String(localized: String.LocalizationValue(localizationKey))
+    func localizedName(languageCode: String) -> String {
+        appText(localizationKey, languageCode: languageCode)
     }
 }
 
@@ -50,7 +50,7 @@ enum AppMessageTones {
         all.first(where: { $0.code == code })?.requiredPlan ?? .free
     }
 
-    static func name(for code: String) -> String {
-        all.first(where: { $0.code == code })?.localizedName ?? code
+    static func name(for code: String, languageCode: String) -> String {
+        all.first(where: { $0.code == code })?.localizedName(languageCode: languageCode) ?? code
     }
 }

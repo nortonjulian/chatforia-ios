@@ -167,6 +167,27 @@ private extension ESIMService {
     }
 }
 
+#if DEBUG
+extension ESIMService {
+
+    func test_buildLPAUri(
+        smdp: String?,
+        activationCode: String?
+    ) -> String? {
+        buildLPAUri(
+            smdp: smdp,
+            activationCode: activationCode
+        )
+    }
+
+    func test_inferredRegion(
+        from pack: DataPackOption
+    ) -> String {
+        inferredRegion(from: pack)
+    }
+}
+#endif
+
 // MARK: - DTOs for backend responses
 
 private struct ReserveESIMRequest: Encodable {

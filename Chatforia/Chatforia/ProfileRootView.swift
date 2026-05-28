@@ -190,7 +190,7 @@ struct ProfileRootView: View {
                         PremiumSelectableOption(
                             id: $0.code,
                             code: $0.code,
-                            name: $0.localizedName,
+                            name: $0.localizedName(languageCode: appLanguage),
                             requiredPlan: $0.requiredPlan
                         )
                     },
@@ -227,7 +227,7 @@ struct ProfileRootView: View {
                         PremiumSelectableOption(
                             id: $0.code,
                             code: $0.code,
-                            name: $0.localizedName,
+                            name: $0.localizedName(languageCode: appLanguage),
                             requiredPlan: $0.requiredPlan
                         )
                     },
@@ -264,7 +264,7 @@ struct ProfileRootView: View {
                         PremiumSelectableOption(
                             id: $0.code,
                             code: $0.code,
-                            name: $0.localizedName,
+                            name: $0.localizedName(languageCode: appLanguage),
                             requiredPlan: $0.requiredPlan
                         )
                     },
@@ -674,7 +674,7 @@ struct ProfileRootView: View {
                     } label: {
                         HStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(AppThemes.name(for: vm.theme))
+                                Text(AppThemes.name(for: vm.theme, languageCode: appLanguage))
                                     .font(.body.weight(.medium))
                                     .foregroundStyle(themeManager.palette.primaryText)
 
@@ -727,7 +727,7 @@ struct ProfileRootView: View {
                     } label: {
                         HStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(AppMessageTones.name(for: vm.messageTone))
+                                Text(AppMessageTones.name(for: vm.messageTone, languageCode: appLanguage))
                                     .font(.body.weight(.medium))
                                     .foregroundStyle(themeManager.palette.primaryText)
 
@@ -768,7 +768,7 @@ struct ProfileRootView: View {
                     } label: {
                         HStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(AppRingtones.name(for: vm.ringtone))
+                                Text(AppRingtones.name(for: vm.ringtone, languageCode: appLanguage))
                                     .font(.body.weight(.medium))
                                     .foregroundStyle(themeManager.palette.primaryText)
 
@@ -1473,7 +1473,7 @@ struct ProfileRootView: View {
 
     private func attemptApplyTheme(_ code: String) {
         let requiredPlan = AppThemes.requiredPlan(for: code)
-        let themeName = AppThemes.name(for: code)
+        let themeName = AppThemes.name(for: code, languageCode: appLanguage)
 
         guard AppThemes.isAvailable(code, for: currentPlan) else {
             presentUpgrade(
@@ -1518,7 +1518,7 @@ struct ProfileRootView: View {
     
     private func attemptApplyMessageTone(_ code: String) {
         let requiredPlan = AppMessageTones.requiredPlan(for: code)
-        let toneName = AppMessageTones.name(for: code)
+        let toneName = AppMessageTones.name(for: code, languageCode: appLanguage)
 
         guard AppMessageTones.isAvailable(code, for: currentPlan) else {
             presentUpgrade(
@@ -1541,7 +1541,7 @@ struct ProfileRootView: View {
 
     private func attemptApplyRingtone(_ code: String) {
         let requiredPlan = AppRingtones.requiredPlan(for: code)
-        let ringtoneName = AppRingtones.name(for: code)
+        let ringtoneName = AppRingtones.name(for: code, languageCode: appLanguage)
 
         guard AppRingtones.isAvailable(code, for: currentPlan) else {
             presentUpgrade(

@@ -95,7 +95,7 @@ final class SubscriptionManager: ObservableObject {
         }
     }
 
-    private func planInfo(for productId: String) -> (plan: String, billingPeriod: String) {
+    internal func planInfo(for productId: String) -> (plan: String, billingPeriod: String) {
         switch productId {
         case "plus.monthly":
             return ("plus", "monthly")

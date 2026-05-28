@@ -15,12 +15,8 @@ struct ThemeOption: Identifiable, Hashable {
         "themes.\(code)"
     }
 
-    var localizedName: String {
-        String(
-            localized: String.LocalizationValue(
-                localizationKey
-            )
-        )
+    func localizedName(languageCode: String) -> String {
+        appText(localizationKey, languageCode: languageCode)
     }
 }
 
@@ -46,8 +42,8 @@ enum AppThemes {
         return plan.canAccess(option.requiredPlan)
     }
 
-    static func name(for code: String) -> String {
-        all.first(where: { $0.code == code })?.localizedName
+    static func name(for code: String, languageCode: String) -> String {
+        all.first(where: { $0.code == code })?.localizedName(languageCode: languageCode)
             ?? code.capitalized
     }
 

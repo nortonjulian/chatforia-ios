@@ -132,7 +132,7 @@ final class CallManager: ObservableObject {
         let callId = data["callId"] as? Int
         let roomName = data["roomName"] as? String ?? {
             if let callId { return "call_\(callId)" }
-            return "video_call"
+            return "call_fallback_\(UUID().uuidString)"
         }()
 
         let payload = IncomingCallPayload(
