@@ -63,13 +63,13 @@ final class AuthStore: NSObject, ObservableObject {
     var isPaid: Bool { isPlus || isPremium }
 
     init(
-        tokenStore: TokenStoring = TokenStore.shared,
-        apiClient: APIClientSending = APIClient.shared,
-        socket: SocketManaging = SocketManager.shared
+        tokenStore: TokenStoring? = nil,
+        apiClient: APIClientSending? = nil,
+        socket: SocketManaging? = nil
     ) {
-        self.tokenStore = tokenStore
-        self.apiClient = apiClient
-        self.socket = socket
+        self.tokenStore = tokenStore ?? TokenStore.shared
+        self.apiClient = apiClient ?? APIClient.shared
+        self.socket = socket ?? SocketManager.shared
 
         super.init()
 

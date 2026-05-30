@@ -1,6 +1,7 @@
 import XCTest
 @testable import Chatforia
 
+@MainActor
 final class WirelessServiceTests: XCTestCase {
 
     override func setUp() {
@@ -14,42 +15,26 @@ final class WirelessServiceTests: XCTestCase {
     }
 
     func testFetchWirelessStatusThrowsUnauthorizedWhenNoToken() async {
-
         do {
             _ = try await WirelessService.shared.fetchWirelessStatus()
-
             XCTFail("Expected APIError.unauthorized")
-
-        } catch let error as APIError {
-
-            guard case .unauthorized = error else {
-                XCTFail("Expected APIError.unauthorized, got \(error)")
-                return
-            }
-
+        } catch APIError.unauthorized {
+            // expected
         } catch {
-            XCTFail("Unexpected error: \(error)")
+            XCTFail("Expected APIError.unauthorized, got \(error)")
         }
     }
 
     func testFetchWirelessStatusDoesNotThrowUnauthorizedWhenTokenExists() async {
-
         TokenStore.shared.save("fake-test-token")
 
         do {
             _ = try await WirelessService.shared.fetchWirelessStatus()
-
-            XCTFail("Expected network/API failure, not unauthorized")
-
-        } catch let error as APIError {
-
-            if case .unauthorized = error {
-                XCTFail("Should not fail authorization when token exists")
-            }
-
+            XCTFail("Expected network/API failure, not success")
+        } catch APIError.unauthorized {
+            XCTFail("Should not fail authorization when token exists")
         } catch {
-            // acceptable — API/network/decode errors are fine here
-            XCTAssertTrue(true)
+            // expected: token exists, so failure should be network/API/decode, not unauthorized
         }
     }
 }

@@ -1,6 +1,6 @@
 import Foundation
 
-struct UploadResultDTO: Decodable {
+struct UploadResultDTO: Decodable, Sendable {
     let ok: Bool?
     let key: String?
     let url: String
@@ -10,7 +10,7 @@ struct UploadResultDTO: Decodable {
     let size: Int?
 }
 
-struct AvatarUploadResponse: Decodable {
+struct AvatarUploadResponse: Decodable, Sendable {
     let avatarUrl: String
 }
 

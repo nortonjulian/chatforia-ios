@@ -29,7 +29,7 @@ final class VoIPPushManager: NSObject {
         self.registry = registry
     }
 
-    private func hexString(from data: Data) -> String {
+    nonisolated func hexString(from data: Data) -> String {
         data.map { String(format: "%02x", $0) }.joined()
     }
 }
@@ -42,7 +42,7 @@ extension VoIPPushManager: PKPushRegistryDelegate {
     ) {
         guard type == .voIP else { return }
 
-        let token = pushCredentials.token.map { String(format: "%02x", $0) }.joined()
+        let token = hexString(from: pushCredentials.token)
 
         Task { @MainActor in
             self.delegate?.voipPushManagerDidUpdateToken(token)

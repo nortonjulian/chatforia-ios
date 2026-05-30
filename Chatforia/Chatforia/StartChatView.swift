@@ -210,6 +210,7 @@ struct StartChatView: View {
         }
     }
     
+    
     private func selectContact(_ contact: ContactSearchResultDTO) async {
         do {
             let destination = try await vm.destinationForContactResult(contact)
@@ -375,3 +376,26 @@ struct StartChatView: View {
         }
     }
 }
+
+#if DEBUG
+extension StartChatView {
+
+    func test_makeSMSConversation(
+        phone: String
+    ) -> ConversationDTO {
+
+        ConversationDTO(
+            kind: "sms",
+            id: nil,
+            title: phone,
+            displayName: phone,
+            updatedAt: ISO8601DateFormatter().string(from: Date()),
+            isGroup: false,
+            phone: phone,
+            unreadCount: 0,
+            avatarUsers: nil,
+            last: nil
+        )
+    }
+}
+#endif

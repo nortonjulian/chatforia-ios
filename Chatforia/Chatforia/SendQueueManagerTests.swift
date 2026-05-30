@@ -1,6 +1,7 @@
 import XCTest
 @testable import Chatforia
 
+@MainActor
 final class SendQueueManagerTests: XCTestCase {
 
     override func setUp() {

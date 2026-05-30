@@ -1,6 +1,7 @@
 import XCTest
 @testable import Chatforia
 
+@MainActor
 final class RegistrationServiceTests: XCTestCase {
 
     func testMakeRegistrationRequestTrimsUsernameAndEmail() {

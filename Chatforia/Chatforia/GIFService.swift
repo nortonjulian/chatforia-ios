@@ -1,6 +1,6 @@
 import Foundation
 
-struct GIFPickerItem: Identifiable, Decodable, Hashable {
+struct GIFPickerItem: Identifiable, Decodable, Hashable, Sendable {
     let id: String
     let title: String
     let previewURL: URL?
@@ -25,6 +25,7 @@ enum GIFServiceError: LocalizedError {
     }
 }
 
+@MainActor
 final class GIFService {
     static let shared = GIFService()
     private init() {}
