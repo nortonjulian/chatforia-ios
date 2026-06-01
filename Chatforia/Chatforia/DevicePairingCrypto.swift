@@ -46,8 +46,19 @@ final class DevicePairingCrypto {
     private let version = 1
 
     func wrapAccountKeysForBrowser(browserPublicKeyBase64: String) throws -> WrappedAccountKeyPayload {
-        guard let accountPublicKey = AccountKeyManager.shared.publicKeyBase64(),
-              let accountPrivateKey = AccountKeyManager.shared.privateKeyBase64()
+        let userId = UserDefaults.standard.integer(
+            forKey: "chatforia.currentUserId"
+        )
+
+        guard userId > 0,
+              let accountPublicKey =
+                AccountKeyManager.shared.publicKeyBase64(
+                    userId: userId
+                ),
+              let accountPrivateKey =
+                AccountKeyManager.shared.privateKeyBase64(
+                    userId: userId
+                )
         else {
             throw DevicePairingCryptoError.missingAccountKeys
         }

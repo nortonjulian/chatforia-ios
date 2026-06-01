@@ -8,8 +8,6 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
-
-        print("🚀 AppDelegate didFinishLaunching CALLED")
         
         MobileAds.shared.start { status in
             #if DEBUG
@@ -35,7 +33,6 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
     ) {
-        print("🔥 didRegisterForRemoteNotificationsWithDeviceToken CALLED")
         NotificationCoordinator.shared.handleDeviceToken(deviceToken)
     }
 
@@ -104,31 +101,6 @@ struct ChatforiaApp: App {
                     appLanguage = user.uiLanguage ?? user.preferredLanguage ?? "en"
                     let path = Bundle.main.path(forResource: "es", ofType: "lproj")
                     let esBundle = path.flatMap { Bundle(path: $0) }
-
-                    print("🌍 ES bundle path:", path ?? "nil")
-                    
-                    print("🌍 DEBUG HIT")
-
-                    print("🌍 CURRENT appLanguage:", appLanguage)
-
-                    print(
-                        "🌍 AUTO:",
-                        String(
-                            localized: "common.welcome",
-                            locale: Locale(identifier: appLanguage)
-                        )
-                    )
-
-                    print(
-                        "🌍 EXPLICIT:",
-                        appText(
-                            "common.welcome",
-                            languageCode: appLanguage
-                        )
-                    )
-                    print("🌍 tab_calls ES bundle:", esBundle?.localizedString(forKey: "tab_calls", value: nil, table: "Localizable") ?? "nil")
-                    print("🌍 calls.recents ES bundle:", esBundle?.localizedString(forKey: "calls.recents", value: nil, table: "Localizable") ?? "nil")
-                    print("🌍 calls.voicemail ES bundle:", esBundle?.localizedString(forKey: "calls.voicemail", value: nil, table: "Localizable") ?? "nil")
                     
                     settingsVM.loadLocalAISettings()
 
@@ -175,26 +147,7 @@ struct ChatforiaApp: App {
                     
                     if let uiLanguage = auth.currentUser?.uiLanguage {
                         appLanguage = uiLanguage
-                        print("🌍 AFTER REFRESH appLanguage:", appLanguage)
-
-                        print(
-                            "🌍 AFTER REFRESH AUTO:",
-                            String(
-                                localized: "common.welcome",
-                                locale: Locale(identifier: appLanguage)
-                            )
-                        )
-
-                        print(
-                            "🌍 AFTER REFRESH EXPLICIT:",
-                            appText(
-                                "common.welcome",
-                                languageCode: appLanguage
-                            )
-                        )
                     }
-
-                    print("🎨 refreshed theme =", auth.currentUser?.theme ?? "nil")
 
                         if let theme = auth.currentUser?.theme {
                             print("🎨 applying refreshed theme =", theme)

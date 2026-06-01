@@ -83,8 +83,7 @@ struct AppShellView: View {
             }
         }
         .onAppear {
-            print("✅ APPSHELL APPEARED for user:", user.email ?? "nil")
-            print("🌍 iOS apiBaseURL =", AppEnvironment.apiBaseURL)
+        
         }
         .task {
             guard !hasRequestedNotifications else { return }

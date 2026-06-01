@@ -83,16 +83,22 @@ final class RegisterViewModel: ObservableObject {
                 ])
 
                 if let privateKey = response.privateKey,
-                   let publicKey = response.resolvedUser?.publicKey,
+                   let resolvedUser = response.resolvedUser,
+                   let publicKey = resolvedUser.publicKey,
                    !privateKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                    !publicKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+
                     do {
                         try AccountKeyManager.shared.saveAccountKeys(
+                            userId: resolvedUser.id,
                             publicKeyBase64: publicKey,
                             privateKeyBase64: privateKey
                         )
                     } catch {
-                        errorMessage = appText("auth.secureKeySetupFailed", languageCode: languageCode)
+                        errorMessage = appText(
+                            "auth.secureKeySetupFailed",
+                            languageCode: languageCode
+                        )
                         return
                     }
                 }

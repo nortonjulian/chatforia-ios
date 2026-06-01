@@ -418,8 +418,6 @@ final class CallManager: ObservableObject {
                     $0.backendCallId = callId
                 }
 
-                print("✅ External call created:", callId)
-
                 // 🧠 STEP 2: START TWILIO CALL
                 let result = try await pstnService.startCall(to: number, token: token)
 

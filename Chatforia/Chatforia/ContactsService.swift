@@ -97,6 +97,17 @@ final class ContactsService {
             token: token
         )
     }
+    
+    func deleteContact(contactId: Int, token: String) async throws {
+        _ = try await APIClient.shared.send(
+            APIRequest(
+                path: "contacts/\(contactId)",
+                method: .DELETE,
+                requiresAuth: true
+            ),
+            token: token
+        ) as EmptyResponseDTO
+    }
 
     func lookupUser(username: String, token: String) async throws -> UserLookupResponseDTO {
         let trimmed = username.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -113,6 +124,8 @@ final class ContactsService {
         return response.items.first { ($0.user?.id ?? $0.userId) == userId }
     }
 }
+
+struct EmptyResponseDTO: Decodable {}
 
 struct UserLookupResponseDTO: Decodable {
     let userId: Int

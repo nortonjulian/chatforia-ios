@@ -38,7 +38,6 @@ enum AppEnvironment {
         // MARK: - SEND JOB HANDLER
 
         SendQueueManager.shared.sendJobHandler = { job, completion in
-            print("🚀 sendJobHandler invoked for \(job.clientMessageId)")
 
             let request = APIRequest(
                 path: "messages",

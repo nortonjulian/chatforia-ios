@@ -60,6 +60,24 @@ final class ContactsViewModel: ObservableObject {
 
         return room.asChatRoomDTO
     }
+    
+    func deleteContact(_ contact: ContactDTO, token: String?) async {
+        guard let token, !token.isEmpty else {
+            errorText = appText("ios.missing_auth_token", languageCode: appLanguage)
+            return
+        }
+
+        do {
+            try await ContactsService.shared.deleteContact(
+                contactId: contact.id,
+                token: token
+            )
+
+            contacts.removeAll { $0.id == contact.id }
+        } catch {
+            errorText = error.localizedDescription
+        }
+    }
 
     func displayName(for contact: ContactDTO) -> String {
         if let alias = contact.alias?.trimmingCharacters(in: .whitespacesAndNewlines), !alias.isEmpty {

@@ -169,7 +169,10 @@ final class AuthStore: NSObject, ObservableObject {
 
             // 🔹 Ensure encryption keys exist
             do {
-                let shouldRestore = try await AccountKeyManager.shared.ensureLocalKeysExist(token: token)
+                let shouldRestore = try await AccountKeyManager.shared.ensureLocalKeysExist(
+                    userId: user.id,
+                    token: token
+                )
 
                 if shouldRestore {
                     needsKeyRestore = true
@@ -309,7 +312,9 @@ final class AuthStore: NSObject, ObservableObject {
 
     private func evaluateKeyRestoreNeed(for user: UserDTO) {
         let serverKey = user.publicKey?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let localKey = AccountKeyManager.shared.publicKeyBase64()?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let localKey =
+            AccountKeyManager.shared.publicKeyBase64(userId: user.id)?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 
         if !serverKey.isEmpty && localKey.isEmpty {
             encryptionState = .missing

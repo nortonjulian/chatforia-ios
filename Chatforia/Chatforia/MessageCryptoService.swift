@@ -61,6 +61,7 @@ final class MessageCryptoService {
         let messageKey = SymmetricKey(size: .bits256)
 
         let sealedContent = try AES.GCM.seal(plaintextData, using: messageKey)
+
         guard let combined = sealedContent.combined else {
             throw NSError(
                 domain: "MessageCryptoService",
@@ -76,9 +77,15 @@ final class MessageCryptoService {
                 throw MessageCryptoError.invalidRecipientPublicKey
             }
 
-            let publicKey = try Curve25519.KeyAgreement.PublicKey(rawRepresentation: publicKeyData)
+            let publicKey = try Curve25519.KeyAgreement.PublicKey(
+                rawRepresentation: publicKeyData
+            )
+
             let ephemeralPrivate = Curve25519.KeyAgreement.PrivateKey()
-            let sharedSecret = try ephemeralPrivate.sharedSecretFromKeyAgreement(with: publicKey)
+
+            let sharedSecret = try ephemeralPrivate.sharedSecretFromKeyAgreement(
+                with: publicKey
+            )
 
             let wrappingKey = sharedSecret.hkdfDerivedSymmetricKey(
                 using: SHA256.self,
@@ -87,8 +94,14 @@ final class MessageCryptoService {
                 outputByteCount: 32
             )
 
-            let messageKeyData = messageKey.withUnsafeBytes { Data($0) }
-            let sealedMessageKey = try AES.GCM.seal(messageKeyData, using: wrappingKey)
+            let messageKeyData = messageKey.withUnsafeBytes { rawBuffer in
+                Data(rawBuffer)
+            }
+
+            let sealedMessageKey = try AES.GCM.seal(
+                messageKeyData,
+                using: wrappingKey
+            )
 
             guard let wrappedCombined = sealedMessageKey.combined else {
                 throw NSError(
@@ -104,29 +117,40 @@ final class MessageCryptoService {
                 "wrappedKey": wrappedCombined.base64EncodedString()
             ]
 
-            let wrappedPayloadData = try JSONSerialization.data(withJSONObject: wrappedPayload, options: [])
-            return String(data: wrappedPayloadData, encoding: .utf8) ?? "{}"
+            let wrappedPayloadData = try JSONSerialization.data(
+                withJSONObject: wrappedPayload,
+                options: []
+            )
+
+            guard let wrappedPayloadString = String(
+                data: wrappedPayloadData,
+                encoding: .utf8
+            ) else {
+                throw MessageCryptoError.invalidUTF8
+            }
+
+            return wrappedPayloadString
         }
 
-        guard let senderPublicKeyBase64 = AccountKeyManager.shared.publicKeyBase64(),
-              !senderPublicKeyBase64.isEmpty else {
+        guard let senderPublicKeyBase64 = AccountKeyManager.shared.publicKeyBase64(
+            userId: senderUserId
+        ),
+        !senderPublicKeyBase64.isEmpty else {
             throw MessageCryptoError.missingSenderPublicKey
         }
 
         var encryptedKeysByUserId: [String: String] = [:]
 
-        let senderWrapped = try wrapForUser(
+        encryptedKeysByUserId[String(senderUserId)] = try wrapForUser(
             publicKeyBase64: senderPublicKeyBase64,
             userId: senderUserId
         )
-        encryptedKeysByUserId[String(senderUserId)] = senderWrapped
 
         for recipient in recipients {
-            let recipientWrapped = try wrapForUser(
+            encryptedKeysByUserId[String(recipient.userId)] = try wrapForUser(
                 publicKeyBase64: recipient.publicKeyBase64,
                 userId: recipient.userId
             )
-            encryptedKeysByUserId[String(recipient.userId)] = recipientWrapped
         }
 
         return EncryptedMessagePayload(
@@ -140,9 +164,10 @@ final class MessageCryptoService {
         encryptedKeyPayload: String,
         userId: Int
     ) throws -> String {
-
-        guard let myPrivateKeyB64 = AccountKeyManager.shared.privateKeyBase64(),
-              let myPrivateKeyData = Data(base64Encoded: myPrivateKeyB64) else {
+        guard let myPrivateKeyBase64 = AccountKeyManager.shared.privateKeyBase64(
+            userId: userId
+        ),
+        let myPrivateKeyData = Data(base64Encoded: myPrivateKeyBase64) else {
             throw NSError(
                 domain: "MessageCryptoService",
                 code: 100,
@@ -150,19 +175,21 @@ final class MessageCryptoService {
             )
         }
 
-        let myPrivateKey = try Curve25519.KeyAgreement.PrivateKey(rawRepresentation: myPrivateKeyData)
+        let myPrivateKey = try Curve25519.KeyAgreement.PrivateKey(
+            rawRepresentation: myPrivateKeyData
+        )
 
-        let trimmed = encryptedKeyPayload.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = encryptedKeyPayload.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
 
         let messageKey: SymmetricKey
 
-        // =========================================================
-        // ✅ CASE 1: JSON envelope (iOS / CryptoKit format)
-        // =========================================================
         if trimmed.hasPrefix("{") {
-
             guard let payloadData = trimmed.data(using: .utf8),
-                  let payload = try JSONSerialization.jsonObject(with: payloadData) as? [String: String],
+                  let payload = try JSONSerialization.jsonObject(
+                    with: payloadData
+                  ) as? [String: String],
                   let epkBase64 = payload["epk"],
                   let wrappedKeyBase64 = payload["wrappedKey"],
                   let epkData = Data(base64Encoded: epkBase64),
@@ -174,9 +201,13 @@ final class MessageCryptoService {
                 )
             }
 
-            let senderEphemeralPublicKey = try Curve25519.KeyAgreement.PublicKey(rawRepresentation: epkData)
+            let senderEphemeralPublicKey = try Curve25519.KeyAgreement.PublicKey(
+                rawRepresentation: epkData
+            )
 
-            let sharedSecret = try myPrivateKey.sharedSecretFromKeyAgreement(with: senderEphemeralPublicKey)
+            let sharedSecret = try myPrivateKey.sharedSecretFromKeyAgreement(
+                with: senderEphemeralPublicKey
+            )
 
             let wrappingKey = sharedSecret.hkdfDerivedSymmetricKey(
                 using: SHA256.self,
@@ -185,17 +216,17 @@ final class MessageCryptoService {
                 outputByteCount: 32
             )
 
-            let sealedWrappedKey = try AES.GCM.SealedBox(combined: wrappedKeyData)
-            let messageKeyData = try AES.GCM.open(sealedWrappedKey, using: wrappingKey)
+            let sealedWrappedKey = try AES.GCM.SealedBox(
+                combined: wrappedKeyData
+            )
+
+            let messageKeyData = try AES.GCM.open(
+                sealedWrappedKey,
+                using: wrappingKey
+            )
 
             messageKey = SymmetricKey(data: messageKeyData)
-
         } else {
-
-            // =========================================================
-            // ✅ CASE 2: Base64 wrapped key (WEB / legacy format)
-            // =========================================================
-
             guard Data(base64Encoded: trimmed) != nil else {
                 throw NSError(
                     domain: "MessageCryptoService",
@@ -204,25 +235,14 @@ final class MessageCryptoService {
                 )
             }
 
-            // ⚠️ IMPORTANT:
-            // This assumes web used the SAME HKDF + shared secret scheme
-            // BUT WITHOUT JSON envelope (no epk)
-            //
-            // If your web payload does NOT include epk separately,
-            // then it MUST be using a different scheme (NaCl box).
-            //
-            // In that case → THIS is where we adapt next step.
-
             throw NSError(
                 domain: "MessageCryptoService",
                 code: 999,
-                userInfo: [NSLocalizedDescriptionKey: "Base64 wrapped key detected but no epk — web encryption format mismatch"]
+                userInfo: [
+                    NSLocalizedDescriptionKey: "Base64 wrapped key detected but no epk — web encryption format mismatch"
+                ]
             )
         }
-
-        // =========================================================
-        // 🔓 Decrypt message content
-        // =========================================================
 
         guard let ciphertextData = Data(base64Encoded: ciphertextBase64) else {
             throw NSError(
@@ -233,7 +253,11 @@ final class MessageCryptoService {
         }
 
         let sealedContent = try AES.GCM.SealedBox(combined: ciphertextData)
-        let plaintextData = try AES.GCM.open(sealedContent, using: messageKey)
+
+        let plaintextData = try AES.GCM.open(
+            sealedContent,
+            using: messageKey
+        )
 
         return String(decoding: plaintextData, as: UTF8.self)
     }

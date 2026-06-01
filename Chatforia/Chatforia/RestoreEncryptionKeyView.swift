@@ -211,7 +211,14 @@ struct RestoreEncryptionKeyView: View {
         successMessage = nil
 
         do {
-            try await AccountKeyManager.shared.resetAccountEncryption(token: token)
+            guard let userId = auth.currentUser?.id else {
+                throw RemoteKeyBackupError.invalidKeyMaterial
+            }
+
+            try await AccountKeyManager.shared.resetAccountEncryption(
+                userId: userId,
+                token: token
+            )
 
             try? await Task.sleep(nanoseconds: 500_000_000)
 
@@ -244,7 +251,10 @@ struct RestoreEncryptionKeyView: View {
         let serverKey = auth.currentUser?.publicKey?
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 
-        let localKey = AccountKeyManager.shared.publicKeyBase64()?
+        let localKey =
+            auth.currentUser.flatMap {
+                AccountKeyManager.shared.publicKeyBase64(userId: $0.id)
+            }?
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 
         return !serverKey.isEmpty && !localKey.isEmpty && serverKey == localKey
@@ -274,10 +284,16 @@ struct RestoreEncryptionKeyView: View {
         successMessage = nil
 
         do {
-            try await RemoteKeyBackupService.shared.restoreAccountKeysFromRemoteBackup(
-                token: token,
-                password: backupPassword
-            )
+            guard let userId = auth.currentUser?.id else {
+                throw RemoteKeyBackupError.invalidKeyMaterial
+            }
+
+            try await RemoteKeyBackupService.shared
+                .restoreAccountKeysFromRemoteBackup(
+                    token: token,
+                    userId: userId,
+                    password: backupPassword
+                )
 
             successMessage = appText(
                 "encryption.restore.success",

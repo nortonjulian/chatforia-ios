@@ -27,6 +27,14 @@ final class DecryptedMessageTextStore: ObservableObject {
         values[messageId] = text
     }
 
+    func moveText(from oldMessageId: Int, to newMessageId: Int) {
+        guard oldMessageId != newMessageId else { return }
+        guard let text = values[oldMessageId] else { return }
+
+        values[newMessageId] = text
+        values.removeValue(forKey: oldMessageId)
+    }
+
     func clearAll() {
         values.removeAll()
     }

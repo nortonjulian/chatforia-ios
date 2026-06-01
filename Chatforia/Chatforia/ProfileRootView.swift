@@ -1278,8 +1278,12 @@ struct ProfileRootView: View {
         AppPlan(serverValue: auth.currentUser?.plan ?? user.plan)
     }
     
+    private var currentUserId: Int {
+        auth.currentUser?.id ?? user.id
+    }
+    
     private var encryptionStatusText: String {
-        if !AccountKeyManager.shared.hasAccountKeys() {
+        if !AccountKeyManager.shared.hasAccountKeys(userId: currentUserId) {
             return appText("security_status_recovery_needed", languageCode: appLanguage)
         }
 
@@ -1300,7 +1304,7 @@ struct ProfileRootView: View {
     }
 
     private var encryptionStatusColor: Color {
-        if !AccountKeyManager.shared.hasAccountKeys() {
+        if !AccountKeyManager.shared.hasAccountKeys(userId: currentUserId) {
             return .red
         }
         return themeManager.palette.secondaryText
@@ -1353,7 +1357,7 @@ struct ProfileRootView: View {
                     }
                     .padding(.vertical, 10)
 
-                    if AccountKeyManager.shared.hasAccountKeys(),
+                    if AccountKeyManager.shared.hasAccountKeys(userId: currentUserId),
                        hasRemoteBackup == false,
                        !isCheckingBackup {
                         Text(
@@ -1388,7 +1392,7 @@ struct ProfileRootView: View {
 
                     Divider()
 
-                    if !AccountKeyManager.shared.hasAccountKeys() {
+                    if !AccountKeyManager.shared.hasAccountKeys(userId: currentUserId) {
                         Divider()
 
                         Button {

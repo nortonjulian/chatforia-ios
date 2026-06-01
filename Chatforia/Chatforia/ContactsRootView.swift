@@ -18,6 +18,9 @@ struct ContactsRootView: View {
     @State private var showingInviteFriends = false
     @State private var selectedContact: ContactDTO? = nil
     
+    @State private var contactToDelete: ContactDTO? = nil
+    @State private var showingDeleteContactAlert = false
+    
     @EnvironmentObject private var callManager: CallManager
 
     var body: some View {
@@ -151,6 +154,25 @@ struct ContactsRootView: View {
                 InviteFriendsView()
                     .environmentObject(auth)
             }
+            .alert(
+                appText("ios.delete_contact", languageCode: appLanguage),
+                isPresented: $showingDeleteContactAlert
+            ) {
+                Button(appText("common.cancel", languageCode: appLanguage), role: .cancel) {
+                    contactToDelete = nil
+                }
+
+                Button(appText("common.delete", languageCode: appLanguage), role: .destructive) {
+                    guard let contact = contactToDelete else { return }
+
+                    Task {
+                        await vm.deleteContact(contact, token: auth.currentToken)
+                        contactToDelete = nil
+                    }
+                }
+            } message: {
+                Text(appText("ios.delete_contact_confirmation", languageCode: appLanguage))
+            }
             .task {
                 await reload()
             }
@@ -243,6 +265,17 @@ struct ContactsRootView: View {
                             .environmentObject(themeManager)
                         }
                         .buttonStyle(.plain)
+                        .swipeActions(edge: .trailing) {
+                            Button(role: .destructive) {
+                                contactToDelete = contact
+                                showingDeleteContactAlert = true
+                            } label: {
+                                Label(
+                                    appText("common.delete", languageCode: appLanguage),
+                                    systemImage: "trash"
+                                )
+                            }
+                        }
                         .listRowBackground(themeManager.palette.cardBackground)
                     }
                 }

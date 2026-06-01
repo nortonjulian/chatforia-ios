@@ -1,6 +1,7 @@
 import Foundation
 import CryptoKit
 import CommonCrypto
+import Security
 
 enum RemoteKeyBackupError: Error, LocalizedError {
     case invalidPassword
@@ -72,24 +73,30 @@ final class RemoteKeyBackupService {
 
     private let iterations = 250_000
 
-    func uploadCurrentDeviceKeyBackup(token: String, password: String) async throws {
+    func uploadCurrentDeviceKeyBackup(
+        token: String,
+        userId: Int,
+        password: String
+    ) async throws {
         guard !password.isEmpty else {
             throw RemoteKeyBackupError.invalidPassword
         }
 
-        guard let publicKeyB64 = AccountKeyManager.shared.publicKeyBase64(),
-              let privateKeyB64 = AccountKeyManager.shared.privateKeyBase64()
+        guard let publicKeyBase64 =
+            AccountKeyManager.shared.publicKeyBase64(userId: userId),
+              let privateKeyBase64 =
+            AccountKeyManager.shared.privateKeyBase64(userId: userId)
         else {
             throw RemoteKeyBackupError.invalidKeyMaterial
         }
 
-        let wrapped = try encryptKeyBundle(
-            publicKey: publicKeyB64,
-            privateKey: privateKeyB64,
+        let payload = try encryptKeyBundle(
+            publicKey: publicKeyBase64,
+            privateKey: privateKeyBase64,
             password: password
         )
 
-        let body = try JSONEncoder().encode(wrapped)
+        let body = try JSONEncoder().encode(payload)
 
         let _: EmptyResponse = try await APIClient.shared.send(
             APIRequest(
@@ -101,8 +108,10 @@ final class RemoteKeyBackupService {
             token: token
         )
     }
-    
-    func fetchRemoteKeyBackupResponse(token: String) async throws -> RemoteKeyBackupResponse {
+
+    func fetchRemoteKeyBackupResponse(
+        token: String
+    ) async throws -> RemoteKeyBackupResponse {
         try await APIClient.shared.send(
             APIRequest(
                 path: "auth/keys/backup",
@@ -114,7 +123,9 @@ final class RemoteKeyBackupService {
         )
     }
 
-    func fetchRemoteKeyBackup(token: String) async throws -> RemoteKeyBackupRecord? {
+    func fetchRemoteKeyBackup(
+        token: String
+    ) async throws -> RemoteKeyBackupRecord? {
         let response = try await fetchRemoteKeyBackupResponse(token: token)
         return response.keys
     }
@@ -122,9 +133,11 @@ final class RemoteKeyBackupService {
     func hasRemoteBackup(token: String) async -> Bool {
         do {
             let response = try await fetchRemoteKeyBackupResponse(token: token)
+
             if let hasBackup = response.hasBackup {
                 return hasBackup
             }
+
             return response.keys?.encryptedPrivateKeyBundle != nil
         } catch {
             return false
@@ -140,6 +153,56 @@ final class RemoteKeyBackupService {
                 requiresAuth: true
             ),
             token: token
+        )
+    }
+
+    func restoreAccountKeysFromRemoteBackup(
+        token: String,
+        userId: Int,
+        password: String
+    ) async throws {
+        guard !password.isEmpty else {
+            throw RemoteKeyBackupError.invalidPassword
+        }
+
+        let fetchedKeys = try await fetchRemoteKeyBackup(token: token)
+
+        guard let keys = fetchedKeys,
+              let serverPublicKey = keys.publicKey,
+              let encryptedBundle = keys.encryptedPrivateKeyBundle,
+              let saltBase64 = keys.privateKeyWrapSalt,
+              let iterations = keys.privateKeyWrapIterations
+        else {
+            throw RemoteKeyBackupError.invalidKeyMaterial
+        }
+
+        let decrypted: [String: String]
+
+        do {
+            decrypted = try decryptKeyBundle(
+                encryptedBundle: encryptedBundle,
+                password: password,
+                saltBase64: saltBase64,
+                iterations: iterations
+            )
+        } catch {
+            throw RemoteKeyBackupError.decryptFailed
+        }
+
+        guard let restoredPublicKey = decrypted["publicKey"],
+              let restoredPrivateKey = decrypted["privateKey"]
+        else {
+            throw RemoteKeyBackupError.invalidKeyMaterial
+        }
+
+        guard restoredPublicKey == serverPublicKey else {
+            throw RemoteKeyBackupError.keyMismatch
+        }
+
+        try AccountKeyManager.shared.saveAccountKeys(
+            userId: userId,
+            publicKeyBase64: restoredPublicKey,
+            privateKeyBase64: restoredPrivateKey
         )
     }
 
@@ -165,23 +228,29 @@ final class RemoteKeyBackupService {
             "privateKey": privateKey
         ]
 
-        let plaintext = try JSONSerialization.data(withJSONObject: json, options: [])
+        let plaintext = try JSONSerialization.data(
+            withJSONObject: json,
+            options: []
+        )
+
         let sealed = try AES.GCM.seal(
             plaintext,
             using: wrappingKey,
             nonce: try AES.GCM.Nonce(data: iv)
         )
 
-        let ciphertext = sealed.ciphertext
-        let tag = sealed.tag
-        let ctPlusTag = ciphertext + tag
+        let ciphertextPlusTag = sealed.ciphertext + sealed.tag
 
-        let bundleObj: [String: String] = [
+        let bundleObject: [String: String] = [
             "ivB64": iv.base64EncodedString(),
-            "ctB64": ctPlusTag.base64EncodedString()
+            "ctB64": ciphertextPlusTag.base64EncodedString()
         ]
 
-        let bundleData = try JSONSerialization.data(withJSONObject: bundleObj, options: [])
+        let bundleData = try JSONSerialization.data(
+            withJSONObject: bundleObject,
+            options: []
+        )
+
         guard let bundleString = String(data: bundleData, encoding: .utf8) else {
             throw RemoteKeyBackupError.encodingFailed
         }
@@ -196,11 +265,67 @@ final class RemoteKeyBackupService {
         )
     }
 
+    private func decryptKeyBundle(
+        encryptedBundle: String,
+        password: String,
+        saltBase64: String,
+        iterations: Int
+    ) throws -> [String: String] {
+        guard let bundleData = encryptedBundle.data(using: .utf8),
+              let bundleObject = try JSONSerialization.jsonObject(with: bundleData) as? [String: String],
+              let ivBase64 = bundleObject["ivB64"],
+              let ciphertextBase64 = bundleObject["ctB64"],
+              let iv = Data(base64Encoded: ivBase64),
+              let ciphertextPlusTag = Data(base64Encoded: ciphertextBase64),
+              let salt = Data(base64Encoded: saltBase64)
+        else {
+            throw RemoteKeyBackupError.invalidKeyMaterial
+        }
+
+        guard ciphertextPlusTag.count >= 16 else {
+            throw RemoteKeyBackupError.invalidKeyMaterial
+        }
+
+        let wrappingKeyData = try pbkdf2SHA256(
+            password: password,
+            salt: salt,
+            iterations: iterations,
+            keyByteCount: 32
+        )
+
+        let wrappingKey = SymmetricKey(data: wrappingKeyData)
+
+        let ciphertext = ciphertextPlusTag.dropLast(16)
+        let tag = ciphertextPlusTag.suffix(16)
+
+        let sealedBox = try AES.GCM.SealedBox(
+            nonce: try AES.GCM.Nonce(data: iv),
+            ciphertext: ciphertext,
+            tag: tag
+        )
+
+        let plaintext = try AES.GCM.open(sealedBox, using: wrappingKey)
+
+        guard let json = try JSONSerialization.jsonObject(with: plaintext) as? [String: String] else {
+            throw RemoteKeyBackupError.invalidKeyMaterial
+        }
+
+        return json
+    }
+
     private func randomData(count: Int) -> Data {
         var data = Data(count: count)
-        _ = data.withUnsafeMutableBytes { ptr in
-            SecRandomCopyBytes(kSecRandomDefault, count, ptr.baseAddress!)
+
+        let result = data.withUnsafeMutableBytes { pointer in
+            SecRandomCopyBytes(
+                kSecRandomDefault,
+                count,
+                pointer.baseAddress!
+            )
         }
+
+        precondition(result == errSecSuccess)
+
         return data
     }
 
@@ -236,102 +361,5 @@ final class RemoteKeyBackupService {
         }
 
         return derived
-    }
-
-    func restoreAccountKeysFromRemoteBackup(token: String, password: String) async throws {
-        guard !password.isEmpty else {
-            throw RemoteKeyBackupError.invalidPassword
-        }
-
-        let fetchedKeys = try await fetchRemoteKeyBackup(token: token)
-        print("REMOTE KEYS:", fetchedKeys as Any)
-
-        guard let keys = fetchedKeys,
-              let publicKey = keys.publicKey,
-              let bundle = keys.encryptedPrivateKeyBundle,
-              let saltB64 = keys.privateKeyWrapSalt,
-              let iterations = keys.privateKeyWrapIterations
-        else {
-            throw RemoteKeyBackupError.invalidKeyMaterial
-        }
-
-        let decrypted: [String: String]
-        do {
-            decrypted = try decryptKeyBundle(
-                encryptedBundle: bundle,
-                password: password,
-                saltB64: saltB64,
-                iterations: iterations
-            )
-        } catch {
-            throw RemoteKeyBackupError.decryptFailed
-        }
-
-        guard let restoredPublicKey = decrypted["publicKey"],
-              let restoredPrivateKey = decrypted["privateKey"]
-        else {
-            throw RemoteKeyBackupError.invalidKeyMaterial
-        }
-
-        print("RESTORED PUBLIC KEY:", restoredPublicKey)
-        print("SERVER PUBLIC KEY:", publicKey)
-
-        guard restoredPublicKey == publicKey else {
-            throw RemoteKeyBackupError.keyMismatch
-        }
-
-        try AccountKeyManager.shared.saveAccountKeys(
-            publicKeyBase64: restoredPublicKey,
-            privateKeyBase64: restoredPrivateKey
-        )
-    }
-
-    private func decryptKeyBundle(
-        encryptedBundle: String,
-        password: String,
-        saltB64: String,
-        iterations: Int
-    ) throws -> [String: String] {
-        guard let bundleData = encryptedBundle.data(using: .utf8),
-              let bundleObj = try JSONSerialization.jsonObject(with: bundleData) as? [String: String],
-              let ivB64 = bundleObj["ivB64"],
-              let ctB64 = bundleObj["ctB64"],
-              let iv = Data(base64Encoded: ivB64),
-              let ctPlusTag = Data(base64Encoded: ctB64),
-              let salt = Data(base64Encoded: saltB64)
-        else {
-            throw RemoteKeyBackupError.invalidKeyMaterial
-        }
-
-        let wrappingKeyData = try pbkdf2SHA256(
-            password: password,
-            salt: salt,
-            iterations: iterations,
-            keyByteCount: 32
-        )
-
-        let wrappingKey = SymmetricKey(data: wrappingKeyData)
-
-        // Web format = ciphertext + tag, with IV stored separately
-        guard ctPlusTag.count >= 16 else {
-            throw RemoteKeyBackupError.invalidKeyMaterial
-        }
-
-        let ciphertext = ctPlusTag.dropLast(16)
-        let tag = ctPlusTag.suffix(16)
-
-        let sealedBox = try AES.GCM.SealedBox(
-            nonce: try AES.GCM.Nonce(data: iv),
-            ciphertext: ciphertext,
-            tag: tag
-        )
-
-        let plaintext = try AES.GCM.open(sealedBox, using: wrappingKey)
-
-        guard let json = try JSONSerialization.jsonObject(with: plaintext) as? [String: String] else {
-            throw RemoteKeyBackupError.invalidKeyMaterial
-        }
-
-        return json
     }
 }

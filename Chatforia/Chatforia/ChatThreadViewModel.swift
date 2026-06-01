@@ -553,7 +553,6 @@ final class ChatThreadViewModel: ObservableObject {
 
         configureRoom(roomId: roomId)
 
-        print("➡️ loadMessages: roomId=\(roomId) tokenPresent=\(token.count > 0)")
         isLoading = true
         errorText = nil
         defer { isLoading = false }
@@ -762,7 +761,6 @@ final class ChatThreadViewModel: ObservableObject {
         isSendingImage = true
         defer { isSendingImage = false }
         
-        print("🚀 sendImageMessage called, bytes =", imageData.count)
 
         let trimmedCaption = caption?.trimmingCharacters(in: .whitespacesAndNewlines)
         let finalCaption = (trimmedCaption?.isEmpty == false) ? trimmedCaption : nil

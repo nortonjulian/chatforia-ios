@@ -237,8 +237,13 @@ struct BackupEncryptionKeyView: View {
         successMessage = nil
 
         do {
+            guard let userId = auth.currentUser?.id else {
+                throw RemoteKeyBackupError.invalidKeyMaterial
+            }
+
             try await RemoteKeyBackupService.shared.uploadCurrentDeviceKeyBackup(
                 token: token,
+                userId: userId,
                 password: trimmedPassword
             )
 

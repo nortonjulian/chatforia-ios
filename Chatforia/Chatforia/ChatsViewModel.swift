@@ -112,19 +112,23 @@ final class ChatsViewModel: ObservableObject {
                 return text
             }
 
+            if let clientMessageId = payload["clientMessageId"] as? String,
+               let localMessage = MessageStore.shared.currentWindow()
+                .first(where: { $0.clientMessageId == clientMessageId }) {
+                return localMessage.rawContent
+                    ?? localMessage.translatedForMe
+            }
+
+            if payload["contentCiphertext"] != nil {
+                return "🔒 Encrypted message"
+            }
+
             if payload["deletedForAll"] as? Bool == true {
-                return String(
-                    localized:
-                    "messages.messageDeleted"
-                )
+                return String(localized: "messages.messageDeleted")
             }
 
             if let attachments = payload["attachments"] as? [[String: Any]], !attachments.isEmpty {
                 return "[media]"
-            }
-
-            if currentLast?.hasMedia == true {
-                return currentLast?.text ?? "[media]"
             }
 
             return currentLast?.text

@@ -66,10 +66,17 @@ final class SocketManager: ObservableObject {
     // MARK: - Connection
 
     func connect(token: String) {
+        if currentToken == token,
+           let socket,
+           socket.status == .connected || socket.status == .connecting {
+            return
+        }
+
         currentToken = token
         rebuild(token: token)
 
         guard let socket else { return }
+
         if socket.status != .connected && socket.status != .connecting {
             socket.connect()
         }
@@ -359,10 +366,16 @@ final class SocketManager: ObservableObject {
 
     func joinRoom(_ roomId: Int) {
         guard roomId > 0 else { return }
+
         joinedRoomIds.insert(roomId)
 
-        socket?.emit("joinRoom", ["roomId": roomId])
-        print("[SocketManager] joinRoom \(roomId)")
+        guard let socket, socket.status == .connected else {
+            print("[SocketManager] queued room \(roomId); socket not connected yet")
+            return
+        }
+
+        socket.emit("joinRoom", ["roomId": roomId])
+        print("[SocketManager] joined room \(roomId)")
     }
 
     func leaveRoom(_ roomId: Int) {
