@@ -10,6 +10,15 @@ struct ResetEncryptionResponse: Decodable {
     let ok: Bool
 }
 
+private struct AuthMeKeyCheckResponse: Decodable {
+    let user: AuthMeKeyCheckUser
+}
+
+private struct AuthMeKeyCheckUser: Decodable {
+    let id: Int
+    let publicKey: String?
+}
+
 final class AccountKeyManager {
     static let shared = AccountKeyManager()
     private init() {}
@@ -84,16 +93,59 @@ final class AccountKeyManager {
     }
 
     func ensureLocalKeysExist(userId: Int, token: String) async throws -> Bool {
+        guard userId > 0 else { return false }
+
+        let me: AuthMeKeyCheckResponse = try await APIClient.shared.send(
+            APIRequest(path: "auth/me", method: .GET, requiresAuth: true),
+            token: token
+        )
+
+        let serverPublicKey = me.user.publicKey?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let localPublicKey = publicKeyBase64(userId: userId)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        print("🔑 local public:", localPublicKey ?? "nil")
+        print("🔑 server public:", serverPublicKey ?? "nil")
+        print("🔑 keys match:", localPublicKey == serverPublicKey)
+
+        // 1. Server has key, but device has none.
+        if let serverPublicKey,
+           !serverPublicKey.isEmpty,
+           !hasAccountKeys(userId: userId) {
+            throw NSError(
+                domain: "AccountKeyManager",
+                code: 51,
+                userInfo: [
+                    NSLocalizedDescriptionKey:
+                        "This device is missing your encryption key. Restore your backup key or reset encryption."
+                ]
+            )
+        }
+
+        // 2. Device has key, but it does not match server.
+        if let localPublicKey,
+           let serverPublicKey,
+           !localPublicKey.isEmpty,
+           !serverPublicKey.isEmpty,
+           localPublicKey != serverPublicKey {
+            throw NSError(
+                domain: "AccountKeyManager",
+                code: 50,
+                userInfo: [
+                    NSLocalizedDescriptionKey:
+                        "Local encryption key does not match server public key. Restore your backup key or reset encryption."
+                ]
+            )
+        }
+
+        // 3. Device has matching keys.
         if hasAccountKeys(userId: userId) {
             return false
         }
 
-        let hasBackup = await RemoteKeyBackupService.shared.hasRemoteBackup(token: token)
-
-        if hasBackup {
-            return true
-        }
-
+        // 4. Brand-new account/server has no key yet.
         let newKeys = try generateNewAccountKeys()
 
         try saveAccountKeys(

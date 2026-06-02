@@ -77,11 +77,6 @@ struct AppShellView: View {
                 )
             }
         }
-        .fullScreenCover(isPresented: .constant(false)) {
-            NavigationStack {
-                RestoreEncryptionKeyView()
-            }
-        }
         .onAppear {
         
         }

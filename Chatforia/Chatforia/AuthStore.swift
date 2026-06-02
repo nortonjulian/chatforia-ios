@@ -163,11 +163,7 @@ final class AuthStore: NSObject, ObservableObject {
                 print("⚠️ post-StoreKit auth refresh failed:", error.localizedDescription)
             }
 
-            if needsKeyRestore {
-                print("⚠️ KEY ISSUE — temporarily bypassing for TestFlight")
-            }
-
-            // 🔹 Ensure encryption keys exist
+            // 🔹 Ensure encryption keys exist BEFORE allowing chats/socket
             do {
                 let shouldRestore = try await AccountKeyManager.shared.ensureLocalKeysExist(
                     userId: user.id,
@@ -175,24 +171,36 @@ final class AuthStore: NSObject, ObservableObject {
                 )
 
                 if shouldRestore {
+                    encryptionState = .missing
                     needsKeyRestore = true
                     keyRestoreMessage = appText(
                         "auth.missingEncryptionKeyOlderMessages",
                         languageCode: appLanguage
                     )
-                } else {
-                    needsKeyRestore = false
-                    keyRestoreMessage = nil
+
+                    socket.disconnect()
+                    isAppReady = true
+                    return
                 }
+
+                encryptionState = .ready
+                needsKeyRestore = false
+                keyRestoreMessage = nil
 
             } catch {
                 print("⚠️ key bootstrap failed:", error.localizedDescription)
+
+                encryptionState = .mismatch
+                needsKeyRestore = true
+                keyRestoreMessage = error.localizedDescription
+
+                socket.disconnect()
+                isAppReady = true
+                return
             }
 
-            // 🔹 Connect socket LAST
             socket.connect(token: token)
 
-            // ✅ App is now fully ready
             isAppReady = true
 
         } catch let apiError as APIError {

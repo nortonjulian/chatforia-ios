@@ -60,12 +60,12 @@ struct MessageBubbleView: View {
         let text = decryptedStore
             .text(for: msg.id)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
-
-        if let text, !text.isEmpty {
-            return text
+        
+        guard let text, !text.isEmpty else {
+            return nil
         }
-
-        return nil
+        
+        return text
     }
     
     private var contentRenderKey: String {
@@ -75,6 +75,7 @@ struct MessageBubbleView: View {
         let translated = msg.translatedForMe ?? ""
         let decrypted = decryptedText ?? ""
         let deleted = (msg.deletedForAll == true || msg.deletedBySender == true) ? "deleted" : "live"
+        
         return "\(msg.id)|\(revision)|\(edited)|\(raw)|\(translated)|\(decrypted)|\(deleted)"
     }
     
@@ -119,13 +120,13 @@ struct MessageBubbleView: View {
         
         let attachments = msg.attachments ?? []
         let hasAttachments = !attachments.isEmpty
-
+        
         let raw = msg.rawContent?.trimmingCharacters(in: .whitespacesAndNewlines)
         let translated = msg.translatedForMe?.trimmingCharacters(in: .whitespacesAndNewlines)
         let attachmentCaption = attachments
             .compactMap { $0.caption?.trimmingCharacters(in: .whitespacesAndNewlines) }
             .first { !$0.isEmpty }
-
+        
         let placeholderTexts: Set<String> = [
             "[image]",
             "[video]",
@@ -135,26 +136,26 @@ struct MessageBubbleView: View {
             "[gif]",
             "attachment"
         ]
-
+        
         let normalizedRaw = raw?.lowercased()
         let normalizedTranslated = translated?.lowercased()
         let normalizedAttachmentCaption = attachmentCaption?.lowercased()
-
+        
         let hasRenderableRaw: Bool = {
             guard let normalizedRaw else { return false }
             return !normalizedRaw.isEmpty && !placeholderTexts.contains(normalizedRaw)
         }()
-
+        
         let hasRenderableTranslated: Bool = {
             guard let normalizedTranslated else { return false }
             return !normalizedTranslated.isEmpty && !placeholderTexts.contains(normalizedTranslated)
         }()
-
+        
         let hasRenderableAttachmentCaption: Bool = {
             guard let normalizedAttachmentCaption else { return false }
             return !normalizedAttachmentCaption.isEmpty && !placeholderTexts.contains(normalizedAttachmentCaption)
         }()
-
+        
         if msg.deletedForAll == true || msg.deletedBySender == true {
             Text(
                 appText(
@@ -162,24 +163,16 @@ struct MessageBubbleView: View {
                     languageCode: appLanguage
                 )
             )
-                .italic()
-                .foregroundStyle(
-                    isMe
-                    ? themeManager.palette.bubbleOutgoingText.opacity(0.82)
-                    : themeManager.palette.secondaryText
-                )
+            .italic()
+            .foregroundStyle(
+                isMe
+                ? themeManager.palette.bubbleOutgoingText.opacity(0.82)
+                : themeManager.palette.secondaryText
+            )
+            
         } else if hasDecrypted, let decrypted {
             Text(decrypted)
-
-        } else if hasRenderableRaw, let raw {
-            Text(raw)
-
-        } else if hasRenderableTranslated, let translated {
-            Text(translated)
-
-        } else if hasRenderableAttachmentCaption, let attachmentCaption {
-            Text(attachmentCaption)
-
+            
         } else if msg.contentCiphertext != nil, msg.encryptedKeyForMe != nil {
             DecryptMessageTextView(
                 msg: msg,
@@ -187,7 +180,16 @@ struct MessageBubbleView: View {
                     ? themeManager.palette.bubbleOutgoingText.opacity(0.82)
                     : themeManager.palette.secondaryText
             )
-
+            
+        } else if hasRenderableRaw, let raw {
+            Text(raw)
+            
+        } else if hasRenderableTranslated, let translated {
+            Text(translated)
+            
+        } else if hasRenderableAttachmentCaption, let attachmentCaption {
+            Text(attachmentCaption)
+            
         } else if msg.contentCiphertext != nil, !hasAttachments {
             Text(
                 "🔒 "
@@ -196,10 +198,10 @@ struct MessageBubbleView: View {
                     languageCode: appLanguage
                 )
             )
-
+            
         } else if hasAttachments {
             EmptyView()
-
+            
         } else {
             Text("—")
         }

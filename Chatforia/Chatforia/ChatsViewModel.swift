@@ -77,7 +77,6 @@ final class ChatsViewModel: ObservableObject {
                     let index = self.conversations.firstIndex(where: { $0.id == roomId })
                 else { return }
 
-                // ✅ Only bump if this edit affects the latest visible message
                 let currentLastMessageId = self.conversations[index].last?.messageId
                 guard currentLastMessageId == messageId else { return }
 
@@ -88,7 +87,42 @@ final class ChatsViewModel: ObservableObject {
         NotificationCenter.default.publisher(for: .MessagesChanged)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                self?.resortConversations()
+                guard let self else { return }
+
+                for index in self.conversations.indices {
+                    guard let messageId = self.conversations[index].last?.messageId,
+                          let decrypted = DecryptedMessageTextStore.shared.text(for: messageId)?
+                            .trimmingCharacters(in: .whitespacesAndNewlines),
+                          !decrypted.isEmpty
+                    else { continue }
+
+                    let convo = self.conversations[index]
+                    let last = convo.last
+
+                    self.conversations[index] = ConversationDTO(
+                        kind: convo.kind,
+                        id: convo.id,
+                        title: convo.title,
+                        displayName: convo.displayName,
+                        updatedAt: convo.updatedAt,
+                        isGroup: convo.isGroup,
+                        phone: convo.phone,
+                        unreadCount: convo.unreadCount,
+                        avatarUsers: convo.avatarUsers,
+                        last: ConversationLastDTO(
+                            text: decrypted,
+                            messageId: last?.messageId,
+                            at: last?.at,
+                            hasMedia: last?.hasMedia,
+                            mediaCount: last?.mediaCount,
+                            mediaKinds: last?.mediaKinds,
+                            thumbUrl: last?.thumbUrl,
+                            senderName: last?.senderName
+                        )
+                    )
+                }
+
+                self.resortConversations()
             }
             .store(in: &cancellables)
     }
@@ -98,10 +132,35 @@ final class ChatsViewModel: ObservableObject {
 
         let convo = conversations[index]
         let nowISO = ISO8601DateFormatter().string(from: Date())
-
         let currentLast = convo.last
 
         let newText: String? = {
+            if let ciphertext = payload["contentCiphertext"] as? String {
+                if let messageId = payload["id"] as? Int,
+                   let decrypted = DecryptedMessageTextStore.shared.text(for: messageId)?
+                    .trimmingCharacters(in: .whitespacesAndNewlines),
+                   !decrypted.isEmpty {
+                    return decrypted
+                }
+
+                if let encryptedKeyPayload = payload["encryptedKeyForMe"] as? String {
+                    let currentUserId = UserDefaults.standard.integer(forKey: "chatforia.currentUserId")
+
+                    if currentUserId > 0,
+                       let messageId = payload["id"] as? Int,
+                       let decrypted = try? MessageCryptoService.shared.decryptMessageForCurrentBackend(
+                            ciphertextBase64: ciphertext,
+                            encryptedKeyPayload: encryptedKeyPayload,
+                            userId: currentUserId
+                       ) {
+                        DecryptedMessageTextStore.shared.setText(decrypted, for: messageId)
+                        return decrypted
+                    }
+                }
+
+                return "Message"
+            }
+
             if let text = payload["rawContent"] as? String,
                !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 return text
@@ -117,10 +176,6 @@ final class ChatsViewModel: ObservableObject {
                 .first(where: { $0.clientMessageId == clientMessageId }) {
                 return localMessage.rawContent
                     ?? localMessage.translatedForMe
-            }
-
-            if payload["contentCiphertext"] != nil {
-                return "🔒 Encrypted message"
             }
 
             if payload["deletedForAll"] as? Bool == true {
@@ -222,29 +277,14 @@ final class ChatsViewModel: ObservableObject {
             if let phone = item.phone?.trimmingCharacters(in: .whitespacesAndNewlines), !phone.isEmpty {
                 return phone
             }
-            return String(
-                format:
-                    String(
-                        localized:
-                        "sms.threadNumber"
-                    ),
-                id
-            )
+            return String(format: String(localized: "sms.threadNumber"), id)
         default:
-            return String(
-                format:
-                    String(
-                        localized:
-                        "chat.roomNumber"
-                    ),
-                id
-            )
+            return String(format: String(localized: "chat.roomNumber"), id)
         }
     }
 
     var filteredConversations: [ConversationDTO] {
         let base = sortedConversations(conversations)
-
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !query.isEmpty else { return base }
 
@@ -261,10 +301,7 @@ final class ChatsViewModel: ObservableObject {
 
     func loadConversations(token: String?) async {
         guard let token else {
-            errorText = appText(
-                "ios.missing_auth_token",
-                languageCode: appLanguage
-            )
+            errorText = appText("ios.missing_auth_token", languageCode: appLanguage)
             conversations = []
             return
         }
@@ -279,16 +316,53 @@ final class ChatsViewModel: ObservableObject {
                 token: token
             )
 
-            let fetched: [ConversationDTO]
-            if let conversations = response.conversations {
-                fetched = conversations
-            } else if let items = response.items {
-                fetched = items
-            } else {
-                fetched = []
+            let fetched = response.conversations ?? response.items ?? []
+
+            let hydrated = fetched.map { convo in
+                guard let last = convo.last,
+                      let messageId = last.messageId,
+                      let decrypted = DecryptedMessageTextStore.shared.text(for: messageId)?
+                        .trimmingCharacters(in: .whitespacesAndNewlines),
+                      !decrypted.isEmpty
+                else {
+                    return convo
+                }
+
+                return ConversationDTO(
+                    kind: convo.kind,
+                    id: convo.id,
+                    title: convo.title,
+                    displayName: convo.displayName,
+                    updatedAt: convo.updatedAt,
+                    isGroup: convo.isGroup,
+                    phone: convo.phone,
+                    unreadCount: convo.unreadCount,
+                    avatarUsers: convo.avatarUsers,
+                    last: ConversationLastDTO(
+                        text: decrypted,
+                        messageId: last.messageId,
+                        at: last.at,
+                        hasMedia: last.hasMedia,
+                        mediaCount: last.mediaCount,
+                        mediaKinds: last.mediaKinds,
+                        thumbUrl: last.thumbUrl,
+                        senderName: last.senderName
+                    )
+                )
             }
 
-            self.conversations = sortedConversations(fetched)
+            self.conversations = sortedConversations(hydrated)
+
+            for convo in self.conversations
+                where convo.last?.text == "Message" {
+
+                Task {
+                    await self.hydrateEncryptedPreview(
+                        conversation: convo,
+                        token: token
+                    )
+                }
+            }
             
             SocketManager.shared.connect(token: token)
 
@@ -305,19 +379,12 @@ final class ChatsViewModel: ObservableObject {
 
     func archiveConversation(_ conversation: ConversationDTO, token: String?) async -> Bool {
         guard let token, !token.isEmpty else {
-            errorText = appText(
-                "ios.missing_auth_token",
-                languageCode: appLanguage
-            )
+            errorText = appText("ios.missing_auth_token", languageCode: appLanguage)
             return false
         }
 
         guard let conversationId = conversation.id else {
-            errorText =
-            String(
-                localized:
-                "chat.missingConversationId"
-            )
+            errorText = String(localized: "chat.missingConversationId")
             return false
         }
 
@@ -354,10 +421,7 @@ final class ChatsViewModel: ObservableObject {
 
     func deleteConversation(_ conversation: ConversationDTO, token: String?) async {
         guard let token else {
-            errorText = appText(
-                "ios.missing_auth_token",
-                languageCode: appLanguage
-            )
+            errorText = appText("ios.missing_auth_token", languageCode: appLanguage)
             return
         }
 
@@ -384,11 +448,118 @@ final class ChatsViewModel: ObservableObject {
             conversations = sortedConversations(conversations)
             errorText = nil
         } catch {
-            errorText =
-                String(
-                    localized:
-                    "chat.deleteFailed"
+            errorText = String(localized: "chat.deleteFailed")
+        }
+    }
+    
+    private func hydrateEncryptedPreview(
+        conversation: ConversationDTO,
+        token: String?
+    ) async {
+
+        guard let roomId = conversation.id else { return }
+        guard let token, !token.isEmpty else { return }
+
+        do {
+            let page: MessagesPageResponse = try await APIClient.shared.send(
+                APIRequest(
+                    path: "messages/\(roomId)",
+                    method: .GET,
+                    requiresAuth: true
+                ),
+                token: token
+            )
+
+            guard let targetMessageId = conversation.last?.messageId else { return }
+
+            guard let newest = page.items.first(where: { $0.id == targetMessageId })
+                ?? page.items.first
+            else { return }
+
+            let decrypted: String
+
+            if let raw =
+                newest.rawContent?
+                    .trimmingCharacters(in: .whitespacesAndNewlines),
+               !raw.isEmpty {
+
+                decrypted = raw
+
+            } else if let translated =
+                newest.translatedForMe?
+                    .trimmingCharacters(in: .whitespacesAndNewlines),
+                !translated.isEmpty {
+
+                decrypted = translated
+
+            } else if let cached =
+                DecryptedMessageTextStore.shared
+                    .text(for: newest.id)?
+                    .trimmingCharacters(in: .whitespacesAndNewlines),
+                !cached.isEmpty {
+
+                decrypted = cached
+
+            } else if
+                let ciphertext = newest.contentCiphertext,
+                let encryptedKeyPayload = newest.encryptedKeyForMe {
+
+                let currentUserId =
+                    UserDefaults.standard.integer(
+                        forKey: "chatforia.currentUserId"
+                    )
+
+                guard currentUserId > 0 else { return }
+
+                decrypted =
+                    try MessageCryptoService.shared
+                        .decryptMessageForCurrentBackend(
+                            ciphertextBase64: ciphertext,
+                            encryptedKeyPayload: encryptedKeyPayload,
+                            userId: currentUserId
+                        )
+
+                await MainActor.run {
+                    DecryptedMessageTextStore.shared
+                        .setText(decrypted, for: newest.id)
+                }
+
+            } else {
+                return
+            }
+
+            await MainActor.run {
+
+                guard let idx = self.conversations.firstIndex(
+                    where: { $0.uniqueId == conversation.uniqueId }
+                ) else { return }
+
+                let convo = self.conversations[idx]
+
+                self.conversations[idx] = ConversationDTO(
+                    kind: convo.kind,
+                    id: convo.id,
+                    title: convo.title,
+                    displayName: convo.displayName,
+                    updatedAt: convo.updatedAt,
+                    isGroup: convo.isGroup,
+                    phone: convo.phone,
+                    unreadCount: convo.unreadCount,
+                    avatarUsers: convo.avatarUsers,
+                    last: ConversationLastDTO(
+                        text: decrypted,
+                        messageId: newest.id,
+                        at: newest.createdAt.ISO8601Format(),
+                        hasMedia: convo.last?.hasMedia,
+                        mediaCount: convo.last?.mediaCount,
+                        mediaKinds: convo.last?.mediaKinds,
+                        thumbUrl: convo.last?.thumbUrl,
+                        senderName: convo.last?.senderName
+                    )
                 )
+            }
+        } catch {
+            print("⚠️ preview hydrate failed:", error.localizedDescription)
         }
     }
 

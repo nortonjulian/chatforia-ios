@@ -55,6 +55,12 @@ struct DecryptMessageTextView: View {
 
         let currentUserId = UserDefaults.standard.integer(forKey: "chatforia.currentUserId")
         guard currentUserId > 0 else { return }
+        
+        print("🔐 decrypt attempt messageId:", msg.id)
+        print("🔐 has ciphertext:", msg.contentCiphertext != nil)
+        print("🔐 has encryptedKeyForMe:", msg.encryptedKeyForMe != nil)
+        print("🔐 currentUserId:", currentUserId)
+        print("🔐 encryptedKey preview:", String((msg.encryptedKeyForMe ?? "").prefix(30)))
 
         do {
             let plaintext = try MessageCryptoService.shared.decryptMessageForCurrentBackend(
@@ -67,7 +73,8 @@ struct DecryptMessageTextView: View {
                 DecryptedMessageTextStore.shared.setText(plaintext, for: msg.id)
             }
         } catch {
-            print("❌ decrypt failed for message \(msg.id):", error)
+            print("❌ decrypt failed for message \(msg.id):", error.localizedDescription)
+            print("❌ full error:", error)
         }
     }
 }

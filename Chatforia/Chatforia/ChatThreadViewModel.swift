@@ -1288,7 +1288,7 @@ final class ChatThreadViewModel: ObservableObject {
             }
         }
     }
-
+    
     private func configureRoom(roomId: Int) {
         self.roomId = roomId
         self.activeRoomId = roomId

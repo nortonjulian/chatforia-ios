@@ -16,6 +16,11 @@ final class DecryptedMessageTextStore: ObservableObject {
 
     func setText(_ text: String, for messageId: Int) {
         values[messageId] = text
+
+        NotificationCenter.default.post(
+            name: .MessagesChanged,
+            object: nil
+        )
     }
 
     func removeText(for messageId: Int) {
@@ -24,7 +29,13 @@ final class DecryptedMessageTextStore: ObservableObject {
 
     func replaceTextIfPresent(_ text: String, for messageId: Int) {
         guard values[messageId] != nil else { return }
+
         values[messageId] = text
+
+        NotificationCenter.default.post(
+            name: .MessagesChanged,
+            object: nil
+        )
     }
 
     func moveText(from oldMessageId: Int, to newMessageId: Int) {
@@ -33,9 +44,19 @@ final class DecryptedMessageTextStore: ObservableObject {
 
         values[newMessageId] = text
         values.removeValue(forKey: oldMessageId)
+
+        NotificationCenter.default.post(
+            name: .MessagesChanged,
+            object: nil
+        )
     }
 
     func clearAll() {
         values.removeAll()
+
+        NotificationCenter.default.post(
+            name: .MessagesChanged,
+            object: nil
+        )
     }
 }

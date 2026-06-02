@@ -16,12 +16,19 @@ struct ContentView: View {
             case .loggedIn(let user):
                 if auth.needsOnboarding {
                     OnboardingView(user: user)
+
+                } else if auth.needsKeyRestore {
+                    NavigationStack {
+                        RestoreEncryptionKeyView()
+                    }
+
                 } else {
                     AppShellView(user: user)
                 }
             }
         }
         .task(id: contentStateKey) {
+            guard !auth.needsKeyRestore else { return }
             await inviteFlow.redeemPendingInviteIfNeeded(auth: auth)
         }
         .onChange(of: contentStateKey) { _, newValue in
@@ -36,7 +43,7 @@ struct ContentView: View {
         case .loggedOut:
             return "loggedOut"
         case .loggedIn(let user):
-            return "loggedIn-\(user.id)-\(auth.needsOnboarding)"
+            return "loggedIn-\(user.id)-\(auth.needsOnboarding)-\(auth.needsKeyRestore)"
         }
     }
 }

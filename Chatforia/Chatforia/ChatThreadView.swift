@@ -772,6 +772,12 @@ extension ChatThreadView {
 
     
     private func onLoad() async {
+        guard !auth.needsKeyRestore else {
+            vm.errorText = auth.keyRestoreMessage
+                ?? "Restore or reset your encryption key before using encrypted chats."
+            return
+        }
+
         if let user = auth.currentUser {
             vm.configureCurrentUser(
                 id: user.id,
@@ -810,7 +816,7 @@ extension ChatThreadView {
             text: trimmed,
             senderId: senderId,
             senderUsername: auth.currentUser?.username,
-            senderPublicKey: nil
+            senderPublicKey: auth.currentUser?.publicKey
         )
 
         if ok {
