@@ -21,10 +21,6 @@ struct RestoreEncryptionKeyView: View {
     @State private var showResetConfirm = false
     @State private var isResetting = false
 
-    private var canCreateBackupFromThisDevice: Bool {
-        hasRemoteBackup == false && hasMatchingAccountKey()
-    }
-
     private var canRestoreFromBackup: Bool {
         hasRemoteBackup == true
     }
@@ -221,6 +217,22 @@ struct RestoreEncryptionKeyView: View {
 
         return passcode.count >= 8 && passcode == confirm
     }
+    
+    private var canCreateBackupFromThisDevice: Bool {
+        hasRemoteBackup == false && hasLocalAccountKey()
+    }
+
+    private func hasLocalAccountKey() -> Bool {
+        guard let userId = auth.currentUser?.id else { return false }
+
+        let localPublicKey = AccountKeyManager.shared.publicKeyBase64(userId: userId)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+        let localPrivateKey = AccountKeyManager.shared.privateKeyBase64(userId: userId)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+        return !localPublicKey.isEmpty && !localPrivateKey.isEmpty
+    }
 
     private func checkBackup() async {
         guard let token = auth.currentToken, !token.isEmpty else { return }
@@ -246,8 +258,8 @@ struct RestoreEncryptionKeyView: View {
             return
         }
 
-        guard hasMatchingAccountKey() else {
-            errorMessage = "This device does not have the correct encryption key for this account."
+        guard hasLocalAccountKey() else {
+            errorMessage = "This device does not have an encryption key to back up."
             return
         }
 
