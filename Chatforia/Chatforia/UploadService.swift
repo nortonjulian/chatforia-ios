@@ -208,11 +208,21 @@ final class UploadService {
         request.setValue(mimeType, forHTTPHeaderField: "Content-Type")
         request.httpBody = data
 
-        let (_, response) = try await URLSession.shared.data(for: request)
+        let (responseData, response) = try await URLSession.shared.data(for: request)
 
-        guard let http = response as? HTTPURLResponse,
-              (200...299).contains(http.statusCode) else {
+        guard let http = response as? HTTPURLResponse else {
             throw URLError(.badServerResponse)
+        }
+
+        print("📤 R2 PUT STATUS:", http.statusCode)
+        print("📤 R2 PUT RESPONSE:", String(data: responseData, encoding: .utf8) ?? "<non-utf8>")
+        print("📤 R2 PUT URL HOST:", url.host ?? "nil")
+
+        guard (200...299).contains(http.statusCode) else {
+            throw APIError.server(
+                status: http.statusCode,
+                message: String(data: responseData, encoding: .utf8)
+            )
         }
     }
 

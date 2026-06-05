@@ -127,6 +127,7 @@ struct ChatThreadView: View {
         }
         .sheet(isPresented: $showGIFPicker) {
             GIFPickerView { url in
+                vm.errorText = nil
                 pendingGIFURL = url
             }
         }
@@ -369,6 +370,60 @@ extension ChatThreadView {
                 }
                 .padding(.horizontal, 10)
                 .padding(.top, 8)
+                
+                HStack(spacing: 10) {
+                    Text(appText("messages.addCaptionThenSend", languageCode: appLanguage))
+                        .font(.caption)
+                        .foregroundStyle(themeManager.palette.secondaryText)
+
+                    Spacer(minLength: 0)
+
+                    Button(appText("button_cancel", languageCode: appLanguage)) {
+                        pendingGIFURL = nil
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(themeManager.palette.secondaryText)
+                    .buttonStyle(.plain)
+
+                    Button {
+                           print("🟠 GIF BAR SEND TAPPED")
+                           vm.errorText = nil
+                        Task {
+                            await sendGIFWithCaption(from: gifURL)
+                        }
+                    } label: {
+                        Text(appText("common.send", languageCode: appLanguage))
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(themeManager.palette.composerButtonForeground)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 9)
+                            .background(
+                                Capsule()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [
+                                                themeManager.palette.composerButtonStart,
+                                                themeManager.palette.composerButtonEnd
+                                            ],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(vm.isSendingGIF || auth.currentToken == nil)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(themeManager.palette.composerFieldBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(themeManager.palette.composerBorder, lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .padding(.horizontal, 10)
+                .padding(.bottom, 8)
 
             } else if !isProcessingVideo && (pendingImageData != nil || pendingVideoURL != nil) {
                 HStack(spacing: 10) {
@@ -649,14 +704,24 @@ extension ChatThreadView {
 
 extension ChatThreadView {
     private func sendGIFWithCaption(from url: URL) async {
+        print("🧪 sendGIFWithCaption ENTERED")
         guard let senderId = auth.currentUser?.id else { return }
 
         do {
-            let (data, _) = try await URLSession.shared.data(from: url)
+            print("🎬 sendGIFWithCaption url =", url.absoluteString)
+
+            let (data, response) = try await URLSession.shared.data(from: url)
+
+            if let http = response as? HTTPURLResponse {
+                print("🎬 GIF DOWNLOAD STATUS:", http.statusCode)
+                print("🎬 GIF DOWNLOAD CONTENT-TYPE:", http.value(forHTTPHeaderField: "Content-Type") ?? "nil")
+            }
+
+            print("🎬 GIF DOWNLOAD BYTES:", data.count)
+
             guard !data.isEmpty else {
                 await MainActor.run {
-                    vm.errorText =
-                    appText(
+                    vm.errorText = appText(
                         "gif.emptyData",
                         languageCode: appLanguage
                     )
@@ -674,7 +739,7 @@ extension ChatThreadView {
                 caption: effectiveCaption,
                 senderId: senderId,
                 senderUsername: auth.currentUser?.username,
-                senderPublicKey: nil
+                senderPublicKey: auth.currentUser?.publicKey
             )
 
             if ok {

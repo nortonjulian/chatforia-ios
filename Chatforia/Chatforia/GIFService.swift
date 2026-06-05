@@ -9,14 +9,11 @@ struct GIFPickerItem: Identifiable, Decodable, Hashable, Sendable {
 }
 
 enum GIFServiceError: LocalizedError {
-    case missingAPIKey
     case invalidResponse
     case badURL
 
     var errorDescription: String? {
         switch self {
-        case .missingAPIKey:
-            return "Missing GIF API key."
         case .invalidResponse:
             return "Invalid GIF response."
         case .badURL:
@@ -30,92 +27,45 @@ final class GIFService {
     static let shared = GIFService()
     private init() {}
 
-    // Replace with your real values or wire these through your config layer.
-    private let apiKey = AppEnvironment.tenorAPIKey
-    private let clientKey = "chatforia_ios"
-
     func featured(limit: Int = 24) async throws -> [GIFPickerItem] {
-        let url = try makeURL(
-            path: "/v2/featured",
-            queryItems: [
-                URLQueryItem(name: "key", value: validatedAPIKey()),
-                URLQueryItem(name: "client_key", value: clientKey),
-                URLQueryItem(name: "limit", value: "\(limit)")
-            ]
-        )
-
-        let response: TenorResponse = try await fetch(url: url)
-        return response.results.map(\.pickerItem)
+        try await search(query: "trending", limit: limit)
     }
 
     func search(query: String, limit: Int = 24) async throws -> [GIFPickerItem] {
-        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            return try await featured(limit: limit)
-        }
+        let q = query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? "trending"
+            : query.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        let url = try makeURL(
-            path: "/v2/search",
-            queryItems: [
-                URLQueryItem(name: "key", value: validatedAPIKey()),
-                URLQueryItem(name: "client_key", value: clientKey),
-                URLQueryItem(name: "q", value: trimmed),
-                URLQueryItem(name: "limit", value: "\(limit)")
-            ]
+        var components = URLComponents(
+            url: AppEnvironment.apiBaseURL.appendingPathComponent("stickers/search"),
+            resolvingAgainstBaseURL: false
         )
 
-        let response: TenorResponse = try await fetch(url: url)
-        return response.results.map(\.pickerItem)
+        components?.queryItems = [
+            URLQueryItem(name: "q", value: q),
+            URLQueryItem(name: "limit", value: "\(limit)")
+        ]
+
+        guard let url = components?.url else {
+            throw GIFServiceError.badURL
+        }
+
+        let response: BackendGIFResponse = try await fetch(url: url)
+        return response.results.map { $0.pickerItem }
     }
 
     func registerShare(item: GIFPickerItem, query: String?) async {
-        guard let apiKey = try? validatedAPIKey(),
-              let tenorID = item.tenorID,
-              let url = try? makeURL(
-                path: "/v2/registershare",
-                queryItems: [
-                    URLQueryItem(name: "key", value: apiKey),
-                    URLQueryItem(name: "client_key", value: clientKey),
-                    URLQueryItem(name: "id", value: tenorID),
-                    URLQueryItem(name: "q", value: query?.trimmingCharacters(in: .whitespacesAndNewlines))
-                ]
-              ) else {
-            return
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-
-        do {
-            _ = try await URLSession.shared.data(for: request)
-        } catch {
-            // Non-blocking analytics-style call; safe to ignore for UX.
-        }
-    }
-
-    private func validatedAPIKey() throws -> String {
-        let trimmed = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { throw GIFServiceError.missingAPIKey }
-        return trimmed
-    }
-
-    private func makeURL(path: String, queryItems: [URLQueryItem]) throws -> URL {
-        var components = URLComponents()
-        components.scheme = "https"
-        components.host = "tenor.googleapis.com"
-        components.path = path
-        components.queryItems = queryItems
-
-        guard let url = components.url else {
-            throw GIFServiceError.badURL
-        }
-        return url
+        // Backend handles Tenor access. No client-side registershare needed.
     }
 
     private func fetch<T: Decodable>(url: URL) async throws -> T {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        if let token = TokenStore.shared.read(), !token.isEmpty {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
@@ -124,51 +74,35 @@ final class GIFService {
             throw GIFServiceError.invalidResponse
         }
 
-        let decoder = JSONDecoder()
-        return try decoder.decode(T.self, from: data)
+        return try JSONDecoder().decode(T.self, from: data)
     }
 }
 
-// MARK: - Tenor DTOs
-
-private struct TenorResponse: Decodable {
-    let results: [TenorResult]
+private struct BackendGIFResponse: Decodable {
+    let results: [BackendGIFItem]
 }
 
-private struct TenorResult: Decodable {
-    let id: String
+private struct BackendGIFItem: Decodable {
+    let id: String?
     let title: String?
-    let mediaFormats: TenorMediaFormats
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case title
-        case mediaFormats = "media_formats"
-    }
+    let url: String?
+    let previewUrl: String?
+    let previewURL: String?
+    let tenorID: String?
+    let tenorId: String?
 
     var pickerItem: GIFPickerItem {
-        let preview = mediaFormats.tinygif?.url ?? mediaFormats.nanogif?.url ?? mediaFormats.gif?.url
-        let full = mediaFormats.gif?.url ?? mediaFormats.mediumgif?.url ?? mediaFormats.tinygif?.url
+        let resolvedId = id ?? tenorID ?? tenorId ?? url ?? UUID().uuidString
+        let preview = previewUrl ?? previewURL ?? url
 
         return GIFPickerItem(
-            id: id,
-            title: title?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfBlank ?? "GIF",
+            id: resolvedId,
+            title: title?.nilIfBlank ?? "GIF",
             previewURL: preview.flatMap(URL.init(string:)),
-            fullURL: full.flatMap(URL.init(string:)),
-            tenorID: id
+            fullURL: url.flatMap(URL.init(string:)),
+            tenorID: tenorID ?? tenorId ?? id
         )
     }
-}
-
-private struct TenorMediaFormats: Decodable {
-    let gif: TenorMediaObject?
-    let mediumgif: TenorMediaObject?
-    let tinygif: TenorMediaObject?
-    let nanogif: TenorMediaObject?
-}
-
-private struct TenorMediaObject: Decodable {
-    let url: String?
 }
 
 private extension String {
