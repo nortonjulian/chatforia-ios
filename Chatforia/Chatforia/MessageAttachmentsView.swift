@@ -117,14 +117,6 @@ struct MessageAttachmentsView: View {
                 )
             }
 
-            if let caption = attachment.caption?.nilIfBlank {
-                Text(caption)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .multilineTextAlignment(isMe ? .trailing : .leading)
-                    .frame(maxWidth: .infinity, alignment: isMe ? .trailing : .leading)
-                    .padding(.horizontal, 2)
-            }
         }
     }
 
@@ -208,16 +200,9 @@ struct MessageAttachmentsView: View {
                 .frame(width: min(maxWidth, 240))
             }
 
-            if let caption = attachment.caption?.nilIfBlank {
-                Text(caption)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .multilineTextAlignment(isMe ? .trailing : .leading)
-                    .frame(maxWidth: .infinity, alignment: isMe ? .trailing : .leading)
-                    .padding(.horizontal, 2)
             }
         }
-    }
+    
     
     @ViewBuilder
     private func gifCard(_ attachment: AttachmentDTO) -> some View {
@@ -277,15 +262,6 @@ struct MessageAttachmentsView: View {
                     systemImage: "photo"
                 )
                 .frame(width: min(maxWidth, 240))
-            }
-
-            if let caption = attachment.caption?.nilIfBlank {
-                Text(caption)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .multilineTextAlignment(isMe ? .trailing : .leading)
-                    .frame(maxWidth: .infinity, alignment: isMe ? .trailing : .leading)
-                    .padding(.horizontal, 2)
             }
         }
     }

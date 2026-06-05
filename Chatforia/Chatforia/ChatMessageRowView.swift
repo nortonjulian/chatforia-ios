@@ -122,7 +122,7 @@ struct ChatMessageRowView: View {
                     }
                 }
 
-                if shouldShowBubble && !hasVisibleAttachments {
+                if shouldShowBubble {
                     MessageBubbleView(
                         msg: msg,
                         isMe: isMe,
