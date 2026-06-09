@@ -149,7 +149,7 @@ final class AuthStoreTests: XCTestCase {
         plan: String? = "FREE",
         publicKey: String? = nil,
         role: String? = "USER",
-        theme: String? = "dawn",
+        theme: String? = "Dawn",
         avatarUrl: String? = nil,
         uiLanguage: String? = "en"
     ) -> UserDTO {

@@ -1,6 +1,7 @@
 import Foundation
 import AVFoundation
 import UIKit
+import AudioToolbox
 
 @MainActor
 final class AudioPlayerService {
@@ -43,16 +44,33 @@ final class AudioPlayerService {
         stop()
 
         guard filename.lowercased() != "vibrate.mp3" else {
-            let generator = UINotificationFeedbackGenerator()
-            generator.notificationOccurred(.success)
+            AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
             return
         }
 
         let name = (filename as NSString).deletingPathExtension
         let ext = (filename as NSString).pathExtension
 
-        guard let url = Bundle.main.url(forResource: name, withExtension: ext) else {
-            
+        let url =
+            Bundle.main.url(
+                forResource: name,
+                withExtension: ext,
+                subdirectory: "sounds/Message_Tones"
+            )
+            ??
+            Bundle.main.url(
+                forResource: name,
+                withExtension: ext,
+                subdirectory: "sounds/Ringtones"
+            )
+            ??
+            Bundle.main.url(
+                forResource: name,
+                withExtension: ext
+            )
+
+        guard let url else {
+            print("❌ Sound file not found: \(filename)")
             return
         }
 

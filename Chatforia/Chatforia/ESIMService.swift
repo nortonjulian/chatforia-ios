@@ -69,9 +69,6 @@ private extension ESIMService {
 
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         
-        print("🔥 AUTH TOKEN:", token)
-        
-        print("🔥 HEADERS:", request.allHTTPHeaderFields ?? [:])
 
         if let body {
             request.httpBody = try encoder.encode(body)

@@ -121,6 +121,7 @@ struct ProfileRootView: View {
                     profileSettingsSection
                     securitySection
                     appearanceSection
+                    accessibilitySection
                     soundsSection
                     disappearingMessagesSection
                     privacySection
@@ -707,6 +708,40 @@ struct ProfileRootView: View {
             }
         }
     }
+    
+    private var accessibilitySection: some View {
+        SectionCardView(title: appText("accessibility_title", languageCode: appLanguage)) {
+            NavigationLink {
+                AccessibilitySettingsView(vm: vm)
+                    .environmentObject(auth)
+                    .environmentObject(themeManager)
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "accessibility")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(themeManager.palette.accent)
+                        .frame(width: 22)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(appText("accessibility_title", languageCode: appLanguage))
+                            .font(.body)
+                            .foregroundStyle(themeManager.palette.primaryText)
+
+                        Text(appText("accessibility_description", languageCode: appLanguage))
+                            .font(.subheadline)
+                            .foregroundStyle(themeManager.palette.secondaryText)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(.vertical, 10)
+            }
+            .buttonStyle(.plain)
+        }
+    }
 
     private var soundsSection: some View {
         SectionCardView(title: appText("section_sounds", languageCode: appLanguage)) {
@@ -814,7 +849,15 @@ struct ProfileRootView: View {
                     Slider(
                         value: Binding(
                             get: { Double(vm.soundVolume) },
-                            set: { vm.soundVolume = Int($0.rounded()) }
+                            set: {
+                                vm.soundVolume = Int($0.rounded())
+
+                                AudioPlayerService.shared.save(
+                                    messageTone: vm.messageTone,
+                                    ringtone: vm.ringtone,
+                                    soundVolume: vm.soundVolume
+                                )
+                            }
                         ),
                         in: 0...100,
                         step: 1
@@ -1391,6 +1434,21 @@ struct ProfileRootView: View {
                     .buttonStyle(.plain)
 
                     Divider()
+                    
+                    NavigationLink {
+                        LinkedDevicesView()
+                            .environmentObject(auth)
+                            .environmentObject(themeManager)
+                    } label: {
+                        rowLabel(
+                            icon: "iphone.gen3.radiowaves.left.and.right",
+                            title: "Linked Devices",
+                            subtitle: "Manage trusted devices and approvals"
+                        )
+                    }
+                    .buttonStyle(.plain)
+
+                    Divider()
 
                     if !AccountKeyManager.shared.hasAccountKeys(userId: currentUserId) {
                         Divider()
@@ -1541,6 +1599,17 @@ struct ProfileRootView: View {
         }
 
         vm.messageTone = code
+
+        AudioPlayerService.shared.save(
+            messageTone: vm.messageTone,
+            ringtone: vm.ringtone,
+            soundVolume: vm.soundVolume
+        )
+
+        AudioPlayerService.shared.previewMessageTone(
+            filename: code,
+            volume: vm.soundVolume
+        )
     }
 
     private func attemptApplyRingtone(_ code: String) {
@@ -1564,6 +1633,17 @@ struct ProfileRootView: View {
         }
 
         vm.ringtone = code
+
+        AudioPlayerService.shared.save(
+            messageTone: vm.messageTone,
+            ringtone: vm.ringtone,
+            soundVolume: vm.soundVolume
+        )
+
+        AudioPlayerService.shared.previewRingtone(
+            filename: code,
+            volume: vm.soundVolume
+        )
     }
 
     private func displayValue(_ value: String?) -> String {

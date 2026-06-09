@@ -371,59 +371,6 @@ extension ChatThreadView {
                 .padding(.horizontal, 10)
                 .padding(.top, 8)
                 
-                HStack(spacing: 10) {
-                    Text(appText("messages.addCaptionThenSend", languageCode: appLanguage))
-                        .font(.caption)
-                        .foregroundStyle(themeManager.palette.secondaryText)
-
-                    Spacer(minLength: 0)
-
-                    Button(appText("button_cancel", languageCode: appLanguage)) {
-                        pendingGIFURL = nil
-                    }
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(themeManager.palette.secondaryText)
-                    .buttonStyle(.plain)
-
-                    Button {
-                           print("🟠 GIF BAR SEND TAPPED")
-                           vm.errorText = nil
-                        Task {
-                            await sendGIFWithCaption(from: gifURL)
-                        }
-                    } label: {
-                        Text(appText("common.send", languageCode: appLanguage))
-                            .font(.subheadline.weight(.bold))
-                            .foregroundStyle(themeManager.palette.composerButtonForeground)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 9)
-                            .background(
-                                Capsule()
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [
-                                                themeManager.palette.composerButtonStart,
-                                                themeManager.palette.composerButtonEnd
-                                            ],
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-                            )
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(vm.isSendingGIF || auth.currentToken == nil)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-                .background(themeManager.palette.composerFieldBackground)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(themeManager.palette.composerBorder, lineWidth: 1)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                .padding(.horizontal, 10)
-                .padding(.bottom, 8)
 
             } else if !isProcessingVideo && (pendingImageData != nil || pendingVideoURL != nil) {
                 HStack(spacing: 10) {
@@ -653,7 +600,7 @@ extension ChatThreadView {
 
                     Task {
                         if let gifURL = pendingGIFURL {
-                            await sendGIFWithCaption(from: gifURL)
+                            await sendGIF(from: gifURL)
                         } else if pendingImageData != nil || pendingVideoURL != nil {
                             await sendPendingMedia()
                         } else {
@@ -703,12 +650,12 @@ extension ChatThreadView {
 }
 
 extension ChatThreadView {
-    private func sendGIFWithCaption(from url: URL) async {
-        print("🧪 sendGIFWithCaption ENTERED")
+    private func sendGIF(from url: URL) async {
+        print("🧪 sendGIF ENTERED")
         guard let senderId = auth.currentUser?.id else { return }
 
         do {
-            print("🎬 sendGIFWithCaption url =", url.absoluteString)
+            print("🎬 sendGIF url =", url.absoluteString)
 
             let (data, response) = try await URLSession.shared.data(from: url)
 
@@ -915,23 +862,52 @@ extension ChatThreadView {
         }
     }
 
+    private func otherParticipant() -> UserPreviewDTO? {
+        guard let myId = auth.currentUser?.id else { return nil }
+        return room.participants?.first { $0.id != myId }
+    }
+
     private func startCall() {
-        guard let phone = room.phone else { return }
+        if let phone = room.phone, !phone.isEmpty {
+            callManager.startCall(
+                to: .phoneNumber(phone, displayName: roomDisplayTitle),
+                auth: auth
+            )
+            return
+        }
+
+        guard let otherUser = otherParticipant() else {
+            vm.errorText = "Could not find someone to call."
+            return
+        }
 
         callManager.startCall(
-            to: .phoneNumber(phone, displayName: roomDisplayTitle),
+            to: .appUser(
+                userId: otherUser.id,
+                username: otherUser.username
+            ),
             auth: auth
         )
     }
 
     private func startVideoCall() {
-        if room.isGroup == true {
-            callManager.startGroupVideoCall(
-                roomId: room.id,
-                displayName: roomDisplayTitle,
-                auth: auth
-            )
+        guard room.isGroup != true else {
+            vm.errorText = "Group video calls are coming after launch."
+            return
         }
+
+        guard let otherUser = otherParticipant() else {
+            vm.errorText = "Video calls are only available with Chatforia users."
+            return
+        }
+
+        callManager.startVideoCall(
+            to: .appUser(
+                userId: otherUser.id,
+                username: otherUser.username
+            ),
+            auth: auth
+        )
     }
 
     private var roomDisplayTitle: String {

@@ -36,6 +36,15 @@ final class SettingsViewModel: ObservableObject {
 
     @Published var enableSmartReplies: Bool = true
     @Published var maskAIProfanity: Bool = false
+    
+    @Published var a11yUiFont: String = "md"
+    @Published var a11yVisualAlerts: Bool = false
+    @Published var a11yVibrate: Bool = false
+    @Published var a11yFlashOnCall: Bool = false
+    @Published var a11yLiveCaptions: Bool = false
+    @Published var a11yVoiceNoteSTT: Bool = false
+    @Published var a11yCaptionFont: String = "lg"
+    @Published var a11yCaptionBg: String = "dark"
 
     private let maskAIProfanityKey = "chatforia.maskAIProfanity"
     
@@ -64,6 +73,15 @@ final class SettingsViewModel: ObservableObject {
         voicemailAutoDeleteDays = user.voicemailAutoDeleteDays
         voicemailForwardEmail = user.voicemailForwardEmail ?? (user.email ?? "")
         voicemailGreetingText = user.voicemailGreetingText ?? ""
+        
+        a11yUiFont = user.a11yUiFont ?? "md"
+        a11yVisualAlerts = user.a11yVisualAlerts ?? false
+        a11yVibrate = user.a11yVibrate ?? false
+        a11yFlashOnCall = user.a11yFlashOnCall ?? false
+        a11yLiveCaptions = user.a11yLiveCaptions ?? false
+        a11yVoiceNoteSTT = user.a11yVoiceNoteSTT ?? false
+        a11yCaptionFont = user.a11yCaptionFont ?? "lg"
+        a11yCaptionBg = user.a11yCaptionBg ?? "dark"
 
         messageTone = normalizedMessageTone(user.messageTone)
         ringtone = normalizedRingtone(user.ringtone)

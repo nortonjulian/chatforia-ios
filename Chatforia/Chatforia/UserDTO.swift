@@ -37,8 +37,17 @@ struct UserDTO: Codable, Identifiable {
     let messageTone: String?
     let ringtone: String?
     let soundVolume: Int?
+    
+    
+    let a11yUiFont: String?
+    let a11yVisualAlerts: Bool?
+    let a11yVibrate: Bool?
+    let a11yFlashOnCall: Bool?
+    let a11yLiveCaptions: Bool?
+    let a11yVoiceNoteSTT: Bool?
+    let a11yCaptionFont: String?
+    let a11yCaptionBg: String?
 
-    // Legacy compatibility while older code is migrated
     let isPremium: Bool?
 
     let enableSmartReplies: Bool?
@@ -76,7 +85,16 @@ struct UserDTO: Codable, Identifiable {
         ringtone: String? = nil,
         soundVolume: Int? = nil,
         isPremium: Bool? = nil,
-        enableSmartReplies: Bool? = nil
+        enableSmartReplies: Bool? = nil,
+        
+        a11yUiFont: String? = nil,
+        a11yVisualAlerts: Bool? = nil,
+        a11yVibrate: Bool? = nil,
+        a11yFlashOnCall: Bool? = nil,
+        a11yLiveCaptions: Bool? = nil,
+        a11yVoiceNoteSTT: Bool? = nil,
+        a11yCaptionFont: String? = nil,
+        a11yCaptionBg: String? = nil,
     ) {
         self.id = id
         self.email = email
@@ -118,6 +136,15 @@ struct UserDTO: Codable, Identifiable {
         self.enableSmartReplies = enableSmartReplies
         
         self.uiLanguage = uiLanguage
+        
+        self.a11yUiFont = a11yUiFont
+        self.a11yVisualAlerts = a11yVisualAlerts
+        self.a11yVibrate = a11yVibrate
+        self.a11yFlashOnCall = a11yFlashOnCall
+        self.a11yLiveCaptions = a11yLiveCaptions
+        self.a11yVoiceNoteSTT = a11yVoiceNoteSTT
+        self.a11yCaptionFont = a11yCaptionFont
+        self.a11yCaptionBg = a11yCaptionBg
     }
 }
 

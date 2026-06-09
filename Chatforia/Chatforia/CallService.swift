@@ -4,6 +4,106 @@ final class CallService {
     static let shared = CallService()
     private init() {}
 
+   struct AddParticipantResponse: Decodable {
+    let participant: CallParticipant
+   }
+
+    func addParticipant(
+        callId: Int,
+        userId: Int,
+        token: String
+    ) async throws -> CallParticipant {
+        struct Body: Encodable {
+            let userId: Int
+            let offer: Offer
+        }
+
+        struct Offer: Encodable {
+            let type: String
+            let sdp: String
+        }
+
+        let body = try JSONEncoder().encode(
+            Body(
+                userId: userId,
+                offer: Offer(type: "offer", sdp: "ios-placeholder")
+            )
+        )
+
+        let response: AddParticipantResponse = try await APIClient.shared.send(
+            APIRequest(
+                path: "calls/\(callId)/add-participant",
+                method: .POST,
+                body: body,
+                requiresAuth: true
+            ),
+            token: token
+        )
+
+        return response.participant
+    }
+
+    func answerParticipant(
+        callId: Int,
+        toUserId: Int,
+        token: String
+    ) async throws {
+        struct Body: Encodable {
+            let answer: Answer
+            let toUserId: Int
+        }
+
+        struct Answer: Encodable {
+            let type: String
+            let sdp: String
+        }
+
+        let body = try JSONEncoder().encode(
+            Body(
+                answer: Answer(type: "answer", sdp: "ios-accepted"),
+                toUserId: toUserId
+            )
+        )
+
+        let _: EmptyResponse = try await APIClient.shared.send(
+            APIRequest(
+                path: "calls/\(callId)/answer-participant",
+                method: .POST,
+                body: body,
+                requiresAuth: true
+            ),
+            token: token
+        )
+    }
+
+    func declineParticipant(
+        callId: Int,
+        token: String
+    ) async throws {
+        let _: EmptyResponse = try await APIClient.shared.send(
+            APIRequest(
+                path: "calls/\(callId)/decline-participant",
+                method: .POST,
+                requiresAuth: true
+            ),
+            token: token
+        )
+    }
+
+    func leaveParticipant(
+        callId: Int,
+        token: String
+    ) async throws {
+        let _: EmptyResponse = try await APIClient.shared.send(
+            APIRequest(
+                path: "calls/\(callId)/leave-participant",
+                method: .POST,
+                requiresAuth: true
+            ),
+            token: token
+        )
+    }
+
     struct CreateCallResponse: Decodable {
         let callId: Int
     }
