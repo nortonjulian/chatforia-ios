@@ -53,6 +53,9 @@ final class AuthStore: NSObject, ObservableObject {
     private let tokenStore: TokenStoring
     private let apiClient: APIClientSending
     private(set) var socket: SocketManaging
+    private var isRefreshingCurrentUser = false
+    private var lastUserRefreshAt: Date?
+    private let userRefreshInterval: TimeInterval = 30
     
     private var appLanguage: String {
         UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
@@ -254,17 +257,36 @@ final class AuthStore: NSObject, ObservableObject {
         state = .loggedOut
     }
 
-    func refreshCurrentUser() async {
+    func refreshCurrentUser(force: Bool = false) async {
         guard let token = tokenStore.read(), !token.isEmpty else {
             handleInvalidSession()
             return
         }
+
+        if isRefreshingCurrentUser {
+            print("⏭️ auth/me refresh already in progress")
+            return
+        }
+
+        if !force,
+           let lastUserRefreshAt,
+           Date().timeIntervalSince(lastUserRefreshAt) < userRefreshInterval,
+           currentUser != nil {
+            print("⏭️ auth/me refresh skipped (cached)")
+            return
+        }
+
+        isRefreshingCurrentUser = true
+        defer { isRefreshingCurrentUser = false }
 
         do {
             let response: MeResponse = try await APIClient.shared.send(
                 APIRequest(path: "auth/me", method: .GET, requiresAuth: true),
                 token: token
             )
+
+            lastUserRefreshAt = Date()
+
             state = .loggedIn(response.user)
             evaluateOnboarding(for: response.user)
             evaluateKeyRestoreNeed(for: response.user)
@@ -274,6 +296,7 @@ final class AuthStore: NSObject, ObservableObject {
                 socket.disconnect()
                 return
             }
+
         } catch {
             print("⚠️ refreshCurrentUser failed:", error)
         }

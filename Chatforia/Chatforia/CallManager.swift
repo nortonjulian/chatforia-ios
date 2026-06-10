@@ -168,9 +168,6 @@ final class CallManager: ObservableObject {
         pendingAuth = auth
         voipPushManager.start()
         registerPendingVoIPTokenIfPossible()
-
-        // Do not prepare Twilio Voice here.
-        // Voice should only prepare when starting or answering a live call.
     }
 
     func startCall(to destination: CallDestination, auth: AuthStore) {

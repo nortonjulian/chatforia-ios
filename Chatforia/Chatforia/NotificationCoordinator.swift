@@ -10,6 +10,9 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
     @Published var pendingChatRoomId: Int?
 
     private let apnsTokenDefaultsKey = "apns_token"
+    private var isRegisteringPushToken = false
+    private var lastRegisteredPushToken: String?
+    private var hasRequestedAuthorizationThisLaunch = false
 
     private override init() {
         super.init()
@@ -20,6 +23,13 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
     }
 
     func requestAuthorization() async {
+        guard !hasRequestedAuthorizationThisLaunch else {
+            print("⏭️ Notification permission already requested this launch")
+            return
+        }
+
+        hasRequestedAuthorizationThisLaunch = true
+
         do {
             print("🔔 Requesting notification permission...")
             let granted = try await UNUserNotificationCenter.current()
@@ -69,6 +79,16 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
     }
 
     private func registerPushTokenIfPossible(_ pushToken: String) async {
+        guard !isRegisteringPushToken else {
+            print("⏭️ Push registration already in progress")
+            return
+        }
+
+        guard lastRegisteredPushToken != pushToken else {
+            print("⏭️ Push token already registered this launch")
+            return
+        }
+
         print("🚀 Attempting push registration...")
 
         guard let authToken = TokenStore.shared.read(), !authToken.isEmpty else {
@@ -77,19 +97,22 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
 
         print("🔑 Auth token exists")
 
+        isRegisteringPushToken = true
+        defer { isRegisteringPushToken = false }
+
         do {
-            // 🔥 STEP 1: Ensure device exists
             _ = try await DeviceRegistrationService.shared.ensureCurrentDeviceRegistered(
-                userId: 0, // not used on backend, safe placeholder
+                userId: 0,
                 token: authToken
             )
             print("✅ device registered (or already exists)")
 
-            // 🔥 STEP 2: Register push token
             try await DeviceRegistrationService.shared.registerPushToken(
                 pushToken,
                 token: authToken
             )
+
+            lastRegisteredPushToken = pushToken
 
             print("✅ push token registered with backend")
         } catch {

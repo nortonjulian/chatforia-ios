@@ -161,6 +161,8 @@ final class ChatThreadViewModel: ObservableObject {
     private let batchSortDebouncer = BatchSortDebouncer(debounceInterval: 0.03)
     private var cancellables = Set<AnyCancellable>()
     
+    private var failedDecryptMessageIds = Set<Int>()
+    
     private var pendingReadMessageIds = Set<Int>()
     private var readFlushTask: Task<Void, Never>?
 

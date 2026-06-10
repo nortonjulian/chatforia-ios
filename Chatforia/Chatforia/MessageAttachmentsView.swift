@@ -224,14 +224,20 @@ struct MessageAttachmentsView: View {
                 } label: {
                     VStack(alignment: .leading, spacing: 6) {
                         ZStack(alignment: .topTrailing) {
-                            GIFWebView(url: url)
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color(uiColor: .secondarySystemBackground))
                                 .frame(width: min(maxWidth, 240), height: 180)
-                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                .overlay {
+                                    VStack(spacing: 8) {
+                                        Image(systemName: "play.circle.fill")
+                                            .font(.system(size: 42))
 
-                            Text(appText(
-                                "media.gif",
-                                languageCode: appLanguage
-                            ))
+                                        Text(appText("media.gif", languageCode: appLanguage))
+                                            .font(.caption.weight(.semibold))
+                                    }
+                                }
+
+                            Text(appText("media.gif", languageCode: appLanguage))
                                 .font(.caption2.bold())
                                 .padding(6)
                                 .background(.black.opacity(0.7))

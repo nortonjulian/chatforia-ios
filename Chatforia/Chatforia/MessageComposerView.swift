@@ -94,6 +94,7 @@ struct MessageComposerView: View {
     }
 
     var body: some View {
+        
         VStack(spacing: 0) {
             if settingsVM.enableSmartReplies && !suggestions.isEmpty {
                 RiaSuggestionBar(
@@ -170,7 +171,7 @@ struct MessageComposerView: View {
                 .foregroundStyle(themeManager.palette.primaryText)
                 .lineLimit(1...5)
                 .padding(.vertical, 11)
-                .disabled(isSending || isSendingVoice || hasVoiceDraft || isRecordingVoice)
+                .disabled(hasVoiceDraft || isRecordingVoice)
                 .onChange(of: draft) { _, _ in
                     onDraftChanged()
                 }
