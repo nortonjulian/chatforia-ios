@@ -24,6 +24,7 @@ struct ChatThreadView: View {
 
     @State private var editingMessage: MessageDTO? = nil
     @State private var editDraft: String = ""
+    @State private var didLoad = false
     
     @State private var editPendingGIFURL: URL? = nil
     @State private var showEditGIFPicker = false
@@ -77,7 +78,14 @@ struct ChatThreadView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { toolbarContent }
         .task {
+            guard !didLoad else { return }
+            didLoad = true
             await onLoad()
+        }
+        .onDisappear {
+            vm.stopSocket(roomId: room.id)
+            vm.stopExpiryLoop()
+            vm.stopTypingNow(roomId: room.id)
         }
         .sheet(item: $editingMessage) { _ in
             editMessageSheet
@@ -802,6 +810,8 @@ extension ChatThreadView {
         settingsVM.loadLocalAISettings()
 
         await reload()
+
+        vm.startExpiryLoop()
 
         vm.startSocket(
             roomId: room.id,

@@ -212,6 +212,11 @@ final class DeviceRegistrationService {
             let deviceId: String
             let pushToken: String
             let pushProvider: String
+            let publicKey: String
+            let keyAlgorithm: String
+            let keyVersion: Int
+            let platform: String
+            let name: String
         }
 
         struct RegisterPushTokenResponse: Decodable {
@@ -219,11 +224,18 @@ final class DeviceRegistrationService {
             let device: DeviceDTO?
         }
 
+        let keyManager = DeviceKeyManager.shared
+
         let body = try JSONEncoder().encode(
             RegisterPushTokenRequest(
-                deviceId: DeviceKeyManager.shared.getOrCreateDeviceId(),
+                deviceId: keyManager.getOrCreateDeviceId(),
                 pushToken: pushToken,
-                pushProvider: provider
+                pushProvider: provider,
+                publicKey: try keyManager.publicKeyBase64(),
+                keyAlgorithm: "curve25519",
+                keyVersion: 1,
+                platform: keyManager.currentPlatform(),
+                name: keyManager.currentDeviceName()
             )
         )
 

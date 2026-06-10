@@ -148,7 +148,7 @@ struct ChatsRootView: View {
                                                 systemImage: "trash"
                                             )
                                         }
-                                        .tint(.blue)
+                                        .tint(.red)
 
                                         Button(role: .destructive) {
                                             pendingConversation = conversation
