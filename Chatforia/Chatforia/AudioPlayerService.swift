@@ -8,6 +8,9 @@ final class AudioPlayerService {
     static let shared = AudioPlayerService()
 
     private var player: AVAudioPlayer?
+    
+    private var lastPlayedAt: Date = .distantPast
+    
 
     private let messageToneKey = "chatforia.messageTone"
     private let ringtoneKey = "chatforia.ringtone"
@@ -22,6 +25,15 @@ final class AudioPlayerService {
     }
 
     func playCurrentMessageTone() {
+        let now = Date()
+
+        guard now.timeIntervalSince(lastPlayedAt) > 1.0 else {
+            print("⏭️ Skipping duplicate message tone")
+            return
+        }
+
+        lastPlayedAt = now
+
         let filename = UserDefaults.standard.string(forKey: messageToneKey) ?? "Default.mp3"
         let volume = UserDefaults.standard.object(forKey: soundVolumeKey) as? Int ?? 70
         playSound(filename: filename, volume: volume)

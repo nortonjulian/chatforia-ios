@@ -58,39 +58,42 @@ enum AppEnvironment {
                     let decoder = JSONDecoder.tolerantISO8601Decoder()
 
                     struct MessageEnvelopeResponse: Decodable {
-                        let message: MessageDTO
+                        let message: MessageDTO?
                     }
 
                     struct ShapedEnvelope: Decodable {
-                        let shaped: MessageDTO
+                        let shaped: MessageDTO?
                     }
 
                     struct ItemEnvelope: Decodable {
-                        let item: MessageDTO
+                        let item: MessageDTO?
                     }
 
-                    // Try decoding in order of likelihood
                     if let dto = try? decoder.decode(MessageDTO.self, from: data) {
                         completion(.success(serverMessage: dto))
                         return
                     }
 
-                    if let env = try? decoder.decode(MessageEnvelopeResponse.self, from: data) {
-                        completion(.success(serverMessage: env.message))
+                    if let env = try? decoder.decode(MessageEnvelopeResponse.self, from: data),
+                       let message = env.message {
+                        completion(.success(serverMessage: message))
                         return
                     }
 
-                    if let env = try? decoder.decode(ShapedEnvelope.self, from: data) {
-                        completion(.success(serverMessage: env.shaped))
+                    if let env = try? decoder.decode(ShapedEnvelope.self, from: data),
+                       let shaped = env.shaped {
+                        completion(.success(serverMessage: shaped))
                         return
                     }
 
-                    if let env = try? decoder.decode(ItemEnvelope.self, from: data) {
-                        completion(.success(serverMessage: env.item))
+                    if let env = try? decoder.decode(ItemEnvelope.self, from: data),
+                       let item = env.item {
+                        completion(.success(serverMessage: item))
                         return
                     }
 
-                    completion(.temporaryFailure)
+                    print("⚠️ Send succeeded but response did not decode as MessageDTO.")
+                    completion(.success(serverMessage: nil))
 
                 } catch {
 

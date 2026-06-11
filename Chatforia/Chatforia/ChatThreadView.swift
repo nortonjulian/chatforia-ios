@@ -51,8 +51,7 @@ struct ChatThreadView: View {
     @State private var highlightedMessageID: Int? = nil
     @State private var showEditEmojiPicker = false
     
-    
-
+    @State private var isSendingText = false
     
     @FocusState private var isEditEditorFocused: Bool
     
@@ -581,7 +580,8 @@ extension ChatThreadView {
 
             MessageComposerView(
                 draft: $draft,
-                isSending: vm.isSendingImage || vm.isSendingAudio || vm.isSendingGIF || isProcessingVideo,
+                isSending: isSendingText || vm.isSendingImage || vm.isSendingAudio || vm.isSendingGIF || isProcessingVideo,
+                isSendingVoice: vm.isSendingAudio,
                 onDraftChanged: {
                     vm.typingStarted(roomId: room.id)
 
@@ -792,6 +792,7 @@ extension ChatThreadView {
 
     
     private func onLoad() async {
+        SocketManager.shared.suppressMessageTonesForOpeningThread()
         guard !auth.needsKeyRestore else {
             vm.errorText = auth.keyRestoreMessage
                 ?? "Restore or reset your encryption key before using encrypted chats."
@@ -828,22 +829,32 @@ extension ChatThreadView {
     }
 
     private func send() async {
+        guard !isSendingText else { return }
+
         let trimmed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         guard let senderId = auth.currentUser?.id else { return }
 
+        isSendingText = true
+
+        let textToSend = trimmed
+        draft = ""
+
         let ok = await vm.sendMessage(
             roomId: room.id,
             token: TokenStore.shared.read(),
-            text: trimmed,
+            text: textToSend,
             senderId: senderId,
             senderUsername: auth.currentUser?.username,
             senderPublicKey: auth.currentUser?.publicKey
         )
 
+        isSendingText = false
+
         if ok {
-            draft = ""
             vm.stopTypingNow(roomId: room.id)
+        } else {
+            draft = textToSend
         }
     }
     

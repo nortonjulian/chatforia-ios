@@ -39,6 +39,8 @@ struct MessagesListView: View {
     @State private var viewportHeight: CGFloat = 0
     
     @State private var hasCompletedInitialBottomScroll = false
+    
+    @State private var canTriggerPaging = false
 
     private let pagingThrottleSeconds: TimeInterval = 0.8
     private let nearBottomThreshold: CGFloat = 140
@@ -72,6 +74,7 @@ struct MessagesListView: View {
                             .id("TOP_SENTINEL")
                             .onAppear {
                                 guard hasCompletedInitialBottomScroll else { return }
+                                guard canTriggerPaging else { return }
                                 triggerLoadOlderIfNeeded()
                             }
 
@@ -99,7 +102,7 @@ struct MessagesListView: View {
                     }
                     .frame(minHeight: geo.size.height, alignment: .bottom)
                     .padding(.vertical, 14)
-                    .animation(.spring(response: 0.28, dampingFraction: 0.88), value: sortedMessageIDs)
+//                    .animation(.spring(response: 0.28, dampingFraction: 0.88), value: sortedMessageIDs)
                 }
                 .background(themeManager.palette.screenBackground)
                 .coordinateSpace(name: "MessagesScroll")
@@ -118,9 +121,19 @@ struct MessagesListView: View {
                     isNearBottom = bottomMinY <= (viewportHeight + nearBottomThreshold)
                 }
                 .onAppear {
+                    canTriggerPaging = false
+
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                         scrollToBottom(proxy, animated: false)
+                    }
+
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.20) {
+                        scrollToBottom(proxy, animated: false)
                         hasCompletedInitialBottomScroll = true
+                    }
+
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.80) {
+                        canTriggerPaging = true
                     }
                 }
                 .onChange(of: sortedMessages.last?.id) { _, newNewest in

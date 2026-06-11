@@ -169,12 +169,6 @@ struct ChatsRootView: View {
                             .scrollContentBackground(.hidden)
                             .background(Color.clear)
                             .listStyle(.insetGrouped)
-                            .animation(
-                                .easeInOut(duration: 0.2),
-                                value: vm.filteredConversations.map { convo in
-                                    "\(convo.kind)-\(convo.id ?? 0)"
-                                }
-                            )
                         }
                     }
 

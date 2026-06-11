@@ -178,6 +178,8 @@ final class ChatThreadViewModel: ObservableObject {
     private var currentUserId: Int?
     private var currentUsername: String?
     private var currentUserPublicKey: String?
+    
+    private var locallyReadMessageIds = Set<Int>()
 
     private var currentUserSenderDTO: SenderDTO? {
         guard let currentUserId, currentUserId > 0 else { return nil }
@@ -490,11 +492,13 @@ final class ChatThreadViewModel: ObservableObject {
             .filter { $0.id > 0 }
             .filter { $0.sender.id != currentUserId }
             .filter { $0.deletedForAll != true }
+            .filter { !locallyReadMessageIds.contains($0.id) }
             .filter { !($0.readBy?.contains(where: { $0.id == currentUserId }) ?? false) }
             .map { $0.id }
 
         guard !unread.isEmpty else { return }
 
+        locallyReadMessageIds.formUnion(unread)
         pendingReadMessageIds.formUnion(unread)
         scheduleMarkVisibleMessagesRead()
     }
@@ -664,6 +668,20 @@ final class ChatThreadViewModel: ObservableObject {
         let clientMessageId = UUID().uuidString
         let localId = -abs(clientMessageId.hashValue)
 
+        let optimistic = MessageDTO.optimistic(
+            roomId: roomId,
+            clientMessageId: clientMessageId,
+            localId: localId,
+            text: trimmed,
+            senderId: sender.id,
+            senderUsername: sender.username,
+            senderPublicKey: sender.publicKey
+        )
+
+        applyToStore(optimistic)
+        MessageStore.shared.setDeliveryState(clientMessageId: clientMessageId, state: .sending)
+        refreshFromMessageStore()
+
         do {
             let recipients = try await fetchRecipientAccountKeysForRoom(
                 token: token,
@@ -676,23 +694,6 @@ final class ChatThreadViewModel: ObservableObject {
                 senderUserId: senderId,
                 recipients: recipients
             )
-
-            let optimistic = MessageDTO.optimistic(
-                roomId: roomId,
-                clientMessageId: clientMessageId,
-                localId: localId,
-                text: trimmed,
-                senderId: sender.id,
-                senderUsername: sender.username,
-                senderPublicKey: sender.publicKey
-            )
-
-            applyToStore(optimistic)
-            MessageStore.shared.setDeliveryState(
-                clientMessageId: clientMessageId,
-                state: .sending
-            )
-            refreshFromMessageStore()
 
             let bodyRequest = SendMessageRequest(
                 chatRoomId: roomId,
@@ -720,8 +721,10 @@ final class ChatThreadViewModel: ObservableObject {
                 clientMessageId: clientMessageId,
                 state: .failed
             )
+
             errorText =
                 "\(appText("chat.sendMessageFailed", languageCode: appLanguage)) \(error.localizedDescription)"
+
             return false
         }
     }
@@ -1369,6 +1372,13 @@ final class ChatThreadViewModel: ObservableObject {
         }
         
         let incomingId = incoming.id
+        
+        if incomingId > 0,
+           incomingId <= lastServerMessageId,
+           messages.contains(where: { $0.id == incomingId }) {
+            print("⏭️ [Socket] Ignoring duplicate old upsert id=\(incomingId)")
+            return
+        }
 
         if incomingId > 0 {
             if let index = messages.firstIndex(where: { $0.id == incomingId }) {

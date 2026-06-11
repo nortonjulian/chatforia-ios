@@ -25,5 +25,15 @@ func appText(_ key: String, languageCode: String) -> String {
         }
     }
 
+    let fallback = Bundle.main.localizedString(
+        forKey: key,
+        value: nil,
+        table: "Localizable"
+    )
+
+    if fallback != key {
+        return fallback
+    }
+
     return key
 }

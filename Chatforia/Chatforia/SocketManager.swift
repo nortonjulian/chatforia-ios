@@ -32,7 +32,8 @@ final class SocketManager: ObservableObject {
     private var currentToken: String?
     private var joinedRoomIds = Set<Int>()
     private var isInRandomQueue = false
-
+    
+    
     private init() {}
 
     // MARK: - Public socket helpers
@@ -83,6 +84,13 @@ final class SocketManager: ObservableObject {
     }
 
     func connectAsync(token: String?, timeoutSecs: TimeInterval = 8) async throws {
+        if currentToken == token,
+           let socket,
+           socket.status == .connected || socket.status == .connecting {
+            self.isConnected = socket.status == .connected
+            return
+        }
+
         currentToken = token
         rebuild(token: token)
 
@@ -103,33 +111,32 @@ final class SocketManager: ObservableObject {
             socket.connect()
         }
 
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+        try await withCheckedThrowingContinuation { continuation in
             var didResume = false
             var handlerId: UUID? = nil
 
-            let connectHandler: NormalCallback = { [weak self] _, _ in
+            let id = socket.on(clientEvent: .connect) { [weak self] _, _ in
                 Task { @MainActor in
                     guard !didResume else { return }
                     didResume = true
                     self?.isConnected = true
 
-                    if let idToRemove = handlerId {
-                        self?.socket?.off(id: idToRemove)
+                    if let handlerId {
+                        socket.off(id: handlerId)
                     }
 
                     continuation.resume(returning: ())
                 }
             }
 
-            let id = socket.on(clientEvent: .connect, callback: connectHandler)
             handlerId = id
 
             Task {
                 try? await Task.sleep(nanoseconds: UInt64(timeoutSecs * 1_000_000_000))
                 if !didResume {
                     didResume = true
-                    if let idToRemove = handlerId {
-                        socket.off(id: idToRemove)
+                    if let handlerId {
+                        socket.off(id: handlerId)
                     }
                     continuation.resume(
                         throwing: NSError(
@@ -207,7 +214,9 @@ final class SocketManager: ObservableObject {
             let senderId = self?.extractSenderId(payload)
             let currentUserId = UserDefaults.standard.integer(forKey: "chatforia.currentUserId")
 
-            if senderId != currentUserId {
+            let shouldSuppressTone = Date() < (self?.suppressMessageToneUntil ?? .distantPast)
+
+            if let senderId, senderId != currentUserId, !shouldSuppressTone {
                 AudioPlayerService.shared.playCurrentMessageTone()
             }
 
@@ -275,12 +284,28 @@ final class SocketManager: ObservableObject {
         }
 
         socket.on("message:upsert") { [weak self] data, _ in
-            guard let payload = self?.normalizeFirstPayload(data) else { return }
+            guard let self else { return }
+            guard let payload = self.normalizeFirstPayload(data) else { return }
 
-            let senderId = self?.extractSenderId(payload)
+            let message =
+                (payload["item"] as? [String: Any]) ??
+                (payload["message"] as? [String: Any]) ??
+                (payload["shaped"] as? [String: Any]) ??
+                payload
+
+            let senderId = self.extractSenderId(payload)
             let currentUserId = UserDefaults.standard.integer(forKey: "chatforia.currentUserId")
+            let messageId = message["id"] as? Int
 
-            if senderId != currentUserId {
+            let shouldSuppressTone = Date() < self.suppressMessageToneUntil
+
+            if let messageId,
+               let senderId,
+               senderId != currentUserId,
+               !shouldSuppressTone,
+               !self.hasAlreadySounded(messageId: messageId) {
+
+                self.markSounded(messageId: messageId)
                 AudioPlayerService.shared.playCurrentMessageTone()
             }
 
@@ -411,6 +436,31 @@ final class SocketManager: ObservableObject {
 
     // MARK: - Helpers
     
+    private var suppressMessageToneUntil: Date = .distantPast
+
+    func suppressMessageTonesForOpeningThread() {
+        suppressMessageToneUntil = Date().addingTimeInterval(1.5)
+    }
+    
+    private let soundedMessageIdsKey = "chatforia.soundedMessageIds"
+
+    private func hasAlreadySounded(messageId: Int) -> Bool {
+        let ids = Set(UserDefaults.standard.array(forKey: soundedMessageIdsKey) as? [Int] ?? [])
+        return ids.contains(messageId)
+    }
+
+    private func markSounded(messageId: Int) {
+        var ids = Set(UserDefaults.standard.array(forKey: soundedMessageIdsKey) as? [Int] ?? [])
+        ids.insert(messageId)
+
+        // Keep it from growing forever.
+        if ids.count > 300 {
+            ids = Set(ids.sorted().suffix(300))
+        }
+
+        UserDefaults.standard.set(Array(ids), forKey: soundedMessageIdsKey)
+    }
+    
     private func handleInvalidSession() {
         disconnect()
 
@@ -425,12 +475,32 @@ final class SocketManager: ObservableObject {
     }
     
     private func extractSenderId(_ payload: [String: Any]) -> Int? {
-        if let sender = payload["sender"] as? [String: Any],
-           let id = sender["id"] as? Int {
+    let message =
+        (payload["item"] as? [String: Any]) ??
+        (payload["message"] as? [String: Any]) ??
+        (payload["shaped"] as? [String: Any]) ??
+        payload
+
+    if let sender = message["sender"] as? [String: Any] {
+        if let id = sender["id"] as? Int {
             return id
         }
-        return nil
+
+        if let idString = sender["id"] as? String {
+            return Int(idString)
+        }
     }
+
+    if let senderId = message["senderId"] as? Int {
+        return senderId
+    }
+
+    if let senderIdString = message["senderId"] as? String {
+        return Int(senderIdString)
+    }
+
+    return nil
+}
     
     private func normalizeFirstPayload(_ data: [Any]) -> [String: Any]? {
         guard let first = data.first else { return nil }

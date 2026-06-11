@@ -28,7 +28,6 @@ struct ChatMessageRowView: View {
 
     @EnvironmentObject private var themeManager: ThemeManager
     @AppStorage("chatforia_language") private var appLanguage = "en"
-    @State private var didAppear = false
 
     var body: some View {
         let canRetry = isMe && deliveryState == .failed
@@ -213,15 +212,6 @@ struct ChatMessageRowView: View {
                 .stroke(isHighlighted ? Color.yellow.opacity(0.45) : Color.clear, lineWidth: 2)
         )
         .animation(.easeInOut(duration: 0.2), value: isHighlighted)
-        .scaleEffect(didAppear ? 1 : 0.985)
-        .opacity(didAppear ? 1 : 0)
-        .offset(y: didAppear ? 0 : 4)
-        .onAppear {
-            guard !didAppear else { return }
-            withAnimation(.easeOut(duration: 0.18)) {
-                didAppear = true
-            }
-        }
     }
 
     @ViewBuilder
