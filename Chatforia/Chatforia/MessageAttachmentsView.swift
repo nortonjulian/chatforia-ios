@@ -222,36 +222,21 @@ struct MessageAttachmentsView: View {
                         selectedImageURL = IdentifiableURL(url: url)
                     }
                 } label: {
-                    VStack(alignment: .leading, spacing: 6) {
-                        ZStack(alignment: .topTrailing) {
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(Color(uiColor: .secondarySystemBackground))
-                                .frame(width: min(maxWidth, 240), height: 180)
-                                .overlay {
-                                    VStack(spacing: 8) {
-                                        Image(systemName: "play.circle.fill")
-                                            .font(.system(size: 42))
+                    ZStack(alignment: .topTrailing) {
+                        GIFWebView(url: url)
+                            .frame(width: min(maxWidth, 240), height: 180)
+                            .background(Color(uiColor: .secondarySystemBackground))
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
-                                        Text(appText("media.gif", languageCode: appLanguage))
-                                            .font(.caption.weight(.semibold))
-                                    }
-                                }
-
-                            Text(appText("media.gif", languageCode: appLanguage))
-                                .font(.caption2.bold())
-                                .padding(6)
-                                .background(.black.opacity(0.7))
-                                .foregroundColor(.white)
-                                .clipShape(Capsule())
-                                .padding(6)
-                        }
+                        Text(appText("media.gif", languageCode: appLanguage))
+                            .font(.caption2.bold())
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 4)
+                            .background(.black.opacity(0.72))
+                            .foregroundStyle(.white)
+                            .clipShape(Capsule())
+                            .padding(8)
                     }
-                    .padding(6)
-                    .background(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .fill(Color(uiColor: .secondarySystemBackground))
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                 }
                 .buttonStyle(.plain)
 

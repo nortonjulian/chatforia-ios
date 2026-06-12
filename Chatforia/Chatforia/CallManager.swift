@@ -84,16 +84,27 @@ final class CallManager: ObservableObject {
     @objc private func handleSocketIncomingCall(_ notification: Notification) {
         guard let data = notification.userInfo else { return }
 
-        let fromNumber = data["fromNumber"] as? String ?? appText(
-            "calls.unknown",
-            languageCode: appLanguage
-        )
+
+        let fromUser = data["fromUser"] as? [String: Any]
+
+        func clean(_ value: String?) -> String? {
+            let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return trimmed.isEmpty ? nil : trimmed
+        }
+
+        let callerName =
+            clean(data["callerName"] as? String)
+            ?? clean(fromUser?["displayName"] as? String)
+            ?? clean(fromUser?["username"] as? String)
+            ?? clean(data["fromNumber"] as? String)
+            ?? appText("calls.unknown", languageCode: appLanguage)
+
         let callId = data["callId"] as? Int
 
         let payload = IncomingCallPayload(
             uuid: UUID(),
-            displayName: fromNumber,
-            remoteIdentity: fromNumber,
+            displayName: callerName,
+            remoteIdentity: String(data["callerId"] as? Int ?? 0),
             hasVideo: false,
             backendCallId: callId
         )

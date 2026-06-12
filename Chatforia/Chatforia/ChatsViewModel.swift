@@ -128,7 +128,12 @@ final class ChatsViewModel: ObservableObject {
     }
     
     private func bumpConversation(roomId: Int, payload: [String: Any]) {
-        guard let index = conversations.firstIndex(where: { $0.id == roomId }) else { return }
+    guard let index = conversations.firstIndex(where: { $0.id == roomId }) else {
+        Task {
+            await self.loadConversations(token: TokenStore.shared.read())
+        }
+        return
+    }
 
         let convo = conversations[index]
         let nowISO = ISO8601DateFormatter().string(from: Date())
@@ -312,7 +317,11 @@ final class ChatsViewModel: ObservableObject {
 
         do {
             let response: ConversationsResponse = try await APIClient.shared.send(
-                APIRequest(path: Self.conversationsBasePath, method: .GET, requiresAuth: true),
+                APIRequest(
+                    path: "\(Self.conversationsBasePath)?t=\(Int(Date().timeIntervalSince1970 * 1000))",
+                    method: .GET,
+                    requiresAuth: true
+                ),
                 token: token
             )
 

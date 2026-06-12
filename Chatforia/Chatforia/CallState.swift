@@ -43,8 +43,8 @@ enum CallState: Equatable {
                 format: appText(
                     "calls.incomingCalling",
                     languageCode: appLanguage
-                ),
-                name
+                )
+                .replacingOccurrences(of: "{caller}", with: name)
             )
 
         case .connecting(let name):
