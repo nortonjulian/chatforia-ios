@@ -6,6 +6,11 @@ import TwilioVoice
 protocol VoIPPushManagerDelegate: AnyObject {
     func voipPushManagerDidUpdateToken(_ token: String)
     func voipPushManagerDidInvalidateToken()
+
+    func voipPushManagerDidReceiveIncomingCall(
+        _ payload: IncomingCallPayload,
+        completion: @escaping () -> Void
+    )
 }
 
 @MainActor
@@ -21,7 +26,12 @@ final class VoIPPushManager: NSObject {
     }
 
     func start() {
-        if registry != nil { return }
+        if registry != nil {
+            print("📞 VoIPPushManager already started")
+            return
+        }
+
+        print("📞 Starting VoIPPushManager")
 
         let registry = PKPushRegistry(queue: DispatchQueue.main)
         registry.delegate = self
@@ -45,6 +55,7 @@ extension VoIPPushManager: PKPushRegistryDelegate {
         let token = hexString(from: pushCredentials.token)
 
         Task { @MainActor in
+            print("📞 VoIP token received:", token)
             self.delegate?.voipPushManagerDidUpdateToken(token)
         }
     }
@@ -79,22 +90,118 @@ extension VoIPPushManager: PKPushRegistryDelegate {
             }
         }
 
-        let backendCallId: Int? = {
-            if let id = data["callId"] as? Int { return id }
-            if let str = data["callId"] as? String { return Int(str) }
-            return nil
-        }()
-
         Task { @MainActor in
+            if let incomingPayload = self.makeChatforiaIncomingCallPayload(from: data) {
+                guard let delegate = self.delegate else {
+                    print("⚠️ VoIP push received but no CallManager delegate is attached")
+                    completion()
+                    return
+                }
+
+                delegate.voipPushManagerDidReceiveIncomingCall(
+                    incomingPayload,
+                    completion: completion
+                )
+                return
+            }
+
+            let backendCallId = self.intValue(data["callId"])
+
+            TwilioVoiceService.shared.setPendingBackendCallId(backendCallId)
+
             TwilioVoiceSDK.handleNotification(
                 data,
                 delegate: TwilioVoiceService.shared,
                 delegateQueue: nil
             )
 
-            TwilioVoiceService.shared.setPendingBackendCallId(backendCallId)
-
             completion()
         }
+    }
+
+    private func makeChatforiaIncomingCallPayload(
+        from data: [String: Any]
+    ) -> IncomingCallPayload? {
+        let type = stringValue(data["type"])?.lowercased()
+
+        guard type == "call_incoming" else {
+            return nil
+        }
+
+        let mode = stringValue(data["mode"])?.uppercased() ?? "AUDIO"
+        let isVideo = mode == "VIDEO"
+
+        let backendCallId = intValue(data["callId"])
+        let callerId = intValue(data["callerId"])
+        let callerName = stringValue(data["callerName"])?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let displayName =
+            callerName?.isEmpty == false
+            ? callerName!
+            : "Chatforia user"
+
+        let roomName = stringValue(data["roomName"])?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let remoteIdentity: String? = {
+            if isVideo {
+                if let roomName, !roomName.isEmpty {
+                    return roomName
+                }
+
+                if let backendCallId {
+                    return "call_\(backendCallId)"
+                }
+
+                return nil
+            }
+
+            if let callerId {
+                return String(callerId)
+            }
+
+            return displayName
+        }()
+
+        return IncomingCallPayload(
+            uuid: UUID(),
+            displayName: displayName,
+            remoteIdentity: remoteIdentity,
+            hasVideo: isVideo,
+            backendCallId: backendCallId
+        )
+    }
+
+    private func stringValue(_ value: Any?) -> String? {
+        if let value = value as? String {
+            return value
+        }
+
+        if let value = value as? Int {
+            return String(value)
+        }
+
+        if let value = value as? NSNumber {
+            return value.stringValue
+        }
+
+        return nil
+    }
+
+    private func intValue(_ value: Any?) -> Int? {
+        if let value = value as? Int {
+            return value
+        }
+
+        if let value = value as? String {
+            return Int(value)
+        }
+
+        if let value = value as? NSNumber {
+            return value.intValue
+        }
+
+        return nil
     }
 }

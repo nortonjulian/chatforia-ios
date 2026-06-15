@@ -215,8 +215,13 @@ final class CallManager: ObservableObject {
         }
     }
 
-    func handleIncomingCallPayload(_ payload: IncomingCallPayload, auth: AuthStore?) {
+    func handleIncomingCallPayload(
+        _ payload: IncomingCallPayload,
+        auth: AuthStore?,
+        completion: ((Error?) -> Void)? = nil
+    ) {
         if activeSession?.status == .ringing || activeSession?.status == .active || activeSession?.status == .connecting {
+            completion?(nil)
             return
         }
 
@@ -262,6 +267,8 @@ final class CallManager: ObservableObject {
             if let error {
                 self.failCall(error.localizedDescription)
             }
+
+            completion?(error)
         }
     }
 
@@ -759,8 +766,13 @@ final class CallManager: ObservableObject {
 
     private func registerPendingVoIPTokenIfPossible() {
         guard let voipToken = pendingVoIPToken,
-              let authToken = TokenStore.shared.read(),
-              !authToken.isEmpty else { return }
+            let authToken = TokenStore.shared.read(),
+            !authToken.isEmpty else {
+            print("⏭️ VoIP token registration skipped: missing token or auth")
+            return
+        }
+
+        print("📞 Attempting VoIP token registration...")
 
         Task {
             do {
@@ -1146,15 +1158,30 @@ extension CallManager: TwilioVideoServiceDelegate {
     func twilioVideoDidUnsubscribeFromRemoteAudioTrack(participantIdentity: String) {
         // no-op for now
     }
+    
 }
 
 extension CallManager: VoIPPushManagerDelegate {
     func voipPushManagerDidUpdateToken(_ token: String) {
+        print("📞 CallManager received VoIP token")
         pendingVoIPToken = token
         registerPendingVoIPTokenIfPossible()
     }
 
     func voipPushManagerDidInvalidateToken() {
         print("ℹ️ VoIP push token invalidated")
+    }
+
+    func voipPushManagerDidReceiveIncomingCall(
+        _ payload: IncomingCallPayload,
+        completion: @escaping () -> Void
+    ) {
+        handleIncomingCallPayload(payload, auth: pendingAuth) { error in
+            if let error {
+                print("❌ Failed to report VoIP incoming call to CallKit:", error)
+            }
+
+            completion()
+        }
     }
 }

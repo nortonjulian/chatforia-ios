@@ -25,6 +25,9 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
                 UIApplication.shared.registerForRemoteNotifications()
             }
         }
+        Task { @MainActor in
+            VoIPPushManager.shared.start()
+        }
 
         return true
     }

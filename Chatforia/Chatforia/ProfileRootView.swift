@@ -505,10 +505,8 @@ struct ProfileRootView: View {
                                 .foregroundStyle(themeManager.palette.primaryText)
 
                             Text(
-                                String(
-                                    format: appText("current_plan_format", languageCode: appLanguage),
-                                    currentPlan.displayName
-                                )
+                                appText("current_plan_format", languageCode: appLanguage)
+                                    .replacingOccurrences(of: "{plan}", with: currentPlanDisplayName)
                             )
                                 .font(.subheadline)
                                 .foregroundStyle(themeManager.palette.secondaryText)
@@ -1319,6 +1317,17 @@ struct ProfileRootView: View {
 
     private var currentPlan: AppPlan {
         AppPlan(serverValue: auth.currentUser?.plan ?? user.plan)
+    }
+
+    private var currentPlanDisplayName: String {
+        switch currentPlan {
+        case .free:
+            return appText("plan_free", languageCode: appLanguage)
+        case .plus:
+            return appText("plan_plus", languageCode: appLanguage)
+        case .premium:
+            return appText("plan_premium", languageCode: appLanguage)
+        }
     }
     
     private var currentUserId: Int {
