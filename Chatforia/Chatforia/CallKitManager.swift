@@ -27,21 +27,35 @@ final class CallKitManager: NSObject, ObservableObject {
         config.maximumCallsPerCallGroup = 1
         config.maximumCallGroups = 1
         config.supportedHandleTypes = [.generic, .phoneNumber]
-        config.includesCallsInRecents = true
+        config.includesCallsInRecents = false
 
         self.provider = CXProvider(configuration: config)
         super.init()
         self.provider.setDelegate(self, queue: nil)
     }
 
-    func startOutgoingCall(uuid: UUID, handle: String, isPhoneNumber: Bool) {
-        let cxHandle = CXHandle(type: isPhoneNumber ? .phoneNumber : .generic, value: handle)
+    func startOutgoingCall(
+        uuid: UUID,
+        handle: String,
+        isPhoneNumber: Bool,
+        onFailure: (() -> Void)? = nil
+    ) {
+        let safeHandle = handle.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let cxHandle = CXHandle(
+            type: isPhoneNumber ? .phoneNumber : .generic,
+            value: safeHandle.isEmpty ? "chatforia-call" : safeHandle
+        )
+
         let action = CXStartCallAction(call: uuid, handle: cxHandle)
         let transaction = CXTransaction(action: action)
 
         callController.request(transaction) { error in
             if let error {
                 print("❌ CallKit start call transaction failed:", error)
+                Task { @MainActor in
+                    onFailure?()
+                }
             }
         }
     }

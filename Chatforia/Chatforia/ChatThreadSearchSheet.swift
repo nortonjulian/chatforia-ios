@@ -81,7 +81,8 @@ struct ChatThreadSearchSheet: View {
             )
         }
 
-        if message.contentCiphertext != nil {
+        if message.encryptedPayloadForMe?.contentCiphertext.isEmpty == false ||
+            message.contentCiphertext?.isEmpty == false {
             return appText(
                 "messages.encryptedMessage",
                 languageCode: appLanguage

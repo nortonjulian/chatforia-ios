@@ -48,19 +48,26 @@ struct DecryptMessageTextView: View {
             return
         }
 
-        guard let ciphertext = msg.contentCiphertext,
-              let encryptedKeyPayload = msg.encryptedKeyForMe else {
+        let ciphertext =
+            msg.encryptedPayloadForMe?.contentCiphertext
+            ?? msg.contentCiphertext
+
+        let encryptedKeyPayload =
+            msg.encryptedPayloadForMe?.encryptedKey
+            ?? msg.encryptedKeyForMe
+
+        guard let ciphertext, let encryptedKeyPayload else {
             return
         }
 
         let currentUserId = UserDefaults.standard.integer(forKey: "chatforia.currentUserId")
         guard currentUserId > 0 else { return }
         
-        print("🔐 decrypt attempt messageId:", msg.id)
-        print("🔐 has ciphertext:", msg.contentCiphertext != nil)
-        print("🔐 has encryptedKeyForMe:", msg.encryptedKeyForMe != nil)
+        print("🔐 has encryptedPayloadForMe:", msg.encryptedPayloadForMe != nil)
+        print("🔐 has ciphertext:", ciphertext.isEmpty == false)
+        print("🔐 has encrypted key:", encryptedKeyPayload.isEmpty == false)
         print("🔐 currentUserId:", currentUserId)
-        print("🔐 encryptedKey preview:", String((msg.encryptedKeyForMe ?? "").prefix(30)))
+        print("🔐 encryptedKey preview:", String(encryptedKeyPayload.prefix(30)))
 
         do {
             let plaintext = try MessageCryptoService.shared.decryptMessageForCurrentBackend(

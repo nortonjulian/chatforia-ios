@@ -46,6 +46,8 @@ struct RoomParticipantUserDTO: Decodable {
     let id: Int
     let username: String?
     let publicKey: String?
+    let preferredLanguage: String?
+    let autoTranslate: Bool?
 }
 
 struct RecipientKeyContext {
@@ -66,11 +68,22 @@ struct EncryptedMessagePayload {
     let encryptedKeysByUserId: [String: String]
 }
 
+struct MessagePreviewTranslateRequest: Encodable {
+    let chatRoomId: Int
+    let text: String
+    let targetLangs: [String]
+}
+
+struct MessagePreviewTranslateResponse: Decodable {
+    let translations: [String: String]
+}
+
 struct SendMessageRequest: Encodable {
     let chatRoomId: Int
     let content: String?
     let contentCiphertext: String?
     let encryptedKeys: [String: String]?
+    let encryptedPayloads: [String: EncryptedMessagePayloadForUser]?
     let clientMessageId: String
     let attachmentsInline: [AttachmentDTO]?
 
@@ -79,6 +92,7 @@ struct SendMessageRequest: Encodable {
         content: String? = nil,
         contentCiphertext: String? = nil,
         encryptedKeys: [String: String]? = nil,
+        encryptedPayloads: [String: EncryptedMessagePayloadForUser]? = nil,
         clientMessageId: String,
         attachmentsInline: [AttachmentDTO]? = nil
     ) {
@@ -86,6 +100,7 @@ struct SendMessageRequest: Encodable {
         self.content = content
         self.contentCiphertext = contentCiphertext
         self.encryptedKeys = encryptedKeys
+        self.encryptedPayloads = encryptedPayloads
         self.clientMessageId = clientMessageId
         self.attachmentsInline = attachmentsInline
     }
@@ -420,6 +435,129 @@ final class ChatThreadViewModel: ObservableObject {
         return recipients
     }
 
+        private func translateMessagePreview(
+        token: String,
+        roomId: Int,
+        text: String,
+        targetLangs: [String]
+    ) async throws -> [String: String] {
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+            !targetLangs.isEmpty else {
+            return [:]
+        }
+
+        let body = try JSONEncoder().encode(
+            MessagePreviewTranslateRequest(
+                chatRoomId: roomId,
+                text: text,
+                targetLangs: targetLangs
+            )
+        )
+
+        let response: MessagePreviewTranslateResponse = try await APIClient.shared.send(
+            APIRequest(
+                path: "translate/message-preview",
+                method: .POST,
+                body: body,
+                requiresAuth: true
+            ),
+            token: token
+        )
+
+        return response.translations
+    }
+
+    private func buildEncryptedPayloadsForUsers(
+        roomId: Int,
+        plaintext: String,
+        token: String,
+        senderUserId: Int
+    ) async throws -> [String: EncryptedMessagePayloadForUser] {
+        let participantResponse: RoomParticipantsResponse = try await APIClient.shared.send(
+            APIRequest(
+                path: "chatrooms/\(roomId)/participants?_=\(Int(Date().timeIntervalSince1970 * 1000))",
+                method: .GET,
+                requiresAuth: true
+            ),
+            token: token
+        )
+
+        func normalizeLanguage(_ value: String?) -> String? {
+            let trimmed = value?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .lowercased()
+
+            return trimmed?.isEmpty == false ? trimmed : nil
+        }
+
+        let targetLangs = Array(
+            Set(
+                participantResponse.participants
+                    .filter { $0.userId != senderUserId }
+                    .filter { $0.user?.autoTranslate != false }
+                    .compactMap { normalizeLanguage($0.user?.preferredLanguage) }
+            )
+        )
+
+        let translations = try await translateMessagePreview(
+            token: token,
+            roomId: roomId,
+            text: plaintext,
+            targetLangs: targetLangs
+        )
+
+        var encryptedPayloads: [String: EncryptedMessagePayloadForUser] = [:]
+
+        for participant in participantResponse.participants {
+            guard let user = participant.user else { continue }
+            guard let publicKey = user.publicKey, !publicKey.isEmpty else { continue }
+
+            let preferredLang = normalizeLanguage(user.preferredLanguage)
+            let baseLang = preferredLang?.components(separatedBy: "-").first
+
+            let isSender = participant.userId == senderUserId
+
+            let translatedForUser =
+                preferredLang.flatMap { translations[$0] } ??
+                baseLang.flatMap { translations[$0] } ??
+                plaintext
+
+            let plaintextForUser =
+                isSender || user.autoTranslate == false || preferredLang == nil
+                    ? plaintext
+                    : translatedForUser
+
+            encryptedPayloads[String(participant.userId)] =
+                try MessageCryptoService.shared.encryptForSingleUser(
+                    plaintext: plaintextForUser,
+                    recipientUserId: participant.userId,
+                    recipientPublicKeyBase64: publicKey,
+                    language: preferredLang,
+                    sourceLanguage: nil
+                )
+        }
+
+        guard !encryptedPayloads.isEmpty else {
+            throw MessageCryptoError.noRecipients
+        }
+
+        return encryptedPayloads
+    }
+
+    private func attachmentForEncryptedUpload(_ attachment: AttachmentDTO) -> AttachmentDTO {
+        AttachmentDTO(
+            id: attachment.id,
+            kind: attachment.kind,
+            url: attachment.url,
+            mimeType: attachment.mimeType,
+            width: attachment.width,
+            height: attachment.height,
+            durationSec: attachment.durationSec,
+            caption: nil,
+            thumbUrl: attachment.thumbUrl
+        )
+    }
+
     private func buildEncryptedEditPayload(
         roomId: Int,
         plaintext: String,
@@ -637,97 +775,96 @@ final class ChatThreadViewModel: ObservableObject {
     }
 
     func sendMessage(
-        roomId: Int,
-        token: String?,
-        text: String,
-        senderId: Int,
-        senderUsername: String?,
-        senderPublicKey: String?
-    ) async -> Bool {
-        guard let token, !token.isEmpty else {
-            errorText = appText(
-                "ios.missing_auth_token",
-                languageCode: appLanguage
-            )
-            return false
-        }
-
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return false }
-
-        let sender = SenderDTO(
-            id: senderId,
-            username: senderUsername,
-            publicKey: senderPublicKey,
-            avatarUrl: nil
+    roomId: Int,
+    token: String?,
+    text: String,
+    senderId: Int,
+    senderUsername: String?,
+    senderPublicKey: String?
+) async -> Bool {
+    guard let token, !token.isEmpty else {
+        errorText = appText(
+            "ios.missing_auth_token",
+            languageCode: appLanguage
         )
-
-        errorText = nil
-        stopTypingNow(roomId: roomId)
-
-        let clientMessageId = UUID().uuidString
-        let localId = -abs(clientMessageId.hashValue)
-
-        let optimistic = MessageDTO.optimistic(
-            roomId: roomId,
-            clientMessageId: clientMessageId,
-            localId: localId,
-            text: trimmed,
-            senderId: sender.id,
-            senderUsername: sender.username,
-            senderPublicKey: sender.publicKey
-        )
-
-        applyToStore(optimistic)
-        MessageStore.shared.setDeliveryState(clientMessageId: clientMessageId, state: .sending)
-        refreshFromMessageStore()
-
-        do {
-            let recipients = try await fetchRecipientAccountKeysForRoom(
-                token: token,
-                roomId: roomId,
-                senderUserId: senderId
-            )
-
-            let encrypted = try MessageCryptoService.shared.encryptMessageForRecipients(
-                plaintext: trimmed,
-                senderUserId: senderId,
-                recipients: recipients
-            )
-
-            let bodyRequest = SendMessageRequest(
-                chatRoomId: roomId,
-                content: nil,
-                contentCiphertext: encrypted.ciphertextBase64,
-                encryptedKeys: encrypted.encryptedKeysByUserId,
-                clientMessageId: clientMessageId,
-                attachmentsInline: nil
-            )
-
-            let bodyData = try JSONEncoder().encode(bodyRequest)
-
-            let job = SendJob(
-                clientMessageId: clientMessageId,
-                localId: String(localId),
-                bodyJSON: bodyData,
-                attachmentsMeta: nil
-            )
-
-            SendQueueManager.shared.enqueue(job)
-            SendQueueManager.shared.startIfNeeded()
-            return true
-        } catch {
-            MessageStore.shared.setDeliveryState(
-                clientMessageId: clientMessageId,
-                state: .failed
-            )
-
-            errorText =
-                "\(appText("chat.sendMessageFailed", languageCode: appLanguage)) \(error.localizedDescription)"
-
-            return false
-        }
+        return false
     }
+
+    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty else { return false }
+
+    let sender = SenderDTO(
+        id: senderId,
+        username: senderUsername,
+        publicKey: senderPublicKey,
+        avatarUrl: nil
+    )
+
+    errorText = nil
+    stopTypingNow(roomId: roomId)
+
+    let clientMessageId = UUID().uuidString
+    let localId = -abs(clientMessageId.hashValue)
+
+    let optimistic = MessageDTO.optimistic(
+        roomId: roomId,
+        clientMessageId: clientMessageId,
+        localId: localId,
+        text: trimmed,
+        senderId: sender.id,
+        senderUsername: sender.username,
+        senderPublicKey: sender.publicKey
+    )
+
+    applyToStore(optimistic)
+    MessageStore.shared.setDeliveryState(
+        clientMessageId: clientMessageId,
+        state: .sending
+    )
+    refreshFromMessageStore()
+
+    do {
+        let encryptedPayloads = try await buildEncryptedPayloadsForUsers(
+            roomId: roomId,
+            plaintext: trimmed,
+            token: token,
+            senderUserId: senderId
+        )
+
+        let bodyRequest = SendMessageRequest(
+            chatRoomId: roomId,
+            content: nil,
+            contentCiphertext: nil,
+            encryptedKeys: nil,
+            encryptedPayloads: encryptedPayloads,
+            clientMessageId: clientMessageId,
+            attachmentsInline: nil
+        )
+
+        let bodyData = try JSONEncoder().encode(bodyRequest)
+
+        let job = SendJob(
+            clientMessageId: clientMessageId,
+            localId: String(localId),
+            bodyJSON: bodyData,
+            attachmentsMeta: nil
+        )
+
+        SendQueueManager.shared.enqueue(job)
+        SendQueueManager.shared.startIfNeeded()
+        return true
+    } catch {
+        MessageStore.shared.setDeliveryState(
+            clientMessageId: clientMessageId,
+            state: .failed
+        )
+
+        errorText =
+            "\(appText("chat.sendMessageFailed", languageCode: appLanguage)) \(error.localizedDescription)"
+
+        return false
+    }
+}
 
     func sendImageMessage(
         roomId: Int,
@@ -804,45 +941,24 @@ final class ChatThreadViewModel: ObservableObject {
             MessageStore.shared.setDeliveryState(clientMessageId: clientMessageId, state: .sending)
             refreshFromMessageStore()
 
-            let safeCaption = finalCaption?.trimmingCharacters(in: .whitespacesAndNewlines)
-            let textToEncrypt = (safeCaption?.isEmpty == false) ? safeCaption : nil
+            let plaintextForEncryption = finalCaption ?? "[image]"
 
-            let bodyRequest: SendMessageRequest
+            let encryptedPayloads = try await buildEncryptedPayloadsForUsers(
+                roomId: roomId,
+                plaintext: plaintextForEncryption,
+                token: token,
+                senderUserId: senderId
+            )
 
-            if let textToEncrypt {
-                let recipients = try await fetchRecipientAccountKeysForRoom(
-                    token: token,
-                    roomId: roomId,
-                    senderUserId: senderId
-                )
-
-                let encrypted = try MessageCryptoService.shared.encryptMessageForRecipients(
-                    plaintext: textToEncrypt,
-                    senderUserId: senderId,
-                    recipients: recipients
-                )
-                
-                print("👥 recipient ids:", recipients.map { $0.userId })
-                print("🔐 encrypted key ids:", encrypted.encryptedKeysByUserId.keys.sorted())
-
-                bodyRequest = SendMessageRequest(
-                    chatRoomId: roomId,
-                    content: nil,
-                    contentCiphertext: encrypted.ciphertextBase64,
-                    encryptedKeys: encrypted.encryptedKeysByUserId,
-                    clientMessageId: clientMessageId,
-                    attachmentsInline: [attachment]
-                )
-            } else {
-                bodyRequest = SendMessageRequest(
-                    chatRoomId: roomId,
-                    content: nil,
-                    contentCiphertext: nil,
-                    encryptedKeys: nil,
-                    clientMessageId: clientMessageId,
-                    attachmentsInline: [attachment]
-                )
-            }
+            let bodyRequest = SendMessageRequest(
+                chatRoomId: roomId,
+                content: nil,
+                contentCiphertext: nil,
+                encryptedKeys: nil,
+                encryptedPayloads: encryptedPayloads,
+                clientMessageId: clientMessageId,
+                attachmentsInline: [attachmentForEncryptedUpload(attachment)]
+            )
 
             let bodyData = try JSONEncoder().encode(bodyRequest)
 
@@ -950,45 +1066,24 @@ final class ChatThreadViewModel: ObservableObject {
             MessageStore.shared.setDeliveryState(clientMessageId: clientMessageId, state: .sending)
             refreshFromMessageStore()
 
-            let safeCaption = finalCaption?.trimmingCharacters(in: .whitespacesAndNewlines)
-            let textToEncrypt = (safeCaption?.isEmpty == false) ? safeCaption : nil
+            let plaintextForEncryption = finalCaption ?? "[video]"
 
-            let bodyRequest: SendMessageRequest
+            let encryptedPayloads = try await buildEncryptedPayloadsForUsers(
+                roomId: roomId,
+                plaintext: plaintextForEncryption,
+                token: token,
+                senderUserId: senderId
+            )
 
-            if let textToEncrypt {
-                let recipients = try await fetchRecipientAccountKeysForRoom(
-                    token: token,
-                    roomId: roomId,
-                    senderUserId: senderId
-                )
-
-                let encrypted = try MessageCryptoService.shared.encryptMessageForRecipients(
-                    plaintext: textToEncrypt,
-                    senderUserId: senderId,
-                    recipients: recipients
-                )
-                
-                print("👥 recipient ids:", recipients.map { $0.userId })
-                print("🔐 encrypted key ids:", encrypted.encryptedKeysByUserId.keys.sorted())
-
-                bodyRequest = SendMessageRequest(
-                    chatRoomId: roomId,
-                    content: nil,
-                    contentCiphertext: encrypted.ciphertextBase64,
-                    encryptedKeys: encrypted.encryptedKeysByUserId,
-                    clientMessageId: clientMessageId,
-                    attachmentsInline: [attachment]
-                )
-            } else {
-                bodyRequest = SendMessageRequest(
-                    chatRoomId: roomId,
-                    content: nil,
-                    contentCiphertext: nil,
-                    encryptedKeys: nil,
-                    clientMessageId: clientMessageId,
-                    attachmentsInline: [attachment]
-                )
-            }
+            let bodyRequest = SendMessageRequest(
+                chatRoomId: roomId,
+                content: nil,
+                contentCiphertext: nil,
+                encryptedKeys: nil,
+                encryptedPayloads: encryptedPayloads,
+                clientMessageId: clientMessageId,
+                attachmentsInline: [attachmentForEncryptedUpload(attachment)]
+            )
 
             let bodyData = try JSONEncoder().encode(bodyRequest)
 
@@ -1089,45 +1184,24 @@ final class ChatThreadViewModel: ObservableObject {
             MessageStore.shared.setDeliveryState(clientMessageId: clientMessageId, state: .sending)
             refreshFromMessageStore()
 
-            let safeCaption = finalCaption?.trimmingCharacters(in: .whitespacesAndNewlines)
-            let textToEncrypt = (safeCaption?.isEmpty == false) ? safeCaption : nil
+            let plaintextForEncryption = finalCaption ?? "[gif]"
 
-            let bodyRequest: SendMessageRequest
+            let encryptedPayloads = try await buildEncryptedPayloadsForUsers(
+                roomId: roomId,
+                plaintext: plaintextForEncryption,
+                token: token,
+                senderUserId: senderId
+            )
 
-            if let textToEncrypt {
-                let recipients = try await fetchRecipientAccountKeysForRoom(
-                    token: token,
-                    roomId: roomId,
-                    senderUserId: senderId
-                )
-
-                let encrypted = try MessageCryptoService.shared.encryptMessageForRecipients(
-                    plaintext: textToEncrypt,
-                    senderUserId: senderId,
-                    recipients: recipients
-                )
-                
-                print("👥 recipient ids:", recipients.map { $0.userId })
-                print("🔐 encrypted key ids:", encrypted.encryptedKeysByUserId.keys.sorted())
-
-                bodyRequest = SendMessageRequest(
-                    chatRoomId: roomId,
-                    content: nil,
-                    contentCiphertext: encrypted.ciphertextBase64,
-                    encryptedKeys: encrypted.encryptedKeysByUserId,
-                    clientMessageId: clientMessageId,
-                    attachmentsInline: [attachment]
-                )
-            } else {
-                bodyRequest = SendMessageRequest(
-                    chatRoomId: roomId,
-                    content: "[gif]",
-                    contentCiphertext: nil,
-                    encryptedKeys: nil,
-                    clientMessageId: clientMessageId,
-                    attachmentsInline: [attachment]
-                )
-            }
+            let bodyRequest = SendMessageRequest(
+                chatRoomId: roomId,
+                content: nil,
+                contentCiphertext: nil,
+                encryptedKeys: nil,
+                encryptedPayloads: encryptedPayloads,
+                clientMessageId: clientMessageId,
+                attachmentsInline: [attachmentForEncryptedUpload(attachment)]
+            )
 
             let bodyData = try JSONEncoder().encode(bodyRequest)
 
@@ -1214,25 +1288,21 @@ final class ChatThreadViewModel: ObservableObject {
             MessageStore.shared.setDeliveryState(clientMessageId: clientMessageId, state: .sending)
             refreshFromMessageStore()
 
-            let recipients = try await fetchRecipientAccountKeysForRoom(
-                token: token,
+            let encryptedPayloads = try await buildEncryptedPayloadsForUsers(
                 roomId: roomId,
-                senderUserId: senderId
-            )
-
-            let encrypted = try MessageCryptoService.shared.encryptMessageForRecipients(
                 plaintext: "[voice note]",
-                senderUserId: senderId,
-                recipients: recipients
+                token: token,
+                senderUserId: senderId
             )
 
             let bodyRequest = SendMessageRequest(
                 chatRoomId: roomId,
                 content: nil,
-                contentCiphertext: encrypted.ciphertextBase64,
-                encryptedKeys: encrypted.encryptedKeysByUserId,
+                contentCiphertext: nil,
+                encryptedKeys: nil,
+                encryptedPayloads: encryptedPayloads,
                 clientMessageId: clientMessageId,
-                attachmentsInline: [attachment]
+                attachmentsInline: [attachmentForEncryptedUpload(attachment)]
             )
 
             let bodyData = try JSONEncoder().encode(bodyRequest)
@@ -1373,12 +1443,12 @@ final class ChatThreadViewModel: ObservableObject {
         
         let incomingId = incoming.id
         
-        if incomingId > 0,
-           incomingId <= lastServerMessageId,
-           messages.contains(where: { $0.id == incomingId }) {
-            print("⏭️ [Socket] Ignoring duplicate old upsert id=\(incomingId)")
-            return
-        }
+        // if incomingId > 0,
+        //    incomingId <= lastServerMessageId,
+        //    messages.contains(where: { $0.id == incomingId }) {
+        //     print("⏭️ [Socket] Ignoring duplicate old upsert id=\(incomingId)")
+        //     return
+        // }
 
         if incomingId > 0 {
             if let index = messages.firstIndex(where: { $0.id == incomingId }) {
@@ -1651,8 +1721,10 @@ extension ChatThreadViewModel {
 
         do {
             let isEncrypted =
-                (message.contentCiphertext?.isEmpty == false) ||
-                (message.encryptedKeyForMe?.isEmpty == false)
+            (message.encryptedPayloadForMe?.contentCiphertext.isEmpty == false) ||
+            (message.encryptedPayloadForMe?.encryptedKey.isEmpty == false) ||
+            (message.contentCiphertext?.isEmpty == false) ||
+            (message.encryptedKeyForMe?.isEmpty == false)
 
             var body: [String: Any] = [:]
 
@@ -1723,16 +1795,38 @@ extension ChatThreadViewModel {
                     plaintextForEncryption = trimmed
                 }
 
-                let encrypted = try await buildEncryptedEditPayload(
+                let encryptedPayloads = try await buildEncryptedPayloadsForUsers(
                     roomId: roomId,
                     plaintext: plaintextForEncryption,
                     token: token,
                     senderUserId: senderId
                 )
 
-                body["contentCiphertext"] = encrypted.ciphertextBase64
-                body["encryptedKeys"] = encrypted.encryptedKeysByUserId
-                body["attachments"] = attachments
+                var encryptedPayloadsJSON: [String: Any] = [:]
+
+                for (userId, payload) in encryptedPayloads {
+                    var item: [String: Any] = [
+                        "contentCiphertext": payload.contentCiphertext,
+                        "encryptedKey": payload.encryptedKey
+                    ]
+
+                    item["language"] = payload.language ?? NSNull()
+                    item["sourceLanguage"] = payload.sourceLanguage ?? NSNull()
+
+                    encryptedPayloadsJSON[userId] = item
+                }
+
+                let encryptedAttachments = attachments.map { attachment -> [String: Any] in
+                    var copy = attachment
+                    copy["caption"] = NSNull()
+                    return copy
+                }
+
+                body["newContent"] = NSNull()
+                body["contentCiphertext"] = NSNull()
+                body["encryptedKeys"] = NSNull()
+                body["encryptedPayloads"] = encryptedPayloadsJSON
+                body["attachments"] = encryptedAttachments
             } else {
                 body["newContent"] = trimmed
                 body["attachments"] = attachments
@@ -1758,7 +1852,6 @@ extension ChatThreadViewModel {
                 return false
             }
 
-            applyToStore(updated)
             applyToStore(updated)
 
             if isEncrypted {

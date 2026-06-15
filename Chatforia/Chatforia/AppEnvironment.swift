@@ -125,6 +125,7 @@ enum AppEnvironment {
                     translatedFrom: serverMessage.translatedFrom,
                     translatedForMe: serverMessage.translatedForMe,
                     encryptedKeyForMe: serverMessage.encryptedKeyForMe,
+                    encryptedPayloadForMe: serverMessage.encryptedPayloadForMe,
                     imageUrl: serverMessage.imageUrl,
                     audioUrl: serverMessage.audioUrl,
                     audioDurationSec: serverMessage.audioDurationSec,

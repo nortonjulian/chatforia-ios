@@ -1,5 +1,17 @@
 import SwiftUI
 
+private enum PendingCallChoice: Identifiable {
+    case appUser(userId: Int, name: String)
+    case phoneNumber(number: String, name: String?)
+
+    var id: String {
+        switch self {
+        case .appUser(let userId, _): return "app-\(userId)"
+        case .phoneNumber(let number, _): return "phone-\(number)"
+        }
+    }
+}
+
 struct CallHistoryView: View {
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
@@ -12,6 +24,9 @@ struct CallHistoryView: View {
     @State private var selectedSegment: CallsSegment = .recents
     @State private var showDialer = false
     @State private var savedContacts: [ContactDTO] = []
+
+    @State private var callChoices: [PendingCallChoice] = []
+    @State private var showCallChoices = false
     
     @State private var selectedRoom: ChatRoomDTO?
     @State private var showSelectedRoom = false
@@ -76,6 +91,22 @@ struct CallHistoryView: View {
                 SMSThreadView(conversation: conversation)
             }
         }
+        .confirmationDialog(
+            appText("calls.chooseCallType", languageCode: appLanguage),
+            isPresented: $showCallChoices,
+            titleVisibility: .visible
+        ) {
+            ForEach(callChoices) { choice in
+                Button(title(for: choice)) {
+                    startCallChoice(choice)
+                }
+            }
+
+            Button(
+                appText("common.cancel", languageCode: appLanguage),
+                role: .cancel
+            ) { }
+        }
     }
     
     @ViewBuilder
@@ -98,7 +129,6 @@ struct CallHistoryView: View {
             } else {
                 List {
                     ForEach(items) { item in
-                        
                         let otherUser = (item.callerId == auth.currentUser?.id)
                             ? item.callee
                             : item.caller
@@ -107,19 +137,39 @@ struct CallHistoryView: View {
                             item: item,
                             currentUserId: auth.currentUser?.id,
                             contacts: savedContacts,
+                            canCall: otherUser != nil || item.externalPhone != nil,
 
                             onRedial: {
-                                if let phone = item.externalPhone,
-                                   !phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                let otherUser = (item.callerId == auth.currentUser?.id)
+                                    ? item.callee
+                                    : item.caller
 
-                                    let displayName =
-                                        resolvedContactName(for: phone) ??
-                                        phone
+                                var choices: [PendingCallChoice] = []
 
-                                    callManager.startCall(
-                                        to: .phoneNumber(phone, displayName: displayName),
-                                        auth: auth
+                                if let otherUser {
+                                    choices.append(
+                                        .appUser(
+                                            userId: otherUser.id,
+                                            name: otherUser.displayName ?? otherUser.username ?? "User"
+                                        )
                                     )
+                                }
+
+                                if let phone = item.externalPhone,
+                                !phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                    choices.append(
+                                        .phoneNumber(
+                                            number: phone,
+                                            name: resolvedContactName(for: phone) ?? phone
+                                        )
+                                    )
+                                }
+
+                                if choices.count == 1 {
+                                    startCallChoice(choices[0])
+                                } else if choices.count > 1 {
+                                    callChoices = choices
+                                    showCallChoices = true
                                 }
                             },
 
@@ -141,6 +191,9 @@ struct CallHistoryView: View {
                                 )
                             }
                         )
+                        .onAppear {
+                            print("CALL HISTORY:", item.id, "callerId:", item.callerId, "calleeId:", item.calleeId as Any, "status:", item.status, "externalPhone:", item.externalPhone as Any)
+                        }
                         .listRowBackground(themeManager.palette.cardBackground)
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             Button(role: .destructive) {
@@ -211,6 +264,32 @@ struct CallHistoryView: View {
             print("❌ Failed to delete call:", error)
         }
     }
+
+    private func startCallChoice(_ choice: PendingCallChoice) {
+    switch choice {
+    case .appUser(let userId, let name):
+        callManager.startCall(
+            to: .appUser(userId: userId, username: name),
+            auth: auth
+        )
+
+    case .phoneNumber(let number, let name):
+        callManager.startCall(
+            to: .phoneNumber(number, displayName: name),
+            auth: auth
+        )
+    }
+}
+
+private func title(for choice: PendingCallChoice) -> String {
+    switch choice {
+    case .appUser(_, let name):
+        return "Chatforia call \(name)"
+
+    case .phoneNumber(let number, _):
+        return "Call \(number)"
+    }
+}
     
     private func handleMessage(for item: CallRecordDTO) async {
         do {
@@ -328,9 +407,12 @@ struct CallHistoryView: View {
         let item: CallRecordDTO
         let currentUserId: Int?
         let contacts: [ContactDTO]
+        let canCall: Bool
+
         let onRedial: () -> Void
         let onMessage: () -> Void
         let onVideo: (() -> Void)?
+       
         
         private func normalizedDigits(_ value: String) -> String {
             value.filter(\.isNumber)
@@ -517,8 +599,8 @@ struct CallHistoryView: View {
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
-                    .opacity(item.externalPhone == nil ? 0.45 : 1.0)
-                    .disabled(item.externalPhone == nil)
+                    .opacity(canCall ? 1.0 : 0.45)
+                    .disabled(!canCall)
                 }
             }
             .padding(.vertical, 10)

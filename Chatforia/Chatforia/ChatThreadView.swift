@@ -191,10 +191,7 @@ struct ChatThreadView: View {
             }
         }
         .confirmationDialog(
-            appText(
-                "messages.deleteMessageTitle",
-                languageCode: appLanguage
-            ),
+            appText("messages.deleteMessageTitle", languageCode: appLanguage),
             isPresented: Binding(
                 get: { deletingMessage != nil },
                 set: { if !$0 { deletingMessage = nil } }
@@ -203,10 +200,7 @@ struct ChatThreadView: View {
         ) {
             if let msg = deletingMessage {
                 Button(
-                    appText(
-                        "messages.deleteForEveryone",
-                        languageCode: appLanguage
-                    ),
+                    appText("messages.deleteForMe", languageCode: appLanguage),
                     role: .destructive
                 ) {
                     Task {
@@ -220,7 +214,10 @@ struct ChatThreadView: View {
                 }
 
                 if canDeleteForEveryone(msg) {
-                    Button("messages.deleteForEveryone", role: .destructive){
+                    Button(
+                        appText("messages.deleteForEveryone", languageCode: appLanguage),
+                        role: .destructive
+                    ) {
                         Task {
                             let _ = await vm.deleteMessage(
                                 messageId: msg.id,
@@ -233,15 +230,12 @@ struct ChatThreadView: View {
                 }
             }
 
-            Button(appText(
-                "button_cancel",
-                languageCode: appLanguage
-            ), role: .cancel) {
+            Button(
+                appText("button_cancel", languageCode: appLanguage),
+                role: .cancel
+            ) {
                 deletingMessage = nil
             }
-        }
-        .fullScreenCover(item: $selectedVideoURL) { item in
-            FullscreenVideoView(url: item.url)
         }
     }
 }

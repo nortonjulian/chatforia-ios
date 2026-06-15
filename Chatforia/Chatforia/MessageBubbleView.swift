@@ -170,10 +170,17 @@ struct MessageBubbleView: View {
                 : themeManager.palette.secondaryText
             )
             
+       } else if isMe, hasRenderableRaw, let raw {
+            Text(raw)
+
+        } else if !isMe, hasRenderableTranslated, let translated {
+            Text(translated)
+
         } else if hasDecrypted, let decrypted {
             Text(decrypted)
-            
-        } else if msg.contentCiphertext != nil, msg.encryptedKeyForMe != nil {
+
+        } else if msg.encryptedPayloadForMe != nil ||
+            (msg.contentCiphertext != nil && msg.encryptedKeyForMe != nil) {
             DecryptMessageTextView(
                 msg: msg,
                 fallbackColor: isMe
@@ -183,14 +190,14 @@ struct MessageBubbleView: View {
             
         } else if hasRenderableRaw, let raw {
             Text(raw)
-            
+
         } else if hasRenderableTranslated, let translated {
             Text(translated)
             
         } else if hasRenderableAttachmentCaption, let attachmentCaption {
             Text(attachmentCaption)
             
-        } else if msg.contentCiphertext != nil, !hasAttachments {
+        } else if (msg.encryptedPayloadForMe != nil || msg.contentCiphertext != nil), !hasAttachments {
             Text(
                 "🔒 "
                 + appText(

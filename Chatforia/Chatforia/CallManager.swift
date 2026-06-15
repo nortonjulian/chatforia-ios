@@ -306,6 +306,30 @@ final class CallManager: ObservableObject {
         pendingIsVideo = isVideo
         state = .dialing(destination)
 
+        if case .appUser(let userId, _) = destination {
+            guard let token = auth.currentToken, !token.isEmpty else {
+                failCall(appText("error_missing_auth_token", languageCode: appLanguage))
+                return
+            }
+
+            do {
+                let callId = try await CallService.shared.createCall(
+                    calleeId: userId,
+                    mode: isVideo ? "VIDEO" : "AUDIO",
+                    token: token
+                )
+
+                updateSession {
+                    $0.backendCallId = callId
+                }
+
+                print("✅ Backend call created before CallKit:", callId)
+            } catch {
+                failCall(error.localizedDescription)
+                return
+            }
+        }
+
         // Create external call record BEFORE CallKit, but ONLY for phone numbers
         if case .phoneNumber(let number, _) = destination {
             guard let token = auth.currentToken, !token.isEmpty else {
@@ -343,12 +367,12 @@ final class CallManager: ObservableObject {
             callKitHandle = number
             isPhoneNumber = true
 
-        case .appUser:
-            callKitHandle = destination.displayName
+        case .appUser(let userId, _):
+            callKitHandle = String(userId)
             isPhoneNumber = false
 
-        case .videoRoom:
-            callKitHandle = destination.displayName
+        case .videoRoom(let roomId, _, _):
+            callKitHandle = "room-\(roomId)"
             isPhoneNumber = false
         }
 
@@ -357,7 +381,19 @@ final class CallManager: ObservableObject {
         callKit.startOutgoingCall(
             uuid: uuid,
             handle: callKitHandle,
-            isPhoneNumber: isPhoneNumber
+            isPhoneNumber: isPhoneNumber,
+            onFailure: { [weak self] in
+                guard let self else { return }
+
+                Task {
+                    await self.startCallAsync(
+                        uuid: uuid,
+                        to: destination,
+                        auth: auth,
+                        isVideo: isVideo
+                    )
+                }
+            }
         )
     }
             
@@ -409,14 +445,6 @@ final class CallManager: ObservableObject {
                 // 🧠 STEP 1: CREATE BACKEND CALL RECORD
                 print("📗 About to create external call record")
                 
-                let callId = try await CallService.shared.startExternalCall(
-                    phoneNumber: number,
-                    token: token
-                )
-
-                updateSession {
-                    $0.backendCallId = callId
-                }
 
                 // 🧠 STEP 2: START TWILIO CALL
                 let result = try await pstnService.startCall(to: number, token: token)
@@ -448,20 +476,8 @@ final class CallManager: ObservableObject {
                 }
             }
 
-            do {
-                let callId = try await CallService.shared.createCall(
-                    calleeId: userId,
-                    mode: isVideo ? "VIDEO" : "AUDIO",
-                    token: token
-                )
-
-                updateSession {
-                    $0.backendCallId = callId
-                }
-
-                print("✅ Backend call created:", callId)
-            } catch {
-                failCall(error.localizedDescription)
+            guard activeSession?.backendCallId != nil else {
+                failCall(appText("calls.missing_backend_call_id", languageCode: appLanguage))
                 return
             }
 

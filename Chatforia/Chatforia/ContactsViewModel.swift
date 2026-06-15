@@ -111,6 +111,6 @@ final class ContactsViewModel: ObservableObject {
             return externalPhone
         }
 
-        return appText("ios.tap_to_view_contact", languageCode: appLanguage)
+        return appText("tap_to_view_contact", languageCode: appLanguage)
     }
 }

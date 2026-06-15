@@ -20,6 +20,7 @@ struct ContactsRootView: View {
     
     @State private var contactToDelete: ContactDTO? = nil
     @State private var showingDeleteContactAlert = false
+    @State private var contactToEdit: ContactDTO? = nil
     
     @EnvironmentObject private var callManager: CallManager
 
@@ -32,17 +33,31 @@ struct ContactsRootView: View {
                 content
             }
             .navigationDestination(item: $selectedContact) { contact in
-                ContactDetailView(contact: contact) { action in
-                    Task {
-                        await handleContactAction(action, for: contact)
+                ContactDetailView(
+                    contact: contact,
+                    onAction: { action in
+                        Task {
+                            await handleContactAction(action, for: contact)
+                        }
+                    },
+                    onEdit: {
+                        contactToEdit = contact
                     }
-                }
+                )
                 .environmentObject(auth)
                 .environmentObject(themeManager)
             }
             .navigationDestination(isPresented: $showSelectedSMS) {
                 if let conversation = selectedSMSConversation {
                     SMSThreadView(conversation: conversation)
+                }
+            }
+            .navigationDestination(isPresented: $showSelectedRoom) {
+                if let room = selectedRoom {
+                    ChatThreadView(room: room, randomSession: nil)
+                        .environmentObject(auth)
+                        .environmentObject(themeManager)
+                        .environmentObject(callManager)
                 }
             }
             .navigationTitle(
@@ -138,6 +153,21 @@ struct ContactsRootView: View {
             }
             .sheet(isPresented: $showingAddContact) {
                 AddContactView { _ in
+                    Task { await reload() }
+                }
+                .environmentObject(auth)
+                .environmentObject(themeManager)
+            }
+            .sheet(item: $contactToEdit) { contact in
+                AddContactView(
+                    initialMode: contact.user?.username != nil ? .username : .phone,
+                    initialUsername: contact.user?.username ?? "",
+                    initialPhoneNumber: contact.externalPhone ?? "",
+                    initialExternalName: contact.externalName ?? "",
+                    initialAlias: contact.alias ?? "",
+                    initialFavorite: contact.favorite ?? false
+                ) { _ in
+                    contactToEdit = nil
                     Task { await reload() }
                 }
                 .environmentObject(auth)
@@ -332,13 +362,21 @@ struct ContactsRootView: View {
             await open(contact)
 
         case .call:
+            if let userId = contact.user?.id ?? contact.userId {
+                callManager.startCall(
+                    to: .appUser(
+                        userId: userId,
+                        username: vm.displayName(for: contact)
+                    ),
+                    auth: auth
+                )
+                return
+            }
+
             guard let phone = contact.externalPhone?
                 .trimmingCharacters(in: .whitespacesAndNewlines),
-                  !phone.isEmpty else {
-                vm.errorText = appText(
-                    "ios.invalid_phone_number",
-                    languageCode: appLanguage
-                )
+                !phone.isEmpty else {
+                vm.errorText = appText("ios.invalid_phone_number", languageCode: appLanguage)
                 return
             }
 

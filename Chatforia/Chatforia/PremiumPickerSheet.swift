@@ -73,7 +73,10 @@ struct PremiumPickerSheet: View {
                 .foregroundStyle(themeManager.palette.secondaryText)
 
             HStack(spacing: 8) {
-                Text(appText("billing.currentPlan", languageCode: appLanguage))
+                Text(
+                    appText("billing.currentPlan", languageCode: appLanguage)
+                        .replacingOccurrences(of: "{plan}", with: currentPlan.displayName)
+                )
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(themeManager.palette.secondaryText)
 

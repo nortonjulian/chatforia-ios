@@ -9,6 +9,7 @@ enum ContactDetailAction {
 struct ContactDetailView: View {
     let contact: ContactDTO
     let onAction: (ContactDetailAction) -> Void
+    let onEdit: () -> Void
 
     @EnvironmentObject private var themeManager: ThemeManager
     @AppStorage("chatforia_language") private var appLanguage = "en"
@@ -47,136 +48,130 @@ struct ContactDetailView: View {
 
     var body: some View {
         ZStack {
-            themeManager.palette.screenBackground
-                .ignoresSafeArea()
+        themeManager.palette.screenBackground
+            .ignoresSafeArea()
 
-            ScrollView {
-                VStack(spacing: 20) {
-                    VStack(spacing: 12) {
-                        Circle()
-                            .fill(themeManager.palette.border)
-                            .frame(width: 88, height: 88)
-                            .overlay(
-                                Text(String(displayName.prefix(1)).uppercased())
-                                    .font(.system(size: 30, weight: .bold))
-                                    .foregroundStyle(themeManager.palette.primaryText)
-                            )
+        ScrollView {
+            VStack(spacing: 20) {
+                VStack(spacing: 12) {
+                    Circle()
+                        .fill(themeManager.palette.border)
+                        .frame(width: 88, height: 88)
+                        .overlay(
+                            Text(String(displayName.prefix(1)).uppercased())
+                                .font(.system(size: 30, weight: .bold))
+                                .foregroundStyle(themeManager.palette.primaryText)
+                        )
 
-                        Text(displayName)
-                            .font(.title2.weight(.bold))
-                            .foregroundStyle(themeManager.palette.primaryText)
+                    Text(displayName)
+                        .font(.title2.weight(.bold))
+                        .foregroundStyle(themeManager.palette.primaryText)
 
-                        Text(subtitle)
-                            .font(.body)
-                            .foregroundStyle(themeManager.palette.secondaryText)
+                    Text(subtitle)
+                        .font(.body)
+                        .foregroundStyle(themeManager.palette.secondaryText)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.top, 24)
+
+                VStack(spacing: 12) {
+                    Button {
+                        onAction(.message)
+                    } label: {
+                        actionRow(
+                            title: appText("common.message", languageCode: appLanguage),
+                            systemImage: "message.fill"
+                        )
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 24)
+                    .buttonStyle(.plain)
 
-                    VStack(spacing: 12) {
+                    Button {
+                        onAction(.call)
+                    } label: {
+                        actionRow(
+                            title: appText("common.call", languageCode: appLanguage),
+                            systemImage: "phone.fill"
+                        )
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        onEdit()
+                            } label: {
+                                actionRow(
+                                    title: appText("common.edit", languageCode: appLanguage),
+                                    systemImage: "pencil"
+                                )
+                            }
+                    .buttonStyle(.plain)
+
+                    if contact.user?.id != nil {
                         Button {
-                            onAction(.message)
+                            onAction(.video)
                         } label: {
                             actionRow(
-                                title:
-                                    appText(
-                                        "common.message",
-                                        languageCode: appLanguage
-                                    ),
-                                systemImage: "message.fill"
+                                title: appText("common.video", languageCode: appLanguage),
+                                systemImage: "video.fill"
                             )
                         }
                         .buttonStyle(.plain)
-
-                        Button {
-                            onAction(.call)
-                        } label: {
-                            actionRow(
-                                title:
-                                    appText(
-                                        "common.call",
-                                        languageCode: appLanguage
-                                    ),
-                                systemImage: "phone.fill"
-                            )
-                        }
-                        if contact.user?.id != nil {
-                            Button {
-                                onAction(.video)
-                            } label: {
-                                actionRow(
-                                    title:
-                                        appText(
-                                            "common.video",
-                                            languageCode: appLanguage
-                                        ),
-                                    systemImage: "video.fill"
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        }
-                        .padding(.top, 8)
-
-                    VStack(alignment: .leading, spacing: 14) {
-                        detailLine(
-                            title:
-                                appText(
-                                    "common.name",
-                                    languageCode: appLanguage
-                                ),
-                            value: displayName
-                        )
-
-                        if let externalName = contact.externalName, !externalName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                            detailLine(
-                                title:
-                                    appText(
-                                        "contacts.externalName",
-                                        languageCode: appLanguage
-                                    ),
-                                value: externalName
-                            )
-                        }
-
-                        if let phone = contact.externalPhone, !phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                            detailLine(
-                                title:
-                                    appText(
-                                        "common.phone",
-                                        languageCode: appLanguage
-                                    ),
-                                value: phone
-                            )
-                        }
-
-                        if let username = contact.user?.username, !username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                            detailLine(
-                                title:
-                                    appText(
-                                        "common.username",
-                                        languageCode: appLanguage
-                                    ),
-                                value: "@\(username)"
-                            )
-                        }
                     }
-                    .padding(16)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(themeManager.palette.cardBackground)
-                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                 }
-                .padding()
+                .padding(.top, 8)
+
+                VStack(alignment: .leading, spacing: 14) {
+                    detailLine(
+                        title: appText("common.name", languageCode: appLanguage),
+                        value: displayName
+                    )
+
+                    if let externalName = contact.externalName,
+                       !externalName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        detailLine(
+                            title: appText("contacts.externalName", languageCode: appLanguage),
+                            value: externalName
+                        )
+                    }
+
+                    if let phone = contact.externalPhone,
+                       !phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        detailLine(
+                            title: appText("common.phone", languageCode: appLanguage),
+                            value: phone
+                        )
+                    }
+
+                    if let username = contact.user?.username,
+                       !username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        detailLine(
+                            title: appText("common.username", languageCode: appLanguage),
+                            value: "@\(username)"
+                        )
+                    }
+                }
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(themeManager.palette.cardBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
             }
+            .padding()
         }
-        .navigationTitle(
-            appText(
-                "contacts.contact",
-                languageCode: appLanguage
-            )
-        )
-        .navigationBarTitleDisplayMode(.inline)
     }
+    .navigationTitle(
+        appText("contacts.contact", languageCode: appLanguage)
+    )
+    .navigationBarTitleDisplayMode(.inline)
+    .toolbar {
+        ToolbarItem(placement: .topBarTrailing) {
+            Button(
+                appText("common.edit", languageCode: appLanguage)
+            ) {
+                onEdit()
+            }
+            .foregroundStyle(themeManager.palette.accent)
+        }
+    }
+}
 
     private func actionRow(title: String, systemImage: String) -> some View {
         HStack(spacing: 12) {

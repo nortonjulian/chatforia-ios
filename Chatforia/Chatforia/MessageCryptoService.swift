@@ -45,6 +45,96 @@ final class MessageCryptoService {
         )
     }
 
+    func encryptForSingleUser(
+    plaintext: String,
+    recipientUserId: Int,
+    recipientPublicKeyBase64: String,
+    language: String? = nil,
+    sourceLanguage: String? = nil
+) throws -> EncryptedMessagePayloadForUser {
+    guard let plaintextData = plaintext.data(using: .utf8) else {
+        throw MessageCryptoError.invalidUTF8
+    }
+
+    guard let publicKeyData = Data(base64Encoded: recipientPublicKeyBase64) else {
+        throw MessageCryptoError.invalidRecipientPublicKey
+    }
+
+    let publicKey = try Curve25519.KeyAgreement.PublicKey(
+        rawRepresentation: publicKeyData
+    )
+
+    let messageKey = SymmetricKey(size: .bits256)
+
+    let sealedContent = try AES.GCM.seal(
+        plaintextData,
+        using: messageKey
+    )
+
+    guard let combinedContent = sealedContent.combined else {
+        throw NSError(
+            domain: "MessageCryptoService",
+            code: 10,
+            userInfo: [NSLocalizedDescriptionKey: "Failed to combine sealed content"]
+        )
+    }
+
+    let ephemeralPrivate = Curve25519.KeyAgreement.PrivateKey()
+
+    let sharedSecret = try ephemeralPrivate.sharedSecretFromKeyAgreement(
+        with: publicKey
+    )
+
+    let wrappingKey = sharedSecret.hkdfDerivedSymmetricKey(
+        using: SHA256.self,
+        salt: Data("chatforia-msg-wrap-v1".utf8),
+        sharedInfo: Data("user:\(recipientUserId)".utf8),
+        outputByteCount: 32
+    )
+
+    let messageKeyData = messageKey.withUnsafeBytes { rawBuffer in
+        Data(rawBuffer)
+    }
+
+    let sealedMessageKey = try AES.GCM.seal(
+        messageKeyData,
+        using: wrappingKey
+    )
+
+    guard let wrappedCombined = sealedMessageKey.combined else {
+        throw NSError(
+            domain: "MessageCryptoService",
+            code: 11,
+            userInfo: [NSLocalizedDescriptionKey: "Failed to combine wrapped message key"]
+        )
+    }
+
+    let wrappedPayload: [String: String] = [
+        "alg": "x25519-aesgcm",
+        "epk": ephemeralPrivate.publicKey.rawRepresentation.base64EncodedString(),
+        "wrappedKey": wrappedCombined.base64EncodedString()
+    ]
+
+    let wrappedPayloadData = try JSONSerialization.data(
+        withJSONObject: wrappedPayload,
+        options: []
+    )
+
+    guard let wrappedPayloadString = String(
+        data: wrappedPayloadData,
+        encoding: .utf8
+    ) else {
+        throw MessageCryptoError.invalidUTF8
+    }
+
+    return EncryptedMessagePayloadForUser(
+        contentCiphertext: combinedContent.base64EncodedString(),
+        encryptedKey: wrappedPayloadString,
+        language: language,
+        sourceLanguage: sourceLanguage
+    )
+}
+
     func encryptMessageForRecipients(
         plaintext: String,
         senderUserId: Int,
@@ -158,6 +248,8 @@ final class MessageCryptoService {
             encryptedKeysByUserId: encryptedKeysByUserId
         )
     }
+
+    
 
     func decryptMessageForCurrentBackend(
         ciphertextBase64: String,

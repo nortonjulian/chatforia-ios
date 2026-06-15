@@ -20,6 +20,7 @@ extension MessageDTO {
             translatedFrom: incoming.translatedFrom ?? current.translatedFrom,
             translatedForMe: incoming.translatedForMe ?? current.translatedForMe,
             encryptedKeyForMe: incoming.encryptedKeyForMe ?? current.encryptedKeyForMe,
+            encryptedPayloadForMe: incoming.encryptedPayloadForMe ?? current.encryptedPayloadForMe,
             imageUrl: incoming.imageUrl ?? current.imageUrl,
             audioUrl: incoming.audioUrl ?? current.audioUrl,
             audioDurationSec: incoming.audioDurationSec ?? current.audioDurationSec,
@@ -169,6 +170,25 @@ extension MessageDTO {
     }
 }
 
+struct EncryptedMessagePayloadForUser: Codable, Equatable {
+    let contentCiphertext: String
+    let encryptedKey: String
+    let language: String?
+    let sourceLanguage: String?
+
+    init(
+        contentCiphertext: String,
+        encryptedKey: String,
+        language: String? = nil,
+        sourceLanguage: String? = nil
+    ) {
+        self.contentCiphertext = contentCiphertext
+        self.encryptedKey = encryptedKey
+        self.language = language
+        self.sourceLanguage = sourceLanguage
+    }
+}
+
 struct MessagesEnvelope: Codable {
     let items: [MessageDTO]
     let nextCursor: String?
@@ -223,6 +243,7 @@ struct MessageDTO: Codable, Identifiable, Equatable {
     let translatedForMe: String?
     let encryptedKeyForMe: String?
 
+    let encryptedPayloadForMe: EncryptedMessagePayloadForUser?
     let imageUrl: String?
     let audioUrl: String?
     let audioDurationSec: Double?
@@ -260,6 +281,7 @@ struct MessageDTO: Codable, Identifiable, Equatable {
         case translatedFrom
         case translatedForMe
         case encryptedKeyForMe
+        case encryptedPayloadForMe
         case imageUrl
         case audioUrl
         case audioDurationSec
@@ -289,6 +311,7 @@ struct MessageDTO: Codable, Identifiable, Equatable {
         translatedFrom: String? = nil,
         translatedForMe: String? = nil,
         encryptedKeyForMe: String? = nil,
+        encryptedPayloadForMe: EncryptedMessagePayloadForUser? = nil,
         imageUrl: String? = nil,
         audioUrl: String? = nil,
         audioDurationSec: Double? = nil,
@@ -316,6 +339,7 @@ struct MessageDTO: Codable, Identifiable, Equatable {
         self.translatedFrom = translatedFrom
         self.translatedForMe = translatedForMe
         self.encryptedKeyForMe = encryptedKeyForMe
+        self.encryptedPayloadForMe = encryptedPayloadForMe
         self.imageUrl = imageUrl
         self.audioUrl = audioUrl
         self.audioDurationSec = audioDurationSec
@@ -349,6 +373,11 @@ struct MessageDTO: Codable, Identifiable, Equatable {
 
         translatedForMe = try c.decodeIfPresent(String.self, forKey: .translatedForMe)
         encryptedKeyForMe = try c.decodeIfPresent(String.self, forKey: .encryptedKeyForMe)
+
+        encryptedPayloadForMe = try c.decodeIfPresent(
+            EncryptedMessagePayloadForUser.self,
+            forKey: .encryptedPayloadForMe
+        )
 
         imageUrl = try c.decodeIfPresent(String.self, forKey: .imageUrl)
         audioUrl = try c.decodeIfPresent(String.self, forKey: .audioUrl)
@@ -399,6 +428,8 @@ struct MessageDTO: Codable, Identifiable, Equatable {
 
         try c.encodeIfPresent(translatedForMe, forKey: .translatedForMe)
         try c.encodeIfPresent(encryptedKeyForMe, forKey: .encryptedKeyForMe)
+
+        try c.encodeIfPresent(encryptedPayloadForMe, forKey: .encryptedPayloadForMe)
 
         try c.encodeIfPresent(imageUrl, forKey: .imageUrl)
         try c.encodeIfPresent(audioUrl, forKey: .audioUrl)

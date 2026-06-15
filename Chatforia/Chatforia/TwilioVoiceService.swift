@@ -47,9 +47,20 @@ final class TwilioVoiceService: NSObject {
     }
 
     func prepare(authToken: String?) async throws {
-        let response = try await fetchToken(authToken: authToken)
-        self.accessToken = response.token
-        self.isReady = true
+        do {
+            let response = try await fetchToken(authToken: authToken)
+            self.accessToken = response.token
+            self.isReady = true
+        } catch {
+            self.isReady = false
+            delegate?.twilioVoiceDidFail(
+                appText(
+                    "calls.serviceUnavailable",
+                    languageCode: appLanguage
+                )
+            )
+            throw error
+        }
     }
 
     func setPendingBackendCallId(_ id: Int?) {

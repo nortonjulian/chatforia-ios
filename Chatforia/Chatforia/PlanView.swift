@@ -32,7 +32,10 @@ struct PlanView: View {
     private var currentPlanSection: some View {
         SectionCardView(title: appText("billing.myPlan", languageCode: appLanguage)) {
             VStack(alignment: .leading, spacing: 14) {
-                Text(appText("billing.currentPlan", languageCode: appLanguage))
+                Text(
+                    appText("billing.currentPlan", languageCode: appLanguage)
+                        .replacingOccurrences(of: "{plan}", with: currentPlan.displayName)
+                )
                     .font(.subheadline)
                     .foregroundStyle(themeManager.palette.secondaryText)
 

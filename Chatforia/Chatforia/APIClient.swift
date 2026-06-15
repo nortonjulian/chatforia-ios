@@ -128,6 +128,9 @@ final class APIClient {
         }
 
         var req = URLRequest(url: url)
+        req.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+        req.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
+        req.setValue("no-cache", forHTTPHeaderField: "Pragma")
         req.httpMethod = request.method.rawValue
         req.timeoutInterval = AppEnvironment.requestTimeout
         req.setValue("application/json", forHTTPHeaderField: "Accept")
@@ -225,6 +228,9 @@ final class APIClient {
         }
 
         var req = URLRequest(url: url)
+        req.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+        req.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
+        req.setValue("no-cache", forHTTPHeaderField: "Pragma")
         req.httpMethod = request.method.rawValue
         req.timeoutInterval = AppEnvironment.requestTimeout
         req.setValue("application/json", forHTTPHeaderField: "Accept")

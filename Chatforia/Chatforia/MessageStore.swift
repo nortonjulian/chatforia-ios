@@ -148,7 +148,16 @@ final class MessageStore {
         if let ciphertext = message.contentCiphertext, !ciphertext.isEmpty {
             score += 1
         }
+
         if let key = message.encryptedKeyForMe, !key.isEmpty {
+            score += 1
+        }
+
+        if message.encryptedPayloadForMe?.contentCiphertext.isEmpty == false {
+            score += 1
+        }
+
+        if message.encryptedPayloadForMe?.encryptedKey.isEmpty == false {
             score += 1
         }
 
@@ -190,30 +199,55 @@ final class MessageStore {
     }
 
     private func dedupeMessages(_ source: [MessageDTO]) -> [MessageDTO] {
-        var seenServerIds = Set<Int>()
-        var seenClientIds = Set<String>()
-        var result: [MessageDTO] = []
+    var byServerId: [Int: MessageDTO] = [:]
+    var byClientId: [String: MessageDTO] = [:]
+    var result: [MessageDTO] = []
 
-        for msg in source {
-            if msg.id > 0 {
-                if seenServerIds.contains(msg.id) { continue }
-                seenServerIds.insert(msg.id)
-                result.append(msg)
-                continue
+    for msg in source {
+        if msg.id > 0 {
+            if let existing = byServerId[msg.id] {
+                byServerId[msg.id] = preferredMessage(current: existing, incoming: msg)
+            } else {
+                byServerId[msg.id] = msg
             }
 
             if let cid = msg.clientMessageId, !cid.isEmpty {
-                if seenClientIds.contains(cid) { continue }
-                seenClientIds.insert(cid)
-                result.append(msg)
-                continue
+                byClientId[cid] = byServerId[msg.id]
             }
 
-            result.append(msg)
+            continue
         }
 
-        return result
+        if let cid = msg.clientMessageId, !cid.isEmpty {
+            if let serverVersion = byClientId[cid], serverVersion.id > 0 {
+                byClientId[cid] = preferredMessage(current: msg, incoming: serverVersion)
+            } else if let existing = byClientId[cid] {
+                byClientId[cid] = preferredMessage(current: existing, incoming: msg)
+            } else {
+                byClientId[cid] = msg
+            }
+
+            continue
+        }
+
+        result.append(msg)
     }
+
+    var merged = Array(byServerId.values)
+
+    for msg in byClientId.values {
+        if msg.id <= 0 {
+            merged.append(msg)
+        }
+    }
+
+    merged.append(contentsOf: result)
+
+    return merged.sorted {
+        if $0.createdAt != $1.createdAt { return $0.createdAt < $1.createdAt }
+        return $0.id < $1.id
+    }
+}
 
     private func capInMemoryMessagesLocked(limit: Int) {
         guard messages.count > limit else { return }
@@ -330,6 +364,7 @@ final class MessageStore {
                         translatedFrom: serverMessage.translatedFrom,
                         translatedForMe: serverMessage.translatedForMe,
                         encryptedKeyForMe: serverMessage.encryptedKeyForMe,
+                        encryptedPayloadForMe: serverMessage.encryptedPayloadForMe,
                         imageUrl: serverMessage.imageUrl,
                         audioUrl: serverMessage.audioUrl,
                         audioDurationSec: serverMessage.audioDurationSec,

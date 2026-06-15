@@ -18,7 +18,7 @@ enum CallState: Equatable {
         switch self {
 
         case .idle:
-            return appText(
+            return appText(           
                 "calls.idle",
                 languageCode: appLanguage
             )
@@ -30,21 +30,23 @@ enum CallState: Equatable {
             )
 
         case .dialing(let destination):
-            return String(
-                format: appText(
-                    "calls.callingDestination",
-                    languageCode: appLanguage
-                ),
-                destination.displayName
+            return appText(
+                "calls.callingDestination",
+                languageCode: appLanguage
+            )
+            .replacingOccurrences(
+                of: "{destination}",
+                with: destination.displayName
             )
 
         case .ringingIncoming(let name):
-            return String(
-                format: appText(
-                    "calls.incomingCalling",
-                    languageCode: appLanguage
-                )
-                .replacingOccurrences(of: "{caller}", with: name)
+            return appText(
+                "calls.incomingCalling",
+                languageCode: appLanguage
+            )
+            .replacingOccurrences(
+                of: "{caller}",
+                with: name
             )
 
         case .connecting(let name):
