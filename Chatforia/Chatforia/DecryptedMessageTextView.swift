@@ -6,24 +6,28 @@ struct DecryptMessageTextView: View {
 
     @StateObject private var store = DecryptedMessageTextStore.shared
     @State private var attempted = false
+    @State private var isDecrypting = false
+    @State private var didAttemptDecrypt = false
 
     var body: some View {
         Group {
             if let text = preferredVisibleText(),
-               !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Text(text)
+            } else if isDecrypting || !didAttemptDecrypt {
+                Text("Loading message")
+                    .foregroundStyle(.clear)
+                    .redacted(reason: .placeholder)
+                    .accessibilityHidden(true)
             } else {
                 Text("🔒 Encrypted message")
                     .foregroundStyle(fallbackColor)
-                    .task {
-                        await decryptIfNeeded()
-                    }
             }
         }
-        .task {
+        .task(id: msg.id) {
             await decryptIfNeeded()
         }
-        .onReceive(store.$values) { _ in } // 👈 THIS LINE
+        .onReceive(store.$values) { _ in }
     }
 
     private func preferredVisibleText() -> String? {
@@ -40,11 +44,34 @@ struct DecryptMessageTextView: View {
         return nil
     }
 
+    private func waitForMinimumLoadingTime(startedAt: Date) async {
+        let elapsed = Date().timeIntervalSince(startedAt)
+        let remaining = max(0, 0.35 - elapsed)
+
+        if remaining > 0 {
+            try? await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000))
+        }
+    }
+
     private func decryptIfNeeded() async {
+        if let text = preferredVisibleText(),
+        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            didAttemptDecrypt = true
+            isDecrypting = false
+            return
+        }
+
         guard !attempted else { return }
+
         attempted = true
+        isDecrypting = true
+
+        let startedAt = Date()
 
         guard msg.deletedForAll != true, msg.deletedBySender != true else {
+            await waitForMinimumLoadingTime(startedAt: startedAt)
+            isDecrypting = false
+            didAttemptDecrypt = true
             return
         }
 
@@ -57,12 +84,21 @@ struct DecryptMessageTextView: View {
             ?? msg.encryptedKeyForMe
 
         guard let ciphertext, let encryptedKeyPayload else {
+            await waitForMinimumLoadingTime(startedAt: startedAt)
+            isDecrypting = false
+            didAttemptDecrypt = true
             return
         }
 
         let currentUserId = UserDefaults.standard.integer(forKey: "chatforia.currentUserId")
-        guard currentUserId > 0 else { return }
-        
+
+        guard currentUserId > 0 else {
+            await waitForMinimumLoadingTime(startedAt: startedAt)
+            isDecrypting = false
+            didAttemptDecrypt = true
+            return
+        }
+
         print("🔐 has encryptedPayloadForMe:", msg.encryptedPayloadForMe != nil)
         print("🔐 has ciphertext:", ciphertext.isEmpty == false)
         print("🔐 has encrypted key:", encryptedKeyPayload.isEmpty == false)
@@ -76,12 +112,21 @@ struct DecryptMessageTextView: View {
                 userId: currentUserId
             )
 
+            await waitForMinimumLoadingTime(startedAt: startedAt)
+
             await MainActor.run {
                 DecryptedMessageTextStore.shared.setText(plaintext, for: msg.id)
+                isDecrypting = false
+                didAttemptDecrypt = true
             }
         } catch {
             print("❌ decrypt failed for message \(msg.id):", error.localizedDescription)
             print("❌ full error:", error)
+
+            await waitForMinimumLoadingTime(startedAt: startedAt)
+
+            isDecrypting = false
+            didAttemptDecrypt = true
         }
     }
 }

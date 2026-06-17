@@ -198,12 +198,11 @@ struct MessageBubbleView: View {
             Text(attachmentCaption)
             
         } else if (msg.encryptedPayloadForMe != nil || msg.contentCiphertext != nil), !hasAttachments {
-            Text(
-                "🔒 "
-                + appText(
-                    "messages.encryptedMessage",
-                    languageCode: appLanguage
-                )
+            DecryptMessageTextView(
+                msg: msg,
+                fallbackColor: isMe
+                    ? themeManager.palette.bubbleOutgoingText.opacity(0.82)
+                    : themeManager.palette.secondaryText
             )
             
         } else if hasAttachments {
