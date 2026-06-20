@@ -4,6 +4,7 @@ struct WirelessHomeView: View {
     @EnvironmentObject var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
     @AppStorage("chatforia_language") private var appLanguage = "en"
+    @Environment(\.openURL) private var openURL
 
     @State private var selectedScope: EsimScope = .local
     @State private var quotes: [PricingProduct: PricingQuote] = [:]
@@ -565,29 +566,12 @@ struct WirelessHomeView: View {
     }
 
     private func handleCheckoutConfirmed(_ pack: DataPackOption) async {
-        isPurchasingPack = true
         purchaseErrorMessage = nil
 
-        defer { isPurchasingPack = false }
+        showCheckout = false
 
-        do {
-            let payload = try await ESIMService.shared.purchaseAndProvision(pack: pack)
-
-            activationPayload = payload
-            activationStatus = .readyToInstall
-
-            await loadWirelessStatus()
-
-            showCheckout = false
-            showActivation = true
-
-        } catch {
-            purchaseErrorMessage = appText(
-                "ios.we_couldnt_start_your_esim_activation",
-                languageCode: appLanguage
-            )
-            print("Purchase/provision failed for product \(pack.product): \(error)")
-        }
+        let url = webCheckoutURL(for: pack)
+        openURL(url)
     }
 
     private func pricingProducts(for scope: EsimScope) -> [PricingProduct] {
@@ -636,30 +620,10 @@ struct WirelessHomeView: View {
     }
 
     private func handleGetPackTapped(_ pack: DataPackOption) {
-        Task {
-            isPurchasingPack = true
-            purchaseErrorMessage = nil
+        purchaseErrorMessage = nil
 
-            defer { isPurchasingPack = false }
-
-            do {
-                let payload = try await ESIMService.shared.purchaseAndProvision(pack: pack)
-
-                activationPayload = payload
-                activationStatus = .readyToInstall
-
-                await loadWirelessStatus()
-
-                showActivation = true
-
-            } catch {
-                purchaseErrorMessage = appText(
-                    "ios.we_couldnt_start_your_esim_activation",
-                    languageCode: appLanguage
-                )
-                print("Purchase/provision failed for product \(pack.product): \(error)")
-            }
-        }
+        let url = webCheckoutURL(for: pack)
+        openURL(url)
     }
 
     private func handleManageWirelessTapped() {
@@ -672,6 +636,29 @@ struct WirelessHomeView: View {
 
     private func handlePortNumberTapped() {
         print("TODO: open port number flow")
+    }
+
+    private func webCheckoutURL(for pack: DataPackOption) -> URL {
+        var components = URLComponents(string: "https://chatforia.com/upgrade")!
+
+        components.queryItems = [
+            URLQueryItem(name: "section", value: "mobile"),
+            URLQueryItem(name: "scope", value: selectedScopeQueryValue),
+            URLQueryItem(name: "product", value: pack.product)
+        ]
+
+        return components.url ?? URL(string: "https://chatforia.com/upgrade?section=mobile")!
+    }
+
+    private var selectedScopeQueryValue: String {
+        switch selectedScope {
+        case .local:
+            return "local"
+        case .europe:
+            return "europe"
+        case .global:
+            return "global"
+        }
     }
 }
 

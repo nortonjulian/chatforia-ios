@@ -18,18 +18,10 @@ final class ESIMService {
     }
 
     func purchaseAndProvision(pack: DataPackOption) async throws -> ESIMActivationDTO {
-        // Right now your backend reserves via /esim/profiles with a region.
-        // You can later connect pack -> region/plan selection more deeply.
-        let region = inferredRegion(from: pack)
-
-        let requestBody = ReserveESIMRequest(region: region)
-        let response: ReserveESIMResponse = try await send(
-            path: "/esim/profiles",
-            method: "POST",
-            body: requestBody
+        throw ESIMServiceError.server(
+            statusCode: 400,
+            message: "Please complete checkout on Chatforia.com, then return to the app to install your eSIM."
         )
-
-        return mapReserveResponseToDTO(response, fallbackPlanName: pack.title(languageCode: "en"))
     }
 
     func fetchCurrentActivation() async throws -> ESIMActivationDTO? {
