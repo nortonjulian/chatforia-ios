@@ -292,11 +292,8 @@ struct WirelessHomeView: View {
                     handleManageWirelessTapped()
                 }
 
-                ThemedOutlineButton(
-                    title: appText("ios.port_my_number", languageCode: appLanguage)
-                ) {
-                    handlePortNumberTapped()
-                }
+                // Porting is not available yet.
+                // Keep this hidden until number porting is ready.
             }
             .padding(.vertical, 8)
         }
@@ -504,12 +501,13 @@ struct WirelessHomeView: View {
     private func handleActivationTapped() {
         switch activationStatus {
         case .none:
-            print("User should pick a pack first")
+            openURL(URL(string: "https://chatforia.com/upgrade?section=mobile")!)
+
         case .readyToInstall, .active:
             openActivation()
         }
     }
-
+    
     private var disclaimerSection: some View {
         Text(
             appText(
@@ -626,11 +624,11 @@ struct WirelessHomeView: View {
         openURL(url)
     }
 
-    private func handleManageWirelessTapped() {
+   private func handleManageWirelessTapped() {
         if activationPayload != nil {
             openActivation()
         } else {
-            print("TODO: open wireless management")
+            openURL(URL(string: "https://chatforia.com/account/esim")!)
         }
     }
 

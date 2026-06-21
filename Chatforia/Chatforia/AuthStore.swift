@@ -232,6 +232,9 @@ final class AuthStore: NSObject, ObservableObject {
 
     func logout() {
         isAppReady = true
+        
+        AnalyticsManager.shared.capture("logout")
+
         AnalyticsManager.shared.reset()
         
         socket.disconnect()
@@ -288,6 +291,8 @@ final class AuthStore: NSObject, ObservableObject {
             lastUserRefreshAt = Date()
 
             state = .loggedIn(response.user)
+
+            AnalyticsManager.shared.capture("profile_refreshed")
             evaluateOnboarding(for: response.user)
             evaluateKeyRestoreNeed(for: response.user)
             syncPlan(from: response.user)

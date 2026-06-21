@@ -31,6 +31,17 @@ final class RiaChatViewModel: ObservableObject {
         )
         messages.append(userMsg)
 
+        if messages.count == 1 {
+            AnalyticsManager.shared.capture("ria_chat_started", properties: [
+                "memoryEnabled": memoryEnabled,
+                "filterProfanity": filterProfanity
+            ])
+        }
+
+        AnalyticsManager.shared.capture("ria_message_sent", properties: [
+            "memoryEnabled": memoryEnabled
+        ])
+
         isLoading = true
         lastError = nil
         aiDisabledReason = nil
@@ -52,6 +63,8 @@ final class RiaChatViewModel: ObservableObject {
                 content: reply
             )
             messages.append(aiMsg)
+
+            AnalyticsManager.shared.capture("ria_response_received")
         } catch {
             let message = error.localizedDescription.lowercased()
 

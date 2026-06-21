@@ -106,6 +106,12 @@ final class ESIMActivationViewModel: ObservableObject {
             return nil
         }
 
+        AnalyticsManager.shared.capture("esim_install_started", properties: [
+            "status": payload.status,
+            "hasQRCode": payload.qrCodeURL != nil,
+            "hasICCID": payload.iccid != nil
+        ])
+
         isInstalling = true
         defer { isInstalling = false }
 
@@ -123,6 +129,11 @@ final class ESIMActivationViewModel: ObservableObject {
             qrCodeURL: payload.qrCodeURL,
             lpaUri: payload.lpaUri
         )
+
+        AnalyticsManager.shared.capture("esim_activated", properties: [
+            "planName": payload.planName ?? "unknown",
+            "iccidPresent": payload.iccid != nil
+        ])
     }
 
     private func normalizedInstallURL(from raw: String) -> URL? {

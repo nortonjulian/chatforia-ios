@@ -182,12 +182,22 @@ final class CallManager: ObservableObject {
     }
 
     func startCall(to destination: CallDestination, auth: AuthStore) {
+        AnalyticsManager.shared.capture("voice_call_started", properties: [
+            "direction": "outgoing",
+            "destinationType": "\(destination)"
+        ])
+
         Task {
             await beginOutgoingCall(to: destination, auth: auth, isVideo: false)
         }
     }
 
     func startVideoCall(to destination: CallDestination, auth: AuthStore) {
+        AnalyticsManager.shared.capture("video_call_started", properties: [
+            "direction": "outgoing",
+            "destinationType": "\(destination)"
+        ])
+
         switch destination {
         case .phoneNumber:
             failCall(appText(
@@ -857,6 +867,13 @@ final class CallManager: ObservableObject {
 
         activeSession = nil
         resetTransientState()
+
+        AnalyticsManager.shared.capture(session.isVideo ? "video_call_ended" : "voice_call_ended", properties: [
+            "direction": "\(session.direction)",
+            "status": backend.status,
+            "endReason": backend.endReason,
+            "durationSec": backend.durationSec ?? 0
+        ])
     }
 }
 

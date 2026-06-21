@@ -852,6 +852,13 @@ final class ChatThreadViewModel: ObservableObject {
 
         SendQueueManager.shared.enqueue(job)
         SendQueueManager.shared.startIfNeeded()
+
+        AnalyticsManager.shared.capture("message_sent", properties: [
+            "roomId": roomId,
+            "messageType": "text",
+            "encrypted": true
+        ])
+        
         return true
     } catch {
         MessageStore.shared.setDeliveryState(

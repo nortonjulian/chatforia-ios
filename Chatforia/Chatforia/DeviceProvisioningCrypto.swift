@@ -40,6 +40,8 @@ final class DeviceProvisioningCrypto {
     static let shared = DeviceProvisioningCrypto()
     private init() {}
 
+    private let algorithm = "x25519-aesgcm"
+
     func wrapAccountKeyForDevice(
         accountPrivateKeyBase64: String,
         targetDevicePublicKeyBase64: String
@@ -53,6 +55,7 @@ final class DeviceProvisioningCrypto {
         )
 
         let ephemeralPrivateKey = Curve25519.KeyAgreement.PrivateKey()
+
         let sharedSecret = try ephemeralPrivateKey.sharedSecretFromKeyAgreement(
             with: targetPublicKey
         )
@@ -70,20 +73,23 @@ final class DeviceProvisioningCrypto {
 
         let plaintext = try JSONEncoder().encode(payload)
 
-        let nonceData = randomData(count: 24)
-        let nonce = try ChaChaPoly.Nonce(data: nonceData)
+        // AES-GCM standard nonce size is 12 bytes.
+        let nonceData = randomData(count: 12)
+        let nonce = try AES.GCM.Nonce(data: nonceData)
 
-        let sealedBox = try ChaChaPoly.seal(
+        let sealedBox = try AES.GCM.seal(
             plaintext,
             using: symmetricKey,
             nonce: nonce
         )
 
+        let ciphertextPlusTag = sealedBox.ciphertext + sealedBox.tag
+
         let wrapped = DeviceWrappedAccountKeyPayload(
-            alg: "x25519-xsalsa20poly1305",
+            alg: algorithm,
             epk: ephemeralPrivateKey.publicKey.rawRepresentation.base64EncodedString(),
             nonce: nonceData.base64EncodedString(),
-            ciphertext: (sealedBox.ciphertext + sealedBox.tag).base64EncodedString()
+            ciphertext: ciphertextPlusTag.base64EncodedString()
         )
 
         let encoded = try JSONEncoder().encode(wrapped)
@@ -108,7 +114,7 @@ final class DeviceProvisioningCrypto {
             from: data
         )
 
-        guard wrapped.alg == "x25519-xsalsa20poly1305" else {
+        guard wrapped.alg == algorithm else {
             throw DeviceProvisioningError.unsupportedAlgorithm
         }
 
@@ -137,13 +143,13 @@ final class DeviceProvisioningCrypto {
         let ciphertext = ciphertextPlusTag.dropLast(16)
         let tag = ciphertextPlusTag.suffix(16)
 
-        let sealedBox = try ChaChaPoly.SealedBox(
-            nonce: try ChaChaPoly.Nonce(data: nonceData),
+        let sealedBox = try AES.GCM.SealedBox(
+            nonce: try AES.GCM.Nonce(data: nonceData),
             ciphertext: ciphertext,
             tag: tag
         )
 
-        let plaintext = try ChaChaPoly.open(
+        let plaintext = try AES.GCM.open(
             sealedBox,
             using: symmetricKey
         )

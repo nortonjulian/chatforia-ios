@@ -99,7 +99,7 @@ final class DeviceRegistrationService {
     func approvePairing(
         deviceId: String,
         wrappedAccountKey: String,
-        wrappedAccountKeyAlgo: String = "x25519-xsalsa20poly1305",
+        wrappedAccountKeyAlgo: String = "x25519-aesgcm",
         wrappedAccountKeyVer: Int = 1,
         token: String
     ) async throws -> DeviceDTO {
