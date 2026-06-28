@@ -2,6 +2,7 @@ import Foundation
 import Combine
 import CallKit
 import TwilioVideo
+import TwilioVoice
 import AVFoundation
 
 @MainActor
@@ -45,6 +46,7 @@ final class CallManager: ObservableObject {
     private var pendingEndOutcome: CallEndOutcome?
     private var finalizedCallUUID: UUID?
     private var pendingVoIPToken: String?
+    private var pendingVoIPTokenData: Data?
 
     init() {
         twilioService.delegate = self
@@ -84,32 +86,26 @@ final class CallManager: ObservableObject {
     @objc private func handleSocketIncomingCall(_ notification: Notification) {
         guard let data = notification.userInfo else { return }
 
+        let rawCallId = data["callId"]
 
-        let fromUser = data["fromUser"] as? [String: Any]
+        let callId: Int? = {
+            if let value = rawCallId as? Int {
+                return value
+            }
 
-        func clean(_ value: String?) -> String? {
-            let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            return trimmed.isEmpty ? nil : trimmed
-        }
+            if let value = rawCallId as? String {
+                return Int(value)
+            }
 
-        let callerName =
-            clean(data["callerName"] as? String)
-            ?? clean(fromUser?["displayName"] as? String)
-            ?? clean(fromUser?["username"] as? String)
-            ?? clean(data["fromNumber"] as? String)
-            ?? appText("calls.unknown", languageCode: appLanguage)
+            return nil
+        }()
 
-        let callId = data["callId"] as? Int
+        twilioService.setPendingBackendCallId(callId)
 
-        let payload = IncomingCallPayload(
-            uuid: UUID(),
-            displayName: callerName,
-            remoteIdentity: String(data["callerId"] as? Int ?? 0),
-            hasVideo: false,
-            backendCallId: callId
-        )
-
-        handleIncomingCallPayload(payload, auth: pendingAuth)
+        #if DEBUG
+        print("📞 Socket audio call metadata received. Stored backendCallId:", callId as Any)
+        print("📞 Waiting for real Twilio CallInvite before showing incoming call UI")
+        #endif
     }
     
     @objc private func handleSocketCallEnded(_ notification: Notification) {
@@ -638,9 +634,19 @@ final class CallManager: ObservableObject {
     }
 
     func hangup() {
-        guard let session = activeSession else { return }
+        guard let session = activeSession else {
+            print("⚠️ CallManager.hangup() called with no activeSession")
+
+            twilioService.hangup()
+            twilioVideoService.disconnect()
+
+            state = .ended
+            return
+        }
 
         let sessionId = session.id
+        let isVideo = session.isVideo
+
         pendingEndOutcome = .localHangup
 
         updateSession {
@@ -651,20 +657,16 @@ final class CallManager: ObservableObject {
 
         callKit.endCall(uuid: sessionId)
 
-        if session.isVideo {
+        if isVideo {
             twilioVideoService.disconnect()
         } else {
             twilioService.hangup()
         }
 
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 500_000_000)
-
-            if activeSession?.id == sessionId {
-                print("⚠️ Forcing call cleanup fallback")
-                completeCall(outcome: .localHangup)
-            }
-        }
+        completeCall(
+            outcome: .localHangup,
+            reportToCallKit: false
+        )
     }
     
     func dismissEndedState() {
@@ -823,9 +825,10 @@ final class CallManager: ObservableObject {
 
     private func registerPendingVoIPTokenIfPossible() {
         guard let voipToken = pendingVoIPToken,
+            let voipTokenData = pendingVoIPTokenData,
             let authToken = TokenStore.shared.read(),
             !authToken.isEmpty else {
-            print("⏭️ VoIP token registration skipped: missing token or auth")
+            print("⏭️ VoIP token registration skipped: missing token, token data, or auth")
             return
         }
 
@@ -833,10 +836,33 @@ final class CallManager: ObservableObject {
 
         Task {
             do {
-                try await DeviceRegistrationService.shared.registerVoIPPushToken(voipToken, token: authToken)
-                print("✅ VoIP push token registered")
-                await MainActor.run {
-                    self.pendingVoIPToken = nil
+                try await DeviceRegistrationService.shared.registerVoIPPushToken(
+                    voipToken,
+                    token: authToken
+                )
+
+                print("✅ VoIP push token registered with Chatforia backend")
+
+                let voiceTokenResponse = try await twilioService.fetchToken(
+                    authToken: authToken
+                )
+
+                TwilioVoiceSDK.register(
+                    accessToken: voiceTokenResponse.token,
+                    deviceToken: voipTokenData
+                ) { error in
+                    Task { @MainActor in
+                        if let error {
+                            print("❌ Twilio VoIP registration failed:", error)
+                            print("❌ Twilio VoIP registration localized:", error.localizedDescription)
+                            return
+                        }
+
+                        print("✅ Twilio VoIP registration succeeded")
+
+                        self.pendingVoIPToken = nil
+                        self.pendingVoIPTokenData = nil
+                    }
                 }
             } catch {
                 print("❌ VoIP push token registration failed:", error)
@@ -1001,11 +1027,16 @@ extension CallManager: CallKitManagerDelegate {
             $0.status = .ending
         }
 
-        if session.isVideo {
+       if session.isVideo {
             twilioVideoService.disconnect()
         } else {
             twilioService.hangup()
         }
+
+        completeCall(
+            outcome: .localHangup,
+            reportToCallKit: false
+        )
     }
 
     func callKitDidSetMute(uuid: UUID, isMuted: Bool) {
@@ -1226,9 +1257,10 @@ extension CallManager: TwilioVideoServiceDelegate {
 }
 
 extension CallManager: VoIPPushManagerDelegate {
-    func voipPushManagerDidUpdateToken(_ token: String) {
+    func voipPushManagerDidUpdateToken(_ token: String, tokenData: Data) {
         print("📞 CallManager received VoIP token")
         pendingVoIPToken = token
+        pendingVoIPTokenData = tokenData
         registerPendingVoIPTokenIfPossible()
     }
 

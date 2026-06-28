@@ -655,6 +655,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = Chatforia;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Chatforia needs camera access so you can take photos or videos to send in chats or set as your profile image.";
 				INFOPLIST_KEY_NSContactsUsageDescription = "Chatforia needs access to your contacts so you can find friends, invite contacts, and start chats with people you know.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Chatforia needs microphone access so you can make and receive voice and video calls.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Chatforia needs access to your photo library so you can choose photos and videos to send in chats or set as your profile image.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -694,6 +695,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = Chatforia;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Chatforia needs camera access so you can take photos or videos to send in chats or set as your profile image.";
 				INFOPLIST_KEY_NSContactsUsageDescription = "Chatforia needs access to your contacts so you can find friends, invite contacts, and start chats with people you know.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Chatforia needs microphone access so you can make and receive voice and video calls.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Chatforia needs access to your photo library so you can choose photos and videos to send in chats or set as your profile image.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

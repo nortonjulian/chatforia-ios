@@ -80,6 +80,12 @@ final class TwilioVoiceService: NSObject {
     }
 
     func acceptIncomingCall() {
+
+        #if DEBUG
+        print("📞 acceptIncomingCall called. hasInvite:", callInvite != nil)
+        print("📞 acceptIncomingCall from:", callInvite?.from ?? "nil")
+        #endif
+
         guard let callInvite else {
             delegate?.twilioVoiceDidFail(
                 appText(
@@ -116,12 +122,19 @@ final class TwilioVoiceService: NSObject {
         print("☎️ TwilioVoiceService.hangup() called. activeCall exists:", activeCall != nil)
         #endif
 
-        activeCall?.disconnect()
+        let call = activeCall
+
         activeCall = nil
         callInvite = nil
         cancelledCallInvite = nil
         pendingBackendCallId = nil
         isMuted = false
+
+        if let call {
+            call.disconnect()
+        } else {
+            delegate?.twilioVoiceDidDisconnect()
+        }
     }
 
     func setMuted(_ muted: Bool) {
@@ -200,6 +213,12 @@ extension TwilioVoiceService: CallDelegate {
 extension TwilioVoiceService: NotificationDelegate {
     nonisolated func callInviteReceived(callInvite: CallInvite) {
         Task { @MainActor in
+
+            #if DEBUG
+            print("📞 Real Twilio CallInvite received")
+            print("📞 Twilio invite from:", callInvite.from ?? "nil")
+            #endif
+
             self.callInvite = callInvite
 
             let from = callInvite.from ??

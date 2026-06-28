@@ -4,7 +4,7 @@ import TwilioVoice
 
 @MainActor
 protocol VoIPPushManagerDelegate: AnyObject {
-    func voipPushManagerDidUpdateToken(_ token: String)
+    func voipPushManagerDidUpdateToken(_ token: String, tokenData: Data)
     func voipPushManagerDidInvalidateToken()
 
     func voipPushManagerDidReceiveIncomingCall(
@@ -56,7 +56,10 @@ extension VoIPPushManager: PKPushRegistryDelegate {
 
         Task { @MainActor in
             print("📞 VoIP token received:", token)
-            self.delegate?.voipPushManagerDidUpdateToken(token)
+            self.delegate?.voipPushManagerDidUpdateToken(
+                token,
+                tokenData: pushCredentials.token
+            )
         }
     }
 
