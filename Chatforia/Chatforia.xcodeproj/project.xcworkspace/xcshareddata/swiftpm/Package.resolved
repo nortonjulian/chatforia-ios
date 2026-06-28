@@ -1,5 +1,5 @@
 {
-  "originHash" : "562d9ebf8a30c650e35de782e771e572aa1022e14b595220cd55a842820af78a",
+  "originHash" : "46809635b43e674d52688c1de79e42e4643084f0e221b3db9d6fdf3e25a0675b",
   "pins" : [
     {
       "identity" : "app-check",
@@ -125,6 +125,24 @@
       "state" : {
         "revision" : "62912513388001394d093b85a6269bf3206cac13",
         "version" : "6.13.6"
+      }
+    },
+    {
+      "identity" : "unity-ad-quality-swift-package",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ironsource-mobile/Unity-Ad-Quality-Swift-Package",
+      "state" : {
+        "revision" : "c53701a5f2c77cc440b3f0622a5e1733fd9d08d5",
+        "version" : "9.7.0"
+      }
+    },
+    {
+      "identity" : "unity-ads-swift-package",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Unity-Technologies/Unity-Ads-Swift-Package",
+      "state" : {
+        "revision" : "f0286d81064b00b1d2a3b1b87f39649af9e4a426",
+        "version" : "4.18.1"
       }
     }
   ],

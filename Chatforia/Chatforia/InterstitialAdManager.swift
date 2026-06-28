@@ -1,57 +1,50 @@
 import Foundation
-import GoogleMobileAds
+import UnityAds
 import UIKit
 
 @MainActor
-final class InterstitialAdManager: NSObject, FullScreenContentDelegate {
-    static let shared = InterstitialAdManager()
+final class UnityInterstitialAdManager: NSObject, UnityAdsLoadDelegate, UnityAdsShowDelegate {
+    static let shared = UnityInterstitialAdManager()
 
-    private var interstitialAd: InterstitialAd?
+    private var loaded = false
+    private var isLoading = false
     private var showing = false
 
     private var openCount = 0
     private let showEveryNOpenings = 4
 
-    private let testAdUnitID = AdMobConfig.interstitialChatOpenAdUnitID
-
-    override private init() {
+    private override init() {
         super.init()
     }
 
     func preloadIfNeeded() {
-        guard interstitialAd == nil else { return }
-
-        InterstitialAd.load(
-            with: testAdUnitID,
-            request: Request()
-        ) { ad, error in
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-
-                if error != nil {
-                    return
-                }
-
-                self.interstitialAd = ad
-                self.interstitialAd?.fullScreenContentDelegate = self
-
-                #if DEBUG
-                print("✅ Interstitial loaded")
-                #endif
-            }
+        guard UnityAdsManager.shared.initialized else {
+            UnityAdsManager.shared.start()
+            return
         }
+
+        guard !loaded, !isLoading else { return }
+
+        isLoading = true
+
+        UnityAds.load(
+            UnityAdsConfig.interstitialPlacementID,
+            loadDelegate: self
+        )
     }
 
     func recordChatOpenAndMaybeShow() {
         openCount += 1
 
         guard openCount % showEveryNOpenings == 0 else { return }
+
         showIfReady()
     }
 
     func showIfReady() {
         guard !showing else { return }
-        guard let ad = interstitialAd else {
+
+        guard loaded else {
             preloadIfNeeded()
             return
         }
@@ -64,18 +57,50 @@ final class InterstitialAdManager: NSObject, FullScreenContentDelegate {
         }
 
         showing = true
-        ad.present(from: root)
+
+        UnityAds.show(
+            root,
+            placementId: UnityAdsConfig.interstitialPlacementID,
+            showDelegate: self
+        )
     }
 
-    func adDidDismissFullScreenContent(_ ad: FullScreenPresentingAd) {
+    func unityAdsAdLoaded(_ placementId: String) {
+        isLoading = false
+        loaded = true
+        print("✅ Unity interstitial loaded")
+    }
+
+    func unityAdsAdFailed(
+        toLoad placementId: String,
+        withError error: UnityAdsLoadError,
+        withMessage message: String
+    ) {
+        isLoading = false
+        loaded = false
+        print("❌ Unity interstitial failed to load: \(message)")
+    }
+
+    func unityAdsShowComplete(
+        _ placementId: String,
+        withFinish state: UnityAdsShowCompletionState
+    ) {
         showing = false
-        interstitialAd = nil
+        loaded = false
         preloadIfNeeded()
     }
 
-    func ad(_ ad: FullScreenPresentingAd, didFailToPresentFullScreenContentWithError error: Error) {
+    func unityAdsShowFailed(
+        _ placementId: String,
+        withError error: UnityAdsShowError,
+        withMessage message: String
+    ) {
         showing = false
-        interstitialAd = nil
+        loaded = false
+        print("❌ Unity interstitial show failed: \(message)")
         preloadIfNeeded()
     }
+
+    func unityAdsShowStart(_ placementId: String) {}
+    func unityAdsShowClick(_ placementId: String) {}
 }

@@ -14,6 +14,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
             print("✅ Google Mobile Ads SDK started:", status.adapterStatusesByClassName)
             #endif
         }
+        UnityAdsManager.shared.start()
 
         NotificationCoordinator.shared.configure()
 
@@ -120,7 +121,7 @@ struct ChatforiaApp: App {
                 SendQueueManager.shared.replayQueuedJobs()
                 await inviteFlow.redeemPendingInviteIfNeeded(auth: auth)
 
-                InterstitialAdManager.shared.preloadIfNeeded()
+                UnityInterstitialAdManager.shared.preloadIfNeeded()
             }
             .onOpenURL { url in
                 inviteFlow.handleIncomingURL(url)
@@ -170,7 +171,7 @@ struct ChatforiaApp: App {
                 await inviteFlow.redeemPendingInviteIfNeeded(auth: auth)
             }
 
-            InterstitialAdManager.shared.preloadIfNeeded()
+            UnityInterstitialAdManager.shared.preloadIfNeeded()
         }
     }
 }

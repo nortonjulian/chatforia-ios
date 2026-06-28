@@ -173,7 +173,7 @@ struct ChatsRootView: View {
                     }
 
                     if shouldShowAds {
-                        BannerAdView()
+                        UnityBannerAdView()
                             .frame(height: 50)
                             .frame(maxWidth: .infinity)
                             .padding(.horizontal, 12)
@@ -253,14 +253,16 @@ struct ChatsRootView: View {
                         selectedRoom = room
                         showSelectedRoom = true
                         if shouldShowAds {
-                            InterstitialAdManager.shared.recordChatOpenAndMaybeShow()
+                            UnityInterstitialAdManager.shared
+                                .recordChatOpenAndMaybeShow()
                         }
 
                     case .sms(let conversation):
                         selectedSMSConversation = conversation
                         showSelectedSMS = true
                         if shouldShowAds {
-                            InterstitialAdManager.shared.recordChatOpenAndMaybeShow()
+                            UnityInterstitialAdManager.shared
+                                .recordChatOpenAndMaybeShow()
                         }
                     }
                 }

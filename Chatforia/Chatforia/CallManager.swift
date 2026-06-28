@@ -459,22 +459,37 @@ final class CallManager: ObservableObject {
             state = .dialing(destination)
 
             do {
-                // 🧠 STEP 1: CREATE BACKEND CALL RECORD
-                print("📗 About to create external call record")
-                
-
-                // 🧠 STEP 2: START TWILIO CALL
-                let result = try await pstnService.startCall(to: number, token: token)
+                guard let backendCallId = activeSession?.backendCallId else {
+                    failCall("Couldn’t start the call. Missing call record.")
+                    return
+                }
 
                 updateSession {
-                    $0.callSid = result.callSid
+                    $0.backendCallId = backendCallId
                     $0.status = .connecting
+                    $0.displayName = displayName ?? number
                 }
+
+                twilioService.setPendingBackendCallId(backendCallId)
+
+                let tokenResponse = try await twilioService.fetchToken(authToken: token)
 
                 state = .connecting(displayName ?? number)
 
+                let dialNumber = normalizedUSPhoneNumber(number)
+
+                try await twilioService.startCall(
+                    to: dialNumber,
+                    accessToken: tokenResponse.token
+                )
+
             } catch {
-                failCall(error.localizedDescription)
+                #if DEBUG
+                print("❌ Phone call start failed:", error)
+                print("❌ Phone call start failed localized:", error.localizedDescription)
+                #endif
+
+                failCall("Couldn’t start the call. Please try again.")
             }
 
         case .appUser(let userId, let username):
@@ -576,6 +591,24 @@ final class CallManager: ObservableObject {
         }
     }
 
+    private func normalizedUSPhoneNumber(_ raw: String) -> String {
+        let digits = raw.filter { $0.isNumber }
+
+        if digits.count == 10 {
+            return "+1\(digits)"
+        }
+
+        if digits.count == 11, digits.hasPrefix("1") {
+            return "+\(digits)"
+        }
+
+        if raw.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("+") {
+            return raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        return raw
+    }
+
     func toggleMute() {
         guard let session = activeSession else { return }
         let newMuted = !session.isMuted
@@ -608,7 +641,21 @@ final class CallManager: ObservableObject {
         guard let session = activeSession else { return }
 
         let sessionId = session.id
+        pendingEndOutcome = .localHangup
+
+        updateSession {
+            $0.status = .ending
+        }
+
+        print("☎️ CallManager.hangup() called")
+
         callKit.endCall(uuid: sessionId)
+
+        if session.isVideo {
+            twilioVideoService.disconnect()
+        } else {
+            twilioService.hangup()
+        }
 
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 500_000_000)
@@ -619,7 +666,7 @@ final class CallManager: ObservableObject {
             }
         }
     }
-
+    
     func dismissEndedState() {
         switch state {
         case .ended, .failed:

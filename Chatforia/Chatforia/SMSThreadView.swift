@@ -89,12 +89,7 @@ struct SMSThreadView: View {
             }
             .environmentObject(themeManager)
         }
-        .task(id: activeConversation.uniqueId) {
-            if activeConversation.id != nil {
-                await reload()
-                startPolling()
-            }
-        }
+       
         .task(id: activeConversation.uniqueId) {
             if activeConversation.id != nil {
                 await reload()

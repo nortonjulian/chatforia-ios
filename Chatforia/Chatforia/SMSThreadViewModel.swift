@@ -80,7 +80,15 @@ final class SMSThreadViewModel: ObservableObject {
             thread = fetched
             messages = fetched.sortedMessages
         } catch {
-            errorText = error.localizedDescription
+            if messages.isEmpty {
+                errorText = friendlyErrorMessage(error)
+            } else {
+                errorText = appText(
+                    "sms.refreshFailed",
+                    languageCode: appLanguage
+                )
+            }
+
             #if DEBUG
             print("❌ loadThread error:", error)
             #endif
@@ -146,7 +154,7 @@ final class SMSThreadViewModel: ObservableObject {
         } catch {
             isSending = false
             messages.removeAll { $0.id == optimistic.id }
-            errorText = error.localizedDescription
+            errorText = friendlyErrorMessage(error)
             return nil
         }
     }
@@ -196,7 +204,7 @@ final class SMSThreadViewModel: ObservableObject {
             return response.threadId
         } catch {
             isSending = false
-            errorText = error.localizedDescription
+            errorText = friendlyErrorMessage(error)
             return nil
         }
     }
@@ -225,6 +233,33 @@ final class SMSThreadViewModel: ObservableObject {
         thread?.contactPhone?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfBlank
         ?? conversationPhone?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfBlank
     }
+
+    private func friendlyErrorMessage(_ error: Error) -> String {
+    if let apiError = error as? APIError {
+        switch apiError {
+        case .server(let status, _):
+            if status >= 500 {
+                return "Server temporarily unavailable. Please try again."
+            }
+
+            return "Something went wrong. Please try again."
+
+        case .network:
+            return "Network connection issue. Please check your connection and try again."
+
+        case .unauthorized:
+            return appText(
+                "api.notAuthorized",
+                languageCode: appLanguage
+            )
+
+        default:
+            return "Something went wrong. Please try again."
+        }
+    }
+
+    return "Something went wrong. Please try again."
+}
 }
 
 private extension String {

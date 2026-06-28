@@ -112,6 +112,10 @@ final class TwilioVoiceService: NSObject {
     }
 
     func hangup() {
+        #if DEBUG
+        print("☎️ TwilioVoiceService.hangup() called. activeCall exists:", activeCall != nil)
+        #endif
+
         activeCall?.disconnect()
         activeCall = nil
         callInvite = nil
@@ -158,8 +162,19 @@ extension TwilioVoiceService: CallDelegate {
 
     nonisolated func callDidDisconnect(call: Call, error: Error?) {
         Task { @MainActor in
+            #if DEBUG
+            print("📴 Twilio call disconnected")
+            if let error {
+                print("❌ Twilio disconnect error:", error)
+                print("❌ Twilio disconnect localized:", error.localizedDescription)
+            } else {
+                print("✅ Twilio disconnected cleanly")
+            }
+            #endif
+
             self.activeCall = nil
             self.isMuted = false
+
             if let error {
                 self.delegate?.twilioVoiceDidFail(error.localizedDescription)
             } else {
@@ -170,6 +185,11 @@ extension TwilioVoiceService: CallDelegate {
 
     nonisolated func callDidFailToConnect(call: Call, error: Error) {
         Task { @MainActor in
+            #if DEBUG
+            print("❌ Twilio call failed to connect:", error)
+            print("❌ Twilio call failed localized:", error.localizedDescription)
+            #endif
+
             self.activeCall = nil
             self.isMuted = false
             self.delegate?.twilioVoiceDidFail(error.localizedDescription)
