@@ -193,7 +193,6 @@ struct WirelessHomeView: View {
 
         do {
             let status = try await WirelessService.shared.fetchWirelessStatus()
-            print("✅ STATUS:", status)
             wirelessStatus = status
         } catch {
             wirelessStatus = nil
@@ -201,7 +200,7 @@ struct WirelessHomeView: View {
                 "ios.we_couldnt_load_your_usage_right_now",
                 languageCode: appLanguage
             )
-            print("Failed to load wireless status:", error)
+            debugLog("Failed to load wireless status:", error)
         }
     }
 
@@ -557,7 +556,7 @@ struct WirelessHomeView: View {
                 activationStatus = .none
             }
         } catch {
-            print("Failed to load activation:", error)
+            debugLog("Failed to load activation:", error)
             activationPayload = nil
             activationStatus = .none
         }
@@ -633,7 +632,7 @@ struct WirelessHomeView: View {
     }
 
     private func handlePortNumberTapped() {
-        print("TODO: open port number flow")
+        debugLog("TODO: open port number flow")
     }
 
     private func webCheckoutURL(for pack: DataPackOption) -> URL {

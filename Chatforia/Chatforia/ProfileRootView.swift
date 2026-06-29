@@ -75,6 +75,32 @@ struct ProfileRootView: View {
 
                     headerSection
                     
+                    #if DEBUG
+                    SectionCardView(title: "Developer") {
+                        Button {
+                            AdInspectorLauncher.open()
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "magnifyingglass.circle")
+                                    .font(.body.weight(.semibold))
+                                    .foregroundStyle(themeManager.palette.accent)
+                                    .frame(width: 22)
+
+                                Text("Open Ad Inspector")
+                                    .font(.body)
+                                    .foregroundStyle(themeManager.palette.primaryText)
+
+                                Spacer()
+
+                                Image(systemName: "chevron.right")
+                                    .foregroundStyle(.tertiary)
+                            }
+                            .padding(.vertical, 10)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    #endif
+                    
                     if !auth.isPaid {
                         Button {
                             showUpgradeView = true

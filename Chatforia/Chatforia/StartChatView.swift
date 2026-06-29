@@ -323,7 +323,7 @@ struct StartChatView: View {
             }
 
         } catch {
-            print("❌ invite failed:", error)
+            debugLog("❌ invite failed:", error)
         }
     }
 

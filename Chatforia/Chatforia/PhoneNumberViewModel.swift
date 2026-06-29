@@ -53,7 +53,7 @@ final class PhoneNumberViewModel: ObservableObject {
     }
 
     func search(token: String?) async {
-        print("🔎 PhoneNumberViewModel.search() started")
+        debugLog("🔎 PhoneNumberViewModel.search() started")
         isSearching = true
         errorText = nil
         availableNumbers = []

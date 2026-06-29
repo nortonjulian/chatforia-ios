@@ -30,7 +30,7 @@ final class TokenStore {
 
         let status = SecItemAdd(attributes as CFDictionary, nil)
         if status != errSecSuccess {
-            print("🔐 TokenStore save failed: \(status)")
+            debugLog("🔐 TokenStore save failed: \(status)")
         }
     }
 
@@ -48,7 +48,7 @@ final class TokenStore {
 
         guard status == errSecSuccess else {
             if status != errSecItemNotFound {
-                print("🔐 TokenStore read failed: \(status)")
+                debugLog("🔐 TokenStore read failed: \(status)")
             }
             return nil
         }
@@ -66,7 +66,7 @@ final class TokenStore {
 
         let status = SecItemDelete(query as CFDictionary)
         if status != errSecSuccess && status != errSecItemNotFound {
-            print("🔐 TokenStore clear failed: \(status)")
+            debugLog("🔐 TokenStore clear failed: \(status)")
         }
     }
 }

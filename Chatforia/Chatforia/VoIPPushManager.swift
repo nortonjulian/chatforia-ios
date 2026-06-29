@@ -27,11 +27,11 @@ final class VoIPPushManager: NSObject {
 
     func start() {
         if registry != nil {
-            print("📞 VoIPPushManager already started")
+            debugLog("📞 VoIPPushManager already started")
             return
         }
 
-        print("📞 Starting VoIPPushManager")
+        debugLog("📞 Starting VoIPPushManager")
 
         let registry = PKPushRegistry(queue: DispatchQueue.main)
         registry.delegate = self
@@ -55,7 +55,7 @@ extension VoIPPushManager: PKPushRegistryDelegate {
         let token = hexString(from: pushCredentials.token)
 
         Task { @MainActor in
-            print("📞 VoIP token received:", token)
+            debugLog("📞 VoIP push credentials received")
             self.delegate?.voipPushManagerDidUpdateToken(
                 token,
                 tokenData: pushCredentials.token
@@ -96,7 +96,7 @@ extension VoIPPushManager: PKPushRegistryDelegate {
         Task { @MainActor in
             if let incomingPayload = self.makeChatforiaIncomingCallPayload(from: data) {
                 guard let delegate = self.delegate else {
-                    print("⚠️ VoIP push received but no CallManager delegate is attached")
+                    debugLog("⚠️ VoIP push received but no CallManager delegate is attached")
                     completion()
                     return
                 }

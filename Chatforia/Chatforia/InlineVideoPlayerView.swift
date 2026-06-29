@@ -27,7 +27,7 @@ struct InlineVideoPlayerView: View {
             try session.setCategory(.playback, mode: .moviePlayback, options: [])
             try session.setActive(true)
         } catch {
-            print("⚠️ Failed to configure playback audio session:", error)
+            debugLog("⚠️ Failed to configure playback audio session:", error)
         }
     }
 }

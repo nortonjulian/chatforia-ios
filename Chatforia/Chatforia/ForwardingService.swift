@@ -23,9 +23,9 @@ final class ForwardingService {
             let decoder = JSONDecoder.tolerantISO8601Decoder()
             return try decoder.decode(ForwardingSettingsDTO.self, from: data)
         } catch {
-            print("⚠️ forwarding fetch decode failed, falling back to defaults:", error)
+            debugLog("⚠️ forwarding fetch decode failed, falling back to defaults:", error)
             if let raw = String(data: data, encoding: .utf8) {
-                print("⚠️ forwarding raw response:", raw)
+                debugLog("⚠️ forwarding raw response:", raw)
             }
             return .empty
         }

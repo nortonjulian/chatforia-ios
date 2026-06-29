@@ -28,7 +28,6 @@ final class AudioPlayerService {
         let now = Date()
 
         guard now.timeIntervalSince(lastPlayedAt) > 1.0 else {
-            print("⏭️ Skipping duplicate message tone")
             return
         }
 
@@ -82,7 +81,6 @@ final class AudioPlayerService {
             )
 
         guard let url else {
-            print("❌ Sound file not found: \(filename)")
             return
         }
 
@@ -98,7 +96,7 @@ final class AudioPlayerService {
 
             player = audioPlayer
         } catch {
-            print("❌ Failed to play sound:", error)
+            debugLog("❌ Failed to play sound:", error)
         }
     }
 }

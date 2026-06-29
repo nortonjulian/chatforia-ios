@@ -91,7 +91,7 @@ final class SubscriptionManager: ObservableObject {
                 "productId": transaction.productID
             ])
 
-            print("❌ Failed to sync purchase:", error)
+            debugLog("❌ Failed to sync purchase:", error)
         }
     }
 

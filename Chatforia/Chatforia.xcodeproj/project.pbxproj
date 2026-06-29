@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		470EA6102FF23055001F4CD5 /* UnityAdapterTarget in Frameworks */ = {isa = PBXBuildFile; productRef = 470EA60F2FF23055001F4CD5 /* UnityAdapterTarget */; };
 		4758E8732FA92654004F3C09 /* TwilioVoice in Frameworks */ = {isa = PBXBuildFile; productRef = 4758E8722FA92654004F3C09 /* TwilioVoice */; };
 		4758E8752FA92654004F3C09 /* TwilioVoice-static in Frameworks */ = {isa = PBXBuildFile; productRef = 4758E8742FA92654004F3C09 /* TwilioVoice-static */; };
 		4758E8782FA9266A004F3C09 /* TwilioVideo in Frameworks */ = {isa = PBXBuildFile; productRef = 4758E8772FA9266A004F3C09 /* TwilioVideo */; };
@@ -16,7 +17,6 @@
 		4758E8832FA926DA004F3C09 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 4758E8822FA926DA004F3C09 /* GoogleSignIn */; };
 		4758E8852FA926DA004F3C09 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 4758E8842FA926DA004F3C09 /* GoogleSignInSwift */; };
 		4758E8882FA92702004F3C09 /* PostHog in Frameworks */ = {isa = PBXBuildFile; productRef = 4758E8872FA92702004F3C09 /* PostHog */; };
-		47E0069C2FE9F1F200AB2AD8 /* UnityAds in Frameworks */ = {isa = PBXBuildFile; productRef = 47E0069B2FE9F1F200AB2AD8 /* UnityAds */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -145,8 +145,8 @@
 				4758E8732FA92654004F3C09 /* TwilioVoice in Frameworks */,
 				4758E8782FA9266A004F3C09 /* TwilioVideo in Frameworks */,
 				4758E8852FA926DA004F3C09 /* GoogleSignInSwift in Frameworks */,
+				470EA6102FF23055001F4CD5 /* UnityAdapterTarget in Frameworks */,
 				4758E87A2FA9266A004F3C09 /* TwilioVideo-static in Frameworks */,
-				47E0069C2FE9F1F200AB2AD8 /* UnityAds in Frameworks */,
 				4758E87D2FA9267E004F3C09 /* SocketIO in Frameworks */,
 				4758E8882FA92702004F3C09 /* PostHog in Frameworks */,
 				4758E8752FA92654004F3C09 /* TwilioVoice-static in Frameworks */,
@@ -235,7 +235,7 @@
 				4758E8822FA926DA004F3C09 /* GoogleSignIn */,
 				4758E8842FA926DA004F3C09 /* GoogleSignInSwift */,
 				4758E8872FA92702004F3C09 /* PostHog */,
-				47E0069B2FE9F1F200AB2AD8 /* UnityAds */,
+				470EA60F2FF23055001F4CD5 /* UnityAdapterTarget */,
 			);
 			productName = Chatforia;
 			productReference = 4758E6C72FA901AF004F3C09 /* Chatforia.app */;
@@ -417,7 +417,7 @@
 				4758E87E2FA9269D004F3C09 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
 				4758E8812FA926D9004F3C09 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 				4758E8862FA92702004F3C09 /* XCRemoteSwiftPackageReference "posthog-ios" */,
-				47E006952FE9EE0000AB2AD8 /* XCRemoteSwiftPackageReference "Unity-Ads-Swift-Package" */,
+				470EA60A2FF22416001F4CD5 /* XCRemoteSwiftPackageReference "googleads-mobile-ios-mediation-unity" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 4758E6C82FA901AF004F3C09 /* Products */;
@@ -668,6 +668,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.2;
+				"OTHER_LDFLAGS[arch=*]" = "-ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = com.chatforia.Chatforia;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -708,6 +709,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.2;
+				"OTHER_LDFLAGS[arch=*]" = "-ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = com.chatforia.Chatforia;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -753,6 +755,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		470EA60A2FF22416001F4CD5 /* XCRemoteSwiftPackageReference "googleads-mobile-ios-mediation-unity" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/googleads/googleads-mobile-ios-mediation-unity.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.18.100;
+			};
+		};
 		4758E8712FA92654004F3C09 /* XCRemoteSwiftPackageReference "twilio-voice-ios" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/twilio/twilio-voice-ios";
@@ -801,17 +811,14 @@
 				minimumVersion = 3.57.3;
 			};
 		};
-		47E006952FE9EE0000AB2AD8 /* XCRemoteSwiftPackageReference "Unity-Ads-Swift-Package" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/Unity-Technologies/Unity-Ads-Swift-Package";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 4.18.1;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		470EA60F2FF23055001F4CD5 /* UnityAdapterTarget */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 470EA60A2FF22416001F4CD5 /* XCRemoteSwiftPackageReference "googleads-mobile-ios-mediation-unity" */;
+			productName = UnityAdapterTarget;
+		};
 		4758E8722FA92654004F3C09 /* TwilioVoice */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 4758E8712FA92654004F3C09 /* XCRemoteSwiftPackageReference "twilio-voice-ios" */;
@@ -856,11 +863,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 4758E8862FA92702004F3C09 /* XCRemoteSwiftPackageReference "posthog-ios" */;
 			productName = PostHog;
-		};
-		47E0069B2FE9F1F200AB2AD8 /* UnityAds */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 47E006952FE9EE0000AB2AD8 /* XCRemoteSwiftPackageReference "Unity-Ads-Swift-Package" */;
-			productName = UnityAds;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

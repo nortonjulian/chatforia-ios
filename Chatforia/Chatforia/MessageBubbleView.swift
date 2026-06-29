@@ -27,7 +27,9 @@ struct MessageBubbleView: View {
             .overlay {
                 bubbleShape
                     .stroke(
-                        isMe ? themeManager.palette.bubbleOutgoingEnd.opacity(0.15) : themeManager.palette.border.opacity(0.85),
+                        isMe
+                            ? themeManager.palette.bubbleOutgoingEnd.opacity(0.15)
+                            : themeManager.palette.border.opacity(0.85),
                         lineWidth: isMe ? 0.4 : 0.8
                     )
             }

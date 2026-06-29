@@ -72,7 +72,7 @@ final class DeviceRegistrationService {
                 token: token
             )
         } catch {
-            print("⚠️ device heartbeat failed:", error)
+            debugLog("⚠️ device heartbeat failed:", error)
         }
     }
 

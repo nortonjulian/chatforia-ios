@@ -568,7 +568,7 @@ final class ChatsViewModel: ObservableObject {
                 )
             }
         } catch {
-            print("⚠️ preview hydrate failed:", error.localizedDescription)
+            debugLog("⚠️ preview hydrate failed:", error.localizedDescription)
         }
     }
 

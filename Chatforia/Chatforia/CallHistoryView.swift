@@ -192,7 +192,7 @@ struct CallHistoryView: View {
                             }
                         )
                         .onAppear {
-                            print("CALL HISTORY:", item.id, "callerId:", item.callerId, "calleeId:", item.calleeId as Any, "status:", item.status, "externalPhone:", item.externalPhone as Any)
+                            debugLog("CALL HISTORY:", item.id, "callerId:", item.callerId, "calleeId:", item.calleeId as Any, "status:", item.status, "externalPhone:", item.externalPhone as Any)
                         }
                         .listRowBackground(themeManager.palette.cardBackground)
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -261,7 +261,7 @@ struct CallHistoryView: View {
             try await CallService.shared.deleteCall(callId: item.id, token: token)
             items.removeAll { $0.id == item.id }
         } catch {
-            print("❌ Failed to delete call:", error)
+            debugLog("❌ Failed to delete call:", error)
         }
     }
 
@@ -341,7 +341,7 @@ private func title(for choice: PendingCallChoice) -> String {
                 }
             }
         } catch {
-            print("❌ Failed to open message thread:", error)
+            debugLog("❌ Failed to open message thread:", error)
         }
     }
     
@@ -491,8 +491,11 @@ private func title(for choice: PendingCallChoice) -> String {
             case "ENDED":
                 return appText("calls.completed", languageCode: appLanguage)
 
+            case "INITIATED", "RINGING", "ACTIVE", "CONNECTING":
+                return appText("calls.inProgress", languageCode: appLanguage)
+
             default:
-                return directionLabel
+                return item.status.capitalized
             }
         }
         

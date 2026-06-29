@@ -367,7 +367,7 @@ struct SMSThreadView: View {
                 urls.append(uploaded.url)
             } catch {
                 #if DEBUG
-                print("❌ SMS image upload failed:", error)
+                debugLog("❌ SMS image upload failed:", error)
                 #endif
             }
         }
@@ -471,27 +471,44 @@ private struct SMSMessageRowView: View {
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
                         .background(
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .fill(
-                                    msg.isOutgoing
-                                        ? LinearGradient(
-                                            colors: [
-                                                themeManager.palette.bubbleOutgoingStart,
-                                                themeManager.palette.bubbleOutgoingEnd
-                                            ],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
-                                        : LinearGradient(
-                                            colors: [
-                                                themeManager.palette.bubbleIncoming,
-                                                themeManager.palette.bubbleIncoming
-                                            ],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
+                        ChatBubbleShape(
+                            isMe: msg.isOutgoing,
+                            groupedWithPrevious: false,
+                            groupedWithNext: false
+                        )
+                        .fill(
+                            msg.isOutgoing
+                                ? LinearGradient(
+                                    colors: [
+                                        themeManager.palette.bubbleOutgoingStart,
+                                        themeManager.palette.bubbleOutgoingEnd
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                                : LinearGradient(
+                                    colors: [
+                                        themeManager.palette.bubbleIncoming,
+                                        themeManager.palette.bubbleIncoming
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
                                 )
                         )
+                    )
+                    .overlay {
+                        ChatBubbleShape(
+                            isMe: msg.isOutgoing,
+                            groupedWithPrevious: false,
+                            groupedWithNext: false
+                        )
+                        .stroke(
+                            msg.isOutgoing
+                                ? themeManager.palette.bubbleOutgoingEnd.opacity(0.15)
+                                : themeManager.palette.border.opacity(0.85),
+                            lineWidth: msg.isOutgoing ? 0.4 : 0.8
+                        )
+                    }
                 } else if msg.media.isEmpty {
                     Text("—")
                         .font(.body)
@@ -503,27 +520,44 @@ private struct SMSMessageRowView: View {
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
                         .background(
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .fill(
-                                    msg.isOutgoing
-                                        ? LinearGradient(
-                                            colors: [
-                                                themeManager.palette.bubbleOutgoingStart,
-                                                themeManager.palette.bubbleOutgoingEnd
-                                            ],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
-                                        : LinearGradient(
-                                            colors: [
-                                                themeManager.palette.bubbleIncoming,
-                                                themeManager.palette.bubbleIncoming
-                                            ],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
+                        ChatBubbleShape(
+                            isMe: msg.isOutgoing,
+                            groupedWithPrevious: false,
+                            groupedWithNext: false
+                        )
+                        .fill(
+                            msg.isOutgoing
+                                ? LinearGradient(
+                                    colors: [
+                                        themeManager.palette.bubbleOutgoingStart,
+                                        themeManager.palette.bubbleOutgoingEnd
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                                : LinearGradient(
+                                    colors: [
+                                        themeManager.palette.bubbleIncoming,
+                                        themeManager.palette.bubbleIncoming
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
                                 )
                         )
+                    )
+                    .overlay {
+                        ChatBubbleShape(
+                            isMe: msg.isOutgoing,
+                            groupedWithPrevious: false,
+                            groupedWithNext: false
+                        )
+                        .stroke(
+                            msg.isOutgoing
+                                ? themeManager.palette.bubbleOutgoingEnd.opacity(0.15)
+                                : themeManager.palette.border.opacity(0.85),
+                            lineWidth: msg.isOutgoing ? 0.4 : 0.8
+                        )
+                    }
                 }
 
                 HStack(spacing: 6) {
@@ -689,9 +723,6 @@ private struct SMSAuthenticatedImageCard: View {
             }
         } catch {
             failed = true
-            #if DEBUG
-            print("❌ SMS image load error:", error)
-            #endif
         }
     }
 }

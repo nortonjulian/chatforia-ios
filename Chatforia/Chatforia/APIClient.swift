@@ -152,17 +152,10 @@ final class APIClient {
                 throw APIError.server(status: -1, message: "Non-HTTP response")
             }
 
-            #if DEBUG
-            print("📡 STATUS \(http.statusCode) for \(request.path)")
-            print("📦 BYTES \(data.count)")
-            print("🔎 RAW RESPONSE for \(request.path):")
-            print(String(data: data, encoding: .utf8) ?? "<non-utf8 data>")
-            #endif
-
 
             if http.statusCode == 401 {
                 let msg = String(data: data, encoding: .utf8) ?? ""
-                if !msg.isEmpty { print("🚫 401 Unauthorized body:", msg) }
+                if !msg.isEmpty { debugLog("🚫 401 Unauthorized body:", msg) }
                 throw APIError.unauthorized
             }
 
@@ -185,28 +178,25 @@ final class APIClient {
                 let decoder = JSONDecoder.tolerantISO8601Decoder()
                 return try decoder.decode(T.self, from: data)
             } catch {
-                print("❗️JSON Decode failed for \(request.path):", error)
+                debugLog("❗️JSON Decode failed for \(request.path):", error)
 
                 if let decodingError = error as? DecodingError {
                     switch decodingError {
                     case .dataCorrupted(let ctx):
-                        print("dataCorrupted:", ctx.debugDescription)
+                        debugLog("dataCorrupted:", ctx.debugDescription)
                     case .keyNotFound(let key, let ctx):
-                        print("keyNotFound:", key.stringValue, ctx.debugDescription)
+                        debugLog("keyNotFound:", key.stringValue, ctx.debugDescription)
                     case .typeMismatch(let type, let ctx):
-                        print("typeMismatch:", String(describing: type), ctx.debugDescription)
+                        debugLog("typeMismatch:", String(describing: type), ctx.debugDescription)
                     case .valueNotFound(let type, let ctx):
-                        print("valueNotFound:", String(describing: type), ctx.debugDescription)
+                        debugLog("valueNotFound:", String(describing: type), ctx.debugDescription)
                     @unknown default:
-                        print("unknown DecodingError")
+                        debugLog("unknown DecodingError")
                     }
                 }
 
                 if let s = String(data: data, encoding: .utf8) {
-                    print("---- RAW JSON PREVIEW (truncated to 4000 chars) ----")
-                    print(s.prefix(4000))
                 } else {
-                    print("---- RAW RESPONSE IS NON-UTF8 (\(data.count) bytes) ----")
                 }
 
                 throw APIError.decoding(error)
@@ -251,13 +241,6 @@ final class APIClient {
             guard let http = response as? HTTPURLResponse else {
                 throw APIError.server(status: -1, message: "Non-HTTP response")
             }
-
-            #if DEBUG
-            print("📡 STATUS \(http.statusCode) for \(request.path)")
-            print("📦 BYTES \(data.count)")
-            print("🔎 RAW RESPONSE for \(request.path):")
-            print(String(data: data, encoding: .utf8) ?? "<non-utf8 data>")
-            #endif
 
 
             if http.statusCode == 401 {
@@ -313,20 +296,13 @@ final class APIClient {
         req.httpBody = body
 
         do {
-            print("📤 uploadMultipart fileName =", fileName)
-            print("📤 uploadMultipart mimeType =", mimeType)
+            debugLog("📤 uploadMultipart fileName =", fileName)
+            debugLog("📤 uploadMultipart mimeType =", mimeType)
             let (data, response) = try await URLSession.shared.data(for: req)
 
             guard let http = response as? HTTPURLResponse else {
                 throw APIError.server(status: -1, message: "Non-HTTP response")
             }
-
-            #if DEBUG
-            print("📡 MULTIPART STATUS \(http.statusCode) for \(path)")
-            print("📦 MULTIPART BYTES \(data.count)")
-            print("🔎 MULTIPART RAW RESPONSE for \(path):")
-            print(String(data: data, encoding: .utf8) ?? "<non-utf8 data>")
-            #endif
 
 
             if http.statusCode == 401 {
@@ -374,7 +350,7 @@ final class APIClient {
                 )
 
             } catch {
-                print("❌ readMessagesBulk failed:", error)
+                debugLog("❌ readMessagesBulk failed:", error)
             }
         }
     }

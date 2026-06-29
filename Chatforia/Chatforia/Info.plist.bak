@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>google</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.373788724739-66tb9ar3u0mff2b2rt5vmevi8vu9allj</string>
+			</array>
+		</dict>
+	</array>
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-8163977681153105~6952662011</string>
+	<key>GIDClientID</key>
+	<string>373788724739-66tb9ar3u0mff2b2rt5vmevi8vu9allj.apps.googleusercontent.com</string>
+	<key>GIDServerClientID</key>
+	<string>373788724739-6t4csha8enhss8bsm9o4nh7ma5ad66co.apps.googleusercontent.com</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+		<string>voip</string>
+		<string>audio</string>
+	</array>
+</dict>
+</plist>

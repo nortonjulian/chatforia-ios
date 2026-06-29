@@ -32,7 +32,7 @@ struct ContentView: View {
             await inviteFlow.redeemPendingInviteIfNeeded(auth: auth)
         }
         .onChange(of: contentStateKey) { _, newValue in
-            print("🧭 CONTENT STATE KEY:", newValue)
+    
         }
     }
 

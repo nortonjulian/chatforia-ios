@@ -44,11 +44,11 @@ final class SendQueueManager {
                 self.jobs.append(job)
             }
             
-            print("🧾 ENQUEUE job:", job.clientMessageId)
-            print("🧾 queue count after enqueue:", self.jobs.count)
+            debugLog("🧾 ENQUEUE job:", job.clientMessageId)
+            debugLog("🧾 queue count after enqueue:", self.jobs.count)
 
             self.saveToDiskLocked()
-            self.logger.debug("Enqueued job \(job.clientMessageId, privacy: .public)")
+
             self.startProcessingLockedIfNeeded()
         }
     }
@@ -69,7 +69,6 @@ final class SendQueueManager {
                 MessageStore.shared.setDeliveryState(clientMessageId: clientMessageId, state: .sending)
             }
 
-            self.logger.debug("Retry requested for job \(clientMessageId, privacy: .public)")
             self.startProcessingLockedIfNeeded()
         }
     }
@@ -77,7 +76,6 @@ final class SendQueueManager {
 
     func startIfNeeded() {
         stateQueue.async {
-            print("▶️ startIfNeeded called. isRunning=\(self.isRunning) isProcessing=\(self.isProcessing)")
             self.ensureLoadedLocked()
             self.startProcessingLockedIfNeeded()
         }
@@ -102,7 +100,7 @@ final class SendQueueManager {
             }
 
             self.saveToDiskLocked()
-            print("🔁 replayQueuedJobs called. queued jobs=\(self.jobs.count)")
+    
             self.startProcessingLockedIfNeeded()
         }
     }
@@ -112,7 +110,6 @@ final class SendQueueManager {
             self.ensureLoadedLocked()
             self.jobs.removeAll { $0.clientMessageId == clientMessageId }
             self.saveToDiskLocked()
-            self.logger.debug("Job succeeded and dequeued \(clientMessageId, privacy: .public)")
         }
     }
 
@@ -157,10 +154,9 @@ final class SendQueueManager {
                 return copy
             }
 
-            self.logger.debug("Loaded \(self.jobs.count) jobs from disk.")
         } catch {
             self.jobs = []
-            self.logger.debug("No send queue on disk or failed to load: \(error.localizedDescription, privacy: .public)")
+
         }
 
         self.isLoaded = true
@@ -173,7 +169,7 @@ final class SendQueueManager {
             let data = try encoder.encode(jobs)
             try data.write(to: queueFileURL, options: .atomic)
         } catch {
-            self.logger.error("Failed to persist send queue: \(error.localizedDescription, privacy: .public)")
+            debugLog("❌ Failed to persist send queue:", error.localizedDescription)
         }
     }
 
@@ -199,10 +195,9 @@ final class SendQueueManager {
             return
         }
         
-        print("⚙️ ABOUT TO PROCESS next job. queued jobs=\(jobs.count)")
         guard let job = nextRunnableJobLocked() else {
             isProcessing = false
-            logger.debug("No pending jobs or stopped.")
+            
             return
         }
 
@@ -217,17 +212,15 @@ final class SendQueueManager {
         }
 
         guard let handler = self.sendJobHandler else {
-            logger.error("No sendJobHandler defined. Cannot send jobs.")
+            debugLog("❌ No sendJobHandler defined. Cannot send jobs.")
             handleTemporaryFailureLocked(for: job, reason: "missing sendJobHandler")
             return
         }
 
         let jobForSend = job
-
-        logger.debug("Calling sendJobHandler for \(jobForSend.clientMessageId, privacy: .public)")
         
         
-        print("📤 CALLING sendJobHandler for:", jobForSend.clientMessageId)
+        debugLog("📤 CALLING sendJobHandler for:", jobForSend.clientMessageId)
         handler(jobForSend) { result in
             self.stateQueue.async {
                 switch result {
@@ -259,9 +252,9 @@ final class SendQueueManager {
             MessageStore.shared.setDeliveryState(clientMessageId: job.clientMessageId, state: .sent)
             self.sendSuccessCallback?(job.clientMessageId, serverMessage)
         }
-        print("✅ handleSuccessLocked clientMessageId =", job.clientMessageId)
-        print("✅ serverMessage id =", serverMessage?.id as Any)
-        print("✅ serverMessage clientMessageId =", serverMessage?.clientMessageId as Any)
+        debugLog("✅ handleSuccessLocked clientMessageId =", job.clientMessageId)
+        debugLog("✅ serverMessage id =", serverMessage?.id as Any)
+        debugLog("✅ serverMessage clientMessageId =", serverMessage?.clientMessageId as Any)
         processNextLocked()
     }
 
@@ -307,7 +300,6 @@ final class SendQueueManager {
         let retryCount = jobs[idx].retryCount
         let backoffSeconds = min(pow(2.0, Double(retryCount)), 60.0)
 
-        logger.debug("Temporary failure (\(reason, privacy: .public)); backing off \(backoffSeconds)s for job \(job.clientMessageId, privacy: .public)")
 
         currentBackoffWorkItem?.cancel()
 

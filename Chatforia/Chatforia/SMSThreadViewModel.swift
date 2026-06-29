@@ -89,9 +89,6 @@ final class SMSThreadViewModel: ObservableObject {
                 )
             }
 
-            #if DEBUG
-            print("❌ loadThread error:", error)
-            #endif
         }
     }
 

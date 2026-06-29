@@ -50,7 +50,7 @@ final class SocketManager: ObservableObject {
 
     func emit(_ event: String, _ payload: [String: Any]) {
         guard let socket, socket.status == .connected else {
-            print("⚠️ socket emit skipped (not connected) event=\(event)")
+            debugLog("⚠️ socket emit skipped (not connected) event=\(event)")
             return
         }
         socket.emit(event, payload)
@@ -58,7 +58,7 @@ final class SocketManager: ObservableObject {
 
     func emit(_ event: String) {
         guard let socket, socket.status == .connected else {
-            print("⚠️ socket emit skipped (not connected) event=\(event)")
+            debugLog("⚠️ socket emit skipped (not connected) event=\(event)")
             return
         }
         socket.emit(event)
@@ -197,11 +197,11 @@ final class SocketManager: ObservableObject {
             Task { @MainActor in
                 guard let self else { return }
                 self.isConnected = true
-                print("✅ socket connected")
+                debugLog("✅ socket connected")
 
                 for roomId in self.joinedRoomIds {
                     socket.emit("joinRoom", ["roomId": roomId])
-                    print("[SocketManager] rejoined room \(roomId)")
+                    debugLog("[SocketManager] rejoined room \(roomId)")
                 }
 
                 NotificationCenter.default.post(name: .socketDidReconnect, object: nil)
@@ -231,7 +231,7 @@ final class SocketManager: ObservableObject {
         socket.on(clientEvent: .disconnect) { [weak self] data, _ in
             Task { @MainActor in
                 self?.isConnected = false
-                print("⚠️ socket disconnected:", data)
+                debugLog("⚠️ socket disconnected:", data)
             }
         }
 
@@ -250,7 +250,7 @@ final class SocketManager: ObservableObject {
 
         // RECONNECT
         socket.on(clientEvent: .reconnect) { data, _ in
-            print("🔄 socket reconnect:", data)
+            debugLog("🔄 socket reconnect:", data)
         }
 
         socket.on("voicemail:new") { [weak self] data, _ in
@@ -395,12 +395,12 @@ final class SocketManager: ObservableObject {
         joinedRoomIds.insert(roomId)
 
         guard let socket, socket.status == .connected else {
-            print("[SocketManager] queued room \(roomId); socket not connected yet")
+            debugLog("[SocketManager] queued room \(roomId); socket not connected yet")
             return
         }
 
         socket.emit("joinRoom", ["roomId": roomId])
-        print("[SocketManager] joined room \(roomId)")
+        debugLog("[SocketManager] joined room \(roomId)")
     }
 
     func leaveRoom(_ roomId: Int) {
@@ -408,7 +408,7 @@ final class SocketManager: ObservableObject {
         joinedRoomIds.remove(roomId)
 
         socket?.emit("leaveRoom", ["roomId": roomId])
-        print("[SocketManager] leaveRoom \(roomId)")
+        debugLog("[SocketManager] leaveRoom \(roomId)")
     }
 
     // MARK: - Random Matching
@@ -436,12 +436,12 @@ final class SocketManager: ObservableObject {
 
     // MARK: - Helpers
     
-    private var suppressMessageToneUntil: Date = .distantPast
+   private var suppressMessageToneUntil: Date = .distantPast
 
-    func suppressMessageTonesForOpeningThread() {
-        suppressMessageToneUntil = Date().addingTimeInterval(1.5)
+    func suppressMessageTonesForOpeningThread(seconds: TimeInterval = 8.0) {
+        suppressMessageToneUntil = Date().addingTimeInterval(seconds)
     }
-    
+
     private let soundedMessageIdsKey = "chatforia.soundedMessageIds"
 
     private func hasAlreadySounded(messageId: Int) -> Bool {
@@ -450,15 +450,31 @@ final class SocketManager: ObservableObject {
     }
 
     private func markSounded(messageId: Int) {
-        var ids = Set(UserDefaults.standard.array(forKey: soundedMessageIdsKey) as? [Int] ?? [])
-        ids.insert(messageId)
+        markSounded(messageIds: [messageId])
+    }
 
-        // Keep it from growing forever.
-        if ids.count > 300 {
-            ids = Set(ids.sorted().suffix(300))
+    private func markSounded(messageIds: [Int]) {
+        guard !messageIds.isEmpty else { return }
+
+        var ids = Set(UserDefaults.standard.array(forKey: soundedMessageIdsKey) as? [Int] ?? [])
+
+        for id in messageIds where id > 0 {
+            ids.insert(id)
+        }
+
+        if ids.count > 500 {
+            ids = Set(ids.sorted().suffix(500))
         }
 
         UserDefaults.standard.set(Array(ids), forKey: soundedMessageIdsKey)
+    }
+
+    func markMessagesAsAlreadySounded(_ messages: [MessageDTO]) {
+        let ids = messages
+            .map(\.id)
+            .filter { $0 > 0 }
+
+        markSounded(messageIds: ids)
     }
     
     private func handleInvalidSession() {

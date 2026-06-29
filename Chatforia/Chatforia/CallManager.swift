@@ -102,10 +102,6 @@ final class CallManager: ObservableObject {
 
         twilioService.setPendingBackendCallId(callId)
 
-        #if DEBUG
-        print("📞 Socket audio call metadata received. Stored backendCallId:", callId as Any)
-        print("📞 Waiting for real Twilio CallInvite before showing incoming call UI")
-        #endif
     }
     
     @objc private func handleSocketCallEnded(_ notification: Notification) {
@@ -336,7 +332,6 @@ final class CallManager: ObservableObject {
                     $0.backendCallId = callId
                 }
 
-                print("✅ Backend call created before CallKit:", callId)
             } catch {
                 failCall(error.localizedDescription)
                 return
@@ -354,7 +349,6 @@ final class CallManager: ObservableObject {
             }
 
             do {
-                print("📗 Creating external call BEFORE CallKit")
 
                 let callId = try await CallService.shared.startExternalCall(
                     phoneNumber: number,
@@ -365,7 +359,6 @@ final class CallManager: ObservableObject {
                     $0.backendCallId = callId
                 }
 
-                print("✅ External call created early:", callId)
             } catch {
                 failCall(error.localizedDescription)
                 return
@@ -388,8 +381,6 @@ final class CallManager: ObservableObject {
             callKitHandle = "room-\(roomId)"
             isPhoneNumber = false
         }
-
-        print("📞 Requesting CallKit start. uuid=\(uuid) handle=\(callKitHandle) isPhoneNumber=\(isPhoneNumber)")
 
         callKit.startOutgoingCall(
             uuid: uuid,
@@ -480,10 +471,6 @@ final class CallManager: ObservableObject {
                 )
 
             } catch {
-                #if DEBUG
-                print("❌ Phone call start failed:", error)
-                print("❌ Phone call start failed localized:", error.localizedDescription)
-                #endif
 
                 failCall("Couldn’t start the call. Please try again.")
             }
@@ -635,7 +622,6 @@ final class CallManager: ObservableObject {
 
     func hangup() {
         guard let session = activeSession else {
-            print("⚠️ CallManager.hangup() called with no activeSession")
 
             twilioService.hangup()
             twilioVideoService.disconnect()
@@ -653,7 +639,6 @@ final class CallManager: ObservableObject {
             $0.status = .ending
         }
 
-        print("☎️ CallManager.hangup() called")
 
         callKit.endCall(uuid: sessionId)
 
@@ -725,7 +710,7 @@ final class CallManager: ObservableObject {
                 token: token
             )
         } catch {
-            print("❌ Failed to patch call status:", error)
+            debugLog("❌ Failed to patch call status:", error)
         }
     }
 
@@ -771,7 +756,7 @@ final class CallManager: ObservableObject {
             try session.overrideOutputAudioPort(.none)
             try session.setActive(false, options: [.notifyOthersOnDeactivation])
         } catch {
-            print("⚠️ Failed to deactivate audio session:", error)
+            debugLog("⚠️ Failed to deactivate audio session:", error)
         }
     }
 
@@ -828,11 +813,9 @@ final class CallManager: ObservableObject {
             let voipTokenData = pendingVoIPTokenData,
             let authToken = TokenStore.shared.read(),
             !authToken.isEmpty else {
-            print("⏭️ VoIP token registration skipped: missing token, token data, or auth")
             return
         }
 
-        print("📞 Attempting VoIP token registration...")
 
         Task {
             do {
@@ -841,7 +824,6 @@ final class CallManager: ObservableObject {
                     token: authToken
                 )
 
-                print("✅ VoIP push token registered with Chatforia backend")
 
                 let voiceTokenResponse = try await twilioService.fetchToken(
                     authToken: authToken
@@ -853,19 +835,17 @@ final class CallManager: ObservableObject {
                 ) { error in
                     Task { @MainActor in
                         if let error {
-                            print("❌ Twilio VoIP registration failed:", error)
-                            print("❌ Twilio VoIP registration localized:", error.localizedDescription)
+                            debugLog("❌ Twilio VoIP registration failed:", error)
+                            debugLog("❌ Twilio VoIP registration localized:", error.localizedDescription)
                             return
                         }
-
-                        print("✅ Twilio VoIP registration succeeded")
 
                         self.pendingVoIPToken = nil
                         self.pendingVoIPTokenData = nil
                     }
                 }
             } catch {
-                print("❌ VoIP push token registration failed:", error)
+                debugLog("❌ VoIP push token registration failed:", error)
             }
         }
     }
@@ -953,7 +933,6 @@ final class CallManager: ObservableObject {
 extension CallManager: CallKitManagerDelegate {
     func callKitDidRequestStartCall(uuid: UUID, handle: String) {
         guard activeSession?.id == uuid else {
-            print("⚠️ UUID mismatch — ignoring start call")
             return
         }
 
@@ -963,7 +942,7 @@ extension CallManager: CallKitManagerDelegate {
 
     func callKitDidRequestAnswerCall(uuid: UUID) {
         guard activeSession?.id == uuid else {
-            print("⚠️ CallKit answer UUID mismatch")
+
             return
         }
 
@@ -1002,7 +981,6 @@ extension CallManager: CallKitManagerDelegate {
 
     func callKitDidRequestEndCall(uuid: UUID) {
         guard activeSession?.id == uuid else {
-            print("⚠️ CallKit end UUID mismatch")
             return
         }
 
@@ -1258,14 +1236,13 @@ extension CallManager: TwilioVideoServiceDelegate {
 
 extension CallManager: VoIPPushManagerDelegate {
     func voipPushManagerDidUpdateToken(_ token: String, tokenData: Data) {
-        print("📞 CallManager received VoIP token")
         pendingVoIPToken = token
         pendingVoIPTokenData = tokenData
         registerPendingVoIPTokenIfPossible()
     }
 
     func voipPushManagerDidInvalidateToken() {
-        print("ℹ️ VoIP push token invalidated")
+        debugLog("ℹ️ VoIP push token invalidated")
     }
 
     func voipPushManagerDidReceiveIncomingCall(
@@ -1274,7 +1251,7 @@ extension CallManager: VoIPPushManagerDelegate {
     ) {
         handleIncomingCallPayload(payload, auth: pendingAuth) { error in
             if let error {
-                print("❌ Failed to report VoIP incoming call to CallKit:", error)
+                debugLog("❌ Failed to report VoIP incoming call to CallKit:", error)
             }
 
             completion()

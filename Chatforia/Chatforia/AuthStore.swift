@@ -163,7 +163,7 @@ final class AuthStore: NSObject, ObservableObject {
                 syncPlan(from: refreshed.user)
 
             } catch {
-                print("⚠️ post-StoreKit auth refresh failed:", error.localizedDescription)
+                debugLog("⚠️ post-StoreKit auth refresh failed:", error.localizedDescription)
             }
 
             // 🔹 Ensure encryption keys exist BEFORE allowing chats/socket
@@ -191,7 +191,7 @@ final class AuthStore: NSObject, ObservableObject {
                 keyRestoreMessage = nil
 
             } catch {
-                print("⚠️ key bootstrap failed:", error.localizedDescription)
+                debugLog("⚠️ key bootstrap failed:", error.localizedDescription)
 
                 encryptionState = .mismatch
                 needsKeyRestore = true
@@ -211,12 +211,10 @@ final class AuthStore: NSObject, ObservableObject {
             case .unauthorized:
                 handleInvalidSession()
             default:
-                print("⚠️ bootstrap failed with non-auth error:", apiError.localizedDescription)
                 isAppReady = true
             }
 
         } catch {
-            print("⚠️ bootstrap failed with unexpected error:", error.localizedDescription)
             isAppReady = true
         }
     }
@@ -267,7 +265,6 @@ final class AuthStore: NSObject, ObservableObject {
         }
 
         if isRefreshingCurrentUser {
-            print("⏭️ auth/me refresh already in progress")
             return
         }
 
@@ -275,7 +272,6 @@ final class AuthStore: NSObject, ObservableObject {
            let lastUserRefreshAt,
            Date().timeIntervalSince(lastUserRefreshAt) < userRefreshInterval,
            currentUser != nil {
-            print("⏭️ auth/me refresh skipped (cached)")
             return
         }
 
@@ -303,7 +299,7 @@ final class AuthStore: NSObject, ObservableObject {
             }
 
         } catch {
-            print("⚠️ refreshCurrentUser failed:", error)
+            debugLog("⚠️ refreshCurrentUser failed:", error)
         }
     }
 

@@ -220,7 +220,7 @@ final class StartChatViewModel: ObservableObject {
 
             hadAnySuccess = true
         } catch {
-            print("❌ contact search error:", error)
+            debugLog("❌ contact search error:", error)
         }
 
         results = fetchedUsers

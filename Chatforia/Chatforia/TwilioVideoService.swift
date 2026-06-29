@@ -254,7 +254,7 @@ final class TwilioVideoService: NSObject {
             try session.overrideOutputAudioPort(.none)
             try session.setActive(false, options: [.notifyOthersOnDeactivation])
         } catch {
-            print("⚠️ Failed to deactivate video audio session:", error)
+            debugLog("⚠️ Failed to deactivate video audio session:", error)
         }
     }
 

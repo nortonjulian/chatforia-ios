@@ -99,11 +99,10 @@ struct DecryptMessageTextView: View {
             return
         }
 
-        print("🔐 has encryptedPayloadForMe:", msg.encryptedPayloadForMe != nil)
-        print("🔐 has ciphertext:", ciphertext.isEmpty == false)
-        print("🔐 has encrypted key:", encryptedKeyPayload.isEmpty == false)
-        print("🔐 currentUserId:", currentUserId)
-        print("🔐 encryptedKey preview:", String(encryptedKeyPayload.prefix(30)))
+        debugLog("🔐 has encryptedPayloadForMe:", msg.encryptedPayloadForMe != nil)
+        debugLog("🔐 has ciphertext:", ciphertext.isEmpty == false)
+        debugLog("🔐 has encrypted key:", encryptedKeyPayload.isEmpty == false)
+        debugLog("🔐 currentUserId:", currentUserId)
 
         do {
             let plaintext = try MessageCryptoService.shared.decryptMessageForCurrentBackend(
@@ -120,8 +119,8 @@ struct DecryptMessageTextView: View {
                 didAttemptDecrypt = true
             }
         } catch {
-            print("❌ decrypt failed for message \(msg.id):", error.localizedDescription)
-            print("❌ full error:", error)
+            debugLog("❌ decrypt failed for message \(msg.id):", error.localizedDescription)
+            debugLog("❌ full error:", error)
 
             await waitForMinimumLoadingTime(startedAt: startedAt)
 

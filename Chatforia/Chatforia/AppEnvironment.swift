@@ -92,7 +92,6 @@ enum AppEnvironment {
                         return
                     }
 
-                    print("⚠️ Send succeeded but response did not decode as MessageDTO.")
                     completion(.success(serverMessage: nil))
 
                 } catch {

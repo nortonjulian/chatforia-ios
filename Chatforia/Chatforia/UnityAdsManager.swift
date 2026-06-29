@@ -26,12 +26,10 @@ final class UnityAdsManager: NSObject, UnityAdsInitializationDelegate {
     func initializationComplete() {
         initialized = true
         initializing = false
-        print("✅ Unity Ads initialized")
     }
 
     func initializationFailed(_ error: UnityAdsInitializationError, withMessage message: String) {
         initialized = false
         initializing = false
-        print("❌ Unity Ads init failed: \(message)")
     }
 }

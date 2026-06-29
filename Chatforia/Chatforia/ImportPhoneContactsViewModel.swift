@@ -113,7 +113,7 @@ final class ImportPhoneContactsViewModel: ObservableObject {
                 imported += 1
             } catch {
                 failedNames.append(contact.displayName)
-                print("⚠️ Failed to import \(contact.displayName):", error)
+                debugLog("⚠️ Failed to import \(contact.displayName):", error)
             }
         }
 

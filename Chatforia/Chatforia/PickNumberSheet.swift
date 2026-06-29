@@ -148,10 +148,10 @@ struct PickNumberSheet: View {
                 .frame(maxWidth: .infinity)
 
                 Button {
-                    print("🔎 Search tapped")
+                    debugLog("🔎 Search tapped")
                     Task {
                         await MainActor.run {
-                            print("🚀 calling vm.search()")
+                            debugLog("🚀 calling vm.search()")
                         }
                         await vm.search(token: auth.currentToken)
                     }

@@ -106,9 +106,6 @@ final class AccountKeyManager {
         let localPublicKey = publicKeyBase64(userId: userId)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
-        print("🔑 local public:", localPublicKey ?? "nil")
-        print("🔑 server public:", serverPublicKey ?? "nil")
-        print("🔑 keys match:", localPublicKey == serverPublicKey)
 
         // 1. Server has key, but device has none.
         if let serverPublicKey,

@@ -711,6 +711,9 @@ final class ChatThreadViewModel: ObservableObject {
 
             MessageStore.shared.removeMessages(forRoomId: roomId)
             self.messages = []
+
+            SocketManager.shared.markMessagesAsAlreadySounded(page.items)
+
             applyToStore(page.items)
             batchSortDebouncer.flush()
             refreshFromMessageStore()
@@ -718,10 +721,10 @@ final class ChatThreadViewModel: ObservableObject {
 
             if self.messages.isEmpty {
                 self.errorText = nil
-                print("ℹ️ loadMessages: 0 messages for roomId:", roomId)
+                debugLog("ℹ️ loadMessages: 0 messages for roomId:", roomId)
             } else {
                 self.errorText = nil
-                print("✅ loadMessages: loaded \(self.messages.count) messages for roomId:", roomId)
+                debugLog("✅ loadMessages: loaded \(self.messages.count) messages for roomId:", roomId)
             }
         } catch {
             errorText = "loadMessages: \(error.localizedDescription)"
@@ -735,17 +738,17 @@ final class ChatThreadViewModel: ObservableObject {
         errorText = nil
 
         guard let beforeId = MessageStore.shared.serverBeforeIdForPaging() else {
-            print("⚠️ loadOlderMessagesIfNeeded: no oldest message in memory to page before.")
+            debugLog("⚠️ loadOlderMessagesIfNeeded: no oldest message in memory to page before.")
             return
         }
 
         isLoadingOlder = true
         defer { isLoadingOlder = false }
 
-        print("➡️ loadOlderMessagesIfNeeded: roomId=\(roomId) beforeId=\(beforeId) limit=\(limit)")
+        debugLog("➡️ loadOlderMessagesIfNeeded: roomId=\(roomId) beforeId=\(beforeId) limit=\(limit)")
 
         guard let token = TokenStore.shared.read() as String? else {
-            print("❌ loadOlderMessagesIfNeeded: missing token")
+            debugLog("❌ loadOlderMessagesIfNeeded: missing token")
             return
         }
 
@@ -757,7 +760,7 @@ final class ChatThreadViewModel: ObservableObject {
             )
 
             guard !page.items.isEmpty else {
-                print("➡️ loadOlderMessagesIfNeeded: server returned 0 older items")
+                debugLog("➡️ loadOlderMessagesIfNeeded: server returned 0 older items")
                 return
             }
 
@@ -768,7 +771,7 @@ final class ChatThreadViewModel: ObservableObject {
 
             errorText = nil
 
-            print("✅ loadOlderMessagesIfNeeded: inserted \(page.items.count) older messages")
+            debugLog("✅ loadOlderMessagesIfNeeded: inserted \(page.items.count) older messages")
         } catch {
             self.errorText = "loadOlderMessagesIfNeeded: \(error.localizedDescription)"
         }
@@ -1029,7 +1032,7 @@ final class ChatThreadViewModel: ObservableObject {
         isSendingImage = true
         defer { isSendingImage = false }
         
-        print("🚀 sendVideoMessage called, bytes =", videoData.count, "fileName =", fileName, "mimeType =", mimeType)
+        debugLog("🚀 sendVideoMessage called, bytes =", videoData.count, "fileName =", fileName, "mimeType =", mimeType)
 
         let trimmedCaption = caption?.trimmingCharacters(in: .whitespacesAndNewlines)
         let finalCaption = (trimmedCaption?.isEmpty == false) ? trimmedCaption : nil
@@ -1337,7 +1340,7 @@ final class ChatThreadViewModel: ObservableObject {
 
     func typingStarted(roomId: Int) {
         guard SocketManager.shared.isConnected else {
-            print("⚠️ [Socket] typingStarted skipped - not connected yet (room \(roomId))")
+            debugLog("⚠️ [Socket] typingStarted skipped - not connected yet (room \(roomId))")
             return
         }
 
@@ -1422,10 +1425,10 @@ final class ChatThreadViewModel: ObservableObject {
     @MainActor
     private func handleSocketUpsert(_ payload: [String: Any]) {
         
-        print("📨 [Socket] handleSocketUpsert - payload keys: \(Array(payload.keys))")
+        debugLog("📨 [Socket] handleSocketUpsert - payload keys: \(Array(payload.keys))")
 
         guard let configuredRoomId = roomId else {
-            print("⚠️ [Socket] no active roomId")
+            debugLog("⚠️ [Socket] no active roomId")
             return
         }
 
@@ -1439,12 +1442,11 @@ final class ChatThreadViewModel: ObservableObject {
         }
 
         guard let incoming = decodeMessageDTOFromJSONObject(messageDict) else {
-            print("Payload was:", messageDict)
             return
         }
 
         guard incoming.chatRoomId == configuredRoomId else {
-            print("⚠️ [Socket] room mismatch: \(incoming.chatRoomId ?? -1) vs \(configuredRoomId)")
+            debugLog("⚠️ [Socket] room mismatch: \(incoming.chatRoomId ?? -1) vs \(configuredRoomId)")
             return
         }
         
@@ -1453,25 +1455,25 @@ final class ChatThreadViewModel: ObservableObject {
         // if incomingId > 0,
         //    incomingId <= lastServerMessageId,
         //    messages.contains(where: { $0.id == incomingId }) {
-        //     print("⏭️ [Socket] Ignoring duplicate old upsert id=\(incomingId)")
+        //     debugLog("⏭️ [Socket] Ignoring duplicate old upsert id=\(incomingId)")
         //     return
         // }
 
         if incomingId > 0 {
             if let index = messages.firstIndex(where: { $0.id == incomingId }) {
                 messages[index] = MessageDTO.merged(current: messages[index], incoming: incoming)
-                print("🔄 [Socket] Updated existing message id=\(incomingId)")
+                debugLog("🔄 [Socket] Updated existing message id=\(incomingId)")
             } else if let clientId = incoming.clientMessageId,
                       let index = messages.firstIndex(where: { $0.clientMessageId == clientId }) {
                 messages[index] = MessageDTO.merged(current: messages[index], incoming: incoming)
-                print("✅ [Socket] Replaced optimistic message with real id=\(incomingId)")
+                debugLog("✅ [Socket] Replaced optimistic message with real id=\(incomingId)")
             } else {
                 messages.append(incoming)
-                print("🆕 [Socket] Added new message id=\(incomingId)")
+                debugLog("🆕 [Socket] Added new message id=\(incomingId)")
             }
         } else {
             messages.append(incoming)
-            print("🆕 [Socket] Added new message (no id)")
+            debugLog("🆕 [Socket] Added new message (no id)")
         }
 
         messages.sort { lhs, rhs in
@@ -1557,7 +1559,7 @@ extension ChatThreadViewModel {
             do {
                 try await SocketManager.shared.connectAsync(token: token, timeoutSecs: 12)
                 SocketManager.shared.joinRoom(roomId)
-                print("✅ [Socket] startSocket succeeded - connected + joined room \(roomId)")
+                debugLog("✅ [Socket] startSocket succeeded - connected + joined room \(roomId)")
             } catch {
                 try? await Task.sleep(nanoseconds: 2_000_000_000)
                 SocketManager.shared.connect(token: token)

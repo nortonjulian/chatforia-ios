@@ -81,10 +81,6 @@ final class TwilioVoiceService: NSObject {
 
     func acceptIncomingCall() {
 
-        #if DEBUG
-        print("📞 acceptIncomingCall called. hasInvite:", callInvite != nil)
-        print("📞 acceptIncomingCall from:", callInvite?.from ?? "nil")
-        #endif
 
         guard let callInvite else {
             delegate?.twilioVoiceDidFail(
@@ -118,9 +114,6 @@ final class TwilioVoiceService: NSObject {
     }
 
     func hangup() {
-        #if DEBUG
-        print("☎️ TwilioVoiceService.hangup() called. activeCall exists:", activeCall != nil)
-        #endif
 
         let call = activeCall
 
@@ -176,12 +169,11 @@ extension TwilioVoiceService: CallDelegate {
     nonisolated func callDidDisconnect(call: Call, error: Error?) {
         Task { @MainActor in
             #if DEBUG
-            print("📴 Twilio call disconnected")
             if let error {
-                print("❌ Twilio disconnect error:", error)
-                print("❌ Twilio disconnect localized:", error.localizedDescription)
+                debugLog("❌ Twilio disconnect error:", error)
+                debugLog("❌ Twilio disconnect localized:", error.localizedDescription)
             } else {
-                print("✅ Twilio disconnected cleanly")
+                debugLog("✅ Twilio disconnected cleanly")
             }
             #endif
 
@@ -198,10 +190,6 @@ extension TwilioVoiceService: CallDelegate {
 
     nonisolated func callDidFailToConnect(call: Call, error: Error) {
         Task { @MainActor in
-            #if DEBUG
-            print("❌ Twilio call failed to connect:", error)
-            print("❌ Twilio call failed localized:", error.localizedDescription)
-            #endif
 
             self.activeCall = nil
             self.isMuted = false
@@ -213,11 +201,6 @@ extension TwilioVoiceService: CallDelegate {
 extension TwilioVoiceService: NotificationDelegate {
     nonisolated func callInviteReceived(callInvite: CallInvite) {
         Task { @MainActor in
-
-            #if DEBUG
-            print("📞 Real Twilio CallInvite received")
-            print("📞 Twilio invite from:", callInvite.from ?? "nil")
-            #endif
 
             self.callInvite = callInvite
 

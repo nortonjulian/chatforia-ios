@@ -214,9 +214,8 @@ final class UploadService {
             throw URLError(.badServerResponse)
         }
 
-        print("📤 R2 PUT STATUS:", http.statusCode)
-        print("📤 R2 PUT RESPONSE:", String(data: responseData, encoding: .utf8) ?? "<non-utf8>")
-        print("📤 R2 PUT URL HOST:", url.host ?? "nil")
+        debugLog("📤 R2 PUT STATUS:", http.statusCode)
+        debugLog("📤 R2 PUT URL HOST:", url.host ?? "nil")
 
         guard (200...299).contains(http.statusCode) else {
             throw APIError.server(

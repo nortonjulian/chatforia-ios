@@ -123,7 +123,7 @@ final class RiaViewModel: ObservableObject {
                 filterProfanity: filterProfanity
             )
 
-            print("🟣 Ria rewrite result count:", result.count)
+            debugLog("🟣 Ria rewrite result count:", result.count)
             rewriteOptions = Array(result.prefix(3))
         } catch {
             await MainActor.run {

@@ -52,7 +52,7 @@ final class CallKitManager: NSObject, ObservableObject {
 
         callController.request(transaction) { error in
             if let error {
-                print("❌ CallKit start call transaction failed:", error)
+                debugLog("❌ CallKit start call transaction failed:", error)
                 Task { @MainActor in
                     onFailure?()
                 }
@@ -74,7 +74,7 @@ final class CallKitManager: NSObject, ObservableObject {
 
         callController.request(transaction) { error in
             if let error {
-                print("❌ CallKit end call transaction failed:", error)
+                debugLog("❌ CallKit end call transaction failed:", error)
             }
         }
     }
@@ -85,7 +85,7 @@ final class CallKitManager: NSObject, ObservableObject {
 
         callController.request(transaction) { error in
             if let error {
-                print("❌ CallKit mute transaction failed:", error)
+                debugLog("❌ CallKit mute transaction failed:", error)
             }
         }
     }
@@ -107,7 +107,7 @@ final class CallKitManager: NSObject, ObservableObject {
 
         provider.reportNewIncomingCall(with: uuid, update: update) { error in
             if let error {
-                print("❌ CallKit incoming call report failed:", error)
+                debugLog("❌ CallKit incoming call report failed:", error)
             }
             completion?(error)
         }
@@ -116,7 +116,7 @@ final class CallKitManager: NSObject, ObservableObject {
 
 extension CallKitManager: CXProviderDelegate {
     nonisolated func providerDidReset(_ provider: CXProvider) {
-        print("⚠️ CallKit provider reset")
+        debugLog("⚠️ CallKit provider reset")
     }
 
     nonisolated func provider(_ provider: CXProvider, perform action: CXStartCallAction) {
@@ -151,10 +151,10 @@ extension CallKitManager: CXProviderDelegate {
     }
 
     nonisolated func provider(_ provider: CXProvider, didActivate audioSession: AVAudioSession) {
-        print("✅ CallKit audio session activated")
+        debugLog("✅ CallKit audio session activated")
     }
 
     nonisolated func provider(_ provider: CXProvider, didDeactivate audioSession: AVAudioSession) {
-        print("ℹ️ CallKit audio session deactivated")
+        debugLog("ℹ️ CallKit audio session deactivated")
     }
 }

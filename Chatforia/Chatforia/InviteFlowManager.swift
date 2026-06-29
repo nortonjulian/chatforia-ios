@@ -29,7 +29,7 @@ final class InviteFlowManager: ObservableObject {
                     self.lastInviterUsername = inviterUsername
                 }
             } catch {
-                print("⚠️ invite preview failed:", error)
+                debugLog("⚠️ invite preview failed:", error)
             }
         }
     }
@@ -55,7 +55,7 @@ final class InviteFlowManager: ObservableObject {
             PendingInviteStore.shared.clear()
         } catch {
             redemptionError = error.localizedDescription
-            print("⚠️ invite redeem failed:", error)
+            debugLog("⚠️ invite redeem failed:", error)
         }
     }
 
@@ -85,7 +85,7 @@ final class InviteFlowManager: ObservableObject {
             let room = try await contactsViewModel.openDirectChat(for: pseudoContact, token: token)
             return room
         } catch {
-            print("⚠️ open chat with inviter failed:", error)
+            debugLog("⚠️ open chat with inviter failed:", error)
             return nil
         }
     }

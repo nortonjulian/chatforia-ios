@@ -249,7 +249,7 @@ struct DialerView: View {
             let response = try await ContactsService.shared.fetchContacts(token: token)
             savedContacts = response.items
         } catch {
-            print("❌ Failed to load contacts for dialer:", error)
+            debugLog("❌ Failed to load contacts for dialer:", error)
         }
     }
 

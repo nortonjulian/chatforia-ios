@@ -8,21 +8,27 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
+
+        #if DEBUG
+        MobileAds.shared.requestConfiguration.testDeviceIdentifiers = [
+            "e2602a58d7d6e8fa8652eadeff5e1cc8",
+            "eeabc7521a642912e973c52628ff8c3c"
+        ]
+        #endif
         
         MobileAds.shared.start { status in
             #if DEBUG
-            print("✅ Google Mobile Ads SDK started:", status.adapterStatusesByClassName)
+            debugLog("✅ Google Mobile Ads SDK started:", status.adapterStatusesByClassName)
             #endif
         }
-        UnityAdsManager.shared.start()
+        
 
         NotificationCoordinator.shared.configure()
 
         UNUserNotificationCenter.current().getNotificationSettings { settings in
-            print("🔔 notification settings status:", settings.authorizationStatus.rawValue)
 
             DispatchQueue.main.async {
-                print("📲 Registering for remote notifications...")
+            
                 UIApplication.shared.registerForRemoteNotifications()
             }
         }
@@ -44,7 +50,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didFailToRegisterForRemoteNotificationsWithError error: Error
     ) {
-        print("❌ APNs registration failed:", error)
+        debugLog("❌ APNs registration failed:", error)
     }
 }
 
@@ -121,7 +127,9 @@ struct ChatforiaApp: App {
                 SendQueueManager.shared.replayQueuedJobs()
                 await inviteFlow.redeemPendingInviteIfNeeded(auth: auth)
 
-                UnityInterstitialAdManager.shared.preloadIfNeeded()
+                if !auth.isPaid {
+                    InterstitialAdManager.shared.preloadIfNeeded()
+                }
             }
             .onOpenURL { url in
                 inviteFlow.handleIncomingURL(url)
@@ -154,7 +162,6 @@ struct ChatforiaApp: App {
                     }
 
                         if let theme = auth.currentUser?.theme {
-                            print("🎨 applying refreshed theme =", theme)
                             themeManager.apply(code: theme)
                             settingsVM.theme = theme
                         }
@@ -171,7 +178,9 @@ struct ChatforiaApp: App {
                 await inviteFlow.redeemPendingInviteIfNeeded(auth: auth)
             }
 
-            UnityInterstitialAdManager.shared.preloadIfNeeded()
+            if !auth.isPaid {
+                InterstitialAdManager.shared.preloadIfNeeded()
+            }
         }
     }
 }

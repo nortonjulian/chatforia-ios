@@ -36,7 +36,7 @@ struct ChatMessageRowView: View {
         let deleteAction = onDelete
 
         return HStack(alignment: .bottom, spacing: 8) {
-            if !isMe {
+            if !isMe && isGroupRoom {
                 avatarSlot
             }
 
@@ -142,14 +142,14 @@ struct ChatMessageRowView: View {
                         if isMe {
                             if canEditByRules {
                                 Button("common.edit", systemImage: "pencil") {
-                                    print("🟡 Edit tapped for message \(msg.id)")
+                                    debugLog("🟡 Edit tapped for message \(msg.id)")
                                     editAction?()
                                 }
                             }
 
                             if canDeleteForEveryoneByRules || canDeleteForMeByRules {
                                 Button(role: .destructive) {
-                                    print("🟡 Delete tapped for message \(msg.id)")
+                                    debugLog("🟡 Delete tapped for message \(msg.id)")
                                     deleteAction?()
                                 } label: {
                                     Label(deleteMenuTitle, systemImage: "trash")

@@ -653,20 +653,20 @@ extension ChatThreadView {
 
 extension ChatThreadView {
     private func sendGIF(from url: URL) async {
-        print("🧪 sendGIF ENTERED")
+        debugLog("🧪 sendGIF ENTERED")
         guard let senderId = auth.currentUser?.id else { return }
 
         do {
-            print("🎬 sendGIF url =", url.absoluteString)
+            debugLog("🎬 sendGIF url =", url.absoluteString)
 
             let (data, response) = try await URLSession.shared.data(from: url)
 
             if let http = response as? HTTPURLResponse {
-                print("🎬 GIF DOWNLOAD STATUS:", http.statusCode)
-                print("🎬 GIF DOWNLOAD CONTENT-TYPE:", http.value(forHTTPHeaderField: "Content-Type") ?? "nil")
+                debugLog("🎬 GIF DOWNLOAD STATUS:", http.statusCode)
+                debugLog("🎬 GIF DOWNLOAD CONTENT-TYPE:", http.value(forHTTPHeaderField: "Content-Type") ?? "nil")
             }
 
-            print("🎬 GIF DOWNLOAD BYTES:", data.count)
+            debugLog("🎬 GIF DOWNLOAD BYTES:", data.count)
 
             guard !data.isEmpty else {
                 await MainActor.run {
@@ -785,8 +785,9 @@ extension ChatThreadView {
     
 
     
-    private func onLoad() async {
-        SocketManager.shared.suppressMessageTonesForOpeningThread()
+   private func onLoad() async {
+        SocketManager.shared.suppressMessageTonesForOpeningThread(seconds: 8)
+
         guard !auth.needsKeyRestore else {
             vm.errorText = auth.keyRestoreMessage
                 ?? "Restore or reset your encryption key before using encrypted chats."
@@ -807,6 +808,8 @@ extension ChatThreadView {
         await reload()
 
         vm.startExpiryLoop()
+
+        SocketManager.shared.suppressMessageTonesForOpeningThread(seconds: 4)
 
         vm.startSocket(
             roomId: room.id,

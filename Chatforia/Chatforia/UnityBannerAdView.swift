@@ -47,10 +47,10 @@ final class UnityBannerAdViewController: UIViewController, UADSBannerViewDelegat
     }
 
     func bannerViewDidLoad(_ bannerView: UADSBannerView!) {
-        print("✅ Unity banner loaded")
+        debugLog("✅ Unity banner loaded")
     }
 
     func bannerViewDidError(_ bannerView: UADSBannerView!, error: UADSBannerError!) {
-        print("❌ Unity banner failed:", error.localizedDescription)
+        debugLog("❌ Unity banner failed:", error.localizedDescription)
     }
 }

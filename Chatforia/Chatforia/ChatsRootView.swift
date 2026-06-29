@@ -107,8 +107,8 @@ struct ChatsRootView: View {
                                 }
 
                                 ForEach(vm.filteredConversations, id: \.uniqueId) { conversation in
-                                    NavigationLink {
-                                        destinationView(for: conversation)
+                                    Button {
+                                            openConversationFromList(conversation)
                                     } label: {
                                         ChatListRowView(
                                             title: conversationTitle(conversation),
@@ -119,6 +119,7 @@ struct ChatsRootView: View {
                                             isPinned: false
                                         )
                                     }
+                                    .buttonStyle(.plain)
                                     .swipeActions(edge: .leading, allowsFullSwipe: false) {
                                         Button {
                                             handleMessageFromChats(conversation)
@@ -173,7 +174,7 @@ struct ChatsRootView: View {
                     }
 
                     if shouldShowAds {
-                        UnityBannerAdView()
+                        BannerAdView()
                             .frame(height: 50)
                             .frame(maxWidth: .infinity)
                             .padding(.horizontal, 12)
@@ -253,7 +254,7 @@ struct ChatsRootView: View {
                         selectedRoom = room
                         showSelectedRoom = true
                         if shouldShowAds {
-                            UnityInterstitialAdManager.shared
+                            InterstitialAdManager.shared
                                 .recordChatOpenAndMaybeShow()
                         }
 
@@ -261,7 +262,7 @@ struct ChatsRootView: View {
                         selectedSMSConversation = conversation
                         showSelectedSMS = true
                         if shouldShowAds {
-                            UnityInterstitialAdManager.shared
+                            InterstitialAdManager.shared
                                 .recordChatOpenAndMaybeShow()
                         }
                     }
@@ -350,10 +351,13 @@ struct ChatsRootView: View {
         await vm.loadConversations(token: token)
     }
     
-    private func handleMessageFromChats(_ conversation: ConversationDTO) {
+    private func openConversationFromList(_ conversation: ConversationDTO) {
+        selectedRandomSession = nil
+
         switch conversation.kind.lowercased() {
         case "chat":
-            selectedRoom = conversation.asChatRoomDTO
+            guard let room = conversation.asChatRoomDTO else { return }
+            selectedRoom = room
             showSelectedRoom = true
 
         case "sms":
@@ -361,8 +365,16 @@ struct ChatsRootView: View {
             showSelectedSMS = true
 
         default:
-            break
+            return
         }
+
+        if shouldShowAds {
+            InterstitialAdManager.shared.recordChatOpenAndMaybeShow()
+        }
+    }
+
+    private func handleMessageFromChats(_ conversation: ConversationDTO) {
+        openConversationFromList(conversation)
     }
 
     @ViewBuilder
@@ -458,7 +470,7 @@ struct ChatsRootView: View {
 
             showSelectedRoom = true
         } catch {
-            print("❌ match fetch failed:", error)
+            debugLog("❌ match fetch failed:", error)
         }
     }
 
@@ -474,7 +486,7 @@ struct ChatsRootView: View {
             selectedRoom = room
             showSelectedRoom = true
         } catch {
-            print("❌ Failed to open chat from notification:", error)
+            debugLog("❌ Failed to open chat from notification:", error)
         }
     }
 

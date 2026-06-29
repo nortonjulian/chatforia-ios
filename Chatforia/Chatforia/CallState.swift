@@ -50,21 +50,27 @@ enum CallState: Equatable {
             )
 
         case .connecting(let name):
-            return String(
-                format: appText(
-                    "calls.connecting",
-                    languageCode: appLanguage
-                ),
-                name
+            return appText(
+                "calls.connecting",
+                languageCode: appLanguage
+            )
+            .replacingOccurrences(
+                of: "{destination}",
+                with: name
             )
 
         case .active(let name):
-            return String(
-                format: appText(
-                    "calls.inCallWith",
-                    languageCode: appLanguage
-                ),
-                name
+            return appText(
+                "calls.inCallWith",
+                languageCode: appLanguage
+            )
+            .replacingOccurrences(
+                of: "{destination}",
+                with: name
+            )
+            .replacingOccurrences(
+                of: "{name}",
+                with: name
             )
 
         case .ended:

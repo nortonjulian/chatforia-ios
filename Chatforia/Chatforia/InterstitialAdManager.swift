@@ -1,40 +1,57 @@
 import Foundation
-import UnityAds
+import GoogleMobileAds
 import UIKit
 
 @MainActor
-final class UnityInterstitialAdManager: NSObject, UnityAdsLoadDelegate, UnityAdsShowDelegate {
-    static let shared = UnityInterstitialAdManager()
+final class InterstitialAdManager: NSObject, FullScreenContentDelegate {
+    static let shared = InterstitialAdManager()
 
-    private var loaded = false
+    private var interstitialAd: InterstitialAd?
     private var isLoading = false
     private var showing = false
 
     private var openCount = 0
     private let showEveryNOpenings = 4
 
+    private var lastShownAt: Date?
+    private let minimumSecondsBetweenShows: TimeInterval = 15 * 60
+
     private override init() {
         super.init()
     }
 
     func preloadIfNeeded() {
-        guard UnityAdsManager.shared.initialized else {
-            UnityAdsManager.shared.start()
-            return
-        }
-
-        guard !loaded, !isLoading else { return }
+        guard interstitialAd == nil, !isLoading else { return }
 
         isLoading = true
 
-        UnityAds.load(
-            UnityAdsConfig.interstitialPlacementID,
-            loadDelegate: self
-        )
+        InterstitialAd.load(
+            with: AdMobConfig.interstitialChatOpenAdUnitID,
+            request: Request()
+        ) { [weak self] ad, error in
+            Task { @MainActor in
+                guard let self else { return }
+
+                self.isLoading = false
+
+                if let error {
+                    debugLog("❌ AdMob interstitial failed to load:", error.localizedDescription)
+                    return
+                }
+
+                self.interstitialAd = ad
+                self.interstitialAd?.fullScreenContentDelegate = self
+
+                debugLog("✅ AdMob interstitial loaded")
+            }
+        }
     }
 
     func recordChatOpenAndMaybeShow() {
+        guard !showing else { return }
+
         openCount += 1
+        preloadIfNeeded()
 
         guard openCount % showEveryNOpenings == 0 else { return }
 
@@ -44,7 +61,13 @@ final class UnityInterstitialAdManager: NSObject, UnityAdsLoadDelegate, UnityAds
     func showIfReady() {
         guard !showing else { return }
 
-        guard loaded else {
+        if let lastShownAt,
+           Date().timeIntervalSince(lastShownAt) < minimumSecondsBetweenShows {
+            preloadIfNeeded()
+            return
+        }
+
+        guard let interstitialAd else {
             preloadIfNeeded()
             return
         }
@@ -57,50 +80,27 @@ final class UnityInterstitialAdManager: NSObject, UnityAdsLoadDelegate, UnityAds
         }
 
         showing = true
-
-        UnityAds.show(
-            root,
-            placementId: UnityAdsConfig.interstitialPlacementID,
-            showDelegate: self
-        )
+        interstitialAd.present(from: root)
     }
 
-    func unityAdsAdLoaded(_ placementId: String) {
-        isLoading = false
-        loaded = true
-        print("✅ Unity interstitial loaded")
+    func adWillPresentFullScreenContent(_ ad: FullScreenPresentingAd) {
+        lastShownAt = Date()
+        debugLog("📺 AdMob interstitial will present")
     }
 
-    func unityAdsAdFailed(
-        toLoad placementId: String,
-        withError error: UnityAdsLoadError,
-        withMessage message: String
-    ) {
-        isLoading = false
-        loaded = false
-        print("❌ Unity interstitial failed to load: \(message)")
-    }
-
-    func unityAdsShowComplete(
-        _ placementId: String,
-        withFinish state: UnityAdsShowCompletionState
-    ) {
+    func adDidDismissFullScreenContent(_ ad: FullScreenPresentingAd) {
         showing = false
-        loaded = false
+        interstitialAd = nil
         preloadIfNeeded()
     }
 
-    func unityAdsShowFailed(
-        _ placementId: String,
-        withError error: UnityAdsShowError,
-        withMessage message: String
+    func ad(
+        _ ad: FullScreenPresentingAd,
+        didFailToPresentFullScreenContentWithError error: Error
     ) {
         showing = false
-        loaded = false
-        print("❌ Unity interstitial show failed: \(message)")
+        interstitialAd = nil
+        debugLog("❌ AdMob interstitial failed to present:", error.localizedDescription)
         preloadIfNeeded()
     }
-
-    func unityAdsShowStart(_ placementId: String) {}
-    func unityAdsShowClick(_ placementId: String) {}
 }

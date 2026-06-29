@@ -75,14 +75,14 @@ final class MessageStore {
             let deliveryData = try JSONEncoder().encode(deliveryStates)
             try deliveryData.write(to: deliveryStatesFileURL, options: .atomic)
         } catch {
-            print("❌ MessageStore persist deliveryStates failed:", error)
+            debugLog("❌ MessageStore persist deliveryStates failed:", error)
         }
 
         do {
             let messageData = try JSONEncoder().encode(messages)
             try messageData.write(to: messagesFileURL, options: .atomic)
         } catch {
-            print("❌ MessageStore persist messages failed:", error)
+            debugLog("❌ MessageStore persist messages failed:", error)
         }
     }
 
