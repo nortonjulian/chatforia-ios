@@ -68,6 +68,44 @@ final class ContactsService {
             token: token
         )
     }
+    
+    func updateContact(
+        contact: ContactDTO,
+        alias: String?,
+        externalName: String?,
+        favorite: Bool?,
+        token: String
+    ) async throws -> ContactDTO {
+        struct Request: Encodable {
+            let userId: Int?
+            let externalPhone: String?
+            let alias: String?
+            let externalName: String?
+            let favorite: Bool?
+        }
+
+        let linkedUserId = contact.user?.id ?? contact.userId
+
+        let body = try JSONEncoder().encode(
+            Request(
+                userId: linkedUserId,
+                externalPhone: linkedUserId == nil ? contact.externalPhone : nil,
+                alias: alias?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
+                externalName: externalName?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
+                favorite: favorite
+            )
+        )
+
+        return try await APIClient.shared.send(
+            APIRequest(
+                path: "contacts",
+                method: .PATCH,
+                body: body,
+                requiresAuth: true
+            ),
+            token: token
+        )
+    }
 
     func importExternalContacts(_ contacts: [PhoneContactDTO], token: String) async throws -> ImportedContactsResponseDTO {
         struct ImportItem: Encodable {

@@ -35,6 +35,14 @@ final class TwilioVideoService: NSObject {
     private(set) var room: Room?
     private(set) var roomName: String?
 
+    var hasActiveMedia: Bool {
+        room != nil ||
+        cameraSource != nil ||
+        localVideoTrack != nil ||
+        localAudioTrack != nil ||
+        isCleaningUpVideo
+    }
+
     private var cameraSource: CameraSource?
     private var localVideoTrack: LocalVideoTrack?
     private var localAudioTrack: LocalAudioTrack?
@@ -43,6 +51,9 @@ final class TwilioVideoService: NSObject {
     private(set) var isMuted = false
     private(set) var isCameraEnabled = true
     private(set) var isFrontCamera = true
+
+    private var isCleaningUpVideo = false
+    private var isDisconnectingIntentionally = false
 
     private override init() {
         super.init()
@@ -84,42 +95,85 @@ final class TwilioVideoService: NSObject {
     // MARK: - Connect / Disconnect
 
     func connect(
-        authToken: String?,
-        identity: String,
-        roomName: String
-    ) async throws {
-        try await configureAudioSession()
-
-        let token = try await fetchVideoToken(
+    authToken: String?,
+    identity: String,
+    roomName: String
+) async throws {
+    do {
+        try await connectOnce(
             authToken: authToken,
             identity: identity,
-            room: roomName
+            roomName: roomName
         )
+    } catch {
+        cleanupAfterDisconnect(notifyDelegate: true)
 
-        try createLocalTracks()
+        try? await Task.sleep(nanoseconds: 700_000_000)
 
-        self.roomName = roomName
-        delegate?.twilioVideoDidStartConnecting(roomName: roomName)
+        try await connectOnce(
+            authToken: authToken,
+            identity: identity,
+            roomName: roomName
+        )
+    }
+}
 
-        let connectOptions = ConnectOptions(token: token) { [weak self] builder in
-            guard let self else { return }
-
-            builder.roomName = roomName
-
-            if let localAudioTrack {
-                builder.audioTracks = [localAudioTrack]
-            }
-
-            if let localVideoTrack {
-                builder.videoTracks = [localVideoTrack]
-            }
-        }
-
-        room = TwilioVideoSDK.connect(options: connectOptions, delegate: self)
+private func connectOnce(
+    authToken: String?,
+    identity: String,
+    roomName: String
+) async throws {
+    while isCleaningUpVideo || isDisconnectingIntentionally {
+        try? await Task.sleep(nanoseconds: 100_000_000)
     }
 
+
+    try await configureAudioSession()
+ 
+    let token = try await fetchVideoToken(
+        authToken: authToken,
+        identity: identity,
+        room: roomName
+    )
+ 
+    try createLocalTracks()
+
+    self.roomName = roomName
+    delegate?.twilioVideoDidStartConnecting(roomName: roomName)
+
+    let connectOptions = ConnectOptions(token: token) { [weak self] builder in
+        guard let self else { return }
+
+        builder.roomName = roomName
+
+        if let localAudioTrack {
+            builder.audioTracks = [localAudioTrack]
+        }
+
+        if let localVideoTrack {
+            builder.videoTracks = [localVideoTrack]
+        }
+    }
+
+    room = TwilioVideoSDK.connect(options: connectOptions, delegate: self)
+}
+
     func disconnect() {
-        room?.disconnect()
+        if isCleaningUpVideo {
+            return
+        }
+
+        if isDisconnectingIntentionally, room != nil {
+            return
+        }
+
+        isDisconnectingIntentionally = true
+
+        if let room {
+            room.disconnect()
+        } else {
+            cleanupAfterDisconnect(notifyDelegate: true)
+        }
     }
 
     // MARK: - Controls
@@ -240,12 +294,26 @@ final class TwilioVideoService: NSObject {
 
     private func configureAudioSession() async throws {
         let session = AVAudioSession.sharedInstance()
-        try session.setCategory(
-            .playAndRecord,
-            mode: .videoChat,
-            options: [.allowBluetoothHFP, .defaultToSpeaker]
-        )
-        try session.setActive(true)
+
+        do {
+            try session.setCategory(
+                .playAndRecord,
+                mode: .videoChat,
+                options: [.allowBluetoothHFP, .defaultToSpeaker]
+            )
+
+            try? session.overrideOutputAudioPort(.speaker)
+        } catch {
+            throw error
+        }
+
+        do {
+            try session.setActive(true)
+    
+        } catch {
+            debugLog("⚠️ video audio session activation failed, continuing:", error.localizedDescription)
+            // Do not throw here. CallKit may already own activation.
+        }
     }
 
     private func deactivateAudioSessionIfPossible() {
@@ -258,25 +326,58 @@ final class TwilioVideoService: NSObject {
         }
     }
 
-    private func cleanupAfterDisconnect(notifyDelegate: Bool) {
-        room = nil
+    private func finishVideoCleanup() {
+        isCleaningUpVideo = false
+        isDisconnectingIntentionally = false
+    }
 
+    private func cleanupAfterDisconnect(notifyDelegate: Bool) {
+        if isCleaningUpVideo {
+            return
+        }
+
+        isCleaningUpVideo = true
+
+        let sourceToStop = cameraSource
+        let videoTrackToRelease = localVideoTrack
+        let audioTrackToRelease = localAudioTrack
+
+        room = nil
+        roomName = nil
         remoteVideoTracks.removeAll()
+
+        videoTrackToRelease?.isEnabled = false
+        audioTrackToRelease?.isEnabled = false
 
         if notifyDelegate {
             delegate?.twilioVideoDidRemoveLocalVideoTrack()
         }
 
-        cameraSource?.stopCapture()
-        cameraSource = nil
         localVideoTrack = nil
         localAudioTrack = nil
+        cameraSource = nil
 
         isMuted = false
         isCameraEnabled = true
         isFrontCamera = true
 
-        deactivateAudioSessionIfPossible()
+        guard let sourceToStop else {
+            finishVideoCleanup()
+            return
+        }
+
+        sourceToStop.stopCapture { [weak self, sourceToStop, videoTrackToRelease, audioTrackToRelease] _ in
+            Task { @MainActor [weak self] in
+                _ = sourceToStop
+                _ = videoTrackToRelease
+                _ = audioTrackToRelease
+
+                self?.finishVideoCleanup()
+            }
+        }
+
+        // Let CallKit manage audio session deactivation.
+        // deactivateAudioSessionIfPossible()
     }
 }
 

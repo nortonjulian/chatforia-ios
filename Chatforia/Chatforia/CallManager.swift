@@ -25,6 +25,7 @@ final class CallManager: ObservableObject {
     private var pendingDestination: CallDestination?
     private var pendingIsVideo: Bool = false
     private var pendingIncomingPayload: IncomingCallPayload?
+    private var currentUserId: Int?
     
     private var appLanguage: String {
         UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
@@ -109,6 +110,8 @@ final class CallManager: ObservableObject {
 
         let status = data["status"] as? String ?? "ENDED"
 
+        disconnectVideoMediaIfNeeded()
+
         switch status {
         case "MISSED":
             markMissedCall()
@@ -141,19 +144,17 @@ final class CallManager: ObservableObject {
         let payload = IncomingCallPayload(
             uuid: UUID(),
             displayName: callerName,
-            remoteIdentity: String(callerId),
+            remoteIdentity: roomName,
             hasVideo: true,
             backendCallId: callId
         )
 
         handleIncomingCallPayload(payload, auth: pendingAuth)
 
-        updateSession {
-            $0.remoteIdentity = roomName
-        }
     }
 
     @objc private func handleSocketVideoEnded(_ notification: Notification) {
+        disconnectVideoMediaIfNeeded()
         completeCall(outcome: .remoteEnded)
     }
 
@@ -169,6 +170,8 @@ final class CallManager: ObservableObject {
 
     func startVoIPIfNeeded(auth: AuthStore) {
         pendingAuth = auth
+        currentUserId = auth.currentUser?.id
+
         voipPushManager.start()
         registerPendingVoIPTokenIfPossible()
     }
@@ -227,7 +230,11 @@ final class CallManager: ObservableObject {
             return
         }
 
-        pendingAuth = auth
+        if let auth {
+            pendingAuth = auth
+            currentUserId = auth.currentUser?.id
+        }
+
         pendingIncomingPayload = payload
         pendingEndOutcome = nil
         finalizedCallUUID = nil
@@ -281,9 +288,18 @@ final class CallManager: ObservableObject {
         isVideoCameraEnabled = true
     }
 
+    private func disconnectVideoMediaIfNeeded() {
+        guard activeSession?.isVideo == true else { return }
+
+        if twilioVideoService.hasActiveMedia {
+            twilioVideoService.disconnect()
+        }
+    }
+
     private func beginOutgoingCall(to destination: CallDestination, auth: AuthStore, isVideo: Bool) async {
         lastError = nil
         pendingAuth = auth
+        currentUserId = auth.currentUser?.id
         pendingEndOutcome = nil
         finalizedCallUUID = nil
 
@@ -322,14 +338,27 @@ final class CallManager: ObservableObject {
             }
 
             do {
-                let callId = try await CallService.shared.createCall(
-                    calleeId: userId,
-                    mode: isVideo ? "VIDEO" : "AUDIO",
-                    token: token
-                )
+                if isVideo {
+                    let response = try await CallService.shared.startVideoCall(
+                        calleeId: userId,
+                        chatRoomId: nil,
+                        token: token
+                    )
 
-                updateSession {
-                    $0.backendCallId = callId
+                    updateSession {
+                        $0.backendCallId = response.callId
+                        $0.remoteIdentity = response.roomName
+                    }
+                } else {
+                    let callId = try await CallService.shared.createCall(
+                        calleeId: userId,
+                        mode: "AUDIO",
+                        token: token
+                    )
+
+                    updateSession {
+                        $0.backendCallId = callId
+                    }
                 }
 
             } catch {
@@ -513,6 +542,8 @@ final class CallManager: ObservableObject {
                 )
 
                 do {
+                    try? await Task.sleep(nanoseconds: 500_000_000)
+
                     try await twilioVideoService.connect(
                         authToken: token,
                         identity: String(currentUser.id),
@@ -563,6 +594,8 @@ final class CallManager: ObservableObject {
             }
 
             do {
+                try? await Task.sleep(nanoseconds: 500_000_000)
+
                 try await twilioVideoService.connect(
                     authToken: token,
                     identity: String(currentUser.id),
@@ -718,7 +751,11 @@ final class CallManager: ObservableObject {
         completeCall(outcome: .missed)
     }
 
-    private func failCall(_ message: String) {
+   private func failCall(_ message: String) {
+        #if DEBUG
+        debugLog("❌ CallManager failCall:", message)
+        debugLog("❌ activeSession:", String(describing: activeSession))
+        #endif
         completeCall(outcome: .failed(message))
     }
 
@@ -743,7 +780,7 @@ final class CallManager: ObservableObject {
     }
 
     private func resetTransientState() {
-        pendingAuth = nil
+        // Keep pendingAuth so incoming calls still know the current user.
         pendingDestination = nil
         pendingIsVideo = false
         pendingIncomingPayload = nil
@@ -887,8 +924,15 @@ final class CallManager: ObservableObject {
             }
         }
 
+        if session.isVideo {
+            disconnectVideoMediaIfNeeded()
+        }
+
         clearPublishedVideoState()
-        deactivateSystemAudioSessionIfPossible()
+
+        if !session.isVideo {
+            deactivateSystemAudioSessionIfPossible()
+        }
 
         if reportToCallKit {
             callKit.reportCallEnded(uuid: session.id, reason: callKitReason(for: outcome))
@@ -1033,7 +1077,7 @@ extension CallManager: CallKitManagerDelegate {
             return
         }
 
-        guard let currentUser = pendingAuth?.currentUser else {
+        guard let userId = pendingAuth?.currentUser?.id ?? currentUserId else {
             failCall(appText("calls.missing_current_user", languageCode: appLanguage))
             return
         }
@@ -1045,7 +1089,6 @@ extension CallManager: CallKitManagerDelegate {
 
         do {
             try await MediaPermissionManager.shared.ensureVideoCallPermissions()
-            try await CallService.shared.answerCall(callId: backendCallId, token: token)
 
             await patchCallStatus(
                 callId: backendCallId,
@@ -1056,9 +1099,11 @@ extension CallManager: CallKitManagerDelegate {
 
             let roomName = activeSession?.remoteIdentity ?? "call_\(backendCallId)"
 
+            try? await Task.sleep(nanoseconds: 500_000_000)
+
             try await twilioVideoService.connect(
                 authToken: token,
-                identity: String(currentUser.id),
+                identity: String(userId),
                 roomName: roomName
             )
             
@@ -1190,6 +1235,10 @@ extension CallManager: TwilioVideoServiceDelegate {
     }
 
     func twilioVideoDidFail(_ message: String) {
+        #if DEBUG
+        debugLog("❌ CallManager twilioVideoDidFail:", message)
+        debugLog("❌ activeSession before video fail:", String(describing: activeSession))
+        #endif
         completeCall(outcome: .failed(message))
     }
 

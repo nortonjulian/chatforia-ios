@@ -87,7 +87,11 @@ struct StartChatView: View {
                                 ) {
                                     ForEach(vm.contactResults) { contact in
                                         Button {
-                                            Task { await selectContact(contact) }
+                                            if vm.isGroupMode {
+                                                vm.toggleGroupContact(contact)
+                                            } else {
+                                                Task { await selectContact(contact) }
+                                            }
                                         } label: {
                                             HStack(spacing: 12) {
                                                 avatarView(for: contact.displayName)
@@ -110,6 +114,13 @@ struct StartChatView: View {
                                                 if vm.isCreating {
                                                     ProgressView()
                                                         .tint(themeManager.palette.accent)
+                                                } else if vm.isGroupMode, let userId = contact.user?.id ?? contact.userId {
+                                                    Image(
+                                                        systemName: vm.isSelectedForGroup(userId: userId)
+                                                            ? "checkmark.circle.fill"
+                                                            : "circle"
+                                                    )
+                                                    .foregroundStyle(themeManager.palette.accent)
                                                 } else {
                                                     Image(systemName: "chevron.right")
                                                         .foregroundStyle(.tertiary)
@@ -132,7 +143,11 @@ struct StartChatView: View {
                             ) {
                                 ForEach(vm.results) { user in
                                     Button {
-                                        Task { await selectUser(user) }
+                                        if vm.isGroupMode {
+                                            vm.toggleGroupUser(user)
+                                        } else {
+                                            Task { await selectUser(user) }
+                                        }
                                     } label: {
                                         HStack(spacing: 12) {
                                             avatarView(for: user.username)
@@ -155,6 +170,13 @@ struct StartChatView: View {
                                             if vm.isCreating {
                                                 ProgressView()
                                                     .tint(themeManager.palette.accent)
+                                            } else if vm.isGroupMode {
+                                                Image(
+                                                    systemName: vm.isSelectedForGroup(userId: user.id)
+                                                        ? "checkmark.circle.fill"
+                                                        : "circle"
+                                                )
+                                                .foregroundStyle(themeManager.palette.accent)
                                             } else {
                                                 Image(systemName: "chevron.right")
                                                     .foregroundStyle(.tertiary)
@@ -205,6 +227,26 @@ struct StartChatView: View {
                     ))
                         .font(.headline)
                         .foregroundStyle(themeManager.palette.primaryText)
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(
+                        vm.isGroupMode
+                            ? "Direct"
+                            : appText("startChatModal.group", languageCode: appLanguage)
+                    ) {
+                        vm.isGroupMode.toggle()
+
+                        if !vm.isGroupMode {
+                            vm.resetGroupSelection()
+                        }
+                    }
+                    .foregroundStyle(themeManager.palette.accent)
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                if vm.isGroupMode {
+                    groupCreateBar
                 }
             }
         }
@@ -374,6 +416,57 @@ struct StartChatView: View {
                 .font(.headline.weight(.semibold))
                 .foregroundStyle(themeManager.palette.primaryText)
         }
+    }
+
+    private func createGroupChat() async {
+        do {
+            let destination = try await vm.createGroupChat()
+            dismiss()
+            onDestinationReady(destination)
+        } catch {
+            vm.errorText = error.localizedDescription
+        }
+    }
+
+    private var groupCreateBar: some View {
+        VStack(spacing: 10) {
+            if !vm.selectedGroupUsers.isEmpty {
+                TextField(
+                    appText("startChatModal.groupNameOptional", languageCode: appLanguage),
+                    text: $vm.groupName
+                )
+                .textFieldStyle(.roundedBorder)
+            }
+
+            Button {
+                Task { await createGroupChat() }
+            } label: {
+                HStack {
+                    if vm.isCreating {
+                        ProgressView()
+                    }
+
+                    Text("Create group")
+                        .font(.headline)
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(
+                    vm.canCreateGroup
+                        ? themeManager.palette.accent
+                        : themeManager.palette.border
+                )
+                .foregroundStyle(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+            }
+            .disabled(!vm.canCreateGroup || vm.isCreating)
+
+            Text("\(vm.selectedGroupUsers.count) selected")
+                .font(.footnote)
+                .foregroundStyle(themeManager.palette.secondaryText)
+        }
+        .padding()
+        .background(themeManager.palette.screenBackground)
     }
 }
 

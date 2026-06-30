@@ -53,12 +53,10 @@ final class ContactsViewModel: ObservableObject {
             throw APIError.unauthorized
         }
 
-        let room: DirectChatRoomResponseDTO = try await APIClient.shared.send(
-            APIRequest(path: "chatrooms/direct/\(userId)", method: .POST, requiresAuth: true),
+        return try await ChatRoomService.shared.startDirectChat(
+            userId: userId,
             token: token
         )
-
-        return room.asChatRoomDTO
     }
     
     func deleteContact(_ contact: ContactDTO, token: String?) async {
@@ -74,6 +72,37 @@ final class ContactsViewModel: ObservableObject {
             )
 
             contacts.removeAll { $0.id == contact.id }
+        } catch {
+            errorText = error.localizedDescription
+        }
+    }
+
+    func updateContact(
+        _ contact: ContactDTO,
+        alias: String?,
+        externalName: String?,
+        favorite: Bool?,
+        token: String?
+    ) async {
+        guard let token, !token.isEmpty else {
+            errorText = appText("ios.missing_auth_token", languageCode: appLanguage)
+            return
+        }
+
+        do {
+            let updated = try await ContactsService.shared.updateContact(
+                contact: contact,
+                alias: alias,
+                externalName: externalName,
+                favorite: favorite,
+                token: token
+            )
+
+            if let index = contacts.firstIndex(where: { $0.id == updated.id }) {
+                contacts[index] = updated
+            } else {
+                contacts.insert(updated, at: 0)
+            }
         } catch {
             errorText = error.localizedDescription
         }

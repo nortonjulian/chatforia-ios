@@ -523,6 +523,19 @@ private func title(for choice: PendingCallChoice) -> String {
                 return String(format: "%d:%02d", minutes, seconds)
             }
         }
+
+        private var metadataText: String {
+            var parts = [
+                directionLabel,
+                statusLabel
+            ]
+
+            if let durationText {
+                parts.append(durationText)
+            }
+
+            return parts.joined(separator: " • ")
+        }
         
         private var statusColor: Color {
             switch item.status.uppercased() {
@@ -558,25 +571,23 @@ private func title(for choice: PendingCallChoice) -> String {
                             ? Color.red
                             : themeManager.palette.primaryText
                         )
+                        .lineLimit(1)
+                        .truncationMode(.tail)
                     
-                    HStack(spacing: 8) {
-                        Text(directionLabel)
-                        Text("•")
-                        Text(statusLabel)
-                        if let durationText {
-                            Text("•")
-                            Text(durationText)
-                        }
-                    }
-                    .font(.subheadline)
-                    .foregroundStyle(statusColor)
+                    Text(metadataText)
+                        .font(.subheadline)
+                        .foregroundStyle(statusColor)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                        .truncationMode(.tail)
                     
                     Text(timestampText)
                         .font(.footnote)
                         .foregroundStyle(themeManager.palette.secondaryText)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .layoutPriority(1)
                 
-                Spacer()
                 
                 HStack(spacing: 10) {
 

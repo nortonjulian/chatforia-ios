@@ -92,6 +92,10 @@ final class StartChatViewModel: ObservableObject {
     @Published var isCreating: Bool = false
     @Published var errorText: String?
     @Published var contactResults: [ContactSearchResultDTO] = []
+
+    @Published var isGroupMode: Bool = false
+    @Published var groupName: String = ""
+    @Published var selectedGroupUsers: [UserSearchResultDTO] = []
     
     private var appLanguage: String {
         UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
@@ -360,12 +364,12 @@ final class StartChatViewModel: ObservableObject {
         errorText = nil
         defer { isCreating = false }
 
-        let room: DirectChatRoomResponseDTO = try await APIClient.shared.send(
-            APIRequest(path: "chatrooms/direct/\(targetUserId)", method: .POST, requiresAuth: true),
+        let room = try await ChatRoomService.shared.startDirectChat(
+            userId: targetUserId,
             token: token
         )
 
-        return .chat(room.asChatRoomDTO)
+        return .chat(room)
     }
 
     func createOrOpenExistingSMSThread() async throws -> StartDestination {
@@ -424,6 +428,76 @@ final class StartChatViewModel: ObservableObject {
         )
 
         return .sms(conversation)
+    }
+
+    var canCreateGroup: Bool {
+        selectedGroupUsers.count >= 2
+    }
+
+    func isSelectedForGroup(userId: Int) -> Bool {
+        selectedGroupUsers.contains { $0.id == userId }
+    }
+
+    func toggleGroupUser(_ user: UserSearchResultDTO) {
+        if let index = selectedGroupUsers.firstIndex(where: { $0.id == user.id }) {
+            selectedGroupUsers.remove(at: index)
+        } else {
+            selectedGroupUsers.append(user)
+        }
+    }
+
+    func toggleGroupContact(_ contact: ContactSearchResultDTO) {
+        guard let userId = contact.user?.id ?? contact.userId else { return }
+
+        let username =
+            contact.user?.username ??
+            contact.alias ??
+            contact.externalName ??
+            "User \(userId)"
+
+        toggleGroupUser(
+            UserSearchResultDTO(
+                id: userId,
+                username: username,
+                avatarUrl: nil
+            )
+        )
+    }
+
+    func resetGroupSelection() {
+        groupName = ""
+        selectedGroupUsers = []
+    }
+
+    func createGroupChat() async throws -> StartDestination {
+        guard let token = TokenStore.shared.read(), !token.isEmpty else {
+            throw APIError.unauthorized
+        }
+
+        guard canCreateGroup else {
+            throw NSError(
+                domain: "StartChatViewModel",
+                code: 2,
+                userInfo: [
+                    NSLocalizedDescriptionKey: "Select at least 2 people for a group chat."
+                ]
+            )
+        }
+
+        isCreating = true
+        errorText = nil
+        defer { isCreating = false }
+
+        let trimmedName = groupName.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let room = try await ChatRoomService.shared.createGroupChat(
+            userIds: selectedGroupUsers.map { $0.id },
+            name: trimmedName.isEmpty ? nil : trimmedName,
+            token: token
+        )
+
+        resetGroupSelection()
+        return .chat(room)
     }
 
     static func normalizePhone(_ input: String) -> String? {

@@ -7,6 +7,7 @@ struct UserDTO: Codable, Identifiable {
     let publicKey: String?
     let plan: String?
     let role: String?
+    let discoverability: String?
     let preferredLanguage: String?
     let uiLanguage: String?
     let theme: String?
@@ -59,6 +60,7 @@ struct UserDTO: Codable, Identifiable {
         publicKey: String?,
         plan: String?,
         role: String?,
+        discoverability: String? = nil,
         preferredLanguage: String?,
         theme: String?,
         avatarUrl: String?,
@@ -102,6 +104,7 @@ struct UserDTO: Codable, Identifiable {
         self.publicKey = publicKey
         self.plan = plan
         self.role = role
+        self.discoverability = discoverability
         self.preferredLanguage = preferredLanguage
         self.theme = theme
         self.avatarUrl = avatarUrl

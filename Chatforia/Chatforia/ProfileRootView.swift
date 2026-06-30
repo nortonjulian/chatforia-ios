@@ -944,6 +944,26 @@ struct ProfileRootView: View {
             )
         ) {
             VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Who can find me")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(themeManager.palette.primaryText)
+
+                    Picker("Who can find me", selection: $vm.discoverability) {
+                        Text("Everyone").tag("EVERYONE")
+                        Text("My contacts only").tag("CONTACTS_ONLY")
+                        Text("No one").tag("NO_ONE")
+                    }
+                    .pickerStyle(.menu)
+                    .tint(themeManager.palette.accent)
+
+                    Text("Controls who can find you by username in Chatforia search.")
+                        .font(.caption)
+                        .foregroundStyle(themeManager.palette.secondaryText)
+                }
+
+                Divider()
+
                 ThemedToggleRow(
                     title: appText(
                         "setting_allow_explicit_content",

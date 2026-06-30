@@ -46,6 +46,8 @@ final class SettingsViewModel: ObservableObject {
     @Published var a11yCaptionFont: String = "lg"
     @Published var a11yCaptionBg: String = "dark"
 
+    @Published var discoverability: String = "EVERYONE"
+
     private let maskAIProfanityKey = "chatforia.maskAIProfanity"
     
     private let enableSmartRepliesKey = "chatforia.enableSmartReplies"
@@ -63,6 +65,7 @@ final class SettingsViewModel: ObservableObject {
         privacyBlurOnUnfocus = user.privacyBlurOnUnfocus ?? false
         privacyHoldToReveal = user.privacyHoldToReveal ?? false
         notifyOnCopy = user.notifyOnCopy ?? false
+        discoverability = user.discoverability ?? "EVERYONE"
 
         ageBand = user.ageBand
         wantsAgeFilter = user.wantsAgeFilter ?? true
@@ -118,10 +121,11 @@ final class SettingsViewModel: ObservableObject {
             privacyBlurOnUnfocus: privacyBlurOnUnfocus,
             privacyHoldToReveal: privacyHoldToReveal,
             notifyOnCopy: notifyOnCopy,
+            discoverability: discoverability,
             ageBand: ageBand,
             wantsAgeFilter: wantsAgeFilter,
             randomChatAllowedBands: randomChatAllowedBands,
-            foriaRemember: foriaRemember,
+            riaRemember: foriaRemember,
             voicemailEnabled: voicemailEnabled,
             voicemailAutoDeleteDays: voicemailAutoDeleteDays,
             voicemailForwardEmail: voicemailForwardEmail,
