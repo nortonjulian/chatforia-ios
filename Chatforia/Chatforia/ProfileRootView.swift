@@ -497,6 +497,13 @@ struct ProfileRootView: View {
                 .buttonStyle(.plain)
 
                 Divider()
+                
+                Button {
+                    openURL("https://chatforia.com/legal/open-source")
+                } label: {
+                    legalRow("Open Source Licenses")
+                }
+                .buttonStyle(.plain)
 
                 Button {
                     openURL("mailto:support@chatforia.com")

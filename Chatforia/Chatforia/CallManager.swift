@@ -281,6 +281,39 @@ final class CallManager: ObservableObject {
         }
     }
 
+    func addParticipant(contact: ContactDTO) async {
+        guard let session = activeSession else { return }
+        guard session.canAddParticipant else { return }
+        guard let callId = session.backendCallId else {
+            lastError = "Missing call ID."
+            return
+        }
+        guard let userId = contact.user?.id ?? contact.userId else {
+            lastError = "This contact cannot be added to a call."
+            return
+        }
+        guard let token = TokenStore.shared.read(), !token.isEmpty else {
+            lastError = appText("error_missing_auth_token", languageCode: appLanguage)
+            return
+        }
+
+        do {
+            let participant = try await CallService.shared.addParticipant(
+                callId: callId,
+                userId: userId,
+                token: token
+            )
+
+            updateSession {
+                if !$0.participants.contains(where: { $0.userId == participant.userId }) {
+                    $0.participants.append(participant)
+                }
+            }
+        } catch {
+            lastError = error.localizedDescription
+        }
+    }
+
     private func clearPublishedVideoState() {
         localVideoTrack = nil
         remoteVideoTracks = [:]
@@ -629,6 +662,16 @@ final class CallManager: ObservableObject {
         guard let session = activeSession else { return }
         let newMuted = !session.isMuted
         callKit.setMuted(uuid: session.id, muted: newMuted)
+    }
+
+    func sendDigit(_ digit: String) {
+        let allowedDigits = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "#"]
+
+        guard allowedDigits.contains(digit) else { return }
+        guard activeSession?.isVideo == false else { return }
+        guard case .active(_) = state else { return }
+
+        twilioService.sendDigits(digit)
     }
 
     func toggleSpeaker() {

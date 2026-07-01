@@ -149,6 +149,15 @@ final class TwilioVoiceService: NSObject {
         }
     }
 
+    func sendDigits(_ digits: String) {
+        let allowedDigits = Set("0123456789*#w")
+        let cleanedDigits = digits.filter { allowedDigits.contains($0) }
+
+        guard !cleanedDigits.isEmpty else { return }
+
+        activeCall?.sendDigits(cleanedDigits)
+    }
+
     private func configureAudioSession() throws {
         let session = AVAudioSession.sharedInstance()
         try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetoothHFP, .defaultToSpeaker])
