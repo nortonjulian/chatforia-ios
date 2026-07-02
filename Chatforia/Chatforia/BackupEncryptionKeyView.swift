@@ -201,7 +201,7 @@ struct BackupEncryptionKeyView: View {
         let trimmedPassword = password.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedConfirm = confirmPassword.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        return trimmedPassword.count < 6 || trimmedConfirm.count < 6
+        return trimmedPassword.count < 8 || trimmedConfirm.count < 8
     }
 
     private func backupKey() async {
@@ -220,8 +220,8 @@ struct BackupEncryptionKeyView: View {
             return
         }
 
-        guard trimmedPassword.count >= 6 else {
-            errorMessage = appText("encryption.backup.passwordTooShort", languageCode: appLanguage)
+        guard trimmedPassword.count >= 8 else {
+            errorMessage = "Secure Messages Passcode must be at least 8 characters."
             successMessage = nil
             return
         }

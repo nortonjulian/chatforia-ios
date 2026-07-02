@@ -790,7 +790,7 @@ extension ChatThreadView {
 
         guard !auth.needsKeyRestore else {
             vm.errorText = auth.keyRestoreMessage
-                ?? "Restore or reset your encryption key before using encrypted chats."
+                ?? "Enter your Secure Messages Passcode to view secure messages."
             return
         }
 

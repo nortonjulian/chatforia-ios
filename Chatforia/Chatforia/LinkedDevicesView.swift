@@ -76,7 +76,7 @@ final class LinkedDevicesViewModel: ObservableObject {
                 throw NSError(
                     domain: "LinkedDevicesViewModel",
                     code: 1,
-                    userInfo: [NSLocalizedDescriptionKey: "Pending device is missing a public key."]
+                    userInfo: [NSLocalizedDescriptionKey: "Pending device is missing required secure message information."]
                 )
             }
 
@@ -86,7 +86,7 @@ final class LinkedDevicesViewModel: ObservableObject {
                 throw NSError(
                     domain: "LinkedDevicesViewModel",
                     code: 2,
-                    userInfo: [NSLocalizedDescriptionKey: "This device is missing your account encryption key."]
+                    userInfo: [NSLocalizedDescriptionKey: "This device is missing your secure message key."]
                 )
             }
 
@@ -159,7 +159,7 @@ final class LinkedDevicesViewModel: ObservableObject {
                 throw NSError(
                     domain: "LinkedDevicesViewModel",
                     code: 5,
-                    userInfo: [NSLocalizedDescriptionKey: "Approved device is missing wrapped account key."]
+                    userInfo: [NSLocalizedDescriptionKey: "Approved device is missing secure message recovery information."]
                 )
             }
 
@@ -176,7 +176,7 @@ final class LinkedDevicesViewModel: ObservableObject {
                 throw NSError(
                     domain: "LinkedDevicesViewModel",
                     code: 6,
-                    userInfo: [NSLocalizedDescriptionKey: "Missing account public key."]
+                    userInfo: [NSLocalizedDescriptionKey: "Missing secure message key for this account."]
                 )
             }
 

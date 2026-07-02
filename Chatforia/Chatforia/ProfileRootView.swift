@@ -29,7 +29,6 @@ struct ProfileRootView: View {
     
     @State private var showingBackupSheet = false
     @State private var showingRestoreSheet = false
-    @State private var showingRotateSheet = false
     
     @State private var hasRemoteBackup: Bool?
     @State private var isCheckingBackup = false
@@ -326,12 +325,6 @@ struct ProfileRootView: View {
 
             .sheet(isPresented: $showingRestoreSheet) {
                 RestoreEncryptionKeyView()
-                    .environmentObject(auth)
-                    .environmentObject(themeManager)
-            }
-
-            .sheet(isPresented: $showingRotateSheet) {
-                RotateEncryptionKeyView()
                     .environmentObject(auth)
                     .environmentObject(themeManager)
             }
@@ -1510,8 +1503,6 @@ struct ProfileRootView: View {
                     }
                     .buttonStyle(.plain)
 
-                    Divider()
-
                     if !AccountKeyManager.shared.hasAccountKeys(userId: currentUserId) {
                         Divider()
 
@@ -1532,32 +1523,6 @@ struct ProfileRootView: View {
                         }
                         .buttonStyle(.plain)
                     }
-
-                    Divider()
-
-                    Button {
-                        showingRotateSheet = true
-                    } label: {
-                        rowLabel(
-                            icon: "arrow.triangle.2.circlepath",
-                            title: appText(
-                                "security_rotate_key_title",
-                                languageCode: appLanguage
-                            ),
-                            subtitle: hasRemoteBackup == true
-                                ? appText(
-                                    "security_rotate_key_ready",
-                                    languageCode: appLanguage
-                                )
-                                : appText(
-                                    "security_rotate_key_backup_required",
-                                    languageCode: appLanguage
-                                )
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(hasRemoteBackup != true)
-                    .opacity(hasRemoteBackup == true ? 1 : 0.5)
                 }
             }
         }

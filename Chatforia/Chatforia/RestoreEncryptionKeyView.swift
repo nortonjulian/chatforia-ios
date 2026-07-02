@@ -18,8 +18,11 @@ struct RestoreEncryptionKeyView: View {
     @State private var hasRemoteBackup: Bool?
     @State private var isCheckingBackup = false
 
-    @State private var showResetConfirm = false
+    @State private var showStartFreshConfirm = false
+    @State private var startFreshConfirmationText = ""
     @State private var isResetting = false
+
+    private let startFreshPhrase = "START FRESH"
 
     private var canRestoreFromBackup: Bool {
         hasRemoteBackup == true
@@ -36,7 +39,7 @@ struct RestoreEncryptionKeyView: View {
 
                     VStack(alignment: .leading, spacing: 16) {
                         if isCheckingBackup {
-                            ProgressView("Checking encryption recovery…")
+                            ProgressView("Checking secure message recovery…")
                         } else if canRestoreFromBackup {
                             restoreSection
                         } else if canCreateBackupFromThisDevice {
@@ -58,28 +61,28 @@ struct RestoreEncryptionKeyView: View {
             await checkBackup()
         }
         .confirmationDialog(
-            "Reset encryption?",
-            isPresented: $showResetConfirm,
+            "Start fresh with secure messages?",
+            isPresented: $showStartFreshConfirm,
             titleVisibility: .visible
         ) {
-            Button("Reset Encryption", role: .destructive) {
+            Button("Start Fresh", role: .destructive) {
                 Task { await resetEncryption() }
             }
 
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This will replace your encryption key. Older encrypted messages may not be readable unless you restore your original key.")
+            Text("This creates a new secure message key for your account. Older app-to-app secure messages may no longer be readable on any device. SMS/text message conversations are not affected.")
         }
     }
 
     private var titleSection: some View {
         VStack(spacing: 10) {
-            Text(canRestoreFromBackup ? "Restore encrypted chats" : "Encryption recovery")
+            Text(canRestoreFromBackup ? "Restore secure messages" : "Secure message recovery")
                 .font(.system(size: 28, weight: .bold))
                 .foregroundStyle(themeManager.palette.primaryText)
                 .padding(.top, 24)
 
-            Text("Use your Recovery Passcode to protect or restore your encrypted chats across devices.")
+            Text("Use your Secure Messages Passcode to protect or restore secure messages across devices.")
                 .font(.subheadline)
                 .foregroundStyle(themeManager.palette.secondaryText)
                 .multilineTextAlignment(.center)
@@ -88,15 +91,15 @@ struct RestoreEncryptionKeyView: View {
 
     private var restoreSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Enter Recovery Passcode")
+            Text("Enter Secure Messages Passcode")
                 .font(.headline)
                 .foregroundStyle(themeManager.palette.primaryText)
 
-            Text("Enter the Recovery Passcode you created on another trusted device.")
+            Text("Enter the Secure Messages Passcode you created on another trusted device.")
                 .font(.footnote)
                 .foregroundStyle(themeManager.palette.secondaryText)
 
-            SecureField("Recovery Passcode", text: $recoveryPasscode)
+            SecureField("Secure Messages Passcode", text: $recoveryPasscode)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
 
@@ -108,7 +111,7 @@ struct RestoreEncryptionKeyView: View {
                 if isRestoring {
                     ProgressView()
                 } else {
-                    Text("Restore Chats")
+                    Text("Restore secure messages")
                         .fontWeight(.semibold)
                 }
             }
@@ -120,19 +123,19 @@ struct RestoreEncryptionKeyView: View {
 
     private var createBackupSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Create Recovery Passcode")
+            Text("Create Secure Messages Passcode")
                 .font(.headline)
                 .foregroundStyle(themeManager.palette.primaryText)
 
-            Text("This iPhone already has the correct encryption key. Create a Recovery Passcode so you can restore chats on the website and future Android app.")
+            Text("This iPhone can already read your secure messages. Create a Secure Messages Passcode so you can restore them on the website, Android, or another iPhone.")
                 .font(.footnote)
                 .foregroundStyle(themeManager.palette.secondaryText)
 
-            SecureField("Recovery Passcode", text: $recoveryPasscode)
+            SecureField("Secure Messages Passcode", text: $recoveryPasscode)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
 
-            SecureField("Confirm Recovery Passcode", text: $confirmRecoveryPasscode)
+            SecureField("Confirm Secure Messages Passcode", text: $confirmRecoveryPasscode)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
 
@@ -160,11 +163,11 @@ struct RestoreEncryptionKeyView: View {
                 .font(.headline)
                 .foregroundStyle(themeManager.palette.primaryText)
 
-            Text("This device does not have the correct local encryption key and no account recovery backup exists yet.")
+            Text("This device does not have the correct secure message key, and no account recovery backup exists yet.")
                 .font(.footnote)
                 .foregroundStyle(themeManager.palette.secondaryText)
 
-            Text("Open Chatforia on a device that can already read your encrypted chats, then create a Recovery Passcode there.")
+            Text("Open Chatforia on a device that can already read your secure messages, then create a Secure Messages Passcode there.")
                 .font(.footnote)
                 .foregroundStyle(themeManager.palette.secondaryText)
 
@@ -174,24 +177,36 @@ struct RestoreEncryptionKeyView: View {
 
     private var resetSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Reset Encryption")
+            Text("I can’t recover my secure messages")
                 .font(.headline)
                 .foregroundStyle(themeManager.palette.primaryText)
 
-            Text("Only use this if you lost all trusted devices and cannot restore your original key. Older encrypted messages may become unreadable.")
+            Text("Only use this as a last resort. This creates a new secure message key for your account. Older app-to-app secure messages may no longer be readable on any device. SMS/text message conversations are not affected.")
                 .font(.footnote)
                 .foregroundStyle(themeManager.palette.secondaryText)
 
+            TextField("Type START FRESH to continue", text: $startFreshConfirmationText)
+                .textInputAutocapitalization(.characters)
+                .autocorrectionDisabled()
+                .textFieldStyle(.roundedBorder)
+
             Button(role: .destructive) {
-                showResetConfirm = true
+                showStartFreshConfirm = true
             } label: {
                 if isResetting {
                     ProgressView()
                 } else {
-                    Text("Reset Encryption")
+                    Text("Start fresh with secure messages")
                 }
             }
-            .disabled(isRestoring || isCreatingBackup || isResetting)
+            .disabled(
+                isRestoring ||
+                isCreatingBackup ||
+                isResetting ||
+                startFreshConfirmationText
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                    .uppercased() != startFreshPhrase
+            )
         }
     }
 
@@ -249,7 +264,7 @@ struct RestoreEncryptionKeyView: View {
         }
 
         guard canSubmitCreateBackup else {
-            errorMessage = "Recovery Passcodes must match and be at least 8 characters."
+            errorMessage = "Secure Messages Passcodes must match and be at least 8 characters."
             return
         }
 
@@ -259,7 +274,7 @@ struct RestoreEncryptionKeyView: View {
         }
 
         guard hasLocalAccountKey() else {
-            errorMessage = "This device does not have an encryption key to back up."
+            errorMessage = "This device does not have a secure message key to back up."
             return
         }
 
@@ -275,7 +290,7 @@ struct RestoreEncryptionKeyView: View {
             )
 
             hasRemoteBackup = true
-            successMessage = "Recovery backup created. You can now use this Recovery Passcode on the website and future Android app."
+            successMessage = "Recovery backup created. You can now use this Secure Messages Passcode on the website, Android, or another iPhone."
             confirmRecoveryPasscode = ""
 
             await auth.refreshCurrentUser()
@@ -305,7 +320,7 @@ struct RestoreEncryptionKeyView: View {
         }
 
         guard recoveryPasscode.trimmingCharacters(in: .whitespacesAndNewlines).count >= 8 else {
-            errorMessage = "Enter your Recovery Passcode."
+            errorMessage = "Enter your Secure Messages Passcode."
             return
         }
 
@@ -326,7 +341,7 @@ struct RestoreEncryptionKeyView: View {
 
             await auth.refreshCurrentUser()
 
-            successMessage = "Encrypted chats restored."
+            successMessage = "Secure messages restored."
             recoveryPasscode = ""
 
             await onCompleted?()
@@ -337,8 +352,8 @@ struct RestoreEncryptionKeyView: View {
                 auth.markKeyRestoreComplete()
                 dismiss()
             } else {
-                auth.forceKeyRestore(message: "The restored key does not match this account.")
-                errorMessage = "The restored key does not match this account."
+                auth.forceKeyRestore(message: "The restored secure message key does not match this account.")
+                errorMessage = "The restored secure message key does not match this account."
             }
         } catch {
             errorMessage = error.localizedDescription
@@ -372,12 +387,12 @@ struct RestoreEncryptionKeyView: View {
             try? await Task.sleep(nanoseconds: 500_000_000)
 
             if hasMatchingAccountKey() {
-                successMessage = "Encryption reset."
+                successMessage = "Fresh secure messages are ready."
                 auth.markKeyRestoreComplete()
                 dismiss()
             } else {
-                auth.forceKeyRestore(message: "This device does not have the new encryption key.")
-                errorMessage = "This device does not have the new encryption key."
+                auth.forceKeyRestore(message: "This device does not have the new secure message key.")
+                errorMessage = "This device does not have the new secure message key."
             }
         } catch {
             errorMessage = error.localizedDescription

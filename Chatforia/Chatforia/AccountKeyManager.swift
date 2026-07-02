@@ -7,7 +7,10 @@ struct ResetEncryptionRequest: Encodable {
 }
 
 struct ResetEncryptionResponse: Decodable {
-    let ok: Bool
+    let ok: Bool?
+    let publicKey: String?
+    let hasBackup: Bool?
+    let rotatedAt: String?
 }
 
 private struct AuthMeKeyCheckResponse: Decodable {
@@ -116,7 +119,7 @@ final class AccountKeyManager {
                 code: 51,
                 userInfo: [
                     NSLocalizedDescriptionKey:
-                        "This device is missing your encryption key. Restore your backup key or reset encryption."
+                        "This device is missing your secure message key. Restore your secure message backup or start fresh with secure messages."
                 ]
             )
         }
@@ -132,7 +135,7 @@ final class AccountKeyManager {
                 code: 50,
                 userInfo: [
                     NSLocalizedDescriptionKey:
-                        "Local encryption key does not match server public key. Restore your backup key or reset encryption."
+                        "The secure message key on this device does not match your account. Restore your secure message backup or start fresh with secure messages."
                 ]
             )
         }

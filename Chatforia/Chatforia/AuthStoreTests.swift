@@ -100,10 +100,10 @@ final class AuthStoreTests: XCTestCase {
     func testForceKeyRestoreSetsRestoreState() {
         let auth = makeAuthStore()
 
-        auth.forceKeyRestore(message: "Restore your encryption key")
+        auth.forceKeyRestore(message: "Restore secure messages")
 
         XCTAssertTrue(auth.needsKeyRestore)
-        XCTAssertEqual(auth.keyRestoreMessage, "Restore your encryption key")
+        XCTAssertEqual(auth.keyRestoreMessage, "Restore your secure message key")
     }
 
     func testMarkKeyRestoreCompleteClearsRestoreState() {
