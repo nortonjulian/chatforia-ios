@@ -293,6 +293,7 @@ struct ContactsRootView: View {
                                 favorite: contact.favorite ?? false
                             )
                             .environmentObject(themeManager)
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .swipeActions(edge: .trailing) {

@@ -42,6 +42,8 @@ struct ContactRowView: View {
             Image(systemName: "chevron.right")
                 .foregroundStyle(.tertiary)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 6)
+        .contentShape(Rectangle())
     }
 }

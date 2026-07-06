@@ -67,7 +67,8 @@ struct ChatThreadView: View {
                     .foregroundColor(.red)
                     .padding()
             }
-
+            
+            randomChatActionsBar
             messagesSection
             pendingMediaBar
             composer
@@ -240,13 +241,68 @@ struct ChatThreadView: View {
     }
 }
 
+
 extension ChatThreadView {
+    private var randomChatActionsBar: some View {
+        Group {
+            if vm.randomSession != nil {
+                HStack(spacing: 10) {
+                    Button {
+                        Task {
+                            await vm.requestAddFriend()
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: vm.randomSession?.iRequestedFriend == true
+                                ? "person.crop.circle.badge.checkmark"
+                                : "person.badge.plus")
+
+                            Text(vm.randomSession?.iRequestedFriend == true
+                                ? "Friend Requested"
+                                : "Add Friend")
+                        }
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(themeManager.palette.accent.opacity(0.14))
+                        .foregroundStyle(themeManager.palette.accent)
+                        .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(vm.randomSession?.iRequestedFriend == true)
+
+                    Button {
+                        Task {
+                            await vm.nextPerson()
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.right.circle")
+                            Text("Next")
+                        }
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(themeManager.palette.composerFieldBackground)
+                        .foregroundStyle(themeManager.palette.secondaryText)
+                        .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+            }
+        }
+    }
+
     private var messagesSection: some View {
         Group {
             if vm.isLoading && vm.messages.isEmpty {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if vm.messages.isEmpty {
+            } else if vm.messages.isEmpty && randomSession == nil && vm.randomSession == nil {
                 Text(
                     appText(
                         "messages.noMessagesYet",
@@ -262,6 +318,7 @@ extension ChatThreadView {
                     messages: vm.messages,
                     currentUserId: currentUserId,
                     isGroupRoom: room.isGroup == true,
+                    isRandomChat: randomSession != nil || vm.randomSession != nil,
                     isLoadingOlder: vm.isLoadingOlder,
                     deliveryStateForMessage: { _ in nil },
                     onLoadOlder: {
@@ -636,16 +693,18 @@ extension ChatThreadView {
                 Image(systemName: "magnifyingglass")
             }
 
-            Button {
-                startCall()
-            } label: {
-                Image(systemName: "phone.fill")
-            }
+            if randomSession == nil && vm.randomSession == nil {
+                Button {
+                    startCall()
+                } label: {
+                    Image(systemName: "phone.fill")
+                }
 
-            Button {
-                startVideoCall()
-            } label: {
-                Image(systemName: "video.fill")
+                Button {
+                    startVideoCall()
+                } label: {
+                    Image(systemName: "video.fill")
+                }
             }
         }
     }
@@ -805,6 +864,14 @@ extension ChatThreadView {
 
         settingsVM.loadLocalAISettings()
 
+        if let randomSession {
+            vm.configureRandomSession(
+                roomId: randomSession.roomId,
+                myAlias: randomSession.myAlias,
+                partnerAlias: randomSession.partnerAlias
+            )
+        }
+
         await reload()
 
         vm.startExpiryLoop()
@@ -929,15 +996,22 @@ extension ChatThreadView {
     }
 
     private var roomDisplayTitle: String {
-        room.name
-        ?? String(
-            format:
-                appText(
-                    "chat.roomNumber",
-                    languageCode: appLanguage
-                ),
-            room.id
-        )
+        if let alias = vm.randomSession?.partnerAlias,
+        !alias.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return alias
+        }
+
+        if let alias = randomSession?.partnerAlias,
+        !alias.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return alias
+        }
+
+        if let name = room.name,
+        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return name
+        }
+
+        return "Chat #\(room.id)"
     }
     
     private var editMessageSheet: some View {

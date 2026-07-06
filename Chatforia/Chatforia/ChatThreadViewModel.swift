@@ -306,11 +306,12 @@ final class ChatThreadViewModel: ObservableObject {
     func nextPerson() async {
         guard let session = randomSession else { return }
 
-        SocketManager.shared.emit("random:skip", [
-            "roomId": session.roomId
-        ])
-
+        SocketManager.shared.skipRandomChat(roomId: session.roomId)
         SocketManager.shared.markRandomMatchCompleted()
+
+        randomSession = nil
+
+        try? await Task.sleep(nanoseconds: 700_000_000)
 
         NotificationCenter.default.post(
             name: .init("randomNextPerson"),

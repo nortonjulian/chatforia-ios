@@ -14,6 +14,7 @@ struct MessagesListView: View {
     let messages: [MessageDTO]
     let currentUserId: Int?
     let isGroupRoom: Bool
+    let isRandomChat: Bool
     let isLoadingOlder: Bool
     let deliveryStateForMessage: (MessageDTO) -> DeliveryState?
     let onLoadOlder: () async -> Void
@@ -45,8 +46,30 @@ struct MessagesListView: View {
     private let pagingThrottleSeconds: TimeInterval = 0.8
     private let nearBottomThreshold: CGFloat = 140
 
+    private let randomDisclaimerText =
+        "You've been paired for a random chat. Be kind!"
+
+    private func randomNoticeText(for message: MessageDTO) -> String {
+        (
+            message.translatedForMe
+            ?? message.rawContent
+            ?? ""
+        )
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var visibleMessages: [MessageDTO] {
+        guard isRandomChat else {
+            return messages
+        }
+
+        return messages.filter {
+            randomNoticeText(for: $0) != randomDisclaimerText
+        }
+    }
+
     private var sortedMessages: [MessageDTO] {
-        messages.sorted {
+        visibleMessages.sorted {
             if $0.createdAt != $1.createdAt { return $0.createdAt < $1.createdAt }
             return $0.id < $1.id
         }
@@ -83,6 +106,11 @@ struct MessagesListView: View {
                                 .padding(.vertical, 8)
                         }
 
+                        if isRandomChat {
+                            RandomChatDisclaimerBanner()
+                                .padding(.bottom, 8)
+                        }
+
                         ForEach(Array(sortedMessages.enumerated()), id: \.element.id) { index, _ in
                             messageRow(at: index, bubbleMaxWidth: bubbleMaxWidth)
                         }
@@ -102,7 +130,7 @@ struct MessagesListView: View {
                     }
                     .frame(minHeight: geo.size.height, alignment: .bottom)
                     .padding(.vertical, 14)
-//                    .animation(.spring(response: 0.28, dampingFraction: 0.88), value: sortedMessageIDs)
+
                 }
                 .background(themeManager.palette.screenBackground)
                 .coordinateSpace(name: "MessagesScroll")
@@ -338,5 +366,22 @@ struct MessagesListView: View {
     private func shouldShowDateSeparator(previous: MessageDTO?, current: MessageDTO) -> Bool {
         guard let previous else { return true }
         return !Calendar.current.isDate(previous.createdAt, inSameDayAs: current.createdAt)
+    }
+}
+
+private struct RandomChatDisclaimerBanner: View {
+    @EnvironmentObject private var themeManager: ThemeManager
+
+    var body: some View {
+        Text("You've been paired for a random chat. Be kind!")
+            .font(.caption)
+            .foregroundStyle(themeManager.palette.secondaryText)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(
+                Capsule()
+                    .fill(themeManager.palette.cardBackground.opacity(0.9))
+            )
+            .frame(maxWidth: .infinity)
     }
 }

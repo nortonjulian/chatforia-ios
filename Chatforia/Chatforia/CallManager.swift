@@ -982,20 +982,32 @@ final class CallManager: ObservableObject {
         }
 
         if let callId = session.backendCallId,
-           let token = TokenStore.shared.read(),
-           !token.isEmpty {
-            Task {
-                await patchCallStatus(
-                    callId: callId,
-                    token: token,
-                    status: backend.status,
-                    endedAt: endedAt,
-                    durationSec: backend.durationSec,
-                    endReason: backend.endReason,
-                    twilioCallSid: session.callSid
+            let token = TokenStore.shared.read(),
+            !token.isEmpty {
+                Task {
+                    await patchCallStatus(
+                        callId: callId,
+                        token: token,
+                        status: backend.status,
+                        endedAt: endedAt,
+                        durationSec: backend.durationSec,
+                        endReason: backend.endReason,
+                        twilioCallSid: session.callSid
+                    )
+
+                    await MainActor.run {
+                        NotificationCenter.default.post(
+                            name: .callHistoryShouldRefresh,
+                            object: nil
+                        )
+                    }
+                }
+            } else {
+                NotificationCenter.default.post(
+                    name: .callHistoryShouldRefresh,
+                    object: nil
                 )
             }
-        }
 
         switch finalDisplayState(for: outcome) {
         case .ended:

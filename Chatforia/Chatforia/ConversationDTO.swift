@@ -12,12 +12,27 @@ struct ConversationDTO: Codable, Identifiable {
     let avatarUsers: [ConversationAvatarUserDTO]?
     let last: ConversationLastDTO?
 
+    var isRandomChat: Bool? = nil
+    var randomChat: RandomChatConversationDTO? = nil
+    var randomChatRoomId: Int? = nil
+
     var uniqueId: String {
         if let id {
             return "\(kind)-\(id)"
         }
         return "\(kind)-draft-\(phone ?? title)"
     }
+}
+
+struct RandomChatConversationDTO: Codable {
+    let id: Int?
+    let chatRoomId: Int
+    let myAlias: String?
+    let partnerAlias: String?
+    let isUnlocked: Bool?
+    let endedAt: String?
+    let endedReason: String?
+    let endedById: Int?
 }
 
 struct ConversationAvatarUserDTO: Codable, Identifiable, Hashable {

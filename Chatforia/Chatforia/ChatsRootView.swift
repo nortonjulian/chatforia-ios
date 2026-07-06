@@ -21,6 +21,8 @@ struct ChatsRootView: View {
     @State private var selectedRandomSession: RandomSession? = nil
     @State private var didSetupRandomMatchListener = false
     @State private var showRiaChat = false
+    @State private var activeRandomRoomIds = Set<Int>()
+
     @StateObject private var settingsVM = SettingsViewModel()
 
     private var shouldShowAds: Bool {
@@ -107,6 +109,7 @@ struct ChatsRootView: View {
                                 }
 
                                 ForEach(vm.filteredConversations, id: \.uniqueId) { conversation in
+                            
                                     Button {
                                             openConversationFromList(conversation)
                                     } label: {
@@ -121,18 +124,27 @@ struct ChatsRootView: View {
                                     }
                                     .buttonStyle(.plain)
                                     .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                                        Button {
-                                            handleMessageFromChats(conversation)
-                                        } label: {
-                                            Label(
-                                                appText(
-                                                    "ios.message",
-                                                    languageCode: appLanguage
-                                                ),
-                                                systemImage: "message.fill"
-                                            )
+                                        if isRandomChatConversation(conversation) {
+                                            Button {
+                                                leaveRandomChatFromList(conversation)
+                                            } label: {
+                                                Label("Leave", systemImage: "xmark.circle.fill")
+                                            }
+                                            .tint(.orange)
+                                        } else {
+                                            Button {
+                                                handleMessageFromChats(conversation)
+                                            } label: {
+                                                Label(
+                                                    appText(
+                                                        "ios.message",
+                                                        languageCode: appLanguage
+                                                    ),
+                                                    systemImage: "message.fill"
+                                                )
+                                            }
+                                            .tint(themeManager.palette.accent)
                                         }
-                                        .tint(themeManager.palette.accent)
                                     }
                                     .swipeActions(edge: .trailing) {
                                         Button {
@@ -270,7 +282,12 @@ struct ChatsRootView: View {
                 .environmentObject(auth)
                 .environmentObject(themeManager)
             }
-            .sheet(isPresented: $isMatching) {
+            .sheet(
+                isPresented: $isMatching,
+                onDismiss: {
+                    SocketManager.shared.leaveRandomQueue()
+                }
+            ) {
                 RandomMatchingView(
                     onCancel: {
                         SocketManager.shared.leaveRandomQueue()
@@ -350,9 +367,30 @@ struct ChatsRootView: View {
         let token = TokenStore.shared.read()
         await vm.loadConversations(token: token)
     }
+
+    private func isRandomChatConversation(_ conversation: ConversationDTO) -> Bool {
+        if conversation.isRandomChat == true { return true }
+        if conversation.randomChat != nil { return true }
+
+        if let id = conversation.id,
+        activeRandomRoomIds.contains(id) {
+            return true
+        }
+
+        return false
+    }
     
     private func openConversationFromList(_ conversation: ConversationDTO) {
         selectedRandomSession = nil
+
+        if conversation.isRandomChat == true || conversation.randomChat != nil,
+            let randomChat = conversation.randomChat {
+            selectedRandomSession = RandomSession(
+                roomId: randomChat.chatRoomId,
+                myAlias: randomChat.myAlias ?? appText("common.you", languageCode: appLanguage),
+                partnerAlias: randomChat.partnerAlias ?? appText("random.stranger", languageCode: appLanguage)
+            )
+        }
 
         switch conversation.kind.lowercased() {
         case "chat":
@@ -377,6 +415,27 @@ struct ChatsRootView: View {
         openConversationFromList(conversation)
     }
 
+    private func leaveRandomChatFromList(_ conversation: ConversationDTO) {
+        guard isRandomChatConversation(conversation) else { return }
+
+        let roomId =
+            conversation.randomChat?.chatRoomId ??
+            conversation.id
+
+        if let roomId {
+            activeRandomRoomIds.remove(roomId)
+        }
+
+        selectedRandomSession = nil
+        SocketManager.shared.markRandomMatchCompleted()
+        SocketManager.shared.skipRandomChat(roomId: roomId)
+
+        Task {
+            try? await Task.sleep(nanoseconds: 700_000_000)
+            await reload()
+        }
+    }
+
     @ViewBuilder
     private func destinationView(for conversation: ConversationDTO) -> some View {
         switch conversation.kind.lowercased() {
@@ -394,18 +453,30 @@ struct ChatsRootView: View {
     }
 
     private func startRandomChat() {
-        isMatching = true
-
         guard let token = TokenStore.shared.read(), !token.isEmpty else {
             isMatching = false
             return
         }
 
-        SocketManager.shared.connect(token: token)
+        isMatching = true
 
-        // Default behavior: no topic required.
-        // This supports users who just want to talk to anyone.
-        SocketManager.shared.joinRandomQueue()
+        Task { @MainActor in
+            SocketManager.shared.resetRandomQueueState(reason: "starting random chat")
+
+            do {
+                try await SocketManager.shared.connectAsync(token: token, timeoutSecs: 12)
+
+                SocketManager.shared.leaveRandomQueue()
+
+                try? await Task.sleep(nanoseconds: 200_000_000)
+
+                SocketManager.shared.joinRandomQueue()
+            } catch {
+                isMatching = false
+                vm.errorText = "Could not connect to Random Chat. Please try again."
+                debugLog("[RandomChat][iOS] failed to connect before random join:", error.localizedDescription)
+            }
+        }
     }
 
     private func setupRandomMatchListener() {
@@ -444,10 +515,28 @@ struct ChatsRootView: View {
                 )
             }
         }
+
+        SocketManager.shared.on("random:ended") { data, _ in
+            let roomId = (data.first as? [String: Any])?["roomId"] as? Int
+
+            Task { @MainActor in
+                isMatching = false
+                selectedRandomSession = nil
+                SocketManager.shared.markRandomMatchCompleted()
+
+                if let roomId {
+                    activeRandomRoomIds.remove(roomId)
+                }
+
+                await reload()
+            }
+        }
     }
 
     private func handleMatchFound(roomId: Int, myAlias: String, partnerAlias: String) async {
         isMatching = false
+        SocketManager.shared.markRandomMatchCompleted()
+        activeRandomRoomIds.insert(roomId)
 
         guard let token = TokenStore.shared.read(), !token.isEmpty else { return }
 
@@ -462,6 +551,8 @@ struct ChatsRootView: View {
                 myAlias: myAlias,
                 partnerAlias: partnerAlias
             )
+
+            activeRandomRoomIds.insert(roomId)
 
             selectedRoom = room
             matchedRoom = room

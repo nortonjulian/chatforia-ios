@@ -107,6 +107,14 @@ struct CallHistoryView: View {
                 role: .cancel
             ) { }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .callHistoryShouldRefresh)) { _ in
+            guard selectedSegment == .recents else { return }
+
+            Task {
+                try? await Task.sleep(nanoseconds: 300_000_000)
+                await load()
+            }
+        }
     }
     
     @ViewBuilder

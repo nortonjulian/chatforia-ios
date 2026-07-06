@@ -413,26 +413,73 @@ final class SocketManager: ObservableObject {
 
     // MARK: - Random Matching
 
-    func joinRandomQueue(topic: String? = nil, region: String? = nil) {
-        guard !isInRandomQueue else { return }
+func resetRandomQueueState(reason: String = "") {
+    debugLog("[RandomChat][iOS] resetRandomQueueState reason=\(reason)")
+    isInRandomQueue = false
+}
 
-        var payload: [String: Any] = [:]
-        if let topic { payload["topic"] = topic }
-        if let region { payload["region"] = region }
-
-        socket?.emit("random:join", payload)
-        isInRandomQueue = true
-    }
-
-    func leaveRandomQueue() {
-        guard isInRandomQueue else { return }
-        socket?.emit("random:leave")
+func joinRandomQueue(topic: String? = nil, region: String? = nil) {
+    guard let socket else {
+        debugLog("[RandomChat][iOS] joinRandomQueue skipped: socket is nil")
         isInRandomQueue = false
+        return
     }
 
-    func markRandomMatchCompleted() {
+    guard socket.status == .connected else {
+        debugLog("[RandomChat][iOS] joinRandomQueue skipped: socket not connected status=\(socket.status)")
         isInRandomQueue = false
+        return
     }
+
+    guard !isInRandomQueue else {
+        debugLog("[RandomChat][iOS] joinRandomQueue BLOCKED: already in random queue")
+        return
+    }
+
+    var payload: [String: Any] = [:]
+    if let topic { payload["topic"] = topic }
+    if let region { payload["region"] = region }
+
+    debugLog("[RandomChat][iOS] emitting random:join payload=\(payload)")
+    socket.emit("random:join", payload)
+    isInRandomQueue = true
+}
+
+func leaveRandomQueue() {
+    guard let socket else {
+        debugLog("[RandomChat][iOS] leaveRandomQueue skipped: socket is nil")
+        isInRandomQueue = false
+        return
+    }
+
+    guard socket.status == .connected else {
+        debugLog("[RandomChat][iOS] leaveRandomQueue skipped: socket not connected status=\(socket.status)")
+        isInRandomQueue = false
+        return
+    }
+
+    debugLog("[RandomChat][iOS] emitting random:leave")
+    socket.emit("random:leave")
+    isInRandomQueue = false
+}
+
+func skipRandomChat(roomId: Int?) {
+    var payload: [String: Any] = [:]
+
+    if let roomId {
+        payload["roomId"] = roomId
+    }
+
+    debugLog("[RandomChat][iOS] emitting random:skip payload=\(payload)")
+    socket?.emit("random:skip", payload)
+
+    isInRandomQueue = false
+}
+
+func markRandomMatchCompleted() {
+    debugLog("[RandomChat][iOS] markRandomMatchCompleted")
+    isInRandomQueue = false
+}
 
     // MARK: - Helpers
     
