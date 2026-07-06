@@ -103,17 +103,29 @@ final class AccountKeyManager {
             token: token
         )
 
+        guard me.user.id == userId else {
+            throw NSError(
+                domain: "AccountKeyManager",
+                code: 49,
+                userInfo: [
+                    NSLocalizedDescriptionKey:
+                        "Secure message key setup failed because the signed-in user changed."
+                ]
+            )
+        }
+
         let serverPublicKey = me.user.publicKey?
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
         let localPublicKey = publicKeyBase64(userId: userId)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
+        let hasLocalKeys = hasAccountKeys(userId: userId)
 
         // 1. Server has key, but device has none.
         if let serverPublicKey,
-           !serverPublicKey.isEmpty,
-           !hasAccountKeys(userId: userId) {
+        !serverPublicKey.isEmpty,
+        !hasLocalKeys {
             throw NSError(
                 domain: "AccountKeyManager",
                 code: 51,
@@ -126,10 +138,10 @@ final class AccountKeyManager {
 
         // 2. Device has key, but it does not match server.
         if let localPublicKey,
-           let serverPublicKey,
-           !localPublicKey.isEmpty,
-           !serverPublicKey.isEmpty,
-           localPublicKey != serverPublicKey {
+        let serverPublicKey,
+        !localPublicKey.isEmpty,
+        !serverPublicKey.isEmpty,
+        localPublicKey != serverPublicKey {
             throw NSError(
                 domain: "AccountKeyManager",
                 code: 50,
@@ -140,12 +152,53 @@ final class AccountKeyManager {
             )
         }
 
-        // 3. Device has matching keys.
-        if hasAccountKeys(userId: userId) {
+        // 3. Device has keys, but server is missing the public key.
+        // Upload the existing local public key before marking encryption ready.
+        if hasLocalKeys,
+        let localPublicKey,
+        !localPublicKey.isEmpty,
+        serverPublicKey?.isEmpty != false {
+
+            let requestBody = ResetEncryptionRequest(
+                publicKey: localPublicKey,
+                invalidateExistingBackup: false
+            )
+
+            let bodyData = try JSONEncoder().encode(requestBody)
+
+            let response: ResetEncryptionResponse = try await APIClient.shared.send(
+                APIRequest(
+                    path: "auth/keys/rotate",
+                    method: .POST,
+                    body: bodyData,
+                    requiresAuth: true
+                ),
+                token: token
+            )
+
+            let uploadedPublicKey = response.publicKey?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+
+            guard uploadedPublicKey == localPublicKey else {
+                throw NSError(
+                    domain: "AccountKeyManager",
+                    code: 52,
+                    userInfo: [
+                        NSLocalizedDescriptionKey:
+                            "Secure message key setup failed. Please try again."
+                    ]
+                )
+            }
+
             return false
         }
 
-        // 4. Brand-new account/server has no key yet.
+        // 4. Device has matching keys.
+        if hasLocalKeys {
+            return false
+        }
+
+        // 5. Brand-new account/server has no key yet.
         let newKeys = try generateNewAccountKeys()
 
         try saveAccountKeys(
@@ -153,6 +206,39 @@ final class AccountKeyManager {
             publicKeyBase64: newKeys.publicKeyBase64,
             privateKeyBase64: newKeys.privateKeyBase64
         )
+
+        let requestBody = ResetEncryptionRequest(
+            publicKey: newKeys.publicKeyBase64,
+            invalidateExistingBackup: false
+        )
+
+        let bodyData = try JSONEncoder().encode(requestBody)
+
+        let response: ResetEncryptionResponse = try await APIClient.shared.send(
+            APIRequest(
+                path: "auth/keys/rotate",
+                method: .POST,
+                body: bodyData,
+                requiresAuth: true
+            ),
+            token: token
+        )
+
+        let uploadedPublicKey = response.publicKey?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard uploadedPublicKey == newKeys.publicKeyBase64 else {
+            clear(userId: userId)
+
+            throw NSError(
+                domain: "AccountKeyManager",
+                code: 52,
+                userInfo: [
+                    NSLocalizedDescriptionKey:
+                        "Secure message key setup failed. Please try again."
+                ]
+            )
+        }
 
         return false
     }

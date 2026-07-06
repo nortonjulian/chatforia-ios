@@ -500,6 +500,30 @@ final class ChatThreadViewModel: ObservableObject {
             )
         )
 
+        let missingKeyParticipants = participantResponse.participants.filter { participant in
+            guard let user = participant.user else { return true }
+
+            let publicKey = user.publicKey?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+
+            return publicKey?.isEmpty != false
+        }
+
+        guard missingKeyParticipants.isEmpty else {
+            let ids = missingKeyParticipants
+                .map { "\($0.userId)" }
+                .joined(separator: ", ")
+
+            throw NSError(
+                domain: "ChatThreadViewModel",
+                code: 1002,
+                userInfo: [
+                    NSLocalizedDescriptionKey:
+                        "Secure messaging is not ready for every participant. Missing public keys for user IDs: \(ids)."
+                ]
+            )
+        }
+
         let translations = try await translateMessagePreview(
             token: token,
             roomId: roomId,
@@ -510,8 +534,19 @@ final class ChatThreadViewModel: ObservableObject {
         var encryptedPayloads: [String: EncryptedMessagePayloadForUser] = [:]
 
         for participant in participantResponse.participants {
-            guard let user = participant.user else { continue }
-            guard let publicKey = user.publicKey, !publicKey.isEmpty else { continue }
+            guard let user = participant.user else {
+                throw NSError(
+                    domain: "ChatThreadViewModel",
+                    code: 1004,
+                    userInfo: [
+                        NSLocalizedDescriptionKey:
+                            "Secure messaging is not ready for every participant."
+                    ]
+                )
+            }
+
+            let publicKey = user.publicKey!
+                .trimmingCharacters(in: .whitespacesAndNewlines)
 
             let preferredLang = normalizeLanguage(user.preferredLanguage)
             let baseLang = preferredLang?.components(separatedBy: "-").first
@@ -536,6 +571,24 @@ final class ChatThreadViewModel: ObservableObject {
                     language: preferredLang,
                     sourceLanguage: nil
                 )
+        }
+
+        let requiredUserIds = Set(
+            participantResponse.participants.map { String($0.userId) }
+        )
+
+        let payloadUserIds = Set(encryptedPayloads.keys)
+        let missingPayloads = requiredUserIds.subtracting(payloadUserIds)
+
+        guard missingPayloads.isEmpty else {
+            throw NSError(
+                domain: "ChatThreadViewModel",
+                code: 1003,
+                userInfo: [
+                    NSLocalizedDescriptionKey:
+                        "Secure message could not be created for every participant."
+                ]
+            )
         }
 
         guard !encryptedPayloads.isEmpty else {

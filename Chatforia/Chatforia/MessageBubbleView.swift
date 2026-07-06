@@ -76,9 +76,24 @@ struct MessageBubbleView: View {
         let raw = msg.rawContent ?? ""
         let translated = msg.translatedForMe ?? ""
         let decrypted = decryptedText ?? ""
+
+        let payloadCiphertext = msg.encryptedPayloadForMe?.contentCiphertext ?? ""
+        let payloadKey = msg.encryptedPayloadForMe?.encryptedKey ?? ""
+        let payloadLanguage = msg.encryptedPayloadForMe?.language ?? ""
+        let payloadSourceLanguage = msg.encryptedPayloadForMe?.sourceLanguage ?? ""
+
+        let legacyCiphertext = msg.contentCiphertext ?? ""
+        let legacyKey = msg.encryptedKeyForMe ?? ""
+
+        let attachmentKey = (msg.attachments ?? [])
+            .map {
+                "\($0.id ?? -1)|\($0.kind ?? "")|\($0.url ?? "")|\($0.caption ?? "")|\($0.thumbUrl ?? "")"
+            }
+            .joined(separator: ",")
+
         let deleted = (msg.deletedForAll == true || msg.deletedBySender == true) ? "deleted" : "live"
-        
-        return "\(msg.id)|\(revision)|\(edited)|\(raw)|\(translated)|\(decrypted)|\(deleted)"
+
+        return "\(msg.id)|\(revision)|\(edited)|\(raw)|\(translated)|\(decrypted)|\(payloadCiphertext)|\(payloadKey)|\(payloadLanguage)|\(payloadSourceLanguage)|\(legacyCiphertext)|\(legacyKey)|\(attachmentKey)|\(deleted)"
     }
     
     private var bubbleShape: ChatBubbleShape {
@@ -211,7 +226,13 @@ struct MessageBubbleView: View {
             EmptyView()
             
         } else {
-            Text("—")
+            Text(appText("chat.secureMessageUnavailable", languageCode: appLanguage))
+                .italic()
+                .foregroundStyle(
+                    isMe
+                        ? themeManager.palette.bubbleOutgoingText.opacity(0.82)
+                        : themeManager.palette.secondaryText
+                )
         }
     }
 }

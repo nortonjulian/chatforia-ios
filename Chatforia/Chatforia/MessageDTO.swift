@@ -465,7 +465,11 @@ struct MessageDTO: Codable, Identifiable, Equatable {
         lhs.revision == rhs.revision &&
         lhs.editedAt == rhs.editedAt &&
         lhs.rawContent == rhs.rawContent &&
+        lhs.contentCiphertext == rhs.contentCiphertext &&
+        lhs.encryptedKeyForMe == rhs.encryptedKeyForMe &&
+        lhs.encryptedPayloadForMe == rhs.encryptedPayloadForMe &&
         lhs.translatedForMe == rhs.translatedForMe &&
+        lhs.attachments == rhs.attachments &&
         lhs.deletedForAll == rhs.deletedForAll &&
         lhs.deletedBySender == rhs.deletedBySender &&
         lhs.reactionSummary == rhs.reactionSummary &&
