@@ -128,12 +128,12 @@ final class ChatsViewModel: ObservableObject {
     }
     
     private func bumpConversation(roomId: Int, payload: [String: Any]) {
-    guard let index = conversations.firstIndex(where: { $0.id == roomId }) else {
-        Task {
-            await self.loadConversations(token: TokenStore.shared.read())
+        guard let index = conversations.firstIndex(where: { $0.id == roomId }) else {
+            Task {
+                await self.loadConversations(token: TokenStore.shared.read())
+            }
+            return
         }
-        return
-    }
 
         let convo = conversations[index]
         let nowISO = ISO8601DateFormatter().string(from: Date())
@@ -363,7 +363,7 @@ final class ChatsViewModel: ObservableObject {
             self.conversations = sortedConversations(hydrated)
 
             for convo in self.conversations
-                where convo.last?.text == "Message" {
+                where shouldHydrateEncryptedPreview(convo) {
 
                 Task {
                     await self.hydrateEncryptedPreview(
@@ -479,11 +479,19 @@ final class ChatsViewModel: ObservableObject {
                 token: token
             )
 
-            guard let targetMessageId = conversation.last?.messageId else { return }
+            let targetMessageId = conversation.last?.messageId
 
-            guard let newest = page.items.first(where: { $0.id == targetMessageId })
-                ?? page.items.first
-            else { return }
+            let newest: MessageDTO?
+
+            if let targetMessageId {
+                newest =
+                    page.items.first(where: { $0.id == targetMessageId })
+                    ?? page.items.first
+            } else {
+                newest = page.items.first
+            }
+
+            guard let newest else { return }
 
             let decrypted: String
 
@@ -566,10 +574,28 @@ final class ChatsViewModel: ObservableObject {
                         senderName: convo.last?.senderName
                     )
                 )
+
+                self.resortConversations()
             }
         } catch {
             debugLog("⚠️ preview hydrate failed:", error.localizedDescription)
         }
+    }
+
+    private func shouldHydrateEncryptedPreview(_ conversation: ConversationDTO) -> Bool {
+        guard conversation.kind.lowercased() == "chat" else { return false }
+        guard conversation.id != nil else { return false }
+
+        let text =
+            conversation.last?.text?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            ?? ""
+
+        if text.isEmpty {
+            return true
+        }
+
+        return text.localizedCaseInsensitiveCompare("Message") == .orderedSame
     }
 
     private func sortedConversations(_ items: [ConversationDTO]) -> [ConversationDTO] {
