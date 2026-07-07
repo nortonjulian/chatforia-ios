@@ -360,7 +360,8 @@ final class ChatsViewModel: ObservableObject {
                 )
             }
 
-            self.conversations = sortedConversations(hydrated)
+            let merged = preserveExistingPreviewWhenBackendHasPlaceholder(hydrated)
+            self.conversations = sortedConversations(merged)
 
             for convo in self.conversations
                 where shouldHydrateEncryptedPreview(convo) {
@@ -627,6 +628,78 @@ final class ChatsViewModel: ObservableObject {
         }
 
         return text.localizedCaseInsensitiveCompare("Message") == .orderedSame
+    }
+
+    private func preserveExistingPreviewWhenBackendHasPlaceholder(
+        _ incomingConversations: [ConversationDTO]
+    ) -> [ConversationDTO] {
+        incomingConversations.map { incoming in
+            guard incoming.kind.lowercased() == "chat" else {
+                return incoming
+            }
+
+            let incomingText =
+                incoming.last?.text?
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                ?? ""
+
+            let incomingIsPlaceholder =
+                incomingText.isEmpty ||
+                incomingText.localizedCaseInsensitiveCompare("Message") == .orderedSame
+
+            guard incomingIsPlaceholder else {
+                return incoming
+            }
+
+            guard let existing = conversations.first(where: { $0.uniqueId == incoming.uniqueId }) else {
+                return incoming
+            }
+
+            guard let existingLast = existing.last else {
+                return incoming
+            }
+
+            let existingText =
+                existingLast.text?
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                ?? ""
+
+            guard !existingText.isEmpty else {
+                return incoming
+            }
+
+            guard existingText.localizedCaseInsensitiveCompare("Message") != .orderedSame else {
+                return incoming
+            }
+
+            if let incomingMessageId = incoming.last?.messageId,
+            let existingMessageId = existingLast.messageId,
+            incomingMessageId != existingMessageId {
+                return incoming
+            }
+
+            return ConversationDTO(
+                kind: incoming.kind,
+                id: incoming.id,
+                title: incoming.title,
+                displayName: incoming.displayName,
+                updatedAt: incoming.updatedAt,
+                isGroup: incoming.isGroup,
+                phone: incoming.phone,
+                unreadCount: incoming.unreadCount,
+                avatarUsers: incoming.avatarUsers,
+                last: ConversationLastDTO(
+                    text: existingText,
+                    messageId: incoming.last?.messageId ?? existingLast.messageId,
+                    at: incoming.last?.at ?? existingLast.at,
+                    hasMedia: incoming.last?.hasMedia ?? existingLast.hasMedia,
+                    mediaCount: incoming.last?.mediaCount ?? existingLast.mediaCount,
+                    mediaKinds: incoming.last?.mediaKinds ?? existingLast.mediaKinds,
+                    thumbUrl: incoming.last?.thumbUrl ?? existingLast.thumbUrl,
+                    senderName: incoming.last?.senderName ?? existingLast.senderName
+                )
+            )
+        }
     }
 
     private func sortedConversations(_ items: [ConversationDTO]) -> [ConversationDTO] {
