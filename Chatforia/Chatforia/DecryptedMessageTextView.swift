@@ -99,11 +99,6 @@ struct DecryptMessageTextView: View {
             return
         }
 
-        debugLog("🔐 has encryptedPayloadForMe:", msg.encryptedPayloadForMe != nil)
-        debugLog("🔐 has ciphertext:", ciphertext.isEmpty == false)
-        debugLog("🔐 has encrypted key:", encryptedKeyPayload.isEmpty == false)
-        debugLog("🔐 currentUserId:", currentUserId)
-
         do {
             let plaintext = try MessageCryptoService.shared.decryptMessageForCurrentBackend(
                 ciphertextBase64: ciphertext,

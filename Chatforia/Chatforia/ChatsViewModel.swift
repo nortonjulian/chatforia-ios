@@ -518,6 +518,30 @@ final class ChatsViewModel: ObservableObject {
                 decrypted = cached
 
             } else if
+                let payload = newest.encryptedPayloadForMe,
+                !payload.contentCiphertext.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+
+                let currentUserId =
+                    UserDefaults.standard.integer(
+                        forKey: "chatforia.currentUserId"
+                    )
+
+                guard currentUserId > 0 else { return }
+
+                decrypted =
+                    try MessageCryptoService.shared
+                        .decryptMessageForCurrentBackend(
+                            ciphertextBase64: payload.contentCiphertext,
+                            encryptedKeyPayload: payload.encryptedKey,
+                            userId: currentUserId
+                        )
+
+                await MainActor.run {
+                    DecryptedMessageTextStore.shared
+                        .setText(decrypted, for: newest.id)
+                }
+
+            } else if
                 let ciphertext = newest.contentCiphertext,
                 let encryptedKeyPayload = newest.encryptedKeyForMe {
 
@@ -542,6 +566,13 @@ final class ChatsViewModel: ObservableObject {
                 }
 
             } else {
+                debugLog(
+                    "⚠️ preview hydrate no decryptable content",
+                    "messageId=", newest.id,
+                    "hasEncryptedPayloadForMe=", newest.encryptedPayloadForMe != nil,
+                    "hasContentCiphertext=", newest.contentCiphertext != nil,
+                    "hasEncryptedKeyForMe=", newest.encryptedKeyForMe != nil
+                )
                 return
             }
 
