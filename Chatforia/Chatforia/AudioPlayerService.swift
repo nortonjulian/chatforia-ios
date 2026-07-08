@@ -8,6 +8,7 @@ final class AudioPlayerService {
     static let shared = AudioPlayerService()
 
     private var player: AVAudioPlayer?
+    private var ringbackPlayer: AVAudioPlayer?
     
     private var lastPlayedAt: Date = .distantPast
     
@@ -44,6 +45,56 @@ final class AudioPlayerService {
 
     func previewRingtone(filename: String, volume: Int) {
         playSound(filename: filename, volume: volume)
+    }
+
+    func playOutgoingRingback() {
+        stopOutgoingRingback()
+
+        let volume =
+            UserDefaults.standard.object(
+                forKey: soundVolumeKey
+            ) as? Int ?? 70
+
+        let url =
+            Bundle.main.url(
+                forResource: "ringback",
+                withExtension: "wav",
+                subdirectory: "sounds/Ringtones"
+            )
+            ??
+            Bundle.main.url(
+                forResource: "ringback",
+                withExtension: "wav"
+            )
+
+        guard let url else {
+            debugLog("❌ ringback.wav was not found in the app bundle")
+            return
+        }
+
+        do {
+            let audioPlayer =
+                try AVAudioPlayer(contentsOf: url)
+
+            audioPlayer.volume =
+                Float(max(0, min(volume, 100))) / 100.0
+
+            audioPlayer.numberOfLoops = -1
+            audioPlayer.prepareToPlay()
+            audioPlayer.play()
+
+            ringbackPlayer = audioPlayer
+        } catch {
+            debugLog(
+                "❌ Failed to play outgoing ringback:",
+                error
+            )
+        }
+    }
+
+    func stopOutgoingRingback() {
+        ringbackPlayer?.stop()
+        ringbackPlayer = nil
     }
 
     func stop() {

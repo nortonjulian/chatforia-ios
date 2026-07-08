@@ -14,7 +14,7 @@ struct ChatThreadView: View {
     @EnvironmentObject var callManager: CallManager
 
     @StateObject private var vm = ChatThreadViewModel()
-    @StateObject private var settingsVM = SettingsViewModel()
+    @EnvironmentObject private var settingsVM: SettingsViewModel
     
     @StateObject private var riaVM = RiaViewModel()
     @State private var showingRewriteSheet = false
@@ -678,7 +678,6 @@ extension ChatThreadView {
                 hasPendingAttachment: pendingGIFURL != nil || pendingImageData != nil || pendingVideoURL != nil,
                 isCaptioningPendingMedia: pendingImageData != nil || pendingVideoURL != nil
             )
-            .environmentObject(settingsVM)
             .padding(.bottom, 6)
         }
     }
@@ -859,10 +858,7 @@ extension ChatThreadView {
                 username: user.username,
                 publicKey: user.publicKey
             )
-            settingsVM.load(from: user)
         }
-
-        settingsVM.loadLocalAISettings()
 
         if let randomSession {
             vm.configureRandomSession(

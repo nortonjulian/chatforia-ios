@@ -155,16 +155,21 @@ struct ChatforiaApp: App {
 
             if auth.currentUser != nil {
                 Task {
-                    await auth.refreshCurrentUser()
-                    
-                    if let uiLanguage = auth.currentUser?.uiLanguage {
-                        appLanguage = uiLanguage
-                    }
+                    await auth.refreshCurrentUser(force: true)
 
-                        if let theme = auth.currentUser?.theme {
-                            themeManager.apply(code: theme)
-                            settingsVM.theme = theme
-                        }
+                    guard let user = auth.currentUser else { return }
+
+                    // Reload all server-backed settings, including Smart Replies.
+                    settingsVM.load(from: user)
+
+                    appLanguage =
+                        user.uiLanguage
+                        ?? user.preferredLanguage
+                        ?? "en"
+
+                    if let theme = user.theme {
+                        themeManager.apply(code: theme)
+                    }
                 }
                 callManager.startVoIPIfNeeded(auth: auth)
 

@@ -7,6 +7,7 @@ struct ProfileRootView: View {
     @EnvironmentObject var auth: AuthStore
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject private var inviteFlow: InviteFlowManager
+    @EnvironmentObject private var appSettings: SettingsViewModel
 
     @StateObject private var vm = SettingsViewModel()
 
@@ -190,6 +191,10 @@ struct ProfileRootView: View {
                 if let token = auth.currentToken, !token.isEmpty {
                     await loadBackupStatus(token: token)
                 }
+            }
+            .onChange(of: auth.currentUser?.enableSmartReplies) { _, newValue in
+                guard let newValue else { return }
+                vm.enableSmartReplies = newValue
             }
             .sheet(isPresented: $showingUpgradeSheet) {
                 UpgradePromptSheet(
@@ -1599,6 +1604,7 @@ struct ProfileRootView: View {
 
             auth.replaceCurrentUser(updatedUser)
             vm.load(from: updatedUser)
+            appSettings.load(from: updatedUser)
             themeManager.apply(code: updatedUser.theme ?? code)
         } catch {
             vm.saveError = error.localizedDescription
@@ -1780,6 +1786,7 @@ struct ProfileRootView: View {
 
             auth.replaceCurrentUser(updatedUser)
             vm.load(from: updatedUser)
+            appSettings.load(from: updatedUser)
             
             appLanguage = updatedUser.uiLanguage ?? "en"
             

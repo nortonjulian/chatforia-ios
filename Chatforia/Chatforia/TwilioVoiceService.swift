@@ -5,6 +5,7 @@ import TwilioVoice
 @MainActor
 protocol TwilioVoiceServiceDelegate: AnyObject {
     func twilioVoiceDidStartConnecting()
+    func twilioVoiceDidStartRinging()
     func twilioVoiceDidConnect(callSid: String?)
     func twilioVoiceDidDisconnect()
     func twilioVoiceDidFail(_ message: String)
@@ -166,7 +167,11 @@ final class TwilioVoiceService: NSObject {
 }
 
 extension TwilioVoiceService: CallDelegate {
-    nonisolated func callDidStartRinging(call: Call) {}
+    nonisolated func callDidStartRinging(call: Call) {
+        Task { @MainActor in
+            self.delegate?.twilioVoiceDidStartRinging()
+        }
+    }
 
     nonisolated func callDidConnect(call: Call) {
         Task { @MainActor in

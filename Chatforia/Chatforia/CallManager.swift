@@ -697,6 +697,8 @@ final class CallManager: ObservableObject {
     }
 
     func hangup() {
+        AudioPlayerService.shared.stopOutgoingRingback()
+        
         guard let session = activeSession else {
 
             twilioService.hangup()
@@ -934,6 +936,8 @@ final class CallManager: ObservableObject {
         outcome: CallEndOutcome,
         reportToCallKit: Bool = true
     ) {
+        AudioPlayerService.shared.stopOutgoingRingback()
+
         guard let session = activeSession else {
             state = {
                 switch finalDisplayState(for: outcome) {
@@ -1176,7 +1180,23 @@ extension CallManager: TwilioVoiceServiceDelegate {
         state = .connecting(name)
     }
 
+    func twilioVoiceDidStartRinging() {
+        guard let session = activeSession,
+            session.direction == .outgoing,
+            session.isVideo == false else {
+            return
+        }
+
+        updateSession {
+            $0.status = .ringing
+        }
+
+        AudioPlayerService.shared.playOutgoingRingback()
+    }
+
     func twilioVoiceDidConnect(callSid: String?) {
+        AudioPlayerService.shared.stopOutgoingRingback()
+
         guard let session = activeSession else { return }
 
         let now = Date()
