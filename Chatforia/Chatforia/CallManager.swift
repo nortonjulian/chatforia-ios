@@ -593,7 +593,7 @@ final class CallManager: ObservableObject {
                     )
 
                     try await twilioService.startCall(
-                        to: username ?? "",
+                        to: String(userId),
                         accessToken: tokenResponse.token
                     )
                 } catch {

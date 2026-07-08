@@ -70,7 +70,7 @@ final class TwilioVoiceService: NSObject {
 
     func startCall(to: String, accessToken: String) async throws {
         self.accessToken = accessToken
-        try configureAudioSession()
+        try configureAudioSession(activate: true)
 
         let params = ConnectOptions(accessToken: accessToken) { builder in
             builder.params = ["To": to]
@@ -94,7 +94,7 @@ final class TwilioVoiceService: NSObject {
         }
 
         do {
-            try configureAudioSession()
+            try configureAudioSession(activate: false)
 
             let acceptOptions = AcceptOptions(callInvite: callInvite) { _ in
             }
@@ -159,10 +159,20 @@ final class TwilioVoiceService: NSObject {
         activeCall?.sendDigits(cleanedDigits)
     }
 
-    private func configureAudioSession() throws {
+    private func configureAudioSession(activate: Bool) throws {
         let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetoothHFP, .defaultToSpeaker])
-        try session.setActive(true)
+
+        try session.setCategory(
+            .playAndRecord,
+            mode: .voiceChat,
+            options: [.allowBluetoothHFP, .defaultToSpeaker]
+        )
+
+        // Outgoing calls may activate immediately.
+        // Incoming CallKit calls must allow CallKit to activate the session.
+        if activate {
+            try session.setActive(true)
+        }
     }
 }
 
