@@ -46,7 +46,7 @@ struct DecryptMessageTextView: View {
 
     private func waitForMinimumLoadingTime(startedAt: Date) async {
         let elapsed = Date().timeIntervalSince(startedAt)
-        let remaining = max(0, 0.35 - elapsed)
+        let remaining = max(0, 0 - elapsed)
 
         if remaining > 0 {
             try? await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000))
@@ -84,6 +84,7 @@ struct DecryptMessageTextView: View {
             ?? msg.encryptedKeyForMe
 
         guard let ciphertext, let encryptedKeyPayload else {
+
             await waitForMinimumLoadingTime(startedAt: startedAt)
             isDecrypting = false
             didAttemptDecrypt = true
@@ -93,6 +94,7 @@ struct DecryptMessageTextView: View {
         let currentUserId = UserDefaults.standard.integer(forKey: "chatforia.currentUserId")
 
         guard currentUserId > 0 else {
+
             await waitForMinimumLoadingTime(startedAt: startedAt)
             isDecrypting = false
             didAttemptDecrypt = true
@@ -114,8 +116,6 @@ struct DecryptMessageTextView: View {
                 didAttemptDecrypt = true
             }
         } catch {
-            debugLog("❌ decrypt failed for message \(msg.id):", error.localizedDescription)
-            debugLog("❌ full error:", error)
 
             await waitForMinimumLoadingTime(startedAt: startedAt)
 

@@ -383,6 +383,7 @@ private struct SMSMessagesListView: View {
     let highlightedMessageID: Int?
 
     @EnvironmentObject private var themeManager: ThemeManager
+    @State private var expandedTimestampMessageId: Int?
 
     var body: some View {
         GeometryReader { geo in
@@ -391,11 +392,32 @@ private struct SMSMessagesListView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 0) {
-                        ForEach(messages) { msg in
+                        ForEach(Array(messages.enumerated()), id: \.element.id) { index, msg in
+                            let previous: SMSMessageDTO? =
+                                index > 0 ? messages[index - 1] : nil
+
+                            if shouldShowDateSeparator(
+                                previous: previous,
+                                current: msg
+                            ) {
+                                DateSeparatorView(date: msg.createdAt)
+                                    .padding(.top, index == 0 ? 14 : 30)
+                                    .padding(.bottom, 10)
+                            }
+
                             SMSMessageRowView(
                                 msg: msg,
                                 bubbleMaxWidth: bubbleMaxWidth,
-                                isHighlighted: highlightedMessageID == msg.id
+                                isHighlighted: highlightedMessageID == msg.id,
+                                isTimestampVisible: expandedTimestampMessageId == msg.id,
+                                onBubbleTap: {
+                                    withAnimation(.easeInOut(duration: 0.18)) {
+                                        expandedTimestampMessageId =
+                                            expandedTimestampMessageId == msg.id
+                                                ? nil
+                                                : msg.id
+                                    }
+                                }
                             )
                             .id(msg.id)
                         }
@@ -405,13 +427,22 @@ private struct SMSMessagesListView: View {
                             .id("BOTTOM")
                     }
                     .padding(.vertical, 14)
+                    .frame(minHeight: geo.size.height, alignment: .bottom)
                 }
                 .background(themeManager.palette.screenBackground)
                 .onAppear {
-                    scrollToBottom(proxy, animated: false)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                        scrollToBottom(proxy, animated: false)
+                    }
+
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.20) {
+                        scrollToBottom(proxy, animated: false)
+                    }
                 }
                 .onChange(of: messages.map(\.id)) { _, _ in
-                    scrollToBottom(proxy, animated: true)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                        scrollToBottom(proxy, animated: false)
+                    }
                 }
                 .onChange(of: highlightedMessageID) { _, newValue in
                     guard let id = newValue else { return }
@@ -423,6 +454,20 @@ private struct SMSMessagesListView: View {
             }
         }
         .background(themeManager.palette.screenBackground)
+    }
+
+    private func shouldShowDateSeparator(
+        previous: SMSMessageDTO?,
+        current: SMSMessageDTO
+    ) -> Bool {
+        guard let previous else {
+            return true
+        }
+
+        return !Calendar.current.isDate(
+            previous.createdAt,
+            inSameDayAs: current.createdAt
+        )
     }
 
     private func scrollToBottom(_ proxy: ScrollViewProxy, animated: Bool) {
@@ -444,6 +489,8 @@ private struct SMSMessageRowView: View {
     let msg: SMSMessageDTO
     let bubbleMaxWidth: CGFloat
     let isHighlighted: Bool
+    let isTimestampVisible: Bool
+    let onBubbleTap: () -> Void
 
     @EnvironmentObject private var themeManager: ThemeManager
     @AppStorage("chatforia_language") private var appLanguage = "en"
@@ -457,6 +504,10 @@ private struct SMSMessageRowView: View {
             VStack(alignment: msg.isOutgoing ? .trailing : .leading, spacing: 6) {
                 if !msg.media.isEmpty {
                     SMSMediaStackView(message: msg, maxWidth: bubbleMaxWidth)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            onBubbleTap()
+                        }
                 }
 
                 if let text = msg.trimmedBody, !text.isEmpty {
@@ -471,44 +522,49 @@ private struct SMSMessageRowView: View {
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
                         .background(
-                        ChatBubbleShape(
-                            isMe: msg.isOutgoing,
-                            groupedWithPrevious: false,
-                            groupedWithNext: false
+                            ChatBubbleShape(
+                                isMe: msg.isOutgoing,
+                                groupedWithPrevious: false,
+                                groupedWithNext: false
+                            )
+                            .fill(
+                                msg.isOutgoing
+                                    ? LinearGradient(
+                                        colors: [
+                                            themeManager.palette.bubbleOutgoingStart,
+                                            themeManager.palette.bubbleOutgoingEnd
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                    : LinearGradient(
+                                        colors: [
+                                            themeManager.palette.bubbleIncoming,
+                                            themeManager.palette.bubbleIncoming
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                            )
                         )
-                        .fill(
-                            msg.isOutgoing
-                                ? LinearGradient(
-                                    colors: [
-                                        themeManager.palette.bubbleOutgoingStart,
-                                        themeManager.palette.bubbleOutgoingEnd
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                                : LinearGradient(
-                                    colors: [
-                                        themeManager.palette.bubbleIncoming,
-                                        themeManager.palette.bubbleIncoming
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                        )
-                    )
-                    .overlay {
-                        ChatBubbleShape(
-                            isMe: msg.isOutgoing,
-                            groupedWithPrevious: false,
-                            groupedWithNext: false
-                        )
-                        .stroke(
-                            msg.isOutgoing
-                                ? themeManager.palette.bubbleOutgoingEnd.opacity(0.15)
-                                : themeManager.palette.border.opacity(0.85),
-                            lineWidth: msg.isOutgoing ? 0.4 : 0.8
-                        )
-                    }
+                        .overlay {
+                            ChatBubbleShape(
+                                isMe: msg.isOutgoing,
+                                groupedWithPrevious: false,
+                                groupedWithNext: false
+                            )
+                            .stroke(
+                                msg.isOutgoing
+                                    ? themeManager.palette.bubbleOutgoingEnd.opacity(0.15)
+                                    : themeManager.palette.border.opacity(0.85),
+                                lineWidth: msg.isOutgoing ? 0.4 : 0.8
+                            )
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            onBubbleTap()
+                        }
+
                 } else if msg.media.isEmpty {
                     Text("—")
                         .font(.body)
@@ -520,61 +576,70 @@ private struct SMSMessageRowView: View {
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
                         .background(
-                        ChatBubbleShape(
-                            isMe: msg.isOutgoing,
-                            groupedWithPrevious: false,
-                            groupedWithNext: false
+                            ChatBubbleShape(
+                                isMe: msg.isOutgoing,
+                                groupedWithPrevious: false,
+                                groupedWithNext: false
+                            )
+                            .fill(
+                                msg.isOutgoing
+                                    ? LinearGradient(
+                                        colors: [
+                                            themeManager.palette.bubbleOutgoingStart,
+                                            themeManager.palette.bubbleOutgoingEnd
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                    : LinearGradient(
+                                        colors: [
+                                            themeManager.palette.bubbleIncoming,
+                                            themeManager.palette.bubbleIncoming
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                            )
                         )
-                        .fill(
-                            msg.isOutgoing
-                                ? LinearGradient(
-                                    colors: [
-                                        themeManager.palette.bubbleOutgoingStart,
-                                        themeManager.palette.bubbleOutgoingEnd
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                                : LinearGradient(
-                                    colors: [
-                                        themeManager.palette.bubbleIncoming,
-                                        themeManager.palette.bubbleIncoming
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                        )
-                    )
-                    .overlay {
-                        ChatBubbleShape(
-                            isMe: msg.isOutgoing,
-                            groupedWithPrevious: false,
-                            groupedWithNext: false
-                        )
-                        .stroke(
-                            msg.isOutgoing
-                                ? themeManager.palette.bubbleOutgoingEnd.opacity(0.15)
-                                : themeManager.palette.border.opacity(0.85),
-                            lineWidth: msg.isOutgoing ? 0.4 : 0.8
-                        )
-                    }
+                        .overlay {
+                            ChatBubbleShape(
+                                isMe: msg.isOutgoing,
+                                groupedWithPrevious: false,
+                                groupedWithNext: false
+                            )
+                            .stroke(
+                                msg.isOutgoing
+                                    ? themeManager.palette.bubbleOutgoingEnd.opacity(0.15)
+                                    : themeManager.palette.border.opacity(0.85),
+                                lineWidth: msg.isOutgoing ? 0.4 : 0.8
+                            )
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            onBubbleTap()
+                        }
                 }
 
-                HStack(spacing: 6) {
-                    Text(timestampText(msg.createdAt))
-                        .font(.caption2)
-                        .foregroundStyle(themeManager.palette.secondaryText)
-
-                    if msg.editedAt != nil {
-                        Text(appText(
-                            "messages.edited",
-                            languageCode: appLanguage
-                        ))
+                if isTimestampVisible {
+                    HStack(spacing: 6) {
+                        Text(timestampText(msg.createdAt))
                             .font(.caption2)
                             .foregroundStyle(themeManager.palette.secondaryText)
+
+                        if msg.editedAt != nil {
+                            Text(
+                                appText(
+                                    "messages.edited",
+                                    languageCode: appLanguage
+                                )
+                            )
+                            .font(.caption2)
+                            .foregroundStyle(themeManager.palette.secondaryText)
+                        }
                     }
+                    .padding(.horizontal, 2)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
                 }
-                .padding(.horizontal, 2)
             }
             .frame(maxWidth: bubbleMaxWidth, alignment: msg.isOutgoing ? .trailing : .leading)
 

@@ -2,11 +2,14 @@ import Foundation
 
 extension MessageDTO {
     static func merged(current: MessageDTO, incoming: MessageDTO) -> MessageDTO {
-        MessageDTO(
+        let encryption = preferredEncryption(
+            current: current,
+            incoming: incoming
+        )
+
+        return MessageDTO(
             id: incoming.id,
-            contentCiphertext: (incoming.deletedForAll == true)
-                ? nil
-                : (incoming.contentCiphertext ?? current.contentCiphertext),
+            contentCiphertext: encryption.contentCiphertext,
             rawContent: {
                 if incoming.deletedForAll == true {
                     return nil
@@ -19,8 +22,8 @@ extension MessageDTO {
             translations: incoming.translations ?? current.translations,
             translatedFrom: incoming.translatedFrom ?? current.translatedFrom,
             translatedForMe: incoming.translatedForMe ?? current.translatedForMe,
-            encryptedKeyForMe: incoming.encryptedKeyForMe ?? current.encryptedKeyForMe,
-            encryptedPayloadForMe: incoming.encryptedPayloadForMe ?? current.encryptedPayloadForMe,
+            encryptedKeyForMe: encryption.encryptedKeyForMe,
+            encryptedPayloadForMe: encryption.encryptedPayloadForMe,
             imageUrl: incoming.imageUrl ?? current.imageUrl,
             audioUrl: incoming.audioUrl ?? current.audioUrl,
             audioDurationSec: incoming.audioDurationSec ?? current.audioDurationSec,
@@ -42,6 +45,68 @@ extension MessageDTO {
                 ? (incoming.revision ?? current.revision)
                 : max(incoming.revision ?? 0, current.revision ?? 0),
             clientMessageId: incoming.clientMessageId ?? current.clientMessageId
+        )
+    }
+
+    private static func preferredEncryption(
+        current: MessageDTO,
+        incoming: MessageDTO
+    ) -> (
+        contentCiphertext: String?,
+        encryptedKeyForMe: String?,
+        encryptedPayloadForMe: EncryptedMessagePayloadForUser?
+    ) {
+        if incoming.deletedForAll == true {
+            return (
+                contentCiphertext: nil,
+                encryptedKeyForMe: nil,
+                encryptedPayloadForMe: nil
+            )
+        }
+
+        // A modern payload contains its own matching ciphertext/key pair.
+        if let payload = incoming.encryptedPayloadForMe {
+            return (
+                contentCiphertext: nil,
+                encryptedKeyForMe: nil,
+                encryptedPayloadForMe: payload
+            )
+        }
+
+        // A legacy ciphertext and key must always be accepted together.
+        if let ciphertext = incoming.contentCiphertext,
+        let encryptedKey = incoming.encryptedKeyForMe {
+            return (
+                contentCiphertext: ciphertext,
+                encryptedKeyForMe: encryptedKey,
+                encryptedPayloadForMe: nil
+            )
+        }
+
+        // The incoming update may only contain receipts, reactions, etc.
+        // Preserve the current complete encryption bundle in that case.
+        if let payload = current.encryptedPayloadForMe {
+            return (
+                contentCiphertext: nil,
+                encryptedKeyForMe: nil,
+                encryptedPayloadForMe: payload
+            )
+        }
+
+        if let ciphertext = current.contentCiphertext,
+        let encryptedKey = current.encryptedKeyForMe {
+            return (
+                contentCiphertext: ciphertext,
+                encryptedKeyForMe: encryptedKey,
+                encryptedPayloadForMe: nil
+            )
+        }
+
+        // Never create a ciphertext/key pair from two partial versions.
+        return (
+            contentCiphertext: nil,
+            encryptedKeyForMe: nil,
+            encryptedPayloadForMe: nil
         )
     }
 

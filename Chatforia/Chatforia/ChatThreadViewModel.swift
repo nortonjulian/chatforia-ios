@@ -763,12 +763,30 @@ final class ChatThreadViewModel: ObservableObject {
                 token: token
             )
 
-            MessageStore.shared.removeMessages(forRoomId: roomId)
-            self.messages = []
-
             SocketManager.shared.markMessagesAsAlreadySounded(page.items)
 
-            applyToStore(page.items)
+            // Preserve the existing edited-message decryption behavior.
+            for message in page.items where message.id > 0 && message.editedAt != nil {
+                DecryptedMessageTextStore.shared.removeText(for: message.id)
+            }
+
+            // Replace the server window atomically instead of clearing and rebuilding it.
+            MessageStore.shared.replaceMessages(
+                forRoomId: roomId,
+                with: page.items
+            )
+
+            // Preserve lastServerMessageId behavior for socket resynchronization.
+            if let newestServerMessageId = page.items
+                .map(\.id)
+                .filter({ $0 > 0 })
+                .max() {
+                lastServerMessageId = max(
+                    lastServerMessageId,
+                    newestServerMessageId
+                )
+            }
+
             batchSortDebouncer.flush()
             refreshFromMessageStore()
             markVisibleMessagesRead()

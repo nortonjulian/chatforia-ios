@@ -270,6 +270,24 @@ final class MessageStore {
         }
     }
 
+    func replaceMessages(
+        forRoomId roomId: Int,
+        with incoming: [MessageDTO]
+    ) {
+        lock.async(flags: .barrier) {
+            // Replace this room as one atomic store operation.
+            self.messages.removeAll { $0.chatRoomId == roomId }
+
+            for message in incoming {
+                self.upsertMessageLocked(message)
+            }
+
+            // Persist once and notify once.
+            self.persistLocked()
+            self.postMessagesChanged()
+        }
+    }
+
     func deliveryState(for clientMessageId: String) -> DeliveryState? {
         lock.sync {
             deliveryStates[clientMessageId]
