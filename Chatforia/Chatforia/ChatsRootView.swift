@@ -5,7 +5,7 @@ struct ChatsRootView: View {
     @EnvironmentObject private var themeManager: ThemeManager
     @AppStorage("chatforia_language") private var appLanguage = "en"
     @Environment(\.scenePhase) private var scenePhase
-    @StateObject private var vm = ChatsViewModel()
+    @EnvironmentObject private var vm: ChatsViewModel
 
     @State private var showingStartChat = false
     @State private var selectedRoom: ChatRoomDTO? = nil
@@ -337,7 +337,9 @@ struct ChatsRootView: View {
                     didSetupRandomMatchListener = true
                 }
 
-                await reload()
+                await vm.loadInitialConversationsIfNeeded(
+                    token: auth.currentToken
+                )
             }
             .refreshable {
                 await reload()

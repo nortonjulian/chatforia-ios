@@ -97,8 +97,10 @@ struct AccessibilitySettingsView: View {
                 Button {
                     Task { await saveAccessibility() }
                 } label: {
-                    Text(appText("button_save", languageCode: appLanguage))
-                        .frame(maxWidth: .infinity)
+                    Text(appText("button_save_settings", languageCode: appLanguage))
+                        .font(.headline)
+                        .foregroundStyle(themeManager.palette.primaryText)
+                        .padding(.horizontal, 24)
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(vm.isSaving)

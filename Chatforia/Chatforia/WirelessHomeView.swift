@@ -20,6 +20,7 @@ struct WirelessHomeView: View {
     @State private var wirelessStatus: WirelessStatusDTO?
     @State private var isLoadingStatus = false
     @State private var statusErrorMessage: String?
+    @State private var hasLoadedActivation = false
 
     @State private var selectedPackForCheckout: DataPackOption?
     @State private var showCheckout = false
@@ -56,6 +57,8 @@ struct WirelessHomeView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task(id: selectedScope) {
             await loadQuotes()
+        }
+        .task {
             await loadActivationIfExists()
             await loadWirelessStatus()
         }
@@ -86,46 +89,40 @@ struct WirelessHomeView: View {
             title: appText("ios.current_usage", languageCode: appLanguage)
         ) {
             VStack(alignment: .leading, spacing: 14) {
-                if isLoadingStatus {
-                    HStack(spacing: 10) {
-                        ProgressView()
-
-                        Text(appText("ios.loading_usage", languageCode: appLanguage))
-                            .font(.footnote)
-                            .foregroundStyle(themeManager.palette.secondaryText)
-                    }
-                    .padding(.vertical, 8)
-
-                } else if let statusErrorMessage {
-                    Text(statusErrorMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                        .padding(.vertical, 8)
-
-                } else if let status = wirelessStatus,
-                          let source = status.source,
-                          let totalMb = source.totalDataMb,
-                          let remainingMb = source.remainingDataMb,
-                          totalMb > 0 {
+                if let status = wirelessStatus,
+                let source = status.source,
+                let totalMb = source.totalDataMb,
+                let remainingMb = source.remainingDataMb,
+                totalMb > 0 {
 
                     let usedMb = max(0, totalMb - remainingMb)
-                    let progress = min(max(Double(usedMb) / Double(totalMb), 0), 1)
+                    let progress = min(
+                        max(Double(usedMb) / Double(totalMb), 0),
+                        1
+                    )
 
                     VStack(alignment: .leading, spacing: 12) {
                         HStack(alignment: .firstTextBaseline) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(formatGB(remainingMb))
                                     .font(.title2.weight(.bold))
-                                    .foregroundStyle(themeManager.palette.primaryText)
+                                    .foregroundStyle(
+                                        themeManager.palette.primaryText
+                                    )
 
                                 Text(
                                     String(
-                                        format: appText("ios.remaining_of", languageCode: appLanguage),
+                                        format: appText(
+                                            "ios.remaining_of",
+                                            languageCode: appLanguage
+                                        ),
                                         formatGB(totalMb)
                                     )
                                 )
                                 .font(.footnote)
-                                .foregroundStyle(themeManager.palette.secondaryText)
+                                .foregroundStyle(
+                                    themeManager.palette.secondaryText
+                                )
                             }
 
                             Spacer()
@@ -138,36 +135,67 @@ struct WirelessHomeView: View {
 
                         HStack {
                             infoPill(
-                                title: appText("ios.used", languageCode: appLanguage),
+                                title: appText(
+                                    "ios.used",
+                                    languageCode: appLanguage
+                                ),
                                 value: formatGB(usedMb)
                             )
 
                             Spacer()
 
                             infoPill(
-                                title: appText("ios.left", languageCode: appLanguage),
+                                title: appText(
+                                    "ios.left",
+                                    languageCode: appLanguage
+                                ),
                                 value: formatGB(remainingMb)
                             )
 
                             Spacer()
 
                             infoPill(
-                                title: appText("ios.expires", languageCode: appLanguage),
+                                title: appText(
+                                    "ios.expires",
+                                    languageCode: appLanguage
+                                ),
                                 value: expirationText(from: source)
                             )
                         }
                     }
                     .padding(.vertical, 8)
 
-                } else if let status = wirelessStatus, status.mode == "NONE" {
-                    Text(
-                        appText(
-                            "ios.no_active_data_pack_yet_buy_a_pack_below_to_start_tracking_usage",
-                            languageCode: appLanguage
+                } else if let status = wirelessStatus,
+                        status.mode.uppercased() == "NONE" {
+
+                    noActiveDataPackMessage
+
+                } else if hasLoadedActivation,
+                        activationStatus == .none {
+
+                    noActiveDataPackMessage
+
+                } else if let statusErrorMessage {
+                    Text(statusErrorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                        .padding(.vertical, 8)
+
+                } else if isLoadingStatus {
+                    HStack(spacing: 10) {
+                        ProgressView()
+
+                        Text(
+                            appText(
+                                "ios.loading_usage",
+                                languageCode: appLanguage
+                            )
                         )
-                    )
-                    .font(.footnote)
-                    .foregroundStyle(themeManager.palette.secondaryText)
+                        .font(.footnote)
+                        .foregroundStyle(
+                            themeManager.palette.secondaryText
+                        )
+                    }
                     .padding(.vertical, 8)
 
                 } else {
@@ -185,21 +213,50 @@ struct WirelessHomeView: View {
         }
     }
 
+    private var noActiveDataPackMessage: some View {
+        Text(
+            appText(
+                "ios.no_active_data_pack_yet_buy_a_pack_below_to_start_tracking_usage",
+                languageCode: appLanguage
+            )
+        )
+        .font(.footnote)
+        .foregroundStyle(themeManager.palette.secondaryText)
+        .padding(.vertical, 8)
+    }
+
     private func loadWirelessStatus() async {
-        isLoadingStatus = true
         statusErrorMessage = nil
 
-        defer { isLoadingStatus = false }
+        let spinnerTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 350_000_000)
+
+            guard !Task.isCancelled,
+                wirelessStatus == nil else {
+                return
+            }
+
+            isLoadingStatus = true
+        }
+
+        defer {
+            spinnerTask.cancel()
+            isLoadingStatus = false
+        }
 
         do {
             let status = try await WirelessService.shared.fetchWirelessStatus()
             wirelessStatus = status
         } catch {
-            wirelessStatus = nil
-            statusErrorMessage = appText(
-                "ios.we_couldnt_load_your_usage_right_now",
-                languageCode: appLanguage
-            )
+            // Preserve existing usage information during a failed refresh.
+            // Only show an error when there is no previously loaded status.
+            if wirelessStatus == nil {
+                statusErrorMessage = appText(
+                    "ios.we_couldnt_load_your_usage_right_now",
+                    languageCode: appLanguage
+                )
+            }
+
             debugLog("Failed to load wireless status:", error)
         }
     }
@@ -540,6 +597,10 @@ struct WirelessHomeView: View {
     }
 
     private func loadActivationIfExists() async {
+        defer {
+            hasLoadedActivation = true
+        }
+
         do {
             if let payload = try await ESIMService.shared.fetchCurrentActivation() {
                 activationPayload = payload

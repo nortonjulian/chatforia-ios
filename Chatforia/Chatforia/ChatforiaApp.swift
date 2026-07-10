@@ -64,6 +64,7 @@ struct ChatforiaApp: App {
     @StateObject private var callManager = CallManager()
     @StateObject private var inviteFlow = InviteFlowManager.shared
     @StateObject private var settingsVM = SettingsViewModel()
+    @StateObject private var chatsVM = ChatsViewModel()
     
     @AppStorage("chatforia_language")
     private var appLanguage = "en"
@@ -94,6 +95,7 @@ struct ChatforiaApp: App {
             .environmentObject(callManager)
             .environmentObject(inviteFlow)
             .environmentObject(settingsVM)
+            .environmentObject(chatsVM)
             .tint(themeManager.palette.accent)
             .environment(
                 \.locale,

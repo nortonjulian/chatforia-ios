@@ -7,6 +7,11 @@ final class ChatsViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var errorText: String?
     @Published var searchText: String = ""
+
+    @Published private(set) var hasCompletedInitialLoad = false
+
+    private var initialLoadToken: String?
+    private var isInitialLoadInProgress = false
     
     private var appLanguage: String {
         UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
@@ -304,6 +309,51 @@ final class ChatsViewModel: ObservableObject {
         }
     }
 
+    func isInitialLoadComplete(for token: String?) -> Bool {
+        guard let token = token?.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        ),
+        !token.isEmpty else {
+            return false
+        }
+
+        return hasCompletedInitialLoad &&
+            initialLoadToken == token
+    }
+
+    func loadInitialConversationsIfNeeded(token: String?) async {
+        guard let token = token?.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        ),
+        !token.isEmpty else {
+            return
+        }
+
+        // A different token means a different signed-in session.
+        // Never display conversations left over from another session.
+        if initialLoadToken != token {
+            initialLoadToken = token
+            conversations = []
+            errorText = nil
+            searchText = ""
+            hasCompletedInitialLoad = false
+        }
+
+        guard !hasCompletedInitialLoad,
+            !isInitialLoadInProgress else {
+            return
+        }
+
+        isInitialLoadInProgress = true
+
+        defer {
+            isInitialLoadInProgress = false
+            hasCompletedInitialLoad = true
+        }
+
+        await loadConversations(token: token)
+    }
+
     func loadConversations(token: String?) async {
         guard let token else {
             errorText = appText("ios.missing_auth_token", languageCode: appLanguage)
@@ -429,9 +479,15 @@ final class ChatsViewModel: ObservableObject {
         }
     }
 
-    func deleteConversation(_ conversation: ConversationDTO, token: String?) async {
-        guard let token else {
-            errorText = appText("ios.missing_auth_token", languageCode: appLanguage)
+    func deleteConversation(
+        _ conversation: ConversationDTO,
+        token: String?
+    ) async {
+        guard let token, !token.isEmpty else {
+            errorText = appText(
+                "ios.missing_auth_token",
+                languageCode: appLanguage
+            )
             return
         }
 
@@ -440,19 +496,38 @@ final class ChatsViewModel: ObservableObject {
             return
         }
 
+        let normalizedKind = conversation.kind.lowercased()
+
         do {
             let _: EmptyResponse = try await APIClient.shared.send(
                 APIRequest(
-                    path: "conversations/\(conversation.kind.lowercased())/\(conversationId)",
+                    path: "conversations/\(normalizedKind)/\(conversationId)",
                     method: .DELETE,
                     requiresAuth: true
                 ),
                 token: token
             )
 
+            if normalizedKind == "chat" {
+                let cachedMessageIds = MessageStore.shared.currentWindow()
+                    .filter { $0.chatRoomId == conversationId }
+                    .map(\.id)
+                    .filter { $0 > 0 }
+
+                for messageId in cachedMessageIds {
+                    DecryptedMessageTextStore.shared.removeText(
+                        for: messageId
+                    )
+                }
+
+                MessageStore.shared.removeMessages(
+                    forRoomId: conversationId
+                )
+            }
+
             conversations.removeAll {
                 $0.id == conversation.id &&
-                $0.kind.lowercased() == conversation.kind.lowercased()
+                $0.kind.lowercased() == normalizedKind
             }
 
             conversations = sortedConversations(conversations)

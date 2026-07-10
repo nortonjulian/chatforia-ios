@@ -2058,12 +2058,8 @@ extension ChatThreadViewModel {
             return false
         }
 
-        let path: String
-        if kind == "chat" {
-            path = "chatrooms/\(conversationId)"
-        } else {
-            path = "conversations/\(conversationId)"
-        }
+        let normalizedKind = kind.lowercased()
+        let path = "conversations/\(normalizedKind)/\(conversationId)"
 
         do {
             let _: EmptyAPIResponse = try await APIClient.shared.send(
@@ -2075,6 +2071,36 @@ extension ChatThreadViewModel {
                 token: token
             )
 
+            if normalizedKind == "chat" {
+                let cachedMessageIds = MessageStore.shared.currentWindow()
+                    .filter { $0.chatRoomId == conversationId }
+                    .map(\.id)
+                    .filter { $0 > 0 }
+
+                for messageId in cachedMessageIds {
+                    DecryptedMessageTextStore.shared.removeText(
+                        for: messageId
+                    )
+                }
+
+                MessageStore.shared.removeMessages(
+                    forRoomId: conversationId
+                )
+
+                messages.removeAll()
+
+                UserDefaults.standard.removeObject(
+                    forKey: "chatforia.lastServerMessageId.\(conversationId)"
+                )
+
+                if roomId == conversationId {
+                    roomId = nil
+                    activeRoomId = nil
+                    lastServerMessageId = 0
+                }
+            }
+
+            errorText = nil
             return true
         } catch {
             errorText = appText(
