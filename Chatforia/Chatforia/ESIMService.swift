@@ -37,6 +37,22 @@ final class ESIMService {
 
         return mapSubscriberToDTO(subscriber)
     }
+
+    func activateCurrentProfile(
+        iccid: String?,
+        activationCode: String?
+    ) async throws {
+        let request = ActivateESIMRequest(
+            iccid: iccid,
+            activationCode: activationCode
+        )
+
+        let _: ActivateESIMResponse = try await send(
+            path: "/esim/activate",
+            method: "POST",
+            body: request
+        )
+    }
 }
 
 // MARK: - Networking
@@ -216,6 +232,16 @@ private struct SubscriberResponse: Decodable {
 private struct APIErrorResponse: Decodable {
     let error: String?
     let message: String?
+}
+
+private struct ActivateESIMRequest: Encodable {
+    let iccid: String?
+    let activationCode: String?
+}
+
+private struct ActivateESIMResponse: Decodable {
+    let ok: Bool
+    let status: String?
 }
 
 // MARK: - Errors
