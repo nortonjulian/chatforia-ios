@@ -22,8 +22,6 @@ struct WirelessHomeView: View {
     @State private var statusErrorMessage: String?
     @State private var hasLoadedActivation = false
 
-    @State private var selectedPackForCheckout: DataPackOption?
-    @State private var showCheckout = false
 
     enum ESIMStatus {
         case none
@@ -69,19 +67,6 @@ struct WirelessHomeView: View {
                 )
             }
         }
-        .sheet(isPresented: $showCheckout) {
-            if let pack = selectedPackForCheckout {
-                CheckoutSheetView(
-                    pack: pack,
-                    onConfirm: {
-                        Task {
-                            await handleCheckoutConfirmed(pack)
-                        }
-                    }
-                )
-                .environmentObject(themeManager)
-            }
-        }
     }
 
     private var usageSection: some View {
@@ -110,15 +95,7 @@ struct WirelessHomeView: View {
                                         themeManager.palette.primaryText
                                     )
 
-                                Text(
-                                    String(
-                                        format: appText(
-                                            "ios.remaining_of",
-                                            languageCode: appLanguage
-                                        ),
-                                        formatGB(totalMb)
-                                    )
-                                )
+                                Text(remainingText(totalMb: totalMb))
                                 .font(.footnote)
                                 .foregroundStyle(
                                     themeManager.palette.secondaryText
@@ -284,28 +261,60 @@ struct WirelessHomeView: View {
     }
 
     private func statusColor(_ state: String) -> Color {
+        if activationStatus == .readyToInstall {
+            return themeManager.palette.buttonEnd
+        }
+
         switch state.uppercased() {
         case "LOW":
             return .orange
+
         case "EXHAUSTED", "EXPIRED":
             return .red
+
         default:
             return themeManager.palette.accent
         }
     }
 
     private func stateLabel(_ state: String) -> String {
+        if activationStatus == .readyToInstall {
+            return appText(
+                "esim.readyToInstall",
+                languageCode: appLanguage
+            )
+        }
+
         switch state.uppercased() {
         case "LOW":
-            return appText("ios.low", languageCode: appLanguage)
+            return appText(
+                "ios.low",
+                languageCode: appLanguage
+            )
+
         case "EXHAUSTED":
-            return appText("ios.out", languageCode: appLanguage)
+            return appText(
+                "ios.out",
+                languageCode: appLanguage
+            )
+
         case "EXPIRED":
-            return appText("ios.expired", languageCode: appLanguage)
+            return appText(
+                "ios.expired",
+                languageCode: appLanguage
+            )
+
         case "OK":
-            return appText("ios.active", languageCode: appLanguage)
+            return appText(
+                "ios.active",
+                languageCode: appLanguage
+            )
+
         default:
-            return appText("ios.unknown", languageCode: appLanguage)
+            return appText(
+                "ios.unknown",
+                languageCode: appLanguage
+            )
         }
     }
 
@@ -317,6 +326,32 @@ struct WirelessHomeView: View {
         } else {
             return String(format: "%.1f GB", gb)
         }
+    }
+
+    private func remainingText(totalMb: Int) -> String {
+        let total = formatGB(totalMb)
+
+        let template = appText(
+            "ios.remaining_of",
+            languageCode: appLanguage
+        )
+
+        if template.contains("%@") {
+            return String(
+                format: template,
+                total
+            )
+        }
+
+        return template
+            .replacingOccurrences(
+                of: "{{value}}",
+                with: total
+            )
+            .replacingOccurrences(
+                of: "{value}",
+                with: total
+            )
     }
 
     private func expirationText(from source: WirelessStatusSourceDTO) -> String {
@@ -455,17 +490,18 @@ struct WirelessHomeView: View {
                 }
 
                 Button {
-                    selectedPackForCheckout = pack
-                    showCheckout = true
+                    Task {
+                        await startCheckout(for: pack)
+                    }
                 } label: {
                     HStack {
-                        if isPurchasingPack {
+                        if purchasingPackProduct == pack.product {
                             ProgressView()
                                 .tint(themeManager.palette.buttonForeground)
                         }
 
                         Text(
-                            isPurchasingPack
+                            purchasingPackProduct == pack.product
                             ? appText("common.processing", languageCode: appLanguage)
                             : appText("ios.choose_this_pack", languageCode: appLanguage)
                         )
@@ -493,8 +529,8 @@ struct WirelessHomeView: View {
                     )
                 }
                 .buttonStyle(.plain)
-                .disabled(isPurchasingPack || showCheckout)
-                .opacity((isPurchasingPack || showCheckout) ? 0.7 : 1)
+                .disabled(isPurchasingPack)
+                .opacity(isPurchasingPack ? 0.7 : 1)
             }
             .padding(.vertical, 8)
         }
@@ -623,13 +659,39 @@ struct WirelessHomeView: View {
         }
     }
 
-    private func handleCheckoutConfirmed(_ pack: DataPackOption) async {
+    @MainActor
+    private func startCheckout(
+        for pack: DataPackOption
+    ) async {
+        guard !isPurchasingPack else {
+            return
+        }
+
         purchaseErrorMessage = nil
+        isPurchasingPack = true
+        purchasingPackProduct = pack.product
 
-        showCheckout = false
+        defer {
+            isPurchasingPack = false
+            purchasingPackProduct = nil
+        }
 
-        let url = webCheckoutURL(for: pack)
-        openURL(url)
+        do {
+            let checkoutURL =
+                try await WirelessCheckoutService.shared.createCheckout(
+                    product: pack.product
+                )
+
+            openURL(checkoutURL)
+        } catch {
+            purchaseErrorMessage =
+                error.localizedDescription
+
+            debugLog(
+                "Failed to start wireless checkout:",
+                error
+            )
+        }
     }
 
     private func pricingProducts(for scope: EsimScope) -> [PricingProduct] {
@@ -677,12 +739,6 @@ struct WirelessHomeView: View {
         ) ?? appText("common.emptyDash", languageCode: appLanguage)
     }
 
-    private func handleGetPackTapped(_ pack: DataPackOption) {
-        purchaseErrorMessage = nil
-
-        let url = webCheckoutURL(for: pack)
-        openURL(url)
-    }
 
    private func handleManageWirelessTapped() {
         if activationPayload != nil {
@@ -696,28 +752,6 @@ struct WirelessHomeView: View {
         debugLog("TODO: open port number flow")
     }
 
-    private func webCheckoutURL(for pack: DataPackOption) -> URL {
-        var components = URLComponents(string: "https://chatforia.com/upgrade")!
-
-        components.queryItems = [
-            URLQueryItem(name: "section", value: "mobile"),
-            URLQueryItem(name: "scope", value: selectedScopeQueryValue),
-            URLQueryItem(name: "product", value: pack.product)
-        ]
-
-        return components.url ?? URL(string: "https://chatforia.com/upgrade?section=mobile")!
-    }
-
-    private var selectedScopeQueryValue: String {
-        switch selectedScope {
-        case .local:
-            return "local"
-        case .europe:
-            return "europe"
-        case .global:
-            return "global"
-        }
-    }
 }
 
 #Preview {

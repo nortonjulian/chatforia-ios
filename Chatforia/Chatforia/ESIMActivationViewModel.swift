@@ -60,6 +60,22 @@ final class ESIMActivationViewModel: ObservableObject {
         return status == "active"
     }
 
+    var isMockProfile: Bool {
+        let values = [
+            payload.smdpAddress,
+            payload.lpaUri,
+            payload.qrCodeURL
+        ]
+
+        return values
+            .compactMap { $0?.lowercased() }
+            .contains {
+                $0.contains(
+                    "mock.smdp.chatforia.com"
+                )
+            }
+    }
+
     var installButtonTitle: String {
         if isInstalling {
             return appText("common.opening", languageCode: appLanguage)
@@ -100,20 +116,49 @@ final class ESIMActivationViewModel: ObservableObject {
 
     func beginInstall() async -> URL? {
         errorMessage = nil
+        isInstalling = true
 
-        guard let url = installURL else {
-            errorMessage = appText("esim.invalidInstallLink", languageCode: appLanguage)
-            return nil
+        defer {
+            isInstalling = false
         }
 
-        AnalyticsManager.shared.capture("esim_install_started", properties: [
-            "status": payload.status,
-            "hasQRCode": payload.qrCodeURL != nil,
-            "hasICCID": payload.iccid != nil
-        ])
+        AnalyticsManager.shared.capture(
+            "esim_install_started",
+            properties: [
+                "status": payload.status,
+                "hasQRCode": payload.qrCodeURL != nil,
+                "hasICCID": payload.iccid != nil,
+                "isMock": isMockProfile
+            ]
+        )
 
-        isInstalling = true
-        defer { isInstalling = false }
+        if isMockProfile {
+            do {
+                try await ESIMService.shared
+                    .activateCurrentProfile(
+                        iccid: payload.iccid,
+                        activationCode:
+                            payload.activationCode
+                    )
+
+                markInstalled()
+                return nil
+            } catch {
+                errorMessage =
+                    error.localizedDescription
+
+                return nil
+            }
+        }
+
+        guard let url = installURL else {
+            errorMessage = appText(
+                "esim.invalidInstallLink",
+                languageCode: appLanguage
+            )
+
+            return nil
+        }
 
         return url
     }
