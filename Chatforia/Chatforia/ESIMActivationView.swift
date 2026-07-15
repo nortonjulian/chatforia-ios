@@ -11,14 +11,21 @@ struct ESIMActivationView: View {
             VStack(spacing: 20) {
                 heroSection
                 statusSection
-                installSection
+
+                if !viewModel.isActive {
+                    installSection
+                }
+
                 detailsSection
-                supportSection
+
+                if !viewModel.isActive {
+                    supportSection
+                }
             }
             .padding()
         }
         .background(themeManager.palette.screenBackground.ignoresSafeArea())
-        .navigationTitle(appText("esim.activate", languageCode: appLanguage))
+        .navigationTitle(appText("esim.title", languageCode: appLanguage))
         .navigationBarTitleDisplayMode(.inline)
         .alert(
             appText("esim.unableToInstall", languageCode: appLanguage),
