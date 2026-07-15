@@ -21,11 +21,21 @@ final class ESIMActivationViewModel: ObservableObject {
     }
 
     var subtitleText: String {
+        if isActive {
+            return appText(
+                "esim.activeSubtitle",
+                languageCode: appLanguage
+            )
+        }
+
         if let planName = nonEmpty(payload.planName) {
             return planName
         }
 
-        return appText("esim.installSubtitle", languageCode: appLanguage)
+        return appText(
+            "esim.installSubtitle",
+            languageCode: appLanguage
+        )
     }
 
     var installationCodeText: String? {
