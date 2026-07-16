@@ -63,6 +63,7 @@ struct ChatforiaApp: App {
     @StateObject private var notificationCoordinator = NotificationCoordinator.shared
     @StateObject private var callManager = CallManager()
     @StateObject private var inviteFlow = InviteFlowManager.shared
+    @StateObject private var checkoutReturn = CheckoutReturnCoordinator()
     @StateObject private var settingsVM = SettingsViewModel()
     @StateObject private var chatsVM = ChatsViewModel()
     
@@ -94,6 +95,7 @@ struct ChatforiaApp: App {
             .environmentObject(notificationCoordinator)
             .environmentObject(callManager)
             .environmentObject(inviteFlow)
+            .environmentObject(checkoutReturn)
             .environmentObject(settingsVM)
             .environmentObject(chatsVM)
             .tint(themeManager.palette.accent)
@@ -134,9 +136,35 @@ struct ChatforiaApp: App {
                 }
             }
             .onOpenURL { url in
+                if checkoutReturn.handleIncomingURL(url) {
+                    return
+                }
+
                 inviteFlow.handleIncomingURL(url)
+
                 Task {
-                    await inviteFlow.redeemPendingInviteIfNeeded(auth: auth)
+                    await inviteFlow.redeemPendingInviteIfNeeded(
+                        auth: auth
+                    )
+                }
+            }
+            .onContinueUserActivity(
+                NSUserActivityTypeBrowsingWeb
+            ) { activity in
+                guard let url = activity.webpageURL else {
+                    return
+                }
+
+                if checkoutReturn.handleIncomingURL(url) {
+                    return
+                }
+
+                inviteFlow.handleIncomingURL(url)
+
+                Task {
+                    await inviteFlow.redeemPendingInviteIfNeeded(
+                        auth: auth
+                    )
                 }
             }
             .onChange(of: auth.currentUser?.theme) { _, newTheme in

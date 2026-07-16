@@ -7,6 +7,7 @@ struct ProfileRootView: View {
     @EnvironmentObject var auth: AuthStore
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject private var inviteFlow: InviteFlowManager
+    @EnvironmentObject private var checkoutReturn: CheckoutReturnCoordinator
     @EnvironmentObject private var appSettings: SettingsViewModel
 
     @StateObject private var vm = SettingsViewModel()
@@ -34,6 +35,7 @@ struct ProfileRootView: View {
     @State private var hasRemoteBackup: Bool?
     @State private var isCheckingBackup = false
     @State private var showUpgradeView = false
+    @State private var showWireless = false
     
     @State private var showingDeleteAccountAlert = false
     @State private var isDeletingAccount = false
@@ -178,6 +180,9 @@ struct ProfileRootView: View {
                     .environmentObject(auth)
                     .environmentObject(themeManager)
             }
+            .navigationDestination(isPresented: $showWireless) {
+                WirelessHomeView()
+            }
             
             .task {
                 let sourceUser = auth.currentUser ?? user
@@ -190,6 +195,19 @@ struct ProfileRootView: View {
                 
                 if let token = auth.currentToken, !token.isEmpty {
                     await loadBackupStatus(token: token)
+                }
+
+                if checkoutReturn.pendingEvent != nil,
+                   !checkoutReturn.isWirelessVisible {
+                    showWireless = true
+                }
+            }
+            .onChange(
+                of: checkoutReturn.pendingEvent?.id
+            ) { _, eventID in
+                if eventID != nil,
+                   !checkoutReturn.isWirelessVisible {
+                    showWireless = true
                 }
             }
             .onChange(of: auth.currentUser?.enableSmartReplies) { _, newValue in
