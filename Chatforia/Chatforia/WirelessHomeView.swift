@@ -3,6 +3,7 @@ import SwiftUI
 struct WirelessHomeView: View {
     @EnvironmentObject var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
+    @EnvironmentObject private var checkoutReturn: CheckoutReturnCoordinator
     @AppStorage("chatforia_language") private var appLanguage = "en"
     @Environment(\.openURL) private var openURL
 
@@ -21,6 +22,7 @@ struct WirelessHomeView: View {
     @State private var isLoadingStatus = false
     @State private var statusErrorMessage: String?
     @State private var hasLoadedActivation = false
+    @State private var checkoutReturnState: CheckoutReturnState = .idle
 
 
     enum ESIMStatus {
@@ -32,6 +34,10 @@ struct WirelessHomeView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
+                if checkoutReturnState != .idle {
+                    checkoutReturnBanner
+                }
+
                 heroSection
                 scopePickerSection
                 activationSection
@@ -51,6 +57,12 @@ struct WirelessHomeView: View {
             .padding()
         }
         .background(themeManager.palette.screenBackground)
+        .onAppear {
+            checkoutReturn.setWirelessVisible(true)
+        }
+        .onDisappear {
+            checkoutReturn.setWirelessVisible(false)
+        }
         .navigationTitle(appText("ios.wireless", languageCode: appLanguage))
         .navigationBarTitleDisplayMode(.inline)
         .task(id: selectedScope) {
@@ -60,6 +72,14 @@ struct WirelessHomeView: View {
             await loadActivationIfExists()
             await loadWirelessStatus()
         }
+        .task(id: checkoutReturn.pendingEvent?.id) {
+            guard let event =
+                    checkoutReturn.pendingEvent else {
+                return
+            }
+
+            await handleCheckoutReturn(event)
+        }
         .navigationDestination(isPresented: $showActivation) {
             if let payload = activationPayload {
                 ESIMActivationView(
@@ -67,6 +87,214 @@ struct WirelessHomeView: View {
                 )
             }
         }
+    }
+
+    private enum CheckoutReturnState: Equatable {
+        case idle
+        case confirming
+        case success
+        case canceled
+        case delayed
+        case failed(String)
+    }
+
+    @ViewBuilder
+    private var checkoutReturnBanner: some View {
+        switch checkoutReturnState {
+        case .idle:
+            EmptyView()
+
+        case .confirming:
+            checkoutBanner(
+                title: "Confirming purchase",
+                message:
+                    "We’re confirming your data pack with the server.",
+                systemImage: "clock.arrow.circlepath",
+                tint: themeManager.palette.accent,
+                showsProgress: true
+            )
+
+        case .success:
+            checkoutBanner(
+                title: "Data pack added",
+                message:
+                    "Your eSIM balance has been updated.",
+                systemImage: "checkmark.circle.fill",
+                tint: .green
+            )
+
+        case .canceled:
+            checkoutBanner(
+                title: "Checkout canceled",
+                message:
+                    "No new data pack was added.",
+                systemImage: "xmark.circle",
+                tint: themeManager.palette.secondaryText
+            )
+
+        case .delayed:
+            checkoutBanner(
+                title: "Still confirming",
+                message:
+                    "Processing is taking longer than expected. Your balance will update when confirmation finishes.",
+                systemImage: "clock.badge.exclamationmark",
+                tint: .orange
+            )
+
+        case .failed(let message):
+            checkoutBanner(
+                title: "Unable to confirm purchase",
+                message: message,
+                systemImage: "exclamationmark.triangle.fill",
+                tint: .red
+            )
+        }
+    }
+
+    private func checkoutBanner(
+        title: String,
+        message: String,
+        systemImage: String,
+        tint: Color,
+        showsProgress: Bool = false
+    ) -> some View {
+        SectionCardView(title: "Purchase status") {
+            HStack(alignment: .top, spacing: 12) {
+                if showsProgress {
+                    ProgressView()
+                        .tint(tint)
+                        .frame(width: 24, height: 24)
+                } else {
+                    Image(systemName: systemImage)
+                        .font(.title3)
+                        .foregroundStyle(tint)
+                        .frame(width: 24)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(verbatim: title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(
+                            themeManager.palette.primaryText
+                        )
+
+                    Text(verbatim: message)
+                        .font(.footnote)
+                        .foregroundStyle(
+                            themeManager.palette.secondaryText
+                        )
+                }
+
+                Spacer()
+            }
+            .padding(.vertical, 6)
+        }
+    }
+
+    @MainActor
+    private func handleCheckoutReturn(
+        _ event: CheckoutReturnCoordinator.Event
+    ) async {
+        switch event.destination {
+        case .canceled:
+            checkoutReturnState = .canceled
+            checkoutReturn.consume(event)
+
+        case .completed(let sessionId):
+            checkoutReturnState = .confirming
+
+            await confirmCheckout(
+                sessionId: sessionId,
+                event: event
+            )
+        }
+    }
+
+    @MainActor
+    private func confirmCheckout(
+        sessionId: String,
+        event: CheckoutReturnCoordinator.Event
+    ) async {
+        let delays: [UInt64] = [
+            0,
+            1_000_000_000,
+            2_000_000_000,
+            3_000_000_000,
+            5_000_000_000,
+            8_000_000_000,
+        ]
+
+        for (index, delay) in delays.enumerated() {
+            guard !Task.isCancelled else {
+                return
+            }
+
+            if delay > 0 {
+                do {
+                    try await Task.sleep(
+                        nanoseconds: delay
+                    )
+                } catch {
+                    return
+                }
+            }
+
+            do {
+                let status =
+                    try await WirelessService.shared
+                        .fetchCheckoutStatus(
+                            sessionId: sessionId
+                        )
+
+                if status.complete,
+                   status.provisioned,
+                   status.status.uppercased() ==
+                    "COMPLETE" {
+                    checkoutReturnState = .success
+
+                    await loadActivationIfExists()
+                    await loadWirelessStatus()
+
+                    checkoutReturn.consume(event)
+                    return
+                }
+
+                if status.status.uppercased() ==
+                    "EXPIRED" {
+                    checkoutReturnState = .failed(
+                        "This checkout session expired before the purchase completed."
+                    )
+
+                    checkoutReturn.consume(event)
+                    return
+                }
+            } catch APIError.unauthorized {
+                checkoutReturnState = .failed(
+                    "Please sign in again to confirm your purchase."
+                )
+
+                checkoutReturn.consume(event)
+                return
+            } catch {
+                let isLastAttempt =
+                    index == delays.count - 1
+
+                if isLastAttempt {
+                    debugLog(
+                        "Checkout confirmation failed:",
+                        error
+                    )
+                }
+            }
+        }
+
+        guard !Task.isCancelled else {
+            return
+        }
+
+        checkoutReturnState = .delayed
+        await loadWirelessStatus()
+        checkoutReturn.consume(event)
     }
 
     private var usageSection: some View {
