@@ -10,7 +10,7 @@ struct AudioAttachmentCardView: View {
     let onPlaybackStarted: (() -> Void)?
 
     @EnvironmentObject private var themeManager: ThemeManager
-    @StateObject private var playback = AudioPlaybackViewModel()
+    @ObservedObject private var playback = AudioPlaybackViewModel.shared
 
     init(
         urlString: String,
