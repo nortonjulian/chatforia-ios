@@ -125,8 +125,8 @@ struct ChatMessageRowView: View {
                     MessageBubbleView(
                         msg: msg,
                         isMe: isMe,
-                        isGroupedWithPrevious: groupPosition == .middle || groupPosition == .bottom,
-                        isGroupedWithNext: groupPosition == .top || groupPosition == .middle
+                        isGroupedWithPrevious: false,
+                        isGroupedWithNext: false
                     )
                     .frame(maxWidth: bubbleMaxWidth, alignment: isMe ? .trailing : .leading)
                     .contentShape(Rectangle())
