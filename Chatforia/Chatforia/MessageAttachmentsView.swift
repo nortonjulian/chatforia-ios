@@ -10,6 +10,8 @@ struct MessageAttachmentsView: View {
     @AppStorage("chatforia_language") private var appLanguage = "en"
     @State private var selectedImageURL: IdentifiableURL?
 
+    @ObservedObject private var audioPlayback = AudioPlaybackViewModel.shared
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             ForEach(Array(attachments.enumerated()), id: \.offset) { _, attachment in
@@ -263,22 +265,127 @@ struct MessageAttachmentsView: View {
             "messages.audio",
             languageCode: appLanguage
         )
-        let subtitle: String = {
-            if let dur = attachment.durationSec {
-                return formattedDuration(dur)
-            }
-            return attachment.mimeType?.nilIfBlank ?? appText(
-                "messages.audioAttachment",
-                languageCode: appLanguage
-            )
-        }()
 
-        tappableFileCard(
-            title: title,
-            subtitle: subtitle,
-            systemImage: "waveform",
-            urlString: attachment.url
-        )
+        if let url = resolvedURL(from: attachment.url) {
+            let urlString = url.absoluteString
+            let isCurrent = audioPlayback.isCurrent(
+                urlString: urlString
+            )
+
+            let displayedDuration = isCurrent
+                ? audioPlayback.displayDuration(
+                    fallback: attachment.durationSec
+                )
+                : attachment.durationSec ?? 0
+
+            let displayedCurrentTime = isCurrent
+                ? audioPlayback.currentTime
+                : 0
+
+            HStack(spacing: 12) {
+                Button {
+                    audioPlayback.togglePlayback(
+                        urlString: urlString
+                    )
+                } label: {
+                    ZStack {
+                        Circle()
+                            .fill(Color.accentColor)
+                            .frame(width: 44, height: 44)
+
+                        if isCurrent && audioPlayback.isLoading {
+                            ProgressView()
+                                .tint(.white)
+                        } else {
+                            Image(
+                                systemName:
+                                    isCurrent && audioPlayback.isPlaying
+                                    ? "pause.fill"
+                                    : "play.fill"
+                            )
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .offset(
+                                x: isCurrent && audioPlayback.isPlaying
+                                    ? 0
+                                    : 1
+                            )
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+
+                VStack(alignment: .leading, spacing: 7) {
+                    Text(title)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+
+                    if isCurrent, displayedDuration > 0 {
+                        Slider(
+                            value: Binding(
+                                get: {
+                                    min(
+                                        audioPlayback.currentTime,
+                                        displayedDuration
+                                    )
+                                },
+                                set: { newValue in
+                                    audioPlayback.seek(to: newValue)
+                                }
+                            ),
+                            in: 0...displayedDuration
+                        )
+                        .controlSize(.small)
+                    } else {
+                        ProgressView(
+                            value: displayedCurrentTime,
+                            total: max(displayedDuration, 1)
+                        )
+                        .progressViewStyle(.linear)
+                    }
+
+                    HStack {
+                        Text(
+                            formattedDuration(
+                                displayedCurrentTime
+                            )
+                        )
+
+                        Spacer(minLength: 8)
+
+                        Text(
+                            formattedDuration(
+                                displayedDuration
+                            )
+                        )
+                    }
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+                }
+            }
+            .padding(12)
+            .frame(maxWidth: min(maxWidth, 280))
+            .background(
+                Color(uiColor: .secondarySystemBackground)
+            )
+            .clipShape(
+                RoundedRectangle(
+                    cornerRadius: 16,
+                    style: .continuous
+                )
+            )
+        } else {
+            fileLikeCard(
+                title: title,
+                subtitle: attachment.mimeType?.nilIfBlank ?? appText(
+                    "messages.audioAttachment",
+                    languageCode: appLanguage
+                ),
+                systemImage: "waveform"
+            )
+        }
     }
 
     @ViewBuilder
