@@ -64,14 +64,27 @@ final class AudioRecorderService {
             AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
         ]
 
-        let recorder = try AVAudioRecorder(url: fileURL, settings: settings)
-        recorder.prepareToRecord()
+        let recorder = try AVAudioRecorder(
+            url: fileURL,
+            settings: settings
+        )
 
-        guard recorder.record() else {
+        guard recorder.prepareToRecord(),
+            recorder.record() else {
+            try? session.setActive(
+                false,
+                options: .notifyOthersOnDeactivation
+            )
+
+            try? FileManager.default.removeItem(at: fileURL)
+
             throw NSError(
                 domain: "AudioRecorderService",
                 code: 1,
-                userInfo: [NSLocalizedDescriptionKey: "Recording could not be started."]
+                userInfo: [
+                    NSLocalizedDescriptionKey:
+                        "Recording could not be started."
+                ]
             )
         }
 
@@ -81,22 +94,41 @@ final class AudioRecorderService {
     }
 
     func stop() -> VoiceNoteDraft? {
-        recorder?.stop()
-
-        guard let fileURL = url else {
+        guard let recorder,
+            let fileURL = url else {
             reset()
             return nil
         }
 
-        let duration = max(1, recorder?.currentTime ?? Date().timeIntervalSince(startedAt ?? Date()))
+        // Capture this before calling stop().
+        let measuredDuration = recorder.currentTime
 
-        let draft = VoiceNoteDraft(
+        let fallbackDuration = Date().timeIntervalSince(
+            startedAt ?? Date()
+        )
+
+        let duration = max(
+            1,
+            measuredDuration > 0
+                ? measuredDuration
+                : fallbackDuration
+        )
+
+        recorder.stop()
+
+        self.recorder = nil
+        self.url = nil
+        self.startedAt = nil
+
+        try? AVAudioSession.sharedInstance().setActive(
+            false,
+            options: .notifyOthersOnDeactivation
+        )
+
+        return VoiceNoteDraft(
             fileURL: fileURL,
             durationSec: duration
         )
-
-        reset(keepFile: true)
-        return draft
     }
 
     func cancel() {
@@ -106,15 +138,17 @@ final class AudioRecorderService {
             try? FileManager.default.removeItem(at: url)
         }
 
+        try? AVAudioSession.sharedInstance().setActive(
+            false,
+            options: .notifyOthersOnDeactivation
+        )
+
         reset()
     }
 
-    private func reset(keepFile: Bool = false) {
+    private func reset() {
         recorder = nil
+        url = nil
         startedAt = nil
-
-        if !keepFile {
-            url = nil
-        }
     }
 }

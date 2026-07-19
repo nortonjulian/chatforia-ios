@@ -15,7 +15,7 @@ struct ChatThreadView: View {
 
     @StateObject private var vm = ChatThreadViewModel()
     @EnvironmentObject private var settingsVM: SettingsViewModel
-    
+
     @StateObject private var riaVM = RiaViewModel()
     @State private var showingRewriteSheet = false
 
@@ -25,7 +25,7 @@ struct ChatThreadView: View {
     @State private var editingMessage: MessageDTO? = nil
     @State private var editDraft: String = ""
     @State private var didLoad = false
-    
+
     @State private var editPendingGIFURL: URL? = nil
     @State private var showEditGIFPicker = false
 
@@ -35,26 +35,40 @@ struct ChatThreadView: View {
     @State private var showGIFPicker = false
     @State private var showPhotoPicker = false
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
-    
+
     @State private var isProcessingVideo = false
     @State private var videoProcessingStatus: String? = nil
-    
+
     @State private var selectedVideoURL: IdentifiableURL? = nil
-    
+
     @State private var pendingGIFURL: URL? = nil
-    
+
     @State private var pendingImageData: Data? = nil
     @State private var pendingVideoURL: URL? = nil
-    
+
     @State private var showSearchSheet = false
     @State private var searchText = ""
     @State private var highlightedMessageID: Int? = nil
     @State private var showEditEmojiPicker = false
-    
+
     @State private var isSendingText = false
-    
+
+    // MARK: - Voice notes
+
+    @State private var audioRecorder = AudioRecorderService()
+
+    @State private var isRecordingVoice = false
+    @State private var recordingElapsed: TimeInterval = 0
+    @State private var recordingTickerTask: Task<Void, Never>?
+
+    @State private var voiceDraft: VoiceNoteDraft?
+
+    @State private var voiceDraftPlayer: AVAudioPlayer?
+    @State private var voicePlaybackTask: Task<Void, Never>?
+    @State private var isPlayingVoiceDraft = false
+
     @FocusState private var isEditEditorFocused: Bool
-    
+
     struct IdentifiableURL: Identifiable {
         let id = UUID()
         let url: URL
@@ -67,7 +81,7 @@ struct ChatThreadView: View {
                     .foregroundColor(.red)
                     .padding()
             }
-            
+
             randomChatActionsBar
             messagesSection
             pendingMediaBar
@@ -86,6 +100,9 @@ struct ChatThreadView: View {
             vm.stopSocket(roomId: room.id)
             vm.stopExpiryLoop()
             vm.stopTypingNow(roomId: room.id)
+
+            cancelVoiceRecording()
+            discardVoiceDraft()
         }
         .sheet(item: $editingMessage) { _ in
             editMessageSheet
@@ -313,7 +330,7 @@ extension ChatThreadView {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 let currentUserId = auth.currentUser?.id
-                
+
                 MessagesListView(
                     messages: vm.messages,
                     currentUserId: currentUserId,
@@ -336,7 +353,7 @@ extension ChatThreadView {
                                 .compactMap { $0.caption?.trimmingCharacters(in: .whitespacesAndNewlines) }
                                 .first(where: { !$0.isEmpty })
                             ?? ""
-                        
+
                         if let gif = msg.attachments?.first(where: { att in
                             let kind = (att.kind ?? "").uppercased()
                             let mime = (att.mimeType ?? "").lowercased()
@@ -348,7 +365,7 @@ extension ChatThreadView {
                         } else {
                             editPendingGIFURL = nil
                         }
-                        
+
                         isEditEditorFocused = true
                     },
                     onDelete: { msg in
@@ -428,7 +445,7 @@ extension ChatThreadView {
                 }
                 .padding(.horizontal, 10)
                 .padding(.top, 8)
-                
+
 
             } else if !isProcessingVideo && (pendingImageData != nil || pendingVideoURL != nil) {
                 HStack(spacing: 10) {
@@ -675,8 +692,50 @@ extension ChatThreadView {
                 onRewriteTap: {
                     showingRewriteSheet = true
                 },
-                hasPendingAttachment: pendingGIFURL != nil || pendingImageData != nil || pendingVideoURL != nil,
-                isCaptioningPendingMedia: pendingImageData != nil || pendingVideoURL != nil
+
+                isRecordingVoice: isRecordingVoice,
+                recordingDurationText: formatVoiceDuration(recordingElapsed),
+                voiceDraftDurationText: voiceDraft.map {
+                    formatVoiceDuration($0.durationSec)
+                },
+
+                onMicTap: {
+                    startVoiceRecording()
+                },
+
+                onStopRecordingTap: {
+                    stopVoiceRecording()
+                },
+
+                onCancelRecordingTap: {
+                    cancelVoiceRecording()
+                },
+
+                onCancelVoiceDraftTap: {
+                    discardVoiceDraft()
+                },
+
+                onSendVoiceDraftTap: {
+                    Task { @MainActor in
+                        await sendVoiceDraft()
+                    }
+                },
+
+                onPlayVoiceDraftTap: {
+                    toggleVoiceDraftPlayback()
+                },
+
+                isPlayingVoiceDraft: isPlayingVoiceDraft,
+                hasVoiceDraft: voiceDraft != nil,
+
+                hasPendingAttachment:
+                    pendingGIFURL != nil ||
+                    pendingImageData != nil ||
+                    pendingVideoURL != nil,
+
+                isCaptioningPendingMedia:
+                    pendingImageData != nil ||
+                    pendingVideoURL != nil
             )
             .padding(.bottom, 6)
         }
@@ -767,7 +826,7 @@ extension ChatThreadView {
             }
         }
     }
-    
+
     private func sendPendingMedia() async {
         let trimmedCaption = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         let caption = trimmedCaption.isEmpty ? nil : trimmedCaption
@@ -840,9 +899,9 @@ extension ChatThreadView {
             }
         }
     }
-    
 
-    
+
+
    private func onLoad() async {
         SocketManager.shared.suppressMessageTonesForOpeningThread(seconds: 8)
 
@@ -917,7 +976,7 @@ extension ChatThreadView {
             draft = textToSend
         }
     }
-    
+
     private var deleteForEveryoneWindowSec: TimeInterval { 900 }
 
     private func canDeleteForEveryone(_ msg: MessageDTO) -> Bool {
@@ -1009,7 +1068,7 @@ extension ChatThreadView {
 
         return "Chat #\(room.id)"
     }
-    
+
     private var editMessageSheet: some View {
         NavigationStack {
             VStack(spacing: 16) {
@@ -1124,5 +1183,261 @@ extension ChatThreadView {
                 }
             }
         }
+    }
+}
+
+// MARK: - Voice notes
+
+extension ChatThreadView {
+    @MainActor
+    private func startVoiceRecording() {
+        guard !isRecordingVoice else { return }
+        guard voiceDraft == nil else { return }
+
+        guard pendingGIFURL == nil,
+              pendingImageData == nil,
+              pendingVideoURL == nil else {
+            return
+        }
+
+        guard !vm.isSendingAudio else { return }
+
+        vm.errorText = nil
+        stopVoiceDraftPlayback(reset: true)
+
+        Task { @MainActor in
+            do {
+                try await audioRecorder.start()
+
+                isRecordingVoice = true
+                recordingElapsed = 0
+                startRecordingTicker()
+            } catch {
+                isRecordingVoice = false
+                stopRecordingTicker()
+                vm.errorText = error.localizedDescription
+            }
+        }
+    }
+
+    @MainActor
+    private func stopVoiceRecording() {
+        guard isRecordingVoice else { return }
+
+        let completedDraft = audioRecorder.stop()
+
+        isRecordingVoice = false
+        stopRecordingTicker()
+
+        guard let completedDraft else {
+            vm.errorText = "The voice recording could not be saved."
+            return
+        }
+
+        voiceDraft = completedDraft
+    }
+
+    @MainActor
+    private func cancelVoiceRecording() {
+        guard isRecordingVoice else { return }
+
+        audioRecorder.cancel()
+
+        isRecordingVoice = false
+        recordingElapsed = 0
+        stopRecordingTicker()
+    }
+
+    @MainActor
+    private func discardVoiceDraft() {
+        stopVoiceDraftPlayback(reset: true)
+
+        if let fileURL = voiceDraft?.fileURL {
+            try? FileManager.default.removeItem(at: fileURL)
+        }
+
+        voiceDraft = nil
+    }
+
+    @MainActor
+    private func sendVoiceDraft() async {
+        guard let voiceDraft else { return }
+
+        guard let senderId = auth.currentUser?.id else {
+            vm.errorText = "Your account information is unavailable."
+            return
+        }
+
+        guard auth.currentToken != nil else {
+            vm.errorText = "Your session has expired. Please sign in again."
+            return
+        }
+
+        stopVoiceDraftPlayback(reset: true)
+
+        let succeeded = await vm.sendAudioMessage(
+            roomId: room.id,
+            token: auth.currentToken,
+            fileURL: voiceDraft.fileURL,
+            durationSec: voiceDraft.durationSec,
+            senderId: senderId,
+            senderUsername: auth.currentUser?.username,
+            senderPublicKey: auth.currentUser?.publicKey
+        )
+
+        guard succeeded else {
+            // Preserve the draft so the user can retry.
+            return
+        }
+
+        try? FileManager.default.removeItem(at: voiceDraft.fileURL)
+        self.voiceDraft = nil
+        recordingElapsed = 0
+    }
+
+    @MainActor
+    private func startRecordingTicker() {
+        recordingTickerTask?.cancel()
+
+        let startedAt = Date()
+
+        recordingTickerTask = Task { @MainActor in
+            while !Task.isCancelled {
+                recordingElapsed = Date().timeIntervalSince(startedAt)
+
+                try? await Task.sleep(
+                    nanoseconds: 200_000_000
+                )
+            }
+        }
+    }
+
+    @MainActor
+    private func stopRecordingTicker() {
+        recordingTickerTask?.cancel()
+        recordingTickerTask = nil
+    }
+
+    @MainActor
+    private func toggleVoiceDraftPlayback() {
+        guard let voiceDraft else { return }
+
+        if let existingPlayer = voiceDraftPlayer {
+            if existingPlayer.isPlaying {
+                existingPlayer.pause()
+                voicePlaybackTask?.cancel()
+                voicePlaybackTask = nil
+                isPlayingVoiceDraft = false
+                return
+            }
+
+            if existingPlayer.currentTime >= existingPlayer.duration {
+                existingPlayer.currentTime = 0
+            }
+
+            guard existingPlayer.play() else {
+                vm.errorText = "The voice-note preview could not be played."
+                return
+            }
+
+            isPlayingVoiceDraft = true
+            monitorVoiceDraftPlayback(existingPlayer)
+            return
+        }
+
+        do {
+            let session = AVAudioSession.sharedInstance()
+
+            try session.setCategory(
+                .playAndRecord,
+                mode: .default,
+                options: [.defaultToSpeaker]
+            )
+
+            try session.setActive(true)
+
+            let player = try AVAudioPlayer(
+                contentsOf: voiceDraft.fileURL
+            )
+
+            player.prepareToPlay()
+
+            guard player.play() else {
+                throw NSError(
+                    domain: "ChatforiaVoicePreview",
+                    code: 1,
+                    userInfo: [
+                        NSLocalizedDescriptionKey:
+                            "The voice-note preview could not be started."
+                    ]
+                )
+            }
+
+            voiceDraftPlayer = player
+            isPlayingVoiceDraft = true
+
+            monitorVoiceDraftPlayback(player)
+        } catch {
+            stopVoiceDraftPlayback(reset: true)
+            vm.errorText = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    private func monitorVoiceDraftPlayback(
+        _ player: AVAudioPlayer
+    ) {
+        voicePlaybackTask?.cancel()
+
+        voicePlaybackTask = Task { @MainActor in
+            while !Task.isCancelled && player.isPlaying {
+                try? await Task.sleep(
+                    nanoseconds: 100_000_000
+                )
+            }
+
+            guard !Task.isCancelled else { return }
+
+            isPlayingVoiceDraft = false
+
+            if player.currentTime >= player.duration - 0.05 {
+                player.currentTime = 0
+            }
+        }
+    }
+
+    @MainActor
+    private func stopVoiceDraftPlayback(
+        reset: Bool
+    ) {
+        voicePlaybackTask?.cancel()
+        voicePlaybackTask = nil
+
+        voiceDraftPlayer?.stop()
+
+        if reset {
+            voiceDraftPlayer?.currentTime = 0
+            voiceDraftPlayer = nil
+        }
+
+        isPlayingVoiceDraft = false
+    }
+
+    private func formatVoiceDuration(
+        _ seconds: TimeInterval
+    ) -> String {
+        let totalSeconds = max(
+            0,
+            Int(seconds.rounded(.down))
+        )
+
+        let minutes = totalSeconds / 60
+        let remainingSeconds = totalSeconds % 60
+
+        return String(
+            format: "%d:%02d",
+            minutes,
+            remainingSeconds
+        )
     }
 }
