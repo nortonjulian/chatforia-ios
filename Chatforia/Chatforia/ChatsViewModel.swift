@@ -12,11 +12,11 @@ final class ChatsViewModel: ObservableObject {
 
     private var initialLoadToken: String?
     private var isInitialLoadInProgress = false
-    
+
     private var appLanguage: String {
         UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
     }
-    
+
     private var cancellables = Set<AnyCancellable>()
 
     static let conversationsBasePath = "conversations"
@@ -63,7 +63,7 @@ final class ChatsViewModel: ObservableObject {
                 self.bumpConversation(roomId: roomId, payload: raw)
             }
             .store(in: &cancellables)
-        
+
         NotificationCenter.default.publisher(for: .socketMessageEdited)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] note in
@@ -131,68 +131,199 @@ final class ChatsViewModel: ObservableObject {
             }
             .store(in: &cancellables)
     }
-    
-    private func bumpConversation(roomId: Int, payload: [String: Any]) {
-        guard let index = conversations.firstIndex(where: { $0.id == roomId }) else {
+
+    private func bumpConversation(
+        roomId: Int,
+        payload: [String: Any]
+    ) {
+        guard let index = conversations.firstIndex(where: {
+            $0.kind.lowercased() == "chat" &&
+            $0.id == roomId
+        }) else {
             Task {
-                await self.loadConversations(token: TokenStore.shared.read())
+                await self.loadConversations(
+                    token: TokenStore.shared.read()
+                )
             }
             return
         }
 
         let convo = conversations[index]
-        let nowISO = ISO8601DateFormatter().string(from: Date())
         let currentLast = convo.last
+
+        let incomingMessageId: Int? = {
+            if let id = payload["id"] as? Int {
+                return id
+            }
+
+            if let id = payload["id"] as? NSNumber {
+                return id.intValue
+            }
+
+            if let id = payload["id"] as? String {
+                return Int(id)
+            }
+
+            return nil
+        }()
+
+        let incomingAt: String? = {
+            if let createdAt = payload["createdAt"] as? String,
+            !createdAt.isEmpty {
+                return createdAt
+            }
+
+            if let at = payload["at"] as? String,
+            !at.isEmpty {
+                return at
+            }
+
+            return nil
+        }()
+
+        let currentLastMessageId = currentLast?.messageId
+
+        let isSameAsCurrentLast =
+            incomingMessageId != nil &&
+            incomingMessageId == currentLastMessageId
+
+        let incomingDate = parseISODate(incomingAt)
+
+        let currentActivityDate =
+            parseISODate(currentLast?.at) ??
+            parseISODate(convo.updatedAt) ??
+            .distantPast
+
+        let isNewActivity: Bool = {
+            // A conversation without a last message may accept the first message.
+            guard currentLast != nil else {
+                return true
+            }
+
+            // Read receipts, edits, reactions, and other updates to the current
+            // last message must not move the conversation.
+            if isSameAsCurrentLast {
+                return false
+            }
+
+            // Prefer the real message timestamp.
+            if let incomingDate {
+                if incomingDate > currentActivityDate {
+                    return true
+                }
+
+                if incomingDate < currentActivityDate {
+                    return false
+                }
+
+                // Same timestamp: use the server message ID as a tie-breaker.
+                if let incomingMessageId,
+                let currentLastMessageId {
+                    return incomingMessageId > currentLastMessageId
+                }
+
+                return false
+            }
+
+            // Fallback when the socket payload unexpectedly lacks createdAt.
+            if let incomingMessageId,
+            let currentLastMessageId {
+                return incomingMessageId > currentLastMessageId
+            }
+
+            return false
+        }()
+
+        // Ignore updates involving an older message. Those updates must not
+        // replace the conversation preview or alter its position.
+        guard isSameAsCurrentLast || isNewActivity else {
+            return
+        }
 
         let newText: String? = {
             if let ciphertext = payload["contentCiphertext"] as? String {
-                if let messageId = payload["id"] as? Int,
-                   let decrypted = DecryptedMessageTextStore.shared.text(for: messageId)?
-                    .trimmingCharacters(in: .whitespacesAndNewlines),
-                   !decrypted.isEmpty {
+                if let messageId = incomingMessageId,
+                let decrypted =
+                        DecryptedMessageTextStore.shared
+                            .text(for: messageId)?
+                            .trimmingCharacters(
+                                in: .whitespacesAndNewlines
+                            ),
+                !decrypted.isEmpty {
                     return decrypted
                 }
 
-                if let encryptedKeyPayload = payload["encryptedKeyForMe"] as? String {
-                    let currentUserId = UserDefaults.standard.integer(forKey: "chatforia.currentUserId")
+                if let encryptedKeyPayload =
+                        payload["encryptedKeyForMe"] as? String {
+                    let currentUserId =
+                        UserDefaults.standard.integer(
+                            forKey: "chatforia.currentUserId"
+                        )
 
                     if currentUserId > 0,
-                       let messageId = payload["id"] as? Int,
-                       let decrypted = try? MessageCryptoService.shared.decryptMessageForCurrentBackend(
-                            ciphertextBase64: ciphertext,
-                            encryptedKeyPayload: encryptedKeyPayload,
-                            userId: currentUserId
-                       ) {
-                        DecryptedMessageTextStore.shared.setText(decrypted, for: messageId)
+                    let messageId = incomingMessageId,
+                    let decrypted = try?
+                            MessageCryptoService.shared
+                                .decryptMessageForCurrentBackend(
+                                    ciphertextBase64: ciphertext,
+                                    encryptedKeyPayload:
+                                        encryptedKeyPayload,
+                                    userId: currentUserId
+                                ) {
+                        DecryptedMessageTextStore.shared.setText(
+                            decrypted,
+                            for: messageId
+                        )
+
                         return decrypted
                     }
                 }
 
-                return "Message"
+                return currentLast?.text ?? "Message"
             }
 
-            if let text = payload["rawContent"] as? String,
-               !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                return text
+            if let text = payload["rawContent"] as? String {
+                let trimmed = text.trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                )
+
+                if !trimmed.isEmpty {
+                    return trimmed
+                }
             }
 
-            if let text = payload["translatedForMe"] as? String,
-               !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                return text
+            if let text = payload["translatedForMe"] as? String {
+                let trimmed = text.trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                )
+
+                if !trimmed.isEmpty {
+                    return trimmed
+                }
             }
 
-            if let clientMessageId = payload["clientMessageId"] as? String,
-               let localMessage = MessageStore.shared.currentWindow()
-                .first(where: { $0.clientMessageId == clientMessageId }) {
-                return localMessage.rawContent
-                    ?? localMessage.translatedForMe
+            if let clientMessageId =
+                    payload["clientMessageId"] as? String,
+            let localMessage =
+                    MessageStore.shared
+                        .currentWindow()
+                        .first(where: {
+                            $0.clientMessageId == clientMessageId
+                        }) {
+                return localMessage.rawContent ??
+                    localMessage.translatedForMe ??
+                    currentLast?.text
             }
 
             if payload["deletedForAll"] as? Bool == true {
-                return String(localized: "messages.messageDeleted")
+                return String(
+                    localized: "messages.messageDeleted"
+                )
             }
 
-            if let attachments = payload["attachments"] as? [[String: Any]], !attachments.isEmpty {
+            if let attachments =
+                    payload["attachments"] as? [[String: Any]],
+            !attachments.isEmpty {
                 return "[media]"
             }
 
@@ -200,52 +331,83 @@ final class ChatsViewModel: ObservableObject {
         }()
 
         let hasMedia: Bool = {
-            if let attachments = payload["attachments"] as? [[String: Any]] {
+            if let attachments =
+                    payload["attachments"] as? [[String: Any]] {
                 return !attachments.isEmpty
             }
+
             return currentLast?.hasMedia ?? false
         }()
 
         let mediaCount: Int? = {
-            if let attachments = payload["attachments"] as? [[String: Any]] {
+            if let attachments =
+                    payload["attachments"] as? [[String: Any]] {
                 return attachments.count
             }
+
             return currentLast?.mediaCount
         }()
 
         let mediaKinds: [String]? = {
-            if let attachments = payload["attachments"] as? [[String: Any]] {
-                let kinds = attachments.compactMap { $0["kind"] as? String }
-                return kinds.isEmpty ? currentLast?.mediaKinds : kinds
+            if let attachments =
+                    payload["attachments"] as? [[String: Any]] {
+                let kinds = attachments.compactMap {
+                    $0["kind"] as? String
+                }
+
+                return kinds.isEmpty
+                    ? currentLast?.mediaKinds
+                    : kinds
             }
+
             return currentLast?.mediaKinds
         }()
 
         let thumbUrl: String? = {
-            if let attachments = payload["attachments"] as? [[String: Any]] {
-                for att in attachments {
-                    if let thumb = att["thumbUrl"] as? String, !thumb.isEmpty {
+            if let attachments =
+                    payload["attachments"] as? [[String: Any]] {
+                for attachment in attachments {
+                    if let thumb =
+                            attachment["thumbUrl"] as? String,
+                    !thumb.isEmpty {
                         return thumb
                     }
-                    if let url = att["url"] as? String, !url.isEmpty {
+
+                    if let url =
+                            attachment["url"] as? String,
+                    !url.isEmpty {
                         return url
                     }
                 }
             }
+
             return currentLast?.thumbUrl
         }()
 
-        let messageId: Int? = {
-            if let id = payload["id"] as? Int, id > 0 {
-                return id
-            }
-            return currentLast?.messageId
-        }()
+        let nowISO = ISO8601DateFormatter().string(
+            from: Date()
+        )
+
+        let effectiveLastAt: String?
+        let effectiveUpdatedAt: String?
+
+        if isNewActivity {
+            // Real new messages use their server timestamp. "Now" is only a
+            // defensive fallback if createdAt was omitted.
+            let activityAt = incomingAt ?? nowISO
+            effectiveLastAt = activityAt
+            effectiveUpdatedAt = activityAt
+        } else {
+            // Existing-message updates preserve the original activity time.
+            effectiveLastAt = currentLast?.at
+            effectiveUpdatedAt = convo.updatedAt
+        }
 
         let newLast = ConversationLastDTO(
             text: newText,
-            messageId: messageId,
-            at: nowISO,
+            messageId: incomingMessageId ??
+                currentLast?.messageId,
+            at: effectiveLastAt,
             hasMedia: hasMedia,
             mediaCount: mediaCount,
             mediaKinds: mediaKinds,
@@ -253,12 +415,12 @@ final class ChatsViewModel: ObservableObject {
             senderName: currentLast?.senderName
         )
 
-        let updated = ConversationDTO(
+        var updated = ConversationDTO(
             kind: convo.kind,
             id: convo.id,
             title: convo.title,
             displayName: convo.displayName,
-            updatedAt: nowISO,
+            updatedAt: effectiveUpdatedAt,
             isGroup: convo.isGroup,
             phone: convo.phone,
             unreadCount: convo.unreadCount,
@@ -266,10 +428,19 @@ final class ChatsViewModel: ObservableObject {
             last: newLast
         )
 
+        // Preserve random-chat metadata when rebuilding the DTO.
+        updated.isRandomChat = convo.isRandomChat
+        updated.randomChat = convo.randomChat
+        updated.randomChatRoomId = convo.randomChatRoomId
+
         conversations[index] = updated
-        resortConversations()
+
+        // Only a genuinely new message is allowed to change list hierarchy.
+        if isNewActivity {
+            resortConversations()
+        }
     }
-    
+
     private func resortConversations() {
         conversations = sortedConversations(conversations)
     }
@@ -423,7 +594,7 @@ final class ChatsViewModel: ObservableObject {
                     )
                 }
             }
-            
+
             SocketManager.shared.connect(token: token)
 
             for convo in fetched where convo.kind.lowercased() == "chat" {
@@ -431,7 +602,7 @@ final class ChatsViewModel: ObservableObject {
                     SocketManager.shared.joinRoom(roomId)
                 }
             }
-            
+
         } catch {
             errorText = error.localizedDescription
         }
@@ -536,7 +707,7 @@ final class ChatsViewModel: ObservableObject {
             errorText = String(localized: "chat.deleteFailed")
         }
     }
-    
+
     private func hydrateEncryptedPreview(
         conversation: ConversationDTO,
         token: String?

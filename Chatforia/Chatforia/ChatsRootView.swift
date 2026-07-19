@@ -146,23 +146,10 @@ struct ChatsRootView: View {
                                             .tint(themeManager.palette.accent)
                                         }
                                     }
-                                    .swipeActions(edge: .trailing) {
-                                        Button {
-                                            Task {
-                                                let token = TokenStore.shared.read()
-                                                _ = await vm.archiveConversation(conversation, token: token)
-                                            }
-                                        } label: {
-                                            Label(
-                                                appText(
-                                                    "common.delete",
-                                                    languageCode: appLanguage
-                                                ),
-                                                systemImage: "trash"
-                                            )
-                                        }
-                                        .tint(.red)
-
+                                    .swipeActions(
+                                        edge: .trailing,
+                                        allowsFullSwipe: false
+                                    ) {
                                         Button(role: .destructive) {
                                             pendingConversation = conversation
                                             showDeleteConfirm = true
