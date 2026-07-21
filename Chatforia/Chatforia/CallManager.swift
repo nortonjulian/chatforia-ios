@@ -901,11 +901,17 @@ final class CallManager: ObservableObject {
 
         Task {
             do {
-                try await DeviceRegistrationService.shared.registerVoIPPushToken(
-                    voipToken,
-                    token: authToken
-                )
+                _ = try await DeviceRegistrationService.shared
+                    .ensureCurrentDeviceRegistered(
+                        userId: currentUserId ?? 0,
+                        token: authToken
+                    )
 
+                try await DeviceRegistrationService.shared
+                    .registerVoIPPushToken(
+                        voipToken,
+                        token: authToken
+                    )
 
                 let voiceTokenResponse = try await twilioService.fetchToken(
                     authToken: authToken
@@ -917,8 +923,14 @@ final class CallManager: ObservableObject {
                 ) { error in
                     Task { @MainActor in
                         if let error {
-                            debugLog("❌ Twilio VoIP registration failed:", error)
-                            debugLog("❌ Twilio VoIP registration localized:", error.localizedDescription)
+                            debugLog(
+                                "❌ Twilio VoIP registration failed:",
+                                error
+                            )
+                            debugLog(
+                                "❌ Twilio VoIP registration localized:",
+                                error.localizedDescription
+                            )
                             return
                         }
 
@@ -926,8 +938,17 @@ final class CallManager: ObservableObject {
                         self.pendingVoIPTokenData = nil
                     }
                 }
+            } catch let replacementError
+                as DeviceReplacementRequiredError {
+                debugLog(
+                    "ℹ️ VoIP registration waiting for device replacement:",
+                    replacementError.code
+                )
             } catch {
-                debugLog("❌ VoIP push token registration failed:", error)
+                debugLog(
+                    "❌ VoIP push token registration failed:",
+                    error
+                )
             }
         }
     }
