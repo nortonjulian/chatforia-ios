@@ -37,10 +37,13 @@ struct DeviceRegisterRequest: Encodable {
     let publicKey: String?
     let keyAlgorithm: String
     let keyVersion: Int
+    let replaceExistingDevice: Bool?
+    let replaceDeviceId: String?
 }
 
 struct DeviceRegisterResponse: Decodable {
     let device: DeviceDTO
+    let replacedDeviceIds: [String]?
 }
 
 struct DeviceListResponse: Decodable {

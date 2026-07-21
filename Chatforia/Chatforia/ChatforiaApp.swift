@@ -61,6 +61,8 @@ struct ChatforiaApp: App {
     @StateObject private var auth = AuthStore()
     @StateObject private var themeManager = ThemeManager()
     @StateObject private var notificationCoordinator = NotificationCoordinator.shared
+    @StateObject private var deviceReplacementCoordinator =
+        DeviceReplacementCoordinator.shared
     @StateObject private var callManager = CallManager()
     @StateObject private var inviteFlow = InviteFlowManager.shared
     @StateObject private var checkoutReturn = CheckoutReturnCoordinator()
@@ -172,6 +174,53 @@ struct ChatforiaApp: App {
                 themeManager.apply(code: newTheme)
                 settingsVM.theme = newTheme
             }
+            .confirmationDialog(
+                "Replace an existing device?",
+                isPresented: Binding(
+                    get: {
+                        deviceReplacementCoordinator.prompt != nil
+                    },
+                    set: { isPresented in
+                        if !isPresented {
+                            deviceReplacementCoordinator.clear()
+                        }
+                    }
+                ),
+                titleVisibility: .visible
+            ) {
+                if let prompt =
+                    deviceReplacementCoordinator.prompt {
+                    ForEach(
+                        prompt.existingDevices.indices,
+                        id: \.self
+                    ) { index in
+                        let device =
+                            prompt.existingDevices[index]
+
+                        if let deviceId = device.deviceId {
+                            Button(
+                                replacementDeviceLabel(
+                                    for: device
+                                ),
+                                role: .destructive
+                            ) {
+                                confirmDeviceReplacement(
+                                    deviceId
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Button("Cancel", role: .cancel) {
+                    deviceReplacementCoordinator.clear()
+                }
+            } message: {
+                Text(
+                    deviceReplacementCoordinator.prompt?.message
+                    ?? "Your plan allows one active device. Choose the existing device to replace."
+                )
+            }
         }
         .onChange(of: scenePhase) { _, newPhase in
             guard newPhase == .active else { return }
@@ -215,6 +264,80 @@ struct ChatforiaApp: App {
 
             if !auth.isPaid {
                 InterstitialAdManager.shared.preloadIfNeeded()
+            }
+        }
+    }
+
+    private func replacementDeviceLabel(
+        for device: DeviceDTO
+    ) -> String {
+        let trimmedName =
+            device.name?
+                .trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                )
+
+        let trimmedPlatform =
+            device.platform?
+                .trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                )
+
+        let resolvedName =
+            (
+                trimmedName?.isEmpty == false
+                ? trimmedName
+                : nil
+            )
+            ?? "Existing device"
+
+        guard
+            let trimmedPlatform,
+            !trimmedPlatform.isEmpty
+        else {
+            return resolvedName
+        }
+
+        return "\(resolvedName) • \(trimmedPlatform)"
+    }
+
+    private func confirmDeviceReplacement(
+        _ replaceDeviceId: String
+    ) {
+        Task {
+            guard
+                let token = auth.currentToken,
+                !token.isEmpty
+            else {
+                deviceReplacementCoordinator.clear()
+                return
+            }
+
+            do {
+                _ = try await DeviceRegistrationService.shared
+                    .ensureCurrentDeviceRegistered(
+                        userId: auth.currentUser?.id ?? 0,
+                        token: token,
+                        replaceDeviceId: replaceDeviceId
+                    )
+
+                await notificationCoordinator
+                    .retryPushRegistrationIfPossible()
+
+                callManager.startVoIPIfNeeded(
+                    auth: auth
+                )
+            } catch let replacementError
+                as DeviceReplacementRequiredError {
+                debugLog(
+                    "ℹ️ Device replacement still requires confirmation:",
+                    replacementError.code
+                )
+            } catch {
+                debugLog(
+                    "❌ Device replacement failed:",
+                    error
+                )
             }
         }
     }

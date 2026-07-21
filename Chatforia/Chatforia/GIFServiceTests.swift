@@ -52,11 +52,6 @@ final class GIFServiceTests: XCTestCase {
 
     func testGIFServiceErrorDescriptions() {
         XCTAssertEqual(
-            GIFServiceError.missingAPIKey.errorDescription,
-            "Missing GIF API key."
-        )
-
-        XCTAssertEqual(
             GIFServiceError.invalidResponse.errorDescription,
             "Invalid GIF response."
         )

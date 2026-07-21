@@ -6,11 +6,11 @@ final class MessageCryptoServiceTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        AccountKeyManager.shared.clear()
+        AccountKeyManager.shared.clear(userId: 1)
     }
 
     override func tearDown() {
-        AccountKeyManager.shared.clear()
+        AccountKeyManager.shared.clear(userId: 1)
         super.tearDown()
     }
 
@@ -49,6 +49,7 @@ final class MessageCryptoServiceTests: XCTestCase {
         let senderKeys = try AccountKeyManager.shared.generateNewAccountKeys()
 
         try AccountKeyManager.shared.saveAccountKeys(
+            userId: 1,
             publicKeyBase64: senderKeys.publicKeyBase64,
             privateKeyBase64: senderKeys.privateKeyBase64
         )
@@ -72,6 +73,7 @@ final class MessageCryptoServiceTests: XCTestCase {
         let recipientKeys = try AccountKeyManager.shared.generateNewAccountKeys()
 
         try AccountKeyManager.shared.saveAccountKeys(
+            userId: 1,
             publicKeyBase64: senderKeys.publicKeyBase64,
             privateKeyBase64: senderKeys.privateKeyBase64
         )
@@ -100,6 +102,7 @@ final class MessageCryptoServiceTests: XCTestCase {
         let recipientKeys = try AccountKeyManager.shared.generateNewAccountKeys()
 
         try AccountKeyManager.shared.saveAccountKeys(
+            userId: 1,
             publicKeyBase64: senderKeys.publicKeyBase64,
             privateKeyBase64: senderKeys.privateKeyBase64
         )

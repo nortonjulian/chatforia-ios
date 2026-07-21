@@ -82,4 +82,124 @@ final class NotificationCoordinatorTests: XCTestCase {
 
         XCTAssertTrue(true)
     }
+
+    func testDeviceRegisterRequestEncodesReplacementFields()
+        throws {
+        let request = DeviceRegisterRequest(
+            deviceId: "new-device",
+            name: "Julian's iPhone",
+            platform: "ios",
+            publicKey: "public-key",
+            keyAlgorithm: "curve25519",
+            keyVersion: 1,
+            replaceExistingDevice: true,
+            replaceDeviceId: "old-device"
+        )
+
+        let data = try JSONEncoder().encode(request)
+        let object = try XCTUnwrap(
+            JSONSerialization.jsonObject(
+                with: data
+            ) as? [String: Any]
+        )
+
+        XCTAssertEqual(
+            object["replaceExistingDevice"] as? Bool,
+            true
+        )
+        XCTAssertEqual(
+            object["replaceDeviceId"] as? String,
+            "old-device"
+        )
+    }
+
+    func testReplacementErrorParsesRequiredResponse()
+        throws {
+        let responseBody = """
+        {
+          "error": "Choose the existing device to replace.",
+          "code": "DEVICE_REPLACEMENT_REQUIRED",
+          "existingDevices": [
+            {
+              "id": "device-row-1",
+              "deviceId": "old-device",
+              "name": "Old iPhone",
+              "platform": "ios"
+            }
+          ]
+        }
+        """
+
+        let parsed =
+            DeviceRegistrationService.replacementError(
+                from: APIError.server(
+                    status: 409,
+                    message: responseBody
+                )
+            )
+
+        let error = try XCTUnwrap(parsed)
+
+        XCTAssertEqual(
+            error.code,
+            "DEVICE_REPLACEMENT_REQUIRED"
+        )
+        XCTAssertEqual(
+            error.existingDevices.first?.deviceId,
+            "old-device"
+        )
+        XCTAssertEqual(
+            error.message,
+            "Choose the existing device to replace."
+        )
+    }
+
+    func testReplacementErrorParsesStaleTargetResponse()
+        throws {
+        let responseBody = """
+        {
+          "message": "The selected device is no longer active.",
+          "code": "DEVICE_REPLACEMENT_TARGET_STALE",
+          "existingDevices": []
+        }
+        """
+
+        let parsed =
+            DeviceRegistrationService.replacementError(
+                from: APIError.server(
+                    status: 409,
+                    message: responseBody
+                )
+            )
+
+        let error = try XCTUnwrap(parsed)
+
+        XCTAssertEqual(
+            error.code,
+            "DEVICE_REPLACEMENT_TARGET_STALE"
+        )
+        XCTAssertEqual(
+            error.message,
+            "The selected device is no longer active."
+        )
+    }
+
+    func testReplacementErrorIgnoresOtherStatusCodes() {
+        let responseBody = """
+        {
+          "code": "DEVICE_REPLACEMENT_REQUIRED"
+        }
+        """
+
+        let parsed =
+            DeviceRegistrationService.replacementError(
+                from: APIError.server(
+                    status: 402,
+                    message: responseBody
+                )
+            )
+
+        XCTAssertNil(parsed)
+    }
+
 }

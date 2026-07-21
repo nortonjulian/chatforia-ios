@@ -6,11 +6,11 @@ final class DevicePairingCryptoTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        AccountKeyManager.shared.clear()
+        AccountKeyManager.shared.clear(userId: 1)
     }
 
     override func tearDown() {
-        AccountKeyManager.shared.clear()
+        AccountKeyManager.shared.clear(userId: 1)
         super.tearDown()
     }
 
@@ -36,6 +36,7 @@ final class DevicePairingCryptoTests: XCTestCase {
         let keys = try AccountKeyManager.shared.generateNewAccountKeys()
 
         try AccountKeyManager.shared.saveAccountKeys(
+            userId: 1,
             publicKeyBase64: keys.publicKeyBase64,
             privateKeyBase64: keys.privateKeyBase64
         )
@@ -57,6 +58,7 @@ final class DevicePairingCryptoTests: XCTestCase {
         let accountKeys = try AccountKeyManager.shared.generateNewAccountKeys()
 
         try AccountKeyManager.shared.saveAccountKeys(
+            userId: 1,
             publicKeyBase64: accountKeys.publicKeyBase64,
             privateKeyBase64: accountKeys.privateKeyBase64
         )
@@ -87,6 +89,7 @@ final class DevicePairingCryptoTests: XCTestCase {
         let accountKeys = try AccountKeyManager.shared.generateNewAccountKeys()
 
         try AccountKeyManager.shared.saveAccountKeys(
+            userId: 1,
             publicKeyBase64: accountKeys.publicKeyBase64,
             privateKeyBase64: accountKeys.privateKeyBase64
         )

@@ -1,10 +1,98 @@
 import Foundation
+import Combine
+
+struct DeviceReplacementPrompt: Identifiable {
+    let id = UUID()
+    let message: String
+    let existingDevices: [DeviceDTO]
+}
+
+@MainActor
+final class DeviceReplacementCoordinator: ObservableObject {
+    static let shared = DeviceReplacementCoordinator()
+
+    @Published var prompt: DeviceReplacementPrompt?
+
+    private init() {}
+
+    func present(
+        message: String,
+        existingDevices: [DeviceDTO]
+    ) {
+        prompt = DeviceReplacementPrompt(
+            message: message,
+            existingDevices: existingDevices
+        )
+    }
+
+    func clear() {
+        prompt = nil
+    }
+}
+
+struct DeviceReplacementRequiredError: LocalizedError {
+    let code: String
+    let existingDevices: [DeviceDTO]
+    let message: String
+
+    var errorDescription: String? {
+        message
+    }
+}
+
+struct DeviceRegistrationErrorResponse: Decodable {
+    let error: String?
+    let message: String?
+    let code: String?
+    let existingDevices: [DeviceDTO]?
+}
 
 final class DeviceRegistrationService {
     static let shared = DeviceRegistrationService()
     private init() {}
 
-    func ensureCurrentDeviceRegistered(userId: Int, token: String) async throws -> DeviceDTO {
+    static func replacementError(
+        from apiError: APIError
+    ) -> DeviceReplacementRequiredError? {
+        guard
+            case .server(
+                let status,
+                let responseBody
+            ) = apiError,
+            status == 409,
+            let responseBody,
+            let responseData =
+                responseBody.data(using: .utf8),
+            let decoded =
+                try? JSONDecoder().decode(
+                    DeviceRegistrationErrorResponse.self,
+                    from: responseData
+                ),
+            let code = decoded.code,
+            code == "DEVICE_REPLACEMENT_REQUIRED"
+                || code == "DEVICE_REPLACEMENT_TARGET_STALE"
+        else {
+            return nil
+        }
+
+        return DeviceReplacementRequiredError(
+            code: code,
+            existingDevices:
+                decoded.existingDevices ?? [],
+            message:
+                decoded.message
+                ?? decoded.error
+                ?? "Device replacement confirmation is required."
+        )
+    }
+
+    func ensureCurrentDeviceRegistered(
+        userId: Int,
+        token: String,
+        replaceDeviceId: String? = nil
+    ) async throws -> DeviceDTO {
+        _ = userId
+
         let keyManager = DeviceKeyManager.shared
 
         let request = DeviceRegisterRequest(
@@ -13,22 +101,51 @@ final class DeviceRegistrationService {
             platform: keyManager.currentPlatform(),
             publicKey: try keyManager.publicKeyBase64(),
             keyAlgorithm: "curve25519",
-            keyVersion: 1
+            keyVersion: 1,
+            replaceExistingDevice:
+                replaceDeviceId == nil ? nil : true,
+            replaceDeviceId: replaceDeviceId
         )
 
         let body = try JSONEncoder().encode(request)
 
-        let response: DeviceRegisterResponse = try await APIClient.shared.send(
-            APIRequest(
-                path: "devices/register",
-                method: .POST,
-                body: body,
-                requiresAuth: true
-            ),
-            token: token
-        )
+        do {
+            let response: DeviceRegisterResponse =
+                try await APIClient.shared.send(
+                    APIRequest(
+                        path: "devices/register",
+                        method: .POST,
+                        body: body,
+                        requiresAuth: true
+                    ),
+                    token: token
+                )
 
-        return response.device
+            if replaceDeviceId != nil {
+                await MainActor.run {
+                    DeviceReplacementCoordinator.shared.clear()
+                }
+            }
+
+            return response.device
+        } catch let apiError as APIError {
+            guard
+                let replacementError =
+                    Self.replacementError(from: apiError)
+            else {
+                throw apiError
+            }
+
+            await MainActor.run {
+                DeviceReplacementCoordinator.shared.present(
+                    message: replacementError.message,
+                    existingDevices:
+                        replacementError.existingDevices
+                )
+            }
+
+            throw replacementError
+        }
     }
 
     func fetchMyDevices(token: String) async throws -> [DeviceDTO] {
