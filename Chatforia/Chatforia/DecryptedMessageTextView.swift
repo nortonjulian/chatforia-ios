@@ -13,7 +13,7 @@ struct DecryptMessageTextView: View {
         Group {
             if let text = preferredVisibleText(),
             !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                Text(text)
+                LinkifiedMessageText(text: text)
             } else if isDecrypting || !didAttemptDecrypt {
                 Text("Loading message")
                     .foregroundStyle(.clear)

@@ -15,6 +15,11 @@ struct MessageBubbleView: View {
             .id(contentRenderKey)
             .font(.body)
             .foregroundStyle(isMe ? themeManager.palette.bubbleOutgoingText : themeManager.palette.bubbleIncomingText)
+            .tint(
+                isMe
+                    ? themeManager.palette.bubbleOutgoingText
+                    : themeManager.palette.bubbleIncomingText
+            )
             .multilineTextAlignment(.leading)
             .contentTransition(.opacity)
             .animation(.easeInOut(duration: 0.18), value: contentRenderKey)
@@ -183,56 +188,66 @@ struct MessageBubbleView: View {
             .italic()
             .foregroundStyle(
                 isMe
-                ? themeManager.palette.bubbleOutgoingText.opacity(0.82)
-                : themeManager.palette.secondaryText
+                    ? themeManager.palette.bubbleOutgoingText.opacity(0.82)
+                    : themeManager.palette.secondaryText
             )
-            
-       } else if isMe, hasRenderableRaw, let raw {
-            Text(raw)
+
+        } else if isMe, hasRenderableRaw, let raw {
+            LinkifiedMessageText(text: raw)
 
         } else if !isMe, hasRenderableTranslated, let translated {
-            Text(translated)
+            LinkifiedMessageText(text: translated)
 
         } else if hasDecrypted, let decrypted {
-            Text(decrypted)
+            LinkifiedMessageText(text: decrypted)
 
         } else if msg.encryptedPayloadForMe != nil ||
-            (msg.contentCiphertext != nil && msg.encryptedKeyForMe != nil) {
+                    (msg.contentCiphertext != nil &&
+                    msg.encryptedKeyForMe != nil) {
             DecryptMessageTextView(
                 msg: msg,
                 fallbackColor: isMe
                     ? themeManager.palette.bubbleOutgoingText.opacity(0.82)
                     : themeManager.palette.secondaryText
             )
-            
+
         } else if hasRenderableRaw, let raw {
-            Text(raw)
+            LinkifiedMessageText(text: raw)
 
         } else if hasRenderableTranslated, let translated {
-            Text(translated)
-            
-        } else if hasRenderableAttachmentCaption, let attachmentCaption {
-            Text(attachmentCaption)
-            
-        } else if (msg.encryptedPayloadForMe != nil || msg.contentCiphertext != nil), !hasAttachments {
+            LinkifiedMessageText(text: translated)
+
+        } else if hasRenderableAttachmentCaption,
+                let attachmentCaption {
+            LinkifiedMessageText(text: attachmentCaption)
+
+        } else if (
+            msg.encryptedPayloadForMe != nil ||
+            msg.contentCiphertext != nil
+        ), !hasAttachments {
             DecryptMessageTextView(
                 msg: msg,
                 fallbackColor: isMe
                     ? themeManager.palette.bubbleOutgoingText.opacity(0.82)
                     : themeManager.palette.secondaryText
             )
-            
+
         } else if hasAttachments {
             EmptyView()
-            
+
         } else {
-            Text(appText("chat.secureMessageUnavailable", languageCode: appLanguage))
-                .italic()
-                .foregroundStyle(
-                    isMe
-                        ? themeManager.palette.bubbleOutgoingText.opacity(0.82)
-                        : themeManager.palette.secondaryText
+            Text(
+                appText(
+                    "chat.secureMessageUnavailable",
+                    languageCode: appLanguage
                 )
+            )
+            .italic()
+            .foregroundStyle(
+                isMe
+                    ? themeManager.palette.bubbleOutgoingText.opacity(0.82)
+                    : themeManager.palette.secondaryText
+            )
         }
     }
 }
