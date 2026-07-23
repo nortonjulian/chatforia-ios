@@ -34,8 +34,14 @@ final class AudioPlaybackViewModel: ObservableObject {
         currentURLString == urlString
     }
 
-    func togglePlayback(urlString: String) {
+    func togglePlayback(
+        urlString: String,
+        authToken: String? = nil
+    ) {
         if currentURLString == urlString, let player {
+            if isLoading {
+                return
+            }
             if isPlaying {
                 player.pause()
                 isPlaying = false
@@ -47,7 +53,10 @@ final class AudioPlaybackViewModel: ObservableObject {
             return
         }
 
-        loadAndPlay(urlString: urlString)
+        loadAndPlay(
+            urlString: urlString,
+            authToken: authToken
+        )
     }
 
     func displayDuration(fallback: Double?) -> Double {
@@ -109,7 +118,10 @@ final class AudioPlaybackViewModel: ObservableObject {
         duration = 0
     }
 
-    private func loadAndPlay(urlString: String) {
+    private func loadAndPlay(
+        urlString: String,
+        authToken: String?
+    ) {
         guard let url = URL(string: urlString) else {
             return
         }
@@ -119,7 +131,26 @@ final class AudioPlaybackViewModel: ObservableObject {
         currentURLString = urlString
         isLoading = true
 
-        let item = AVPlayerItem(url: url)
+        let trimmedToken = authToken?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let item: AVPlayerItem
+
+        if let trimmedToken, !trimmedToken.isEmpty {
+            let asset = AVURLAsset(
+                url: url,
+                options: [
+                    "AVURLAssetHTTPHeaderFieldsKey": [
+                        "Authorization": "Bearer \(trimmedToken)"
+                    ]
+                ]
+            )
+
+            item = AVPlayerItem(asset: asset)
+        } else {
+            item = AVPlayerItem(url: url)
+        }
+
         let newPlayer = AVPlayer(playerItem: item)
 
         player = newPlayer
@@ -137,6 +168,8 @@ final class AudioPlaybackViewModel: ObservableObject {
                 case .readyToPlay:
                     self.isLoading = false
                     self.updateDuration(from: item)
+                    self.player?.play()
+                    self.isPlaying = true
 
                 case .failed:
                     self.isLoading = false
@@ -199,8 +232,7 @@ final class AudioPlaybackViewModel: ObservableObject {
             }
         }
 
-        newPlayer.play()
-        isPlaying = true
+        isPlaying = false
     }
 
     private func updateDuration(from item: AVPlayerItem) {

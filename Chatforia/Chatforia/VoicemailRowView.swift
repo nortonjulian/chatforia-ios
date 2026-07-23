@@ -90,7 +90,14 @@ struct VoicemailRowView: View {
     }
 
     private var displayCaller: String {
-        let trimmed = voicemail.fromNumber.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let resolvedCallerName = voicemail.resolvedCallerName {
+            return resolvedCallerName
+        }
+
+        let trimmed = voicemail.fromNumber.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+
         return trimmed.isEmpty
             ? appText("voicemail.unknownCaller", languageCode: appLanguage)
             : trimmed

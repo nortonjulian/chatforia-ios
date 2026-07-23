@@ -7,6 +7,7 @@ struct AudioAttachmentCardView: View {
     let durationSec: Double?
     let isMe: Bool
     let maxWidth: CGFloat
+    let authToken: String?
     let onPlaybackStarted: (() -> Void)?
 
     @EnvironmentObject private var themeManager: ThemeManager
@@ -18,6 +19,7 @@ struct AudioAttachmentCardView: View {
         durationSec: Double?,
         isMe: Bool,
         maxWidth: CGFloat,
+        authToken: String? = nil,
         onPlaybackStarted: (() -> Void)? = nil
     ) {
         self.urlString = urlString
@@ -25,6 +27,7 @@ struct AudioAttachmentCardView: View {
         self.durationSec = durationSec
         self.isMe = isMe
         self.maxWidth = maxWidth
+        self.authToken = authToken
         self.onPlaybackStarted = onPlaybackStarted
     }
 
@@ -33,7 +36,10 @@ struct AudioAttachmentCardView: View {
             HStack(spacing: 10) {
                 Button {
                     let wasPlaying = playback.isPlaying
-                    playback.togglePlayback(urlString: urlString)
+                    playback.togglePlayback(
+                        urlString: urlString,
+                        authToken: authToken
+                    )
 
                     if !wasPlaying {
                         onPlaybackStarted?()
