@@ -94,16 +94,19 @@ struct AccessibilitySettingsView: View {
                     )
                 }
 
-                Button {
-                    Task { await saveAccessibility() }
-                } label: {
-                    Text(appText("button_save_settings", languageCode: appLanguage))
-                        .font(.headline)
-                        .foregroundStyle(themeManager.palette.primaryText)
-                        .padding(.horizontal, 24)
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(vm.isSaving)
+                ThemedGradientButton(
+                    title: appText(
+                        "button_save_settings",
+                        languageCode: appLanguage
+                    ),
+                    action: {
+                        Task {
+                            await saveAccessibility()
+                        }
+                    },
+                    horizontalPadding: 24,
+                    isDisabled: vm.isSaving
+                )
 
                 if let error = vm.saveError {
                     Text(error)
