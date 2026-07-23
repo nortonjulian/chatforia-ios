@@ -185,7 +185,10 @@ final class VoicemailInboxViewModel: ObservableObject {
                         isRead: isRead,
                         deleted: current.deleted,
                         createdAt: current.createdAt,
-                        forwardedToEmailAt: current.forwardedToEmailAt
+                        forwardedToEmailAt: current.forwardedToEmailAt,
+                        callerUserId: current.callerUserId,
+                        displayName: current.displayName,
+                        username: current.username
                     )
 
                     self.voicemails[index] = updatedVoicemail
@@ -235,7 +238,10 @@ final class VoicemailInboxViewModel: ObservableObject {
             isRead: isRead,
             deleted: voicemail.deleted,
             createdAt: voicemail.createdAt,
-            forwardedToEmailAt: voicemail.forwardedToEmailAt
+            forwardedToEmailAt: voicemail.forwardedToEmailAt,
+            callerUserId: voicemail.callerUserId,
+            displayName: voicemail.displayName,
+            username: voicemail.username
         )
     }
 }

@@ -48,9 +48,27 @@ struct VoicemailInboxView: View {
                         }
                     },
                     onCallBack: {
-                        guard let number = voicemail.callbackNumber else { return }
+                        if let callerUserId = voicemail.callerUserId {
+                            callManager.startCall(
+                                to: .appUser(
+                                    userId: callerUserId,
+                                    username: voicemail.resolvedCallerName
+                                        ?? voicemail.username
+                                ),
+                                auth: auth
+                            )
+                            return
+                        }
+
+                        guard let number = voicemail.callbackNumber else {
+                            return
+                        }
+
                         callManager.startCall(
-                            to: .phoneNumber(number, displayName: nil),
+                            to: .phoneNumber(
+                                number,
+                                displayName: voicemail.resolvedCallerName
+                            ),
                             auth: auth
                         )
                     }

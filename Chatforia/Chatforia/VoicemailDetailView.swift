@@ -28,11 +28,12 @@ struct VoicemailDetailView: View {
                 actionButtons
 
                 AudioAttachmentCardView(
-                    urlString: voicemail.audioUrl,
+                    urlString: voicemail.secureAudioURLString,
                     title: appText("voicemail.title", languageCode: appLanguage),
                     durationSec: Double(voicemail.durationSec ?? 0),
                     isMe: false,
                     maxWidth: .infinity,
+                    authToken: TokenStore.shared.read(),
                     onPlaybackStarted: {
                         markReadIfNeeded()
                     }
@@ -59,14 +60,16 @@ struct VoicemailDetailView: View {
         VStack(alignment: .leading, spacing: 10) {
 
             infoRow(
-                label: appText("voicemail.from", languageCode: appLanguage),
+                label: appText("voicemail.from", languageCode: appLanguage) + ":",
                 value: displayFrom
             )
 
-            infoRow(
-                label: appText("voicemail.to", languageCode: appLanguage),
-                value: displayTo
-            )
+            if voicemail.callerUserId == nil {
+                infoRow(
+                    label: appText("voicemail.to", languageCode: appLanguage) + ":",
+                    value: displayTo
+                )
+            }
 
             infoRow(
                 label: appText("voicemail.received", languageCode: appLanguage),
@@ -116,11 +119,14 @@ struct VoicemailDetailView: View {
                     systemImage: "phone.fill"
                 )
                 .font(.subheadline.weight(.semibold))
-                .frame(maxWidth: .infinity)
+                .foregroundStyle(Color.black)
+                .padding(.horizontal, 28)
                 .padding(.vertical, 12)
+                .background(themeManager.palette.accent)
+                .clipShape(Capsule())
             }
-            .buttonStyle(.borderedProminent)
-            .tint(themeManager.palette.accent)
+            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity, alignment: .center)
         }
     }
 
@@ -269,6 +275,10 @@ struct VoicemailDetailView: View {
     }
 
     private var displayFrom: String {
+
+        if let resolvedCallerName = voicemail.resolvedCallerName {
+            return resolvedCallerName
+        }
 
         let value = voicemail.fromNumber
             .trimmingCharacters(
