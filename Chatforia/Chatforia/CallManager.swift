@@ -1110,7 +1110,11 @@ extension CallManager: CallKitManagerDelegate {
 
         guard let session = activeSession else { return }
 
-        if session.direction == .incoming, session.status == .ringing {
+        let isUnansweredIncoming =
+            session.direction == .incoming &&
+            session.answeredAt == nil
+
+        if isUnansweredIncoming {
             pendingEndOutcome = .declined
 
             if session.isVideo {

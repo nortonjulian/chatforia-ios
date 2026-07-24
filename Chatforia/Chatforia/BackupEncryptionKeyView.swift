@@ -159,23 +159,46 @@ struct BackupEncryptionKeyView: View {
 
                     if isSaving {
                         ProgressView()
+                            .tint(themeManager.palette.buttonForeground)
                     }
 
                     Text(
                         isSaving
-                        ? appText("encryptionRecovery.messages.creatingBackup", languageCode: appLanguage)
-                        : appText("encryptionRecovery.actions.createBackup", languageCode: appLanguage)
+                        ? appText(
+                            "encryptionRecovery.messages.creatingBackup",
+                            languageCode: appLanguage
+                        )
+                        : appText(
+                            "encryptionRecovery.actions.createBackup",
+                            languageCode: appLanguage
+                        )
                     )
                     .fontWeight(.semibold)
 
                     Spacer()
                 }
                 .padding(.vertical, 14)
-                .background(themeManager.palette.accent)
-                .foregroundStyle(Color.white)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .background(
+                    LinearGradient(
+                        colors: [
+                            themeManager.palette.buttonStart,
+                            themeManager.palette.buttonEnd
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .foregroundStyle(themeManager.palette.buttonForeground)
+                .clipShape(
+                    RoundedRectangle(
+                        cornerRadius: 16,
+                        style: .continuous
+                    )
+                )
             }
+            .buttonStyle(.plain)
             .disabled(isSaving || saveDisabled)
+            .opacity(isSaving || saveDisabled ? 0.65 : 1)
         }
         .padding(16)
         .background(themeManager.palette.cardBackground)

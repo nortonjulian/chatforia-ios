@@ -53,12 +53,15 @@ struct PhoneNumberManagementView: View {
                         }
                     }
 
-                    Button(
-                        appText("phoneNumber.replaceNumber", languageCode: appLanguage)
-                    ) {
-                        showPicker = true
-                    }
-                    .buttonStyle(.borderedProminent)
+                    ThemedGradientButton(
+                        title: appText(
+                            "phoneNumber.replaceNumber",
+                            languageCode: appLanguage
+                        ),
+                        action: {
+                            showPicker = true
+                        }
+                    )
                 }
 
             } else {
@@ -68,14 +71,15 @@ struct PhoneNumberManagementView: View {
                 )
                 .foregroundStyle(.secondary)
 
-                Button(
-                    vm.currentNumber == nil
-                        ? appText("phoneNumber.pickNumber", languageCode: appLanguage)
-                        : appText("phoneNumber.replaceNumber", languageCode: appLanguage)
-                ) {
-                    showPicker = true
-                }
-                .buttonStyle(.borderedProminent)
+                ThemedGradientButton(
+                    title: appText(
+                        "phoneNumber.pickNumber",
+                        languageCode: appLanguage
+                    ),
+                    action: {
+                        showPicker = true
+                    }
+                )
             }
 
             Spacer()

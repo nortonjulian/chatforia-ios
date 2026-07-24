@@ -777,15 +777,12 @@ struct WirelessHomeView: View {
                         .foregroundStyle(themeManager.palette.secondaryText)
                 }
 
-                Button {
-                    handleActivationTapped()
-                } label: {
-                    Text(buttonTextFull)
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                }
-                .buttonStyle(.borderedProminent)
+                ThemedGradientButton(
+                    title: buttonTextFull,
+                    action: handleActivationTapped,
+                    isFullWidth: true,
+                    verticalPadding: 12
+                )
             }
             .padding(.vertical, 8)
         }
