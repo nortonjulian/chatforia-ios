@@ -68,16 +68,26 @@ final class TwilioVoiceService: NSObject {
         pendingBackendCallId = id
     }
 
-    func startCall(to: String, accessToken: String) async throws {
+    func startCall(
+        to: String,
+        backendCallId: Int?,
+        accessToken: String
+    ) async throws {
         self.accessToken = accessToken
         try configureAudioSession(activate: true)
 
-        let params = ConnectOptions(accessToken: accessToken) { builder in
-            builder.params = ["To": to]
+        var callParams = ["To": to]
+
+        if let backendCallId = backendCallId {
+            callParams["backendCallId"] = String(backendCallId)
+        }
+
+        let options = ConnectOptions(accessToken: accessToken) { builder in
+            builder.params = callParams
         }
 
         delegate?.twilioVoiceDidStartConnecting()
-        activeCall = TwilioVoiceSDK.connect(options: params, delegate: self)
+        activeCall = TwilioVoiceSDK.connect(options: options, delegate: self)
     }
 
     func acceptIncomingCall() {
