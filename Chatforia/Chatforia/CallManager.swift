@@ -529,6 +529,7 @@ final class CallManager: ObservableObject {
 
                 try await twilioService.startCall(
                     to: dialNumber,
+                    backendCallId: backendCallId,
                     accessToken: tokenResponse.token
                 )
 
@@ -553,7 +554,7 @@ final class CallManager: ObservableObject {
                 }
             }
 
-            guard activeSession?.backendCallId != nil else {
+            guard let backendCallId = activeSession?.backendCallId else {
                 failCall(appText("calls.missing_backend_call_id", languageCode: appLanguage))
                 return
             }
@@ -594,6 +595,7 @@ final class CallManager: ObservableObject {
 
                     try await twilioService.startCall(
                         to: String(userId),
+                        backendCallId: backendCallId,
                         accessToken: tokenResponse.token
                     )
                 } catch {
