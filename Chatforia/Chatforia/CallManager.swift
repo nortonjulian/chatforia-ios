@@ -700,34 +700,39 @@ final class CallManager: ObservableObject {
         AudioPlayerService.shared.stopOutgoingRingback()
         
         guard let session = activeSession else {
-
             twilioService.hangup()
             twilioVideoService.disconnect()
-
             state = .ended
             return
         }
 
         let sessionId = session.id
         let isVideo = session.isVideo
+        let isUnansweredIncoming =
+            session.direction == .incoming &&
+            session.answeredAt == nil
 
-        pendingEndOutcome = .localHangup
+        let outcome: CallEndOutcome =
+            isUnansweredIncoming ? .declined : .localHangup
+
+        pendingEndOutcome = outcome
 
         updateSession {
             $0.status = .ending
         }
 
-
         callKit.endCall(uuid: sessionId)
 
         if isVideo {
             twilioVideoService.disconnect()
+        } else if isUnansweredIncoming {
+            twilioService.rejectIncomingCall()
         } else {
             twilioService.hangup()
         }
 
         completeCall(
-            outcome: .localHangup,
+            outcome: outcome,
             reportToCallKit: false
         )
     }
