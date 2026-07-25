@@ -34,6 +34,7 @@ struct VoicemailDetailView: View {
                     isMe: false,
                     maxWidth: .infinity,
                     authToken: TokenStore.shared.read(),
+                    allowsSpeakerToggle: true,
                     onPlaybackStarted: {
                         markReadIfNeeded()
                     }

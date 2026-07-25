@@ -8,10 +8,12 @@ struct AudioAttachmentCardView: View {
     let isMe: Bool
     let maxWidth: CGFloat
     let authToken: String?
+    let allowsSpeakerToggle: Bool
     let onPlaybackStarted: (() -> Void)?
 
     @EnvironmentObject private var themeManager: ThemeManager
-    @ObservedObject private var playback = AudioPlaybackViewModel.shared
+    @ObservedObject private var playback =
+        AudioPlaybackViewModel.shared
 
     init(
         urlString: String,
@@ -20,6 +22,7 @@ struct AudioAttachmentCardView: View {
         isMe: Bool,
         maxWidth: CGFloat,
         authToken: String? = nil,
+        allowsSpeakerToggle: Bool = false,
         onPlaybackStarted: (() -> Void)? = nil
     ) {
         self.urlString = urlString
@@ -28,6 +31,7 @@ struct AudioAttachmentCardView: View {
         self.isMe = isMe
         self.maxWidth = maxWidth
         self.authToken = authToken
+        self.allowsSpeakerToggle = allowsSpeakerToggle
         self.onPlaybackStarted = onPlaybackStarted
     }
 
@@ -36,9 +40,12 @@ struct AudioAttachmentCardView: View {
             HStack(spacing: 10) {
                 Button {
                     let wasPlaying = playback.isPlaying
+
                     playback.togglePlayback(
                         urlString: urlString,
-                        authToken: authToken
+                        authToken: authToken,
+                        usesVoicemailRouting:
+                            allowsSpeakerToggle
                     )
 
                     if !wasPlaying {
@@ -55,9 +62,19 @@ struct AudioAttachmentCardView: View {
                                 .scaleEffect(0.75)
                                 .tint(buttonForeground)
                         } else {
-                            Image(systemName: playback.isPlaying ? "pause.fill" : "play.fill")
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundStyle(buttonForeground)
+                            Image(
+                                systemName:
+                                    playback.isPlaying
+                                        ? "pause.fill"
+                                        : "play.fill"
+                            )
+                            .font(
+                                .system(
+                                    size: 13,
+                                    weight: .bold
+                                )
+                            )
+                            .foregroundStyle(buttonForeground)
                         }
                     }
                 }
@@ -78,6 +95,10 @@ struct AudioAttachmentCardView: View {
                 }
 
                 Spacer(minLength: 8)
+
+                if allowsSpeakerToggle {
+                    speakerToggle
+                }
             }
 
             VStack(spacing: 6) {
@@ -88,7 +109,13 @@ struct AudioAttachmentCardView: View {
 
                         Capsule()
                             .fill(progressFill)
-                            .frame(width: max(6, geo.size.width * playback.progress))
+                            .frame(
+                                width: max(
+                                    6,
+                                    geo.size.width *
+                                        playback.progress
+                                )
+                            )
                     }
                 }
                 .frame(height: 6)
@@ -111,13 +138,91 @@ struct AudioAttachmentCardView: View {
         .frame(maxWidth: maxWidth, alignment: .leading)
         .background(cardBackground)
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(cardBorder, lineWidth: 1)
+            RoundedRectangle(
+                cornerRadius: 16,
+                style: .continuous
+            )
+            .stroke(cardBorder, lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: 16,
+                style: .continuous
+            )
+        )
         .onDisappear {
             playback.tearDown()
         }
+    }
+
+    private var speakerToggle: some View {
+        Button {
+            playback.setSpeakerEnabled(
+                !playback.isSpeakerEnabled
+            )
+        } label: {
+            Image(
+                systemName:
+                    playback.isSpeakerEnabled
+                        ? "speaker.wave.2.fill"
+                        : "speaker.slash.fill"
+            )
+            .font(
+                .system(
+                    size: 15,
+                    weight: .semibold
+                )
+            )
+            .foregroundStyle(
+                playback.isSpeakerEnabled
+                    ? themeManager.palette
+                        .composerButtonForeground
+                    : primaryText
+            )
+            .frame(width: 36, height: 36)
+            .background(
+                playback.isSpeakerEnabled
+                    ? themeManager.palette.accent
+                    : cardBackground
+            )
+            .overlay(
+                Circle()
+                    .stroke(
+                        cardBorder,
+                        lineWidth: 1
+                    )
+            )
+            .clipShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(
+            playback.isSpeakerEnabled
+                ? String(
+                    localized:
+                        "audio.output.useEarpiece",
+                    defaultValue:
+                        "Use earpiece"
+                )
+                : String(
+                    localized:
+                        "audio.output.useSpeaker",
+                    defaultValue:
+                        "Play through speaker"
+                )
+        )
+        .accessibilityValue(
+            playback.isSpeakerEnabled
+                ? String(
+                    localized:
+                        "common.on",
+                    defaultValue: "On"
+                )
+                : String(
+                    localized:
+                        "common.off",
+                    defaultValue: "Off"
+                )
+        )
     }
 
     private var currentTimeText: String {
@@ -125,7 +230,11 @@ struct AudioAttachmentCardView: View {
     }
 
     private var totalDurationText: String {
-        let resolved = playback.displayDuration(fallback: durationSec)
+        let resolved =
+            playback.displayDuration(
+                fallback: durationSec
+            )
+
         return Self.formatTime(resolved)
     }
 
@@ -133,63 +242,88 @@ struct AudioAttachmentCardView: View {
         if playback.isLoading {
             return String(
                 localized:
-                "common.loading"
+                    "common.loading"
             )
         }
 
         return playback.isPlaying
             ? String(
                 localized:
-                "audio.playing"
+                    "audio.playing"
             )
             : String(
                 localized:
-                "audio.tapToPlay"
+                    "audio.tapToPlay"
             )
     }
 
     private var primaryText: Color {
-        isMe ? themeManager.palette.bubbleOutgoingText : themeManager.palette.primaryText
+        isMe
+            ? themeManager.palette.bubbleOutgoingText
+            : themeManager.palette.primaryText
     }
 
     private var secondaryText: Color {
         isMe
-            ? themeManager.palette.bubbleOutgoingText.opacity(0.8)
+            ? themeManager.palette.bubbleOutgoingText
+                .opacity(0.8)
             : themeManager.palette.secondaryText
     }
 
     private var buttonFill: Color {
-        isMe ? themeManager.palette.bubbleOutgoingStart : themeManager.palette.accent
+        isMe
+            ? themeManager.palette.bubbleOutgoingStart
+            : themeManager.palette.accent
     }
 
     private var buttonForeground: Color {
-        isMe ? themeManager.palette.bubbleOutgoingText : themeManager.palette.composerButtonForeground
+        isMe
+            ? themeManager.palette.bubbleOutgoingText
+            : themeManager.palette.composerButtonForeground
     }
 
     private var cardBackground: Color {
-        isMe ? themeManager.palette.bubbleOutgoingStart.opacity(0.18) : themeManager.palette.cardBackground
+        isMe
+            ? themeManager.palette.bubbleOutgoingStart
+                .opacity(0.18)
+            : themeManager.palette.cardBackground
     }
 
     private var cardBorder: Color {
         isMe
-            ? themeManager.palette.bubbleOutgoingEnd.opacity(0.25)
+            ? themeManager.palette.bubbleOutgoingEnd
+                .opacity(0.25)
             : themeManager.palette.border
     }
 
     private var progressTrack: Color {
         isMe
-            ? themeManager.palette.bubbleOutgoingText.opacity(0.18)
+            ? themeManager.palette.bubbleOutgoingText
+                .opacity(0.18)
             : themeManager.palette.border.opacity(0.7)
     }
 
     private var progressFill: Color {
-        isMe ? themeManager.palette.bubbleOutgoingEnd : themeManager.palette.accent
+        isMe
+            ? themeManager.palette.bubbleOutgoingEnd
+            : themeManager.palette.accent
     }
 
-    static func formatTime(_ seconds: Double) -> String {
-        let total = max(0, Int(seconds.rounded()))
+    static func formatTime(
+        _ seconds: Double
+    ) -> String {
+        let total = max(
+            0,
+            Int(seconds.rounded())
+        )
+
         let minutes = total / 60
         let secs = total % 60
-        return "\(minutes):" + String(format: "%02d", secs)
+
+        return "\(minutes):" +
+            String(
+                format: "%02d",
+                secs
+            )
     }
 }
