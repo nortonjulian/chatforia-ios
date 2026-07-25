@@ -121,6 +121,20 @@ final class CallManager: ObservableObject {
                 languageCode: appLanguage
             ))
         case "DECLINED":
+            let shouldContinueCallerToVoicemail =
+                activeSession?.direction == .outgoing &&
+                activeSession?.isVideo == false
+
+            if shouldContinueCallerToVoicemail {
+                AudioPlayerService.shared.stopOutgoingRingback()
+
+                debugLog(
+                    "ℹ️ Preserving outgoing audio call after decline so voicemail can continue"
+                )
+
+                return
+            }
+
             completeCall(outcome: .declined)
         default:
             completeCall(outcome: .remoteEnded)
