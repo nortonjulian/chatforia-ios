@@ -37,3 +37,18 @@ func appText(_ key: String, languageCode: String) -> String {
 
     return key
 }
+
+func appText(
+    _ key: String,
+    languageCode: String,
+    fallback: String
+) -> String {
+    let localized = appText(
+        key,
+        languageCode: languageCode
+    )
+
+    return localized == key
+        ? fallback
+        : localized
+}

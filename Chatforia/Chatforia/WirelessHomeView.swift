@@ -116,9 +116,17 @@ struct WirelessHomeView: View {
 
         case .success:
             checkoutBanner(
-                title: "Data pack added",
-                message:
-                    "Your eSIM balance has been updated.",
+                title: appText(
+                    "ios.data_pack_added",
+                    languageCode: appLanguage,
+                    fallback: "Data pack added"
+                ),
+                message: appText(
+                    "ios.data_pack_added_activation_message",
+                    languageCode: appLanguage,
+                    fallback:
+                        "Your data pack has been added. It will activate automatically on your first eligible data connection."
+                ),
                 systemImage: "checkmark.circle.fill",
                 tint: .green
             )
@@ -135,8 +143,12 @@ struct WirelessHomeView: View {
         case .delayed:
             checkoutBanner(
                 title: "Still confirming",
-                message:
-                    "Processing is taking longer than expected. Your balance will update when confirmation finishes.",
+                message: appText(
+                    "ios.data_pack_confirmation_delayed",
+                    languageCode: appLanguage,
+                    fallback:
+                        "Processing is taking longer than expected. Your data pack will appear when confirmation finishes."
+                ),
                 systemImage: "clock.badge.exclamationmark",
                 tint: .orange
             )
@@ -712,9 +724,40 @@ struct WirelessHomeView: View {
                     .foregroundStyle(themeManager.palette.secondaryText)
 
                 VStack(alignment: .leading, spacing: 10) {
-                    featureRow(appText("ios.instant_esim_activation", languageCode: appLanguage))
-                    featureRow(appText("ios.one_time_pack_no_contract", languageCode: appLanguage))
-                    featureRow(appText("ios.top_up_anytime", languageCode: appLanguage))
+                    featureRow(
+                        appText(
+                            "ios.activates_automatically_on_first_data_connection",
+                            languageCode: appLanguage,
+                            fallback:
+                                "Activates automatically on first data connection"
+                        )
+                    )
+
+                    featureRow(
+                        appText(
+                            "ios.valid_for_30_days_from_first_data_connection",
+                            languageCode: appLanguage,
+                            fallback:
+                                "Valid for 30 days from first data connection"
+                        )
+                    )
+
+                    featureRow(
+                        appText(
+                            "ios.one_time_purchase_with_no_contract",
+                            languageCode: appLanguage,
+                            fallback:
+                                "One-time purchase with no contract"
+                        )
+                    )
+
+                    featureRow(
+                        appText(
+                            "ios.top_up_anytime",
+                            languageCode: appLanguage,
+                            fallback: "Top up anytime"
+                        )
+                    )
                 }
 
                 Button {

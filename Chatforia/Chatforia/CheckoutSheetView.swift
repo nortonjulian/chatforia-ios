@@ -32,9 +32,40 @@ struct CheckoutSheetView: View {
             Divider()
 
             VStack(spacing: 12) {
-                feature(appText("upgrade.checkout.instantActivation", languageCode: appLanguage))
-                feature(appText("upgrade.checkout.noContract", languageCode: appLanguage))
-                feature(appText("upgrade.checkout.topUpAnytime", languageCode: appLanguage))
+                feature(
+                    appText(
+                        "ios.activates_automatically_on_first_data_connection",
+                        languageCode: appLanguage,
+                        fallback:
+                            "Activates automatically on first data connection"
+                    )
+                )
+
+                feature(
+                    appText(
+                        "ios.valid_for_30_days_from_first_data_connection",
+                        languageCode: appLanguage,
+                        fallback:
+                            "Valid for 30 days from first data connection"
+                    )
+                )
+
+                feature(
+                    appText(
+                        "ios.one_time_purchase_with_no_contract",
+                        languageCode: appLanguage,
+                        fallback:
+                            "One-time purchase with no contract"
+                    )
+                )
+
+                feature(
+                    appText(
+                        "ios.top_up_anytime",
+                        languageCode: appLanguage,
+                        fallback: "Top up anytime"
+                    )
+                )
             }
 
             Spacer()
@@ -42,7 +73,13 @@ struct CheckoutSheetView: View {
             Button {
                 onConfirm()
             } label: {
-                Text(appText("upgrade.checkout.buyAndActivate", languageCode: appLanguage))
+                Text(
+                    appText(
+                        "upgrade.checkout.buyDataPack",
+                        languageCode: appLanguage,
+                        fallback: "Buy data pack"
+                    )
+                )
                     .font(.headline)
                     .foregroundStyle(themeManager.palette.buttonForeground)
                     .frame(maxWidth: .infinity)
