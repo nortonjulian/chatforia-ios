@@ -71,34 +71,67 @@ final class InviteService {
         inviterUsername: String?,
         inviteURL: String
     ) -> String {
-        let name = inviterUsername?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let name = inviterUsername?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
         if let name, !name.isEmpty {
+            let template = appText(
+                "invite.shareMessageWithName",
+                languageCode: appLanguage
+            )
+
+            // Current translations use two {value} placeholders:
+            // first = inviter name, second = invitation URL.
+            if template.contains("{value}") {
+                return template
+                    .replacingFirstOccurrence(of: "{value}", with: name)
+                    .replacingFirstOccurrence(of: "{value}", with: inviteURL)
+            }
+
+            // Supports standard %@ localization placeholders as a fallback.
             return String(
-                format: appText(
-                    "invite.shareMessageWithName",
-                    languageCode: appLanguage
-                ),
+                format: template,
                 name,
                 inviteURL
             )
         }
 
+        let template = appText(
+            "invite.shareMessageGeneric",
+            languageCode: appLanguage
+        )
+
+        if template.contains("{value}") {
+            return template.replacingOccurrences(
+                of: "{value}",
+                with: inviteURL
+            )
+        }
+
         return String(
-            format: String(
-                format: appText(
-                    "invite.shareMessageGeneric",
-                    languageCode: appLanguage
-                ),
-                inviteURL
-            ),
+            format: template,
             inviteURL
         )
-            }
-        }
+    }
+}
 
 private extension String {
     var nilIfEmpty: String? {
         let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
+    }
+
+    func replacingFirstOccurrence(
+        of target: String,
+        with replacement: String
+    ) -> String {
+        guard let range = range(of: target) else {
+            return self
+        }
+
+        return replacingCharacters(
+            in: range,
+            with: replacement
+        )
     }
 }

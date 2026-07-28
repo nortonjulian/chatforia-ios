@@ -22,6 +22,15 @@ extension TokenStore: TokenStoring {}
 extension SocketManager: SocketManaging {}
 extension APIClient: APIClientSending {}
 
+private struct DeviceLogoutRequest: Encodable {
+    let deviceId: String
+}
+
+private struct DeviceLogoutResponse: Decodable {
+    let ok: Bool?
+    let cleared: Bool?
+}
+
 final class AuthStore: NSObject, ObservableObject {
 
     enum State {
@@ -195,7 +204,10 @@ final class AuthStore: NSObject, ObservableObject {
 
                 encryptionState = .mismatch
                 needsKeyRestore = true
-                keyRestoreMessage = error.localizedDescription
+                keyRestoreMessage =
+                    SecureMessagesErrorPresenter.message(
+                        for: error
+                    )
 
                 socket.disconnect()
                 isAppReady = true
@@ -229,12 +241,16 @@ final class AuthStore: NSObject, ObservableObject {
     }
 
     func logout() {
-        isAppReady = true
-        
-        AnalyticsManager.shared.capture("logout")
+        // Capture authenticated device information before local auth is cleared.
+        let logoutToken = tokenStore.read()
+        let logoutDeviceId =
+            DeviceKeyManager.shared.getOrCreateDeviceId()
 
+        isAppReady = true
+
+        AnalyticsManager.shared.capture("logout")
         AnalyticsManager.shared.reset()
-        
+
         socket.disconnect()
         tokenStore.clear()
         needsOnboarding = false
@@ -243,6 +259,40 @@ final class AuthStore: NSObject, ObservableObject {
         encryptionState = .ready
         subscriptionPlan = .free
         state = .loggedOut
+
+        guard
+            let logoutToken,
+            !logoutToken.isEmpty
+        else {
+            return
+        }
+
+        // Local logout has completed. Server cleanup is best-effort.
+        Task {
+            do {
+                let body = try JSONEncoder().encode(
+                    DeviceLogoutRequest(
+                        deviceId: logoutDeviceId
+                    )
+                )
+
+                let _: DeviceLogoutResponse =
+                    try await apiClient.send(
+                        APIRequest(
+                            path: "devices/logout",
+                            method: .POST,
+                            body: body,
+                            requiresAuth: true
+                        ),
+                        token: logoutToken
+                    )
+            } catch {
+                debugLog(
+                    "⚠️ device notification cleanup failed during logout:",
+                    error
+                )
+            }
+        }
     }
 
     func handleInvalidSession() {
@@ -312,14 +362,44 @@ final class AuthStore: NSObject, ObservableObject {
         needsOnboarding = false
     }
 
-    func markKeyRestoreComplete() {
+    @discardableResult
+    func markKeyRestoreComplete() -> Bool {
+        guard
+            let user = currentUser,
+            hasMatchingAccountKey(for: user)
+        else {
+            if let user = currentUser {
+                evaluateKeyRestoreNeed(for: user)
+            }
+
+            if !needsKeyRestore {
+                encryptionState = .missing
+                needsKeyRestore = true
+                keyRestoreMessage = appText(
+                    "auth.missingEncryptionKey",
+                    languageCode: appLanguage
+                )
+            }
+
+            socket.disconnect()
+            return false
+        }
+
+        encryptionState = .ready
         needsKeyRestore = false
         keyRestoreMessage = nil
+
+        if let token = currentToken, !token.isEmpty {
+            socket.connect(token: token)
+        }
+
+        return true
     }
 
     func forceKeyRestore(message: String? = nil) {
         needsKeyRestore = true
         keyRestoreMessage = message
+        socket.disconnect()
     }
 
     private func syncPlan(from user: UserDTO) {
@@ -343,12 +423,37 @@ final class AuthStore: NSObject, ObservableObject {
     }
 
     private func evaluateKeyRestoreNeed(for user: UserDTO) {
-        let serverKey = user.publicKey?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let localKey =
-            AccountKeyManager.shared.publicKeyBase64(userId: user.id)?
-                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let serverPublicKey =
+            user.publicKey?
+                .trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                ) ?? ""
 
-        if !serverKey.isEmpty && localKey.isEmpty {
+        let localPublicKey =
+            AccountKeyManager.shared
+                .publicKeyBase64(userId: user.id)?
+                .trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                ) ?? ""
+
+        let localPrivateKey =
+            AccountKeyManager.shared
+                .privateKeyBase64(userId: user.id)?
+                .trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                ) ?? ""
+
+        let hasLocalPublicKey =
+            !localPublicKey.isEmpty
+
+        let hasLocalPrivateKey =
+            !localPrivateKey.isEmpty
+
+        /*
+         * A partial local pair is never usable, even when the public
+         * portion happens to match the account key.
+         */
+        if hasLocalPublicKey != hasLocalPrivateKey {
             encryptionState = .missing
             needsKeyRestore = true
             keyRestoreMessage = appText(
@@ -358,7 +463,19 @@ final class AuthStore: NSObject, ObservableObject {
             return
         }
 
-        if !serverKey.isEmpty && !localKey.isEmpty && serverKey != localKey {
+        if !serverPublicKey.isEmpty &&
+           (!hasLocalPublicKey || !hasLocalPrivateKey) {
+            encryptionState = .missing
+            needsKeyRestore = true
+            keyRestoreMessage = appText(
+                "auth.missingEncryptionKey",
+                languageCode: appLanguage
+            )
+            return
+        }
+
+        if !serverPublicKey.isEmpty &&
+           serverPublicKey != localPublicKey {
             encryptionState = .mismatch
             needsKeyRestore = true
             keyRestoreMessage = appText(
@@ -371,6 +488,36 @@ final class AuthStore: NSObject, ObservableObject {
         encryptionState = .ready
         needsKeyRestore = false
         keyRestoreMessage = nil
+    }
+
+    private func hasMatchingAccountKey(
+        for user: UserDTO
+    ) -> Bool {
+        let serverPublicKey =
+            user.publicKey?
+                .trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                ) ?? ""
+
+        let localPublicKey =
+            AccountKeyManager.shared
+                .publicKeyBase64(userId: user.id)?
+                .trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                ) ?? ""
+
+        let localPrivateKey =
+            AccountKeyManager.shared
+                .privateKeyBase64(userId: user.id)?
+                .trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                ) ?? ""
+
+        return
+            !serverPublicKey.isEmpty &&
+            !localPublicKey.isEmpty &&
+            !localPrivateKey.isEmpty &&
+            serverPublicKey == localPublicKey
     }
 
     private func onboardingKey(for userId: Int) -> String {

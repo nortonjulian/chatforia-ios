@@ -25,7 +25,7 @@ struct RestoreEncryptionKeyView: View {
     private let startFreshPhrase = "START FRESH"
 
     private var canRestoreFromBackup: Bool {
-        hasRemoteBackup == true
+        hasRemoteBackup == true && !hasMatchingAccountKey()
     }
 
     var body: some View {
@@ -40,10 +40,10 @@ struct RestoreEncryptionKeyView: View {
                     VStack(alignment: .leading, spacing: 16) {
                         if isCheckingBackup {
                             ProgressView("Checking secure message recovery…")
-                        } else if canRestoreFromBackup {
-                            restoreSection
                         } else if canCreateBackupFromThisDevice {
                             createBackupSection
+                        } else if canRestoreFromBackup {
+                            restoreSection
                         } else {
                             noRecoverySection
                         }
@@ -53,6 +53,10 @@ struct RestoreEncryptionKeyView: View {
                     Divider()
 
                     resetSection
+
+                    Divider()
+
+                    signOutSection
                 }
                 .padding(.horizontal, 20)
             }
@@ -127,9 +131,13 @@ struct RestoreEncryptionKeyView: View {
                 .font(.headline)
                 .foregroundStyle(themeManager.palette.primaryText)
 
-            Text("This iPhone can already read your secure messages. Create a Secure Messages Passcode so you can restore them on the website, Android, or another iPhone.")
-                .font(.footnote)
-                .foregroundStyle(themeManager.palette.secondaryText)
+            Text(
+                hasRemoteBackup == true
+                ? "This iPhone has the correct secure message key. Update the recovery backup whenever you change your Secure Messages Passcode."
+                : "This iPhone has the correct secure message key. Create a Secure Messages Passcode so you can restore secure messages on the website, Android, or another iPhone."
+            )
+            .font(.footnote)
+            .foregroundStyle(themeManager.palette.secondaryText)
 
             SecureField("Secure Messages Passcode", text: $recoveryPasscode)
                 .textInputAutocapitalization(.never)
@@ -147,8 +155,12 @@ struct RestoreEncryptionKeyView: View {
                 if isCreatingBackup {
                     ProgressView()
                 } else {
-                    Text("Create Recovery Backup")
-                        .fontWeight(.semibold)
+                    Text(
+                        hasRemoteBackup == true
+                        ? "Update Recovery Backup"
+                        : "Create Recovery Backup"
+                    )
+                    .fontWeight(.semibold)
                 }
             }
             .disabled(isCreatingBackup || !canSubmitCreateBackup)
@@ -193,21 +205,74 @@ struct RestoreEncryptionKeyView: View {
             Button(role: .destructive) {
                 showStartFreshConfirm = true
             } label: {
-                if isResetting {
-                    ProgressView()
-                } else {
-                    Text("Start fresh with secure messages")
+                HStack {
+                    Spacer()
+
+                    if isResetting {
+                        ProgressView()
+                            .tint(.white)
+                    } else {
+                        Text("Start fresh with secure messages")
+                            .fontWeight(.semibold)
+                    }
+
+                    Spacer()
                 }
+                .padding(.vertical, 14)
+                .background(
+                    startFreshDisabled
+                    ? Color.red.opacity(0.28)
+                    : Color.red
+                )
+                .foregroundStyle(.white)
+                .clipShape(
+                    RoundedRectangle(
+                        cornerRadius: 14,
+                        style: .continuous
+                    )
+                )
             }
-            .disabled(
-                isRestoring ||
-                isCreatingBackup ||
-                isResetting ||
-                startFreshConfirmationText
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
-                    .uppercased() != startFreshPhrase
+            .buttonStyle(.plain)
+            .disabled(startFreshDisabled)
+        }
+    }
+
+    private var signOutSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Use another account")
+                .font(.headline)
+                .foregroundStyle(themeManager.palette.primaryText)
+
+            Text("Sign out without changing or deleting this account’s secure message keys.")
+                .font(.footnote)
+                .foregroundStyle(themeManager.palette.secondaryText)
+
+            ThemedGradientButton(
+                title: "Sign out and use another account",
+                action: {
+                    auth.logout()
+                },
+                isFullWidth: true,
+                horizontalPadding: 20,
+                verticalPadding: 14,
+                font: .headline.weight(.semibold),
+                isDisabled:
+                    isRestoring ||
+                    isCreatingBackup ||
+                    isResetting
             )
         }
+    }
+
+    private var startFreshDisabled: Bool {
+        isRestoring ||
+        isCreatingBackup ||
+        isResetting ||
+        startFreshConfirmationText
+            .trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+            .uppercased() != startFreshPhrase
     }
 
     private var statusMessages: some View {
@@ -234,26 +299,40 @@ struct RestoreEncryptionKeyView: View {
     }
     
     private var canCreateBackupFromThisDevice: Bool {
-        hasRemoteBackup == false && hasLocalAccountKey()
-    }
-
-    private func hasLocalAccountKey() -> Bool {
-        guard let userId = auth.currentUser?.id else { return false }
-
-        let localPublicKey = AccountKeyManager.shared.publicKeyBase64(userId: userId)?
-            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-
-        let localPrivateKey = AccountKeyManager.shared.privateKeyBase64(userId: userId)?
-            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-
-        return !localPublicKey.isEmpty && !localPrivateKey.isEmpty
+        hasMatchingAccountKey()
     }
 
     private func checkBackup() async {
-        guard let token = auth.currentToken, !token.isEmpty else { return }
+        guard let token = auth.currentToken, !token.isEmpty else {
+            errorMessage =
+                SecureMessagesErrorPresenter.message(
+                    for: RemoteKeyBackupError.sessionExpired
+                )
+            return
+        }
 
         isCheckingBackup = true
-        hasRemoteBackup = await RemoteKeyBackupService.shared.hasRemoteBackup(token: token)
+        errorMessage = nil
+
+        do {
+            let response =
+                try await RemoteKeyBackupService.shared
+                    .fetchRemoteKeyBackupResponse(
+                        token: token
+                    )
+
+            hasRemoteBackup =
+                response.hasBackup
+                ?? (response.keys?.encryptedPrivateKeyBundle != nil)
+
+        } catch {
+            hasRemoteBackup = nil
+            errorMessage =
+                SecureMessagesErrorPresenter.message(
+                    for: error
+                )
+        }
+
         isCheckingBackup = false
     }
 
@@ -273,8 +352,9 @@ struct RestoreEncryptionKeyView: View {
             return
         }
 
-        guard hasLocalAccountKey() else {
-            errorMessage = "This device does not have a secure message key to back up."
+        guard hasMatchingAccountKey() else {
+            errorMessage =
+                "This device’s secure message key does not match the account key. Restore secure messages before creating or updating the recovery backup."
             return
         }
 
@@ -289,8 +369,25 @@ struct RestoreEncryptionKeyView: View {
                 password: recoveryPasscode.trimmingCharacters(in: .whitespacesAndNewlines)
             )
 
+            let verification =
+                try await RemoteKeyBackupService.shared
+                    .fetchRemoteKeyBackupResponse(
+                        token: token
+                    )
+
+            let backupExists =
+                verification.hasBackup
+                ?? (verification.keys?.encryptedPrivateKeyBundle != nil)
+
+            guard backupExists else {
+                throw RemoteKeyBackupError.requestFailed
+            }
+
             hasRemoteBackup = true
-            successMessage = "Recovery backup created. You can now use this Secure Messages Passcode on the website, Android, or another iPhone."
+            successMessage =
+                "Recovery backup saved. You can use this Secure Messages Passcode on the website, Android, or another iPhone."
+
+            recoveryPasscode = ""
             confirmRecoveryPasscode = ""
 
             await auth.refreshCurrentUser()
@@ -301,7 +398,10 @@ struct RestoreEncryptionKeyView: View {
             try? await Task.sleep(nanoseconds: 700_000_000)
             dismiss()
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage =
+                SecureMessagesErrorPresenter.message(
+                    for: error
+                )
         }
 
         isCreatingBackup = false
@@ -341,22 +441,32 @@ struct RestoreEncryptionKeyView: View {
 
             await auth.refreshCurrentUser()
 
-            successMessage = "Secure messages restored."
-            recoveryPasscode = ""
-
-            await onCompleted?()
-
-            try? await Task.sleep(nanoseconds: 700_000_000)
+            try? await Task.sleep(
+                nanoseconds: 700_000_000
+            )
 
             if hasMatchingAccountKey() {
+                successMessage = "Secure messages restored."
+                recoveryPasscode = ""
+
                 auth.markKeyRestoreComplete()
+                await onCompleted?()
                 dismiss()
+
             } else {
-                auth.forceKeyRestore(message: "The restored secure message key does not match this account.")
-                errorMessage = "The restored secure message key does not match this account."
+                auth.forceKeyRestore(
+                    message:
+                        "The restored secure message key does not match this account."
+                )
+
+                errorMessage =
+                    "The restored secure message key does not match this account."
             }
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage =
+                SecureMessagesErrorPresenter.message(
+                    for: error
+                )
         }
 
         isRestoring = false
@@ -388,28 +498,54 @@ struct RestoreEncryptionKeyView: View {
 
             if hasMatchingAccountKey() {
                 successMessage = "Fresh secure messages are ready."
+                startFreshConfirmationText = ""
+
                 auth.markKeyRestoreComplete()
+                await onCompleted?()
                 dismiss()
             } else {
                 auth.forceKeyRestore(message: "This device does not have the new secure message key.")
                 errorMessage = "This device does not have the new secure message key."
             }
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage =
+                SecureMessagesErrorPresenter.message(
+                    for: error
+                )
         }
 
         isResetting = false
     }
 
     private func hasMatchingAccountKey() -> Bool {
-        let serverKey = auth.currentUser?.publicKey?
-            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard let user = auth.currentUser else {
+            return false
+        }
 
-        let localKey = auth.currentUser.flatMap {
-            AccountKeyManager.shared.publicKeyBase64(userId: $0.id)
-        }?
-        .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let serverPublicKey =
+            user.publicKey?
+                .trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                ) ?? ""
 
-        return !serverKey.isEmpty && !localKey.isEmpty && serverKey == localKey
+        let localPublicKey =
+            AccountKeyManager.shared
+                .publicKeyBase64(userId: user.id)?
+                .trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                ) ?? ""
+
+        let localPrivateKey =
+            AccountKeyManager.shared
+                .privateKeyBase64(userId: user.id)?
+                .trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                ) ?? ""
+
+        return
+            !serverPublicKey.isEmpty &&
+            !localPublicKey.isEmpty &&
+            !localPrivateKey.isEmpty &&
+            serverPublicKey == localPublicKey
     }
 }

@@ -19,7 +19,7 @@ struct APIRequest {
 enum APIError: Error, LocalizedError {
     case invalidURL
     case unauthorized
-    case server(status: Int, message: String?)
+    case server(status: Int, code: String? = nil, message: String?, body: Data? = nil)
     case decoding(Error)
     case network(Error)
     
@@ -42,14 +42,30 @@ enum APIError: Error, LocalizedError {
                 languageCode: appLanguage
             )
 
-        case .server(let status, let message):
+        case .server(let status, _, let message, _):
+            /*
+             * The HTTP status and structured backend code remain available
+             * in development logs. The user-facing description should show
+             * a normal sentence rather than raw JSON or a technical prefix.
+             */
+            if let message {
+                let trimmed =
+                    message.trimmingCharacters(
+                        in: .whitespacesAndNewlines
+                    )
+
+                if !trimmed.isEmpty {
+                    return trimmed
+                }
+            }
+
             return String(
                 format: appText(
                     "api.serverError",
                     languageCode: appLanguage
                 ),
                 status,
-                message ?? appText(
+                appText(
                     "common.unknown",
                     languageCode: appLanguage
                 )
@@ -68,6 +84,12 @@ enum APIError: Error, LocalizedError {
             return err.localizedDescription
         }
     }
+}
+
+private struct APIServerErrorEnvelope: Decodable {
+    let code: String?
+    let error: String?
+    let message: String?
 }
 
 struct EmptyResponse: Decodable {}
@@ -160,8 +182,44 @@ final class APIClient {
             }
 
             guard (200...299).contains(http.statusCode) else {
-                let msg = String(data: data, encoding: .utf8) ?? ""
-                throw APIError.server(status: http.statusCode, message: msg)
+                let envelope =
+                    try? JSONDecoder().decode(
+                        APIServerErrorEnvelope.self,
+                        from: data
+                    )
+
+                let message =
+                    envelope?.message?
+                        .trimmingCharacters(
+                            in: .whitespacesAndNewlines
+                        )
+                        .nilIfEmpty
+                    ??
+                    envelope?.error?
+                        .trimmingCharacters(
+                            in: .whitespacesAndNewlines
+                        )
+                        .nilIfEmpty
+                    ??
+                    String(data: data, encoding: .utf8)?
+                        .trimmingCharacters(
+                            in: .whitespacesAndNewlines
+                        )
+                        .nilIfEmpty
+
+                debugLog(
+                    "🚫 API error",
+                    http.statusCode,
+                    envelope?.code ?? "<no-code>",
+                    message ?? "<no-message>"
+                )
+
+                throw APIError.server(
+                    status: http.statusCode,
+                    code: envelope?.code,
+                    message: message,
+                    body: data
+                )
             }
 
             if data.isEmpty {
@@ -193,10 +251,6 @@ final class APIClient {
                     @unknown default:
                         debugLog("unknown DecodingError")
                     }
-                }
-
-                if let s = String(data: data, encoding: .utf8) {
-                } else {
                 }
 
                 throw APIError.decoding(error)
@@ -353,5 +407,11 @@ final class APIClient {
                 debugLog("❌ readMessagesBulk failed:", error)
             }
         }
+    }
+}
+
+private extension String {
+    var nilIfEmpty: String? {
+        isEmpty ? nil : self
     }
 }

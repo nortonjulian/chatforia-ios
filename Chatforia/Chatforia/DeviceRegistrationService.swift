@@ -57,18 +57,18 @@ final class DeviceRegistrationService {
         guard
             case .server(
                 let status,
-                let responseBody
+                let envelopeCode,
+                let serverMessage,
+                let responseData
             ) = apiError,
             status == 409,
-            let responseBody,
-            let responseData =
-                responseBody.data(using: .utf8),
+            let responseData,
             let decoded =
                 try? JSONDecoder().decode(
                     DeviceRegistrationErrorResponse.self,
                     from: responseData
                 ),
-            let code = decoded.code,
+            let code = decoded.code ?? envelopeCode,
             code == "DEVICE_REPLACEMENT_REQUIRED"
                 || code == "DEVICE_REPLACEMENT_TARGET_STALE"
         else {
@@ -82,6 +82,7 @@ final class DeviceRegistrationService {
             message:
                 decoded.message
                 ?? decoded.error
+                ?? serverMessage
                 ?? "Device replacement confirmation is required."
         )
     }

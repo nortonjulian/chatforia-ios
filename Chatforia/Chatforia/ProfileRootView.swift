@@ -1499,14 +1499,22 @@ struct ProfileRootView: View {
                     } label: {
                         rowLabel(
                             icon: "icloud.and.arrow.up",
-                            title: appText(
-                                "security_backup_key_title",
-                                languageCode: appLanguage
-                            ),
-                            subtitle: appText(
-                                "security_backup_key_subtitle",
-                                languageCode: appLanguage
-                            )
+                            title:
+                                hasRemoteBackup == true
+                                ? "Update Secure Message Backup"
+                                : appText(
+                                    "security_backup_key_title",
+                                    languageCode: appLanguage
+                                ),
+                            subtitle:
+                                isCheckingBackup
+                                ? "Checking recovery backup…"
+                                : hasRemoteBackup == true
+                                ? "Replace the saved backup or change its Secure Messages Passcode."
+                                : appText(
+                                    "security_backup_key_subtitle",
+                                    languageCode: appLanguage
+                                )
                         )
                     }
                     .buttonStyle(.plain)

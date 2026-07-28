@@ -36,6 +36,14 @@ final class AccountKeyManager {
         "account.\(userId).curve25519.private"
     }
 
+    private func pendingPublicKeyAccount(userId: Int) -> String {
+        "account.\(userId).curve25519.pending.public"
+    }
+
+    private func pendingPrivateKeyAccount(userId: Int) -> String {
+        "account.\(userId).curve25519.pending.private"
+    }
+
     func generateNewAccountKeys() throws -> (publicKeyBase64: String, privateKeyBase64: String) {
         let privateKey = Curve25519.KeyAgreement.PrivateKey()
         let publicKey = privateKey.publicKey
@@ -86,8 +94,146 @@ final class AccountKeyManager {
 
     func clear(userId: Int) {
         guard userId > 0 else { return }
-        _ = KeychainHelper.delete(service: service, account: publicKeyAccount(userId: userId))
-        _ = KeychainHelper.delete(service: service, account: privateKeyAccount(userId: userId))
+
+        _ = KeychainHelper.delete(
+            service: service,
+            account: publicKeyAccount(userId: userId)
+        )
+
+        _ = KeychainHelper.delete(
+            service: service,
+            account: privateKeyAccount(userId: userId)
+        )
+
+        clearPendingResetKeys(userId: userId)
+    }
+
+    private func savePendingResetKeys(
+        userId: Int,
+        publicKeyBase64: String,
+        privateKeyBase64: String
+    ) throws {
+        guard let publicData =
+                Data(base64Encoded: publicKeyBase64),
+              let privateData =
+                Data(base64Encoded: privateKeyBase64)
+        else {
+            throw NSError(
+                domain: "AccountKeyManager",
+                code: 54,
+                userInfo: [
+                    NSLocalizedDescriptionKey:
+                        "Invalid pending secure message key data."
+                ]
+            )
+        }
+
+        let savedPublic =
+            KeychainHelper.save(
+                data: publicData,
+                service: service,
+                account: pendingPublicKeyAccount(userId: userId)
+            )
+
+        let savedPrivate =
+            KeychainHelper.save(
+                data: privateData,
+                service: service,
+                account: pendingPrivateKeyAccount(userId: userId)
+            )
+
+        guard savedPublic && savedPrivate else {
+            clearPendingResetKeys(userId: userId)
+
+            throw NSError(
+                domain: "AccountKeyManager",
+                code: 55,
+                userInfo: [
+                    NSLocalizedDescriptionKey:
+                        "Could not safely prepare the new secure message key."
+                ]
+            )
+        }
+    }
+
+    private func clearPendingResetKeys(userId: Int) {
+        guard userId > 0 else { return }
+
+        _ = KeychainHelper.delete(
+            service: service,
+            account: pendingPublicKeyAccount(userId: userId)
+        )
+
+        _ = KeychainHelper.delete(
+            service: service,
+            account: pendingPrivateKeyAccount(userId: userId)
+        )
+    }
+
+    private func reconcilePendingResetIfNeeded(
+        userId: Int,
+        serverPublicKey: String?
+    ) throws {
+        let pendingPublicData =
+            KeychainHelper.read(
+                service: service,
+                account: pendingPublicKeyAccount(userId: userId)
+            )
+
+        let pendingPrivateData =
+            KeychainHelper.read(
+                service: service,
+                account: pendingPrivateKeyAccount(userId: userId)
+            )
+
+        let hasPendingPublic = pendingPublicData != nil
+        let hasPendingPrivate = pendingPrivateData != nil
+
+        guard hasPendingPublic || hasPendingPrivate else {
+            return
+        }
+
+        /*
+         * An incomplete pending pair was never made authoritative and can
+         * be discarded safely. It must never replace the active key.
+         */
+        guard
+            let pendingPublicData,
+            let pendingPrivateData
+        else {
+            clearPendingResetKeys(userId: userId)
+            return
+        }
+
+        let pendingPublicKey =
+            pendingPublicData.base64EncodedString()
+                .trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                )
+
+        let pendingPrivateKey =
+            pendingPrivateData.base64EncodedString()
+
+        let normalizedServerKey =
+            serverPublicKey?
+                .trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                ) ?? ""
+
+        if !normalizedServerKey.isEmpty,
+           normalizedServerKey == pendingPublicKey {
+            try saveAccountKeys(
+                userId: userId,
+                publicKeyBase64: pendingPublicKey,
+                privateKeyBase64: pendingPrivateKey
+            )
+        }
+
+        /*
+         * Matching means the server accepted it and it has now been
+         * promoted. Nonmatching means the prior reset was rejected.
+         */
+        clearPendingResetKeys(userId: userId)
     }
 
     func clearLegacyGlobalKeys() {
@@ -117,10 +263,46 @@ final class AccountKeyManager {
         let serverPublicKey = me.user.publicKey?
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
-        let localPublicKey = publicKeyBase64(userId: userId)?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+        /*
+         * Complete a reset that the server accepted before the app closed,
+         * or discard a pending candidate that the server rejected.
+         */
+        try reconcilePendingResetIfNeeded(
+            userId: userId,
+            serverPublicKey: serverPublicKey
+        )
 
-        let hasLocalKeys = hasAccountKeys(userId: userId)
+        let localPublicKey =
+            publicKeyBase64(userId: userId)?
+                .trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                )
+
+        let localPrivateKey =
+            privateKeyBase64(userId: userId)?
+                .trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                )
+
+        let hasLocalPublicKey =
+            !(localPublicKey?.isEmpty ?? true)
+
+        let hasLocalPrivateKey =
+            !(localPrivateKey?.isEmpty ?? true)
+
+        if hasLocalPublicKey != hasLocalPrivateKey {
+            throw NSError(
+                domain: "AccountKeyManager",
+                code: 53,
+                userInfo: [
+                    NSLocalizedDescriptionKey:
+                        "This device has incomplete secure message key information. Restore your secure messages or start fresh only as a last resort."
+                ]
+            )
+        }
+
+        let hasLocalKeys =
+            hasLocalPublicKey && hasLocalPrivateKey
 
         // 1. Server has key, but device has none.
         if let serverPublicKey,
@@ -243,10 +425,17 @@ final class AccountKeyManager {
         return false
     }
 
-    func resetAccountEncryption(userId: Int, token: String) async throws {
+    func resetAccountEncryption(
+        userId: Int,
+        token: String
+    ) async throws {
         let newKeys = try generateNewAccountKeys()
 
-        try saveAccountKeys(
+        /*
+         * Keep the replacement in a pending Keychain slot. The active key
+         * is not touched unless the server accepts this exact public key.
+         */
+        try savePendingResetKeys(
             userId: userId,
             publicKeyBase64: newKeys.publicKeyBase64,
             privateKeyBase64: newKeys.privateKeyBase64
@@ -259,14 +448,49 @@ final class AccountKeyManager {
 
         let bodyData = try JSONEncoder().encode(requestBody)
 
-        _ = try await APIClient.shared.send(
-            APIRequest(
-                path: "auth/keys/rotate",
-                method: .POST,
-                body: bodyData,
-                requiresAuth: true
-            ),
-            token: token
-        ) as ResetEncryptionResponse
+        let response: ResetEncryptionResponse =
+            try await APIClient.shared.send(
+                APIRequest(
+                    path: "auth/keys/rotate",
+                    method: .POST,
+                    body: bodyData,
+                    requiresAuth: true
+                ),
+                token: token
+            )
+
+        let acceptedPublicKey =
+            response.publicKey?
+                .trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                )
+
+        guard acceptedPublicKey == newKeys.publicKeyBase64 else {
+            /*
+             * Leave the active key untouched. The pending candidate will
+             * be discarded during the next authenticated reconciliation
+             * because it does not match the server.
+             */
+            throw NSError(
+                domain: "AccountKeyManager",
+                code: 56,
+                userInfo: [
+                    NSLocalizedDescriptionKey:
+                        "The server did not confirm the new secure message key."
+                ]
+            )
+        }
+
+        /*
+         * The server has accepted the replacement. Promote the pending
+         * pair to the active account-scoped Keychain entries.
+         */
+        try saveAccountKeys(
+            userId: userId,
+            publicKeyBase64: newKeys.publicKeyBase64,
+            privateKeyBase64: newKeys.privateKeyBase64
+        )
+
+        clearPendingResetKeys(userId: userId)
     }
 }

@@ -9,6 +9,11 @@ enum RemoteKeyBackupError: Error, LocalizedError {
     case encodingFailed
     case decryptFailed
     case keyMismatch
+    case noBackup
+    case temporarilyUnavailable
+    case sessionExpired
+    case serviceUnavailable
+    case requestFailed
 
     private var appLanguage: String {
         UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
@@ -17,16 +22,123 @@ enum RemoteKeyBackupError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidPassword:
-            return appText("encryptionRecovery.errors.invalidPassword", languageCode: appLanguage)
+            return appText(
+                "encryptionRecovery.errors.invalidPassword",
+                languageCode: appLanguage
+            )
+
         case .invalidKeyMaterial:
-            return appText("encryptionRecovery.errors.invalidKeyMaterial", languageCode: appLanguage)
+            return appText(
+                "encryptionRecovery.errors.invalidKeyMaterial",
+                languageCode: appLanguage
+            )
+
         case .encodingFailed:
-            return appText("encryptionRecovery.errors.encodingFailed", languageCode: appLanguage)
+            return appText(
+                "encryptionRecovery.errors.encodingFailed",
+                languageCode: appLanguage
+            )
+
         case .decryptFailed:
-            return appText("encryptionRecovery.errors.decryptFailed", languageCode: appLanguage)
+            return "That Secure Messages Passcode is incorrect, or the recovery backup could not be opened."
+
         case .keyMismatch:
-            return appText("encryptionRecovery.errors.keyMismatch", languageCode: appLanguage)
+            return "This device’s secure message key does not match the account key. Restore secure messages from the existing recovery backup."
+
+        case .noBackup:
+            return "No Secure Messages recovery backup was found for this account."
+
+        case .temporarilyUnavailable:
+            return "Secure message key changes are temporarily unavailable. Please try again later."
+
+        case .sessionExpired:
+            return "Your session expired. Please sign in again."
+
+        case .serviceUnavailable:
+            return "Secure message recovery is temporarily unavailable. Please try again later."
+
+        case .requestFailed:
+            return "We couldn’t complete secure message recovery. Please try again."
         }
+    }
+}
+
+enum SecureMessagesErrorPresenter {
+    static func message(for error: Error) -> String {
+        if let recoveryError = error as? RemoteKeyBackupError {
+            return recoveryError.errorDescription
+                ?? "We couldn’t complete secure message recovery."
+        }
+
+        if let apiError = error as? APIError {
+            switch apiError {
+            case .unauthorized:
+                return RemoteKeyBackupError.sessionExpired.errorDescription
+                    ?? "Your session expired. Please sign in again."
+
+            case .network:
+                return "Check your internet connection and try again."
+
+            case .server(let status, let code, _, _):
+                let normalizedCode =
+                    code?
+                        .trimmingCharacters(
+                            in: .whitespacesAndNewlines
+                        )
+                        .uppercased()
+
+                switch normalizedCode {
+                case "BACKUP_KEY_MISMATCH":
+                    return RemoteKeyBackupError.keyMismatch.errorDescription
+                        ?? "The secure message keys do not match."
+
+                case "BACKUP_NOT_FOUND",
+                     "KEY_BACKUP_NOT_FOUND":
+                    return RemoteKeyBackupError.noBackup.errorDescription
+                        ?? "No recovery backup was found."
+
+                case "ENCRYPTION_KEY_FROZEN",
+                     "KEY_CHANGE_FROZEN",
+                     "REVIEWER_KEY_RECONCILED":
+                    return RemoteKeyBackupError
+                        .temporarilyUnavailable
+                        .errorDescription
+                        ?? "Secure message key changes are temporarily unavailable."
+
+                default:
+                    if status == 423 {
+                        return RemoteKeyBackupError
+                            .temporarilyUnavailable
+                            .errorDescription
+                            ?? "Secure message key changes are temporarily unavailable."
+                    }
+
+                    if status >= 500 {
+                        return RemoteKeyBackupError
+                            .serviceUnavailable
+                            .errorDescription
+                            ?? "Secure message recovery is temporarily unavailable."
+                    }
+
+                    return RemoteKeyBackupError.requestFailed.errorDescription
+                        ?? "We couldn’t complete secure message recovery."
+                }
+
+            case .invalidURL, .decoding:
+                return RemoteKeyBackupError.requestFailed.errorDescription
+                    ?? "We couldn’t complete secure message recovery."
+            }
+        }
+
+        let nsError = error as NSError
+
+        if nsError.domain == "AccountKeyManager",
+           !nsError.localizedDescription.isEmpty {
+            return nsError.localizedDescription
+        }
+
+        return RemoteKeyBackupError.requestFailed.errorDescription
+            ?? "We couldn’t complete secure message recovery."
     }
 }
 
@@ -55,6 +167,15 @@ struct RemoteKeyBackupRecord: Decodable {
     let privateKeyWrapVersion: Int?
 }
 
+private struct BackupAuthMeResponse: Decodable {
+    let user: BackupAuthMeUser
+}
+
+private struct BackupAuthMeUser: Decodable {
+    let id: Int
+    let publicKey: String?
+}
+
 struct RotateKeyPayload: Encodable {
     let publicKey: String
     let invalidateExistingBackup: Bool
@@ -73,6 +194,41 @@ final class RemoteKeyBackupService {
 
     private let iterations = 250_000
 
+    private func normalizedKey(_ value: String?) -> String {
+        value?
+            .trimmingCharacters(
+                in: .whitespacesAndNewlines
+            ) ?? ""
+    }
+
+    private func fetchAccountPublicKey(
+        token: String,
+        userId: Int
+    ) async throws -> String {
+        let response: BackupAuthMeResponse =
+            try await APIClient.shared.send(
+                APIRequest(
+                    path: "auth/me",
+                    method: .GET,
+                    requiresAuth: true
+                ),
+                token: token
+            )
+
+        guard response.user.id == userId else {
+            throw RemoteKeyBackupError.invalidKeyMaterial
+        }
+
+        let publicKey =
+            normalizedKey(response.user.publicKey)
+
+        guard !publicKey.isEmpty else {
+            throw RemoteKeyBackupError.invalidKeyMaterial
+        }
+
+        return publicKey
+    }
+
     func uploadCurrentDeviceKeyBackup(
         token: String,
         userId: Int,
@@ -88,6 +244,16 @@ final class RemoteKeyBackupService {
             AccountKeyManager.shared.privateKeyBase64(userId: userId)
         else {
             throw RemoteKeyBackupError.invalidKeyMaterial
+        }
+
+        let accountPublicKey =
+            try await fetchAccountPublicKey(
+                token: token,
+                userId: userId
+            )
+
+        guard normalizedKey(publicKeyBase64) == accountPublicKey else {
+            throw RemoteKeyBackupError.keyMismatch
         }
 
         let payload = try encryptKeyBundle(
@@ -195,7 +361,23 @@ final class RemoteKeyBackupService {
             throw RemoteKeyBackupError.invalidKeyMaterial
         }
 
-        guard restoredPublicKey == serverPublicKey else {
+        let accountPublicKey =
+            try await fetchAccountPublicKey(
+                token: token,
+                userId: userId
+            )
+
+        let normalizedRestoredPublicKey =
+            normalizedKey(restoredPublicKey)
+
+        let normalizedBackupPublicKey =
+            normalizedKey(serverPublicKey)
+
+        guard
+            !normalizedRestoredPublicKey.isEmpty,
+            normalizedRestoredPublicKey == normalizedBackupPublicKey,
+            normalizedRestoredPublicKey == accountPublicKey
+        else {
             throw RemoteKeyBackupError.keyMismatch
         }
 

@@ -110,7 +110,7 @@ final class AddContactViewModel: ObservableObject {
 
             } catch let error as APIError {
                 switch error {
-                case .server(let status, _) where status == 404:
+                case .server(let status, _, _, _) where status == 404:
                     throw NSError(
                         domain: "AddContactViewModel",
                         code: 404,

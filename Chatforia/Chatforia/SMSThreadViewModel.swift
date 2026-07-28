@@ -234,7 +234,7 @@ final class SMSThreadViewModel: ObservableObject {
     private func friendlyErrorMessage(_ error: Error) -> String {
     if let apiError = error as? APIError {
         switch apiError {
-        case .server(let status, _):
+        case .server(let status, _, _, _):
             if status >= 500 {
                 return "Server temporarily unavailable. Please try again."
             }
