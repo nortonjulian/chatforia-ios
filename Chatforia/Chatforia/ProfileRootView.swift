@@ -1083,7 +1083,7 @@ struct ProfileRootView: View {
                         "setting_foria_remember",
                         languageCode: appLanguage
                     ),
-                    isOn: $vm.foriaRemember
+                    isOn: $vm.riaRemember
                 )
             }
         }

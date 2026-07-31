@@ -36,7 +36,7 @@ struct RegistrationResponseDTO: Decodable {
     let ageBand: String?
     let wantsAgeFilter: Bool?
     let randomChatAllowedBands: [String]?
-    let foriaRemember: Bool?
+    let riaRemember: Bool?
 
     let voicemailEnabled: Bool?
     let voicemailAutoDeleteDays: Int?
@@ -71,7 +71,7 @@ struct RegistrationResponseDTO: Decodable {
                 ageBand: ageBand,
                 wantsAgeFilter: wantsAgeFilter,
                 randomChatAllowedBands: randomChatAllowedBands,
-                foriaRemember: foriaRemember,
+                riaRemember: riaRemember,
                 voicemailEnabled: voicemailEnabled,
                 voicemailAutoDeleteDays: voicemailAutoDeleteDays,
                 voicemailForwardEmail: voicemailForwardEmail,

@@ -52,6 +52,24 @@ final class LoginViewModel: ObservableObject {
         identifier = UserDefaults.standard.string(forKey: lastIdentifierKey) ?? ""
     }
 
+    func identifierDidChange(_ newValue: String) {
+        let trimmedValue = newValue.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+
+        if trimmedValue.isEmpty {
+            UserDefaults.standard.removeObject(
+                forKey: lastIdentifierKey
+            )
+        }
+
+        if errorText != nil {
+            errorText = nil
+            showResendVerification = false
+            resendSuccess = nil
+        }
+    }
+
     func login(auth: AuthStore, languageCode: String) async {
         errorText = nil
         isLoading = true

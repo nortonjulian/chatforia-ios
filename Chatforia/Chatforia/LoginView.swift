@@ -188,6 +188,9 @@ struct LoginView: View {
             .onAppear {
                 vm.onAppear()
             }
+            .onChange(of: vm.identifier) { _, newValue in
+                vm.identifierDidChange(newValue)
+            }
         }
     }
 }

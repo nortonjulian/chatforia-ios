@@ -9,7 +9,10 @@ struct RiaChatView: View {
     @AppStorage("chatforia_language") private var appLanguage = "en"
 
     @State private var draft = ""
-    @State private var memoryEnabled = true
+
+    private var memoryEnabled: Bool {
+        auth.currentUser?.riaRemember ?? true
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -116,7 +119,6 @@ struct RiaChatView: View {
             }
 
             settingsVM.loadLocalAISettings()
-            memoryEnabled = settingsVM.foriaRemember
         }
     }
 
