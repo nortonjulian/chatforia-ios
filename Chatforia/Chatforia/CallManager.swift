@@ -25,6 +25,10 @@ final class CallManager: ObservableObject {
     private var pendingDestination: CallDestination?
     private var pendingIsVideo: Bool = false
     private var pendingIncomingPayload: IncomingCallPayload?
+    private var pendingIncomingCompletion: ((Error?) -> Void)?
+    private var waitingForCanonicalIncomingCall = false
+    private var glareIncomingWaitTask: Task<Void, Never>?
+    private var outgoingIntentPending = false
     private var currentUserId: Int?
     
     private var appLanguage: String {
@@ -48,6 +52,8 @@ final class CallManager: ObservableObject {
     private var finalizedCallUUID: UUID?
     private var pendingVoIPToken: String?
     private var pendingVoIPTokenData: Data?
+    private var transientErrorDismissTask: Task<Void, Never>?
+    private var transientErrorID: UUID?
 
     init() {
         twilioService.delegate = self
@@ -84,8 +90,12 @@ final class CallManager: ObservableObject {
         )
     }
     
-    @objc private func handleSocketIncomingCall(_ notification: Notification) {
-        guard let data = notification.userInfo else { return }
+    @objc private func handleSocketIncomingCall(
+        _ notification: Notification
+    ) {
+        guard let data = notification.userInfo else {
+            return
+        }
 
         let rawCallId = data["callId"]
 
@@ -101,8 +111,37 @@ final class CallManager: ObservableObject {
             return nil
         }()
 
+        let callerName =
+            data["callerName"] as? String ??
+            data["from"] as? String ??
+            appText(
+                "calls.incomingCall",
+                languageCode: appLanguage
+            )
+
+        let mode =
+            (data["mode"] as? String)?
+                .uppercased() ?? "AUDIO"
+
+        let payload = IncomingCallPayload(
+            uuid: UUID(),
+            displayName: callerName,
+            remoteIdentity: callerName,
+            hasVideo: mode == "VIDEO",
+            backendCallId: callId
+        )
+
+        /*
+         * Preserve the backend ID for the Twilio CallInvite, then let
+         * CallManager's glare arbitration adopt the canonical incoming
+         * call from this foreground socket event.
+         */
         twilioService.setPendingBackendCallId(callId)
 
+        handleIncomingCallPayload(
+            payload,
+            auth: pendingAuth
+        )
     }
     
     @objc private func handleSocketCallEnded(_ notification: Notification) {
@@ -121,18 +160,13 @@ final class CallManager: ObservableObject {
                 languageCode: appLanguage
             ))
         case "DECLINED":
-            let shouldContinueCallerToVoicemail =
-                activeSession?.direction == .outgoing &&
-                activeSession?.isVideo == false
+            AudioPlayerService.shared.stopOutgoingRingback()
+            pendingEndOutcome = .declined
 
-            if shouldContinueCallerToVoicemail {
-                AudioPlayerService.shared.stopOutgoingRingback()
-
-                debugLog(
-                    "ℹ️ Preserving outgoing audio call after decline so voicemail can continue"
-                )
-
-                return
+            if activeSession?.isVideo == true {
+                twilioVideoService.disconnect()
+            } else {
+                twilioService.hangup()
             }
 
             completeCall(outcome: .declined)
@@ -182,6 +216,17 @@ final class CallManager: ObservableObject {
         twilioVideoService.flipCamera()
     }
 
+    private struct CallStatusWatchResponse: Decodable {
+        let call: CallStatusWatchCall
+    }
+
+    private struct CallStatusWatchCall: Decodable {
+        let status: String?
+    }
+
+    private var outgoingAudioAnswerWatchTask:
+        Task<Void, Never>?
+
     func startVoIPIfNeeded(auth: AuthStore) {
         pendingAuth = auth
         currentUserId = auth.currentUser?.id
@@ -191,10 +236,22 @@ final class CallManager: ObservableObject {
     }
 
     func startCall(to destination: CallDestination, auth: AuthStore) {
+        guard !outgoingIntentPending,
+              !waitingForCanonicalIncomingCall,
+              activeSession == nil else {
+            return
+        }
+
         AnalyticsManager.shared.capture("voice_call_started", properties: [
             "direction": "outgoing",
             "destinationType": "\(destination)"
         ])
+
+        /*
+         * Record the user's outgoing intent synchronously. This protects
+         * the interval before microphone permission finishes.
+         */
+        outgoingIntentPending = true
 
         Task {
             await beginOutgoingCall(to: destination, auth: auth, isVideo: false)
@@ -202,6 +259,12 @@ final class CallManager: ObservableObject {
     }
 
     func startVideoCall(to destination: CallDestination, auth: AuthStore) {
+        guard !outgoingIntentPending,
+              !waitingForCanonicalIncomingCall,
+              activeSession == nil else {
+            return
+        }
+
         AnalyticsManager.shared.capture("video_call_started", properties: [
             "direction": "outgoing",
             "destinationType": "\(destination)"
@@ -214,6 +277,8 @@ final class CallManager: ObservableObject {
                 languageCode: appLanguage
             ))
         case .appUser, .videoRoom:
+            outgoingIntentPending = true
+
             Task {
                 await beginOutgoingCall(to: destination, auth: auth, isVideo: true)
             }
@@ -221,6 +286,14 @@ final class CallManager: ObservableObject {
     }
 
     func startGroupVideoCall(roomId: Int, displayName: String?, auth: AuthStore) {
+        guard !outgoingIntentPending,
+              !waitingForCanonicalIncomingCall,
+              activeSession == nil else {
+            return
+        }
+
+        outgoingIntentPending = true
+
         Task {
             await beginOutgoingCall(
                 to: .videoRoom(
@@ -239,7 +312,60 @@ final class CallManager: ObservableObject {
         auth: AuthStore?,
         completion: ((Error?) -> Void)? = nil
     ) {
-        if activeSession?.status == .ringing || activeSession?.status == .active || activeSession?.status == .connecting {
+        /*
+         * The user has pressed Call, but beginOutgoingCall may still be
+         * waiting for microphone permission and may not have created its
+         * CallSession yet. Buffer the incoming call until /calls/invite
+         * determines which request survives.
+         */
+        if outgoingIntentPending {
+            if pendingIncomingPayload == nil ||
+                (pendingIncomingPayload?.backendCallId == nil &&
+                 payload.backendCallId != nil) {
+                pendingIncomingPayload = payload
+            }
+
+            if let completion {
+                pendingIncomingCompletion = completion
+            }
+
+            return
+        }
+
+        /*
+         * During simultaneous cross-calling, let the backend advisory lock
+         * decide which call survives. Do not replace a brand-new outgoing
+         * session before its /calls/invite request resolves.
+         */
+        if let session = activeSession,
+           session.direction == .outgoing,
+           session.status == .starting {
+            if pendingIncomingPayload == nil ||
+                (pendingIncomingPayload?.backendCallId == nil &&
+                 payload.backendCallId != nil) {
+                pendingIncomingPayload = payload
+            }
+
+            if let completion {
+                pendingIncomingCompletion = completion
+            }
+
+            return
+        }
+
+        /*
+         * A 409 already told this client that the reciprocal call won.
+         * The first canonical incoming payload may now be displayed.
+         */
+        if waitingForCanonicalIncomingCall {
+            waitingForCanonicalIncomingCall = false
+            glareIncomingWaitTask?.cancel()
+            glareIncomingWaitTask = nil
+        }
+
+        if activeSession?.status == .ringing ||
+            activeSession?.status == .active ||
+            activeSession?.status == .connecting {
             completion?(nil)
             return
         }
@@ -343,8 +469,60 @@ final class CallManager: ObservableObject {
         }
     }
 
+    private func showTransientError(_ message: String) {
+        transientErrorDismissTask?.cancel()
+
+        let errorID = UUID()
+        transientErrorID = errorID
+
+        lastError = message
+        state = .failed(message)
+
+        transientErrorDismissTask = Task { [weak self] in
+            do {
+                try await Task.sleep(nanoseconds: 3_000_000_000)
+            } catch {
+                return
+            }
+
+            guard let self,
+                  self.transientErrorID == errorID else {
+                return
+            }
+
+            self.lastError = nil
+
+            if case .failed = self.state {
+                self.state = .idle
+            }
+
+            self.transientErrorID = nil
+            self.transientErrorDismissTask = nil
+        }
+    }
+
     private func beginOutgoingCall(to destination: CallDestination, auth: AuthStore, isVideo: Bool) async {
+        transientErrorDismissTask?.cancel()
+        transientErrorDismissTask = nil
+        transientErrorID = nil
         lastError = nil
+
+        if case .failed = state {
+            state = .idle
+        }
+
+        do {
+            if isVideo {
+                try await MediaPermissionManager.shared.ensureVideoCallPermissions()
+            } else {
+                try await MediaPermissionManager.shared.ensureMicrophonePermission()
+            }
+        } catch {
+            outgoingIntentPending = false
+            showTransientError(error.localizedDescription)
+            return
+        }
+
         pendingAuth = auth
         currentUserId = auth.currentUser?.id
         pendingEndOutcome = nil
@@ -374,6 +552,7 @@ final class CallManager: ObservableObject {
         )
 
         activeSession = session
+        outgoingIntentPending = false
         pendingDestination = destination
         pendingIsVideo = isVideo
         state = .dialing(destination)
@@ -386,15 +565,15 @@ final class CallManager: ObservableObject {
 
             do {
                 if isVideo {
-                    let response = try await CallService.shared.startVideoCall(
+                    let callId = try await CallService.shared.createCall(
                         calleeId: userId,
-                        chatRoomId: nil,
+                        mode: "VIDEO",
                         token: token
                     )
 
                     updateSession {
-                        $0.backendCallId = response.callId
-                        $0.remoteIdentity = response.roomName
+                        $0.backendCallId = callId
+                        $0.remoteIdentity = "call_\(callId)"
                     }
                 } else {
                     let callId = try await CallService.shared.createCall(
@@ -408,6 +587,15 @@ final class CallManager: ObservableObject {
                     }
                 }
 
+            } catch let apiError as APIError {
+                if case .server(let status, _, _, _) = apiError,
+                   status == 409 {
+                    resolveOutgoingGlareLoss()
+                    return
+                }
+
+                failCall(apiError.localizedDescription)
+                return
             } catch {
                 failCall(error.localizedDescription)
                 return
@@ -557,7 +745,14 @@ final class CallManager: ObservableObject {
                 $0.status = .connecting
                 $0.displayName = username ?? appText("calls.call", languageCode: appLanguage)
             }
-            state = .fetchingToken
+
+            if isVideo {
+                state = .fetchingToken
+            } else {
+                // Keep outgoing audio calls visually in Calling
+                // while credentials and Twilio media are prepared.
+                state = .dialing(destination)
+            }
 
             if isVideo {
                 do {
@@ -712,9 +907,178 @@ final class CallManager: ObservableObject {
         }
     }
 
+    private func startOutgoingAudioAnswerWatch(
+        session: CallSession
+    ) {
+        outgoingAudioAnswerWatchTask?.cancel()
+
+        guard let callId = session.backendCallId,
+              let token = TokenStore.shared.read(),
+              !token.isEmpty else {
+            return
+        }
+
+        outgoingAudioAnswerWatchTask =
+            Task { [weak self] in
+                guard let self else { return }
+
+                for _ in 0..<80 {
+                    guard !Task.isCancelled else {
+                        return
+                    }
+
+                    guard let current = self.activeSession,
+                          current.id == session.id,
+                          current.direction == .outgoing,
+                          current.isVideo == false,
+                          current.answeredAt == nil,
+                          case .appUser = current.destination else {
+                        return
+                    }
+
+                    do {
+                        let response:
+                            CallStatusWatchResponse =
+                            try await APIClient.shared.send(
+                                APIRequest(
+                                    path:
+                                        "calls/\(callId)/status",
+                                    method: .GET,
+                                    requiresAuth: true
+                                ),
+                                token: token
+                            )
+
+                        switch response.call.status?
+                            .uppercased() {
+                        case "ACTIVE":
+                            let answeredAt = Date()
+
+                            AudioPlayerService.shared
+                                .stopOutgoingRingback()
+
+                            self.updateSession {
+                                $0.status = .active
+
+                                if $0.answeredAt == nil {
+                                    $0.answeredAt =
+                                        answeredAt
+                                }
+                            }
+
+                            self.callKit
+                                .reportOutgoingCallConnected(
+                                    uuid: session.id
+                                )
+
+                            self.state =
+                                .active(
+                                    current.displayName
+                                )
+
+                            self.outgoingAudioAnswerWatchTask =
+                                nil
+
+                            return
+
+                        case "DECLINED",
+                             "MISSED",
+                             "FAILED",
+                             "ENDED":
+                            AudioPlayerService.shared
+                                .stopOutgoingRingback()
+
+                            self.outgoingAudioAnswerWatchTask =
+                                nil
+
+                            return
+
+                        default:
+                            break
+                        }
+                    } catch {
+                        // A temporary lookup failure should not end
+                        // an otherwise valid call.
+                    }
+
+                    do {
+                        try await Task.sleep(
+                            nanoseconds: 250_000_000
+                        )
+                    } catch {
+                        return
+                    }
+                }
+            }
+    }
+
+    private func disconnectAndCompleteLocalHangup(
+        session: CallSession,
+        reportToCallKit: Bool
+    ) {
+        if session.isVideo {
+            twilioVideoService.disconnect()
+        } else {
+            twilioService.hangup()
+        }
+
+        completeCall(
+            outcome: .localHangup,
+            reportToCallKit: reportToCallKit
+        )
+    }
+
+    private func finishLocalHangup(
+        session: CallSession,
+        reportToCallKit: Bool
+    ) {
+        let callerCanceledBeforeAnswer =
+            session.direction == .outgoing &&
+            session.answeredAt == nil
+
+        guard callerCanceledBeforeAnswer,
+              let callId = session.backendCallId,
+              let token = TokenStore.shared.read(),
+              !token.isEmpty else {
+            disconnectAndCompleteLocalHangup(
+                session: session,
+                reportToCallKit: reportToCallKit
+            )
+            return
+        }
+
+        let endedAt = Date()
+
+        Task { [weak self] in
+            guard let self else { return }
+
+            // Persist Canceled before disconnecting Twilio.
+            // This prevents the later no-answer callback from
+            // winning the terminal-state race.
+            await self.patchCallStatus(
+                callId: callId,
+                token: token,
+                status: "ENDED",
+                endedAt: endedAt,
+                endReason: "caller_canceled",
+                twilioCallSid: session.callSid
+            )
+
+            guard self.activeSession?.id ==
+                    session.id else {
+                return
+            }
+
+            self.disconnectAndCompleteLocalHangup(
+                session: session,
+                reportToCallKit: reportToCallKit
+            )
+        }
+    }
+
     func hangup() {
         AudioPlayerService.shared.stopOutgoingRingback()
-        
+
         guard let session = activeSession else {
             twilioService.hangup()
             twilioVideoService.disconnect()
@@ -722,33 +1086,46 @@ final class CallManager: ObservableObject {
             return
         }
 
-        let sessionId = session.id
-        let isVideo = session.isVideo
+        guard session.status != .ending else {
+            return
+        }
+
         let isUnansweredIncoming =
             session.direction == .incoming &&
             session.answeredAt == nil
 
-        let outcome: CallEndOutcome =
-            isUnansweredIncoming ? .declined : .localHangup
+        if isUnansweredIncoming {
+            pendingEndOutcome = .declined
 
-        pendingEndOutcome = outcome
+            callKit.endCall(uuid: session.id)
+
+            if session.isVideo {
+                completeCall(
+                    outcome: .declined,
+                    reportToCallKit: false
+                )
+            } else {
+                twilioService.rejectIncomingCall()
+
+                completeCall(
+                    outcome: .declined,
+                    reportToCallKit: false
+                )
+            }
+
+            return
+        }
+
+        pendingEndOutcome = .localHangup
 
         updateSession {
             $0.status = .ending
         }
 
-        callKit.endCall(uuid: sessionId)
+        callKit.endCall(uuid: session.id)
 
-        if isVideo {
-            twilioVideoService.disconnect()
-        } else if isUnansweredIncoming {
-            twilioService.rejectIncomingCall()
-        } else {
-            twilioService.hangup()
-        }
-
-        completeCall(
-            outcome: outcome,
+        finishLocalHangup(
+            session: session,
             reportToCallKit: false
         )
     }
@@ -759,6 +1136,64 @@ final class CallManager: ObservableObject {
             state = .idle
         default:
             break
+        }
+    }
+
+    private func resolveOutgoingGlareLoss() {
+        outgoingIntentPending = false
+        AudioPlayerService.shared.stopOutgoingRingback()
+
+        let bufferedPayload = pendingIncomingPayload
+        let bufferedCompletion = pendingIncomingCompletion
+
+        /*
+         * The backend rejected this outgoing attempt before CallKit or
+         * Twilio media started. Clear only the local outgoing state.
+         * Do not call completeCall(), resetTransientState(), or
+         * twilioService.hangup(), because those paths can discard the
+         * surviving incoming payload or Twilio CallInvite.
+         */
+        pendingIncomingPayload = nil
+        pendingIncomingCompletion = nil
+        pendingDestination = nil
+        pendingIsVideo = false
+        pendingEndOutcome = nil
+        finalizedCallUUID = nil
+        activeSession = nil
+        state = .idle
+        lastError = nil
+
+        if let bufferedPayload {
+            handleIncomingCallPayload(
+                bufferedPayload,
+                auth: pendingAuth,
+                completion: bufferedCompletion
+            )
+            return
+        }
+
+        /*
+         * The 409 response can arrive slightly before the winning request
+         * finishes sending its incoming socket/VoIP notification.
+         */
+        waitingForCanonicalIncomingCall = true
+        glareIncomingWaitTask?.cancel()
+
+        glareIncomingWaitTask = Task { [weak self] in
+            do {
+                try await Task.sleep(nanoseconds: 3_000_000_000)
+            } catch {
+                return
+            }
+
+            guard let self,
+                  self.waitingForCanonicalIncomingCall else {
+                return
+            }
+
+            self.waitingForCanonicalIncomingCall = false
+            self.glareIncomingWaitTask = nil
+            self.state = .idle
         }
     }
 
@@ -846,10 +1281,18 @@ final class CallManager: ObservableObject {
     }
 
     private func resetTransientState() {
+        outgoingIntentPending = false
+        outgoingAudioAnswerWatchTask?.cancel()
+        outgoingAudioAnswerWatchTask = nil
+
         // Keep pendingAuth so incoming calls still know the current user.
         pendingDestination = nil
         pendingIsVideo = false
         pendingIncomingPayload = nil
+        pendingIncomingCompletion = nil
+        waitingForCanonicalIncomingCall = false
+        glareIncomingWaitTask?.cancel()
+        glareIncomingWaitTask = nil
         pendingEndOutcome = nil
     }
 
@@ -875,7 +1318,24 @@ final class CallManager: ObservableObject {
 
         switch outcome {
         case .localHangup:
-            return ("ENDED", "local_hangup", duration)
+            let callerCanceledBeforeAnswer =
+                session.direction == .outgoing &&
+                session.answeredAt == nil
+
+            if callerCanceledBeforeAnswer {
+                return (
+                    "ENDED",
+                    "caller_canceled",
+                    nil
+                )
+            }
+
+            return (
+                "ENDED",
+                "local_hangup",
+                duration
+            )
+
         case .remoteEnded:
             return ("ENDED", "remote_ended", duration)
         case .declined:
@@ -909,6 +1369,52 @@ final class CallManager: ObservableObject {
         default:
             return .ended
         }
+    }
+
+    private func markVideoCallAnsweredIfNeeded() {
+        guard let session = activeSession,
+              session.isVideo else {
+            return
+        }
+
+        let now = Date()
+        let answeredAt = session.answeredAt ?? now
+
+        // Only the first genuine remote answer should patch the backend
+        // and report the outgoing CallKit call as connected.
+        let isFirstAnswer =
+            session.answeredAt == nil
+
+        updateSession {
+            $0.status = .active
+
+            if $0.answeredAt == nil {
+                $0.answeredAt = answeredAt
+            }
+        }
+
+        if isFirstAnswer,
+           let callId = session.backendCallId,
+           let token = TokenStore.shared.read(),
+           !token.isEmpty {
+            Task {
+                await patchCallStatus(
+                    callId: callId,
+                    token: token,
+                    status: "ACTIVE",
+                    startedAt: answeredAt
+                )
+            }
+        }
+
+        if isFirstAnswer &&
+            session.direction == .outgoing {
+            callKit.reportOutgoingCallConnected(
+                uuid: session.id
+            )
+        }
+
+        state = .active(session.displayName)
     }
 
     private func registerPendingVoIPTokenIfPossible() {
@@ -1148,20 +1654,18 @@ extension CallManager: CallKitManagerDelegate {
             }
         }
 
+        guard session.status != .ending else {
+            return
+        }
+
         pendingEndOutcome = .localHangup
 
         updateSession {
             $0.status = .ending
         }
 
-       if session.isVideo {
-            twilioVideoService.disconnect()
-        } else {
-            twilioService.hangup()
-        }
-
-        completeCall(
-            outcome: .localHangup,
+        finishLocalHangup(
+            session: session,
             reportToCallKit: false
         )
     }
@@ -1220,10 +1724,19 @@ extension CallManager: CallKitManagerDelegate {
 
 extension CallManager: TwilioVoiceServiceDelegate {
     func twilioVoiceDidStartConnecting() {
-        guard let name = activeSession?.displayName else { return }
+        guard let session = activeSession else { return }
 
-        updateSession { $0.status = .connecting }
-        state = .connecting(name)
+        updateSession {
+            $0.status = .connecting
+        }
+
+        if session.direction == .outgoing,
+           case .appUser = session.destination {
+            // The recipient has not answered yet.
+            state = .dialing(session.destination)
+        } else {
+            state = .connecting(session.displayName)
+        }
     }
 
     func twilioVoiceDidStartRinging() {
@@ -1241,16 +1754,44 @@ extension CallManager: TwilioVoiceServiceDelegate {
     }
 
     func twilioVoiceDidConnect(callSid: String?) {
-        AudioPlayerService.shared.stopOutgoingRingback()
+        guard let session = activeSession else {
+            return
+        }
 
-        guard let session = activeSession else { return }
+        if session.direction == .outgoing,
+           session.isVideo == false,
+           case .appUser = session.destination {
+            updateSession {
+                $0.callSid = callSid
+                $0.status = .connecting
+            }
+
+            // Keep showing “Calling…” until the recipient
+            // actually answers and the backend becomes ACTIVE.
+            state = .dialing(
+                session.destination
+            )
+
+            startOutgoingAudioAnswerWatch(
+                session: session
+            )
+
+            return
+        }
+
+        // Incoming audio was explicitly accepted, and an
+        // external phone call is genuinely bridged by this point.
+        AudioPlayerService.shared.stopOutgoingRingback()
 
         let now = Date()
 
         updateSession {
             $0.callSid = callSid
             $0.status = .active
-            $0.answeredAt = now
+
+            if $0.answeredAt == nil {
+                $0.answeredAt = now
+            }
         }
 
         if let callId = activeSession?.backendCallId,
@@ -1267,7 +1808,12 @@ extension CallManager: TwilioVoiceServiceDelegate {
             }
         }
 
-        callKit.reportOutgoingCallConnected(uuid: session.id)
+        if session.direction == .outgoing {
+            callKit.reportOutgoingCallConnected(
+                uuid: session.id
+            )
+        }
+
         state = .active(session.displayName)
     }
 
@@ -1321,33 +1867,32 @@ extension CallManager: TwilioVideoServiceDelegate {
     func twilioVideoDidConnect(roomName: String) {
         guard let session = activeSession else { return }
 
-        let now = Date()
+        isVideoCameraEnabled =
+            twilioVideoService.isCameraEnabled
 
-        updateSession {
-            $0.status = .active
-            if $0.answeredAt == nil {
-                $0.answeredAt = now
-            }
+        localVideoTrack =
+            twilioVideoService.currentLocalVideoTrack()
+
+        if session.direction == .incoming {
+            // The recipient explicitly accepted through CallKit before
+            // joining the room, so media connection completes the answer.
+            markVideoCallAnsweredIfNeeded()
+            return
         }
 
-        isVideoCameraEnabled = twilioVideoService.isCameraEnabled
-        localVideoTrack = twilioVideoService.currentLocalVideoTrack()
-
-        if let callId = activeSession?.backendCallId,
-           let token = TokenStore.shared.read(),
-           !token.isEmpty {
-            Task {
-                await patchCallStatus(
-                    callId: callId,
-                    token: token,
-                    status: "ACTIVE",
-                    startedAt: now
-                )
+        if session.answeredAt == nil {
+            // The caller has joined the room locally, but the recipient
+            // has not joined yet. Keep this call in Connecting state.
+            updateSession {
+                $0.status = .connecting
             }
-        }
 
-        callKit.reportOutgoingCallConnected(uuid: session.id)
-        state = .active(session.displayName)
+            state = .connecting(session.displayName)
+        } else {
+            // The remote participant may have joined immediately before
+            // this local room-connected callback arrived.
+            state = .active(session.displayName)
+        }
     }
 
     func twilioVideoDidDisconnect(roomName: String?) {
@@ -1371,8 +1916,16 @@ extension CallManager: TwilioVideoServiceDelegate {
         localVideoTrack = nil
     }
 
-    func twilioVideoRemoteParticipantDidConnect(identity: String) {
+    func twilioVideoRemoteParticipantDidConnect(
+        identity: String
+    ) {
         remoteParticipantIdentity = identity
+
+        guard activeSession?.direction == .outgoing else {
+            return
+        }
+
+        markVideoCallAnsweredIfNeeded()
     }
 
     func twilioVideoRemoteParticipantDidDisconnect(identity: String) {

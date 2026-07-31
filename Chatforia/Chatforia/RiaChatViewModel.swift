@@ -58,6 +58,26 @@ final class RiaChatViewModel: ObservableObject {
                 filterProfanity: filterProfanity
             )
 
+            let wordCount = reply
+                .split(whereSeparator: { $0.isWhitespace })
+                .count
+
+            let typingDelayMilliseconds: UInt64 =
+                if wordCount <= 1 {
+                    250
+                } else {
+                    min(
+                        350 + UInt64(wordCount) * 85,
+                        2_800
+                    )
+                }
+
+            try? await Task.sleep(
+                nanoseconds:
+                    typingDelayMilliseconds *
+                    1_000_000
+            )
+
             let aiMsg = RiaChatMessage(
                 role: "assistant",
                 content: reply

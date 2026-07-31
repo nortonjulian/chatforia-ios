@@ -27,7 +27,7 @@ struct UserDTO: Codable, Identifiable {
     let ageBand: String?
     let wantsAgeFilter: Bool?
     let randomChatAllowedBands: [String]?
-    let foriaRemember: Bool?
+    let riaRemember: Bool?
 
     let voicemailEnabled: Bool?
     let voicemailAutoDeleteDays: Int?
@@ -77,7 +77,7 @@ struct UserDTO: Codable, Identifiable {
         ageBand: String? = nil,
         wantsAgeFilter: Bool? = nil,
         randomChatAllowedBands: [String]? = nil,
-        foriaRemember: Bool? = nil,
+        riaRemember: Bool? = nil,
         voicemailEnabled: Bool? = nil,
         voicemailAutoDeleteDays: Int? = nil,
         voicemailForwardEmail: String? = nil,
@@ -123,7 +123,7 @@ struct UserDTO: Codable, Identifiable {
         self.ageBand = ageBand
         self.wantsAgeFilter = wantsAgeFilter
         self.randomChatAllowedBands = randomChatAllowedBands
-        self.foriaRemember = foriaRemember
+        self.riaRemember = riaRemember
 
         self.voicemailEnabled = voicemailEnabled
         self.voicemailAutoDeleteDays = voicemailAutoDeleteDays

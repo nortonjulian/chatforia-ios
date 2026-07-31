@@ -497,7 +497,36 @@ private func title(for choice: PendingCallChoice) -> String {
                 return appText("calls.failed", languageCode: appLanguage)
 
             case "ENDED":
-                return appText("calls.completed", languageCode: appLanguage)
+                let normalizedReason =
+                    item.endReason?
+                        .trimmingCharacters(
+                            in: .whitespacesAndNewlines
+                        )
+                        .lowercased()
+
+                let canceledReasons = [
+                    "caller_canceled",
+                    "canceled",
+                    "cancelled"
+                ]
+
+                if let normalizedReason,
+                   canceledReasons.contains(normalizedReason) {
+                    let localized =
+                        appText(
+                            "calls.canceled",
+                            languageCode: appLanguage
+                        )
+
+                    return localized == "calls.canceled"
+                        ? "Canceled"
+                        : localized
+                }
+
+                return appText(
+                    "calls.completed",
+                    languageCode: appLanguage
+                )
 
             case "INITIATED", "RINGING", "ACTIVE", "CONNECTING":
                 return appText("calls.inProgress", languageCode: appLanguage)
@@ -555,11 +584,17 @@ private func title(for choice: PendingCallChoice) -> String {
         }
         
         private var iconName: String {
+            if item.mode.uppercased() == "VIDEO" {
+                return "video.fill"
+            }
+
             if isOutgoing {
                 return "phone.arrow.up.right"
-            } else {
-                return item.status.uppercased() == "MISSED" ? "phone.down.fill" : "phone.arrow.down.left"
             }
+
+            return item.status.uppercased() == "MISSED"
+                ? "phone.down.fill"
+                : "phone.arrow.down.left"
         }
         
         var body: some View {
