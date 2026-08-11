@@ -235,6 +235,19 @@ final class AuthStore: NSObject, ObservableObject {
         tokenStore.save(token)
         await bootstrap()
 
+        if let user = currentUser {
+            UserDefaults.standard.set(
+                user.id,
+                forKey: "chatforia.currentUserId"
+            )
+
+            await NotificationCoordinator.shared
+                .requestAuthorization()
+
+            await NotificationCoordinator.shared
+                .retryPushRegistrationIfPossible()
+        }
+
         AnalyticsManager.shared.capture("login_succeeded", properties: [
             "method": "token"
         ])
@@ -253,6 +266,13 @@ final class AuthStore: NSObject, ObservableObject {
 
         socket.disconnect()
         tokenStore.clear()
+
+        // Explicit logout is a privacy boundary. Do not repopulate the
+        // previous account identifier on the next login screen.
+        UserDefaults.standard.removeObject(
+            forKey: "chatforia.lastIdentifier"
+        )
+
         needsOnboarding = false
         needsKeyRestore = false
         keyRestoreMessage = nil

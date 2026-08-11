@@ -48,6 +48,7 @@ final class LoginViewModel: ObservableObject {
 
     func onAppear() {
         errorText = nil
+        password = ""
         hasLoggedInBefore = UserDefaults.standard.bool(forKey: loginFlagKey)
         identifier = UserDefaults.standard.string(forKey: lastIdentifierKey) ?? ""
     }
