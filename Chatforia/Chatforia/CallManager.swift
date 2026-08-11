@@ -1220,6 +1220,7 @@ final class CallManager: ObservableObject {
             let durationSec: Int?
             let endReason: String?
             let twilioCallSid: String?
+            let deviceId: String
         }
 
         let iso = ISO8601DateFormatter()
@@ -1229,7 +1230,8 @@ final class CallManager: ObservableObject {
             endedAt: endedAt.map { iso.string(from: $0) },
             durationSec: durationSec,
             endReason: endReason,
-            twilioCallSid: twilioCallSid
+            twilioCallSid: twilioCallSid,
+            deviceId: DeviceIdentityStorage.shared.getOrCreateDeviceId()
         )
 
         do {
