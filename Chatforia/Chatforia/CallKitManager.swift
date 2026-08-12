@@ -10,6 +10,9 @@ protocol CallKitManagerDelegate: AnyObject {
     func callKitDidRequestAnswerCall(uuid: UUID)
     func callKitDidRequestEndCall(uuid: UUID)
     func callKitDidSetMute(uuid: UUID, isMuted: Bool)
+    func callKitDidActivateAudioSession()
+    func callKitDidDeactivateAudioSession()
+    func callKitProviderDidReset()
 }
 
 @MainActor
@@ -18,6 +21,8 @@ final class CallKitManager: NSObject, ObservableObject {
 
     private let provider: CXProvider
     private let callController = CXCallController()
+
+    private(set) var isAudioSessionActive = false
 
     override init() {
         let config = CXProviderConfiguration(localizedName: "Chatforia")
@@ -117,6 +122,12 @@ final class CallKitManager: NSObject, ObservableObject {
 extension CallKitManager: CXProviderDelegate {
     nonisolated func providerDidReset(_ provider: CXProvider) {
         debugLog("⚠️ CallKit provider reset")
+
+        Task { @MainActor in
+            isAudioSessionActive = false
+            print("ℹ️ CallKitManager stored audio inactive after reset")
+            delegate?.callKitProviderDidReset()
+        }
     }
 
     nonisolated func provider(_ provider: CXProvider, perform action: CXStartCallAction) {
@@ -150,11 +161,29 @@ extension CallKitManager: CXProviderDelegate {
         }
     }
 
-    nonisolated func provider(_ provider: CXProvider, didActivate audioSession: AVAudioSession) {
+    nonisolated func provider(
+        _ provider: CXProvider,
+        didActivate audioSession: AVAudioSession
+    ) {
         debugLog("✅ CallKit audio session activated")
+
+        Task { @MainActor in
+            isAudioSessionActive = true
+            print("✅ CallKitManager stored audio active")
+            delegate?.callKitDidActivateAudioSession()
+        }
     }
 
-    nonisolated func provider(_ provider: CXProvider, didDeactivate audioSession: AVAudioSession) {
+    nonisolated func provider(
+        _ provider: CXProvider,
+        didDeactivate audioSession: AVAudioSession
+    ) {
         debugLog("ℹ️ CallKit audio session deactivated")
+
+        Task { @MainActor in
+            isAudioSessionActive = false
+            print("ℹ️ CallKitManager stored audio inactive")
+            delegate?.callKitDidDeactivateAudioSession()
+        }
     }
 }

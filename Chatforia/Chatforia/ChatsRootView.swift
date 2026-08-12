@@ -340,6 +340,15 @@ struct ChatsRootView: View {
 
                 NotificationCoordinator.shared.pendingChatRoomId = nil
             }
+            .onReceive(
+                NotificationCoordinator.shared.$pendingSMSThreadId
+            ) { threadId in
+                guard let threadId else { return }
+
+                Task {
+                    await openSMSFromNotification(threadId: threadId)
+                }
+            }
             .onReceive(NotificationCenter.default.publisher(for: .init("randomNextPerson"))) { _ in
                 startRandomChat()
             }
@@ -355,6 +364,24 @@ struct ChatsRootView: View {
 
         let token = TokenStore.shared.read()
         await vm.loadConversations(token: token)
+    }
+
+    private func openSMSFromNotification(threadId: Int) async {
+        let token = TokenStore.shared.read()
+        await vm.loadConversations(token: token)
+
+        guard let conversation = vm.conversations.first(where: {
+            $0.kind.lowercased() == "sms" &&
+            $0.id == threadId
+        }) else {
+            return
+        }
+
+        selectedRandomSession = nil
+        selectedSMSConversation = conversation
+        showSelectedSMS = true
+
+        NotificationCoordinator.shared.pendingSMSThreadId = nil
     }
 
     private func isRandomChatConversation(_ conversation: ConversationDTO) -> Bool {

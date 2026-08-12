@@ -7,15 +7,56 @@ final class NotificationCoordinatorTests: XCTestCase {
     override func setUp() {
         super.setUp()
         NotificationCoordinator.shared.pendingChatRoomId = nil
+        NotificationCoordinator.shared.pendingSMSThreadId = nil
         UserDefaults.standard.removeObject(forKey: "apns_token")
         TokenStore.shared.clear()
     }
 
     override func tearDown() {
         NotificationCoordinator.shared.pendingChatRoomId = nil
+        NotificationCoordinator.shared.pendingSMSThreadId = nil
         UserDefaults.standard.removeObject(forKey: "apns_token")
         TokenStore.shared.clear()
         super.tearDown()
+    }
+
+    func testSMSNotificationWithStringThreadIdSetsPendingThread() {
+        NotificationCoordinator.shared.handleNotificationUserInfo([
+            "type": "sms_message",
+            "threadId": "321",
+            "fromNumber": "+15551234567"
+        ])
+
+        XCTAssertEqual(
+            NotificationCoordinator.shared.pendingSMSThreadId,
+            321
+        )
+        XCTAssertNil(
+            NotificationCoordinator.shared.pendingChatRoomId
+        )
+    }
+
+    func testSMSNotificationWithIntThreadIdSetsPendingThread() {
+        NotificationCoordinator.shared.handleNotificationUserInfo([
+            "type": "sms_message",
+            "threadId": 654
+        ])
+
+        XCTAssertEqual(
+            NotificationCoordinator.shared.pendingSMSThreadId,
+            654
+        )
+    }
+
+    func testSMSNotificationIgnoresInvalidThreadId() {
+        NotificationCoordinator.shared.handleNotificationUserInfo([
+            "type": "sms_message",
+            "threadId": "invalid"
+        ])
+
+        XCTAssertNil(
+            NotificationCoordinator.shared.pendingSMSThreadId
+        )
     }
 
     func testHandleNotificationUserInfoWithIntChatRoomIdSetsPendingRoom() {

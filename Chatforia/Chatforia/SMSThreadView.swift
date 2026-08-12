@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import UIKit
 
 struct SendSMSResponseDTO: Decodable {
     let ok: Bool
@@ -27,6 +28,16 @@ struct SMSThreadView: View {
     @State private var showSearchSheet = false
     @State private var searchText = ""
     @State private var highlightedMessageID: Int? = nil
+
+    @State private var reportingMessage: SMSMessageDTO?
+    @State private var reportReason: ReportReason = .spamScam
+    @State private var reportDetails = ""
+    @State private var reportContextCount = 10
+    @State private var blockAfterReport = false
+    @State private var isSubmittingReport = false
+
+    @State private var numberPendingBlock: String?
+    @State private var showBlockConfirmation = false
     
     @State private var activeConversation: ConversationDTO
     
@@ -144,6 +155,76 @@ struct SMSThreadView: View {
                 }
             }
         }
+        .sheet(item: $reportingMessage) { message in
+            PSTNReportMessageSheet(
+                phone: message.fromNumber ??
+                    vm.resolvedPhone(
+                        fallback: activeConversation.phone
+                    ) ??
+                    "Unknown number",
+                previewText: message.trimmedBody ?? "",
+                isSubmitting: isSubmittingReport,
+                reason: $reportReason,
+                contextCount: $reportContextCount,
+                details: $reportDetails,
+                blockAfterReport: $blockAfterReport,
+                onCancel: {
+                    if !isSubmittingReport {
+                        reportingMessage = nil
+                    }
+                },
+                onSubmit: {
+                    Task {
+                        isSubmittingReport = true
+
+                        let succeeded = await vm.reportMessage(
+                            messageId: message.id,
+                            reason: reportReason,
+                            details: reportDetails,
+                            contextCount: reportContextCount,
+                            blockAfterReport: blockAfterReport,
+                            token: TokenStore.shared.read()
+                        )
+
+                        isSubmittingReport = false
+
+                        if succeeded {
+                            reportingMessage = nil
+                        }
+                    }
+                }
+            )
+        }
+        .confirmationDialog(
+            "Block this phone number?",
+            isPresented: $showBlockConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Block number", role: .destructive) {
+                guard let phone = numberPendingBlock else { return }
+
+                Task {
+                    let succeeded = await vm.blockNumber(
+                        phone: phone,
+                        token: TokenStore.shared.read()
+                    )
+
+                    if succeeded {
+                        numberPendingBlock = nil
+                    }
+                }
+            }
+
+            Button("Cancel", role: .cancel) {
+                numberPendingBlock = nil
+            }
+        } message: {
+            if let phone = numberPendingBlock {
+                Text(
+                    "Future SMS and MMS messages from \(phone) will not be stored or delivered."
+                )
+            }
+        }
     }
 
     private var inferredContactName: String {
@@ -196,7 +277,32 @@ struct SMSThreadView: View {
         } else {
             SMSMessagesListView(
                 messages: vm.messages,
-                highlightedMessageID: highlightedMessageID
+                highlightedMessageID: highlightedMessageID,
+                onDeleteForMe: { message in
+                    Task {
+                        await vm.deleteMessage(
+                            messageId: message.id,
+                            token: TokenStore.shared.read()
+                        )
+                    }
+                },
+                onReport: { message in
+                    reportReason = .spamScam
+                    reportDetails = ""
+                    reportContextCount = 10
+                    blockAfterReport = false
+                    reportingMessage = message
+                },
+                onBlock: { message in
+                    numberPendingBlock =
+                        message.fromNumber ??
+                        vm.resolvedPhone(
+                            fallback: activeConversation.phone
+                        )
+
+                    showBlockConfirmation =
+                        !(numberPendingBlock ?? "").isEmpty
+                }
             )
                 .refreshable {
                     await reload()
@@ -381,6 +487,9 @@ struct SMSThreadView: View {
 private struct SMSMessagesListView: View {
     let messages: [SMSMessageDTO]
     let highlightedMessageID: Int?
+    let onDeleteForMe: (SMSMessageDTO) -> Void
+    let onReport: (SMSMessageDTO) -> Void
+    let onBlock: (SMSMessageDTO) -> Void
 
     @EnvironmentObject private var themeManager: ThemeManager
     @State private var expandedTimestampMessageId: Int?
@@ -417,6 +526,15 @@ private struct SMSMessagesListView: View {
                                                 ? nil
                                                 : msg.id
                                     }
+                                },
+                                onDeleteForMe: {
+                                    onDeleteForMe(msg)
+                                },
+                                onReport: {
+                                    onReport(msg)
+                                },
+                                onBlock: {
+                                    onBlock(msg)
                                 }
                             )
                             .id(msg.id)
@@ -491,6 +609,9 @@ private struct SMSMessageRowView: View {
     let isHighlighted: Bool
     let isTimestampVisible: Bool
     let onBubbleTap: () -> Void
+    let onDeleteForMe: () -> Void
+    let onReport: () -> Void
+    let onBlock: () -> Void
 
     @EnvironmentObject private var themeManager: ThemeManager
     @AppStorage("chatforia_language") private var appLanguage = "en"
@@ -659,6 +780,49 @@ private struct SMSMessageRowView: View {
                 .stroke(isHighlighted ? Color.yellow.opacity(0.45) : Color.clear, lineWidth: 2)
         )
         .animation(.easeInOut(duration: 0.2), value: isHighlighted)
+        .contextMenu {
+            if let copyText = msg.trimmedBody, !copyText.isEmpty {
+                Button {
+                    UIPasteboard.general.string = copyText
+                } label: {
+                    Label(
+                        appText(
+                            "common.copy",
+                            languageCode: appLanguage
+                        ),
+                        systemImage: "doc.on.doc"
+                    )
+                }
+            }
+
+            if msg.id > 0 && !msg.isOutgoing {
+                Button {
+                    onReport()
+                } label: {
+                    Label("Report", systemImage: "exclamationmark.bubble")
+                }
+
+                Button(role: .destructive) {
+                    onBlock()
+                } label: {
+                    Label("Block number", systemImage: "hand.raised")
+                }
+            }
+
+            if msg.id > 0 {
+                Button(role: .destructive) {
+                    onDeleteForMe()
+                } label: {
+                    Label(
+                        appText(
+                            "messages.deleteForMe",
+                            languageCode: appLanguage
+                        ),
+                        systemImage: "trash"
+                    )
+                }
+            }
+        }
     }
 
     private func timestampText(_ date: Date) -> String {
@@ -667,6 +831,117 @@ private struct SMSMessageRowView: View {
                 .hour(.defaultDigits(amPM: .abbreviated))
                 .minute()
         )
+    }
+}
+
+private struct PSTNReportMessageSheet: View {
+    let phone: String
+    let previewText: String
+    let isSubmitting: Bool
+
+    @Binding var reason: ReportReason
+    @Binding var contextCount: Int
+    @Binding var details: String
+    @Binding var blockAfterReport: Bool
+
+    let onCancel: () -> Void
+    let onSubmit: () -> Void
+
+    @AppStorage("chatforia_language") private var appLanguage = "en"
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section(
+                    appText(
+                        "report.reason",
+                        languageCode: appLanguage
+                    )
+                ) {
+                    Picker(
+                        appText(
+                            "report.reason",
+                            languageCode: appLanguage
+                        ),
+                        selection: $reason
+                    ) {
+                        ForEach(ReportReason.allCases) { value in
+                            Text(value.title(languageCode: appLanguage))
+                                .tag(value)
+                        }
+                    }
+                }
+
+                Section(
+                    appText(
+                        "report.includePreviousMessages",
+                        languageCode: appLanguage
+                    )
+                ) {
+                    Picker("Context", selection: $contextCount) {
+                        Text("Only this message").tag(0)
+                        Text("This plus previous 5").tag(5)
+                        Text("This plus previous 10").tag(10)
+                        Text("This plus previous 20").tag(20)
+                    }
+                    .pickerStyle(.navigationLink)
+                }
+
+                Section(
+                    appText(
+                        "common.additionalDetails",
+                        languageCode: appLanguage
+                    )
+                ) {
+                    TextEditor(text: $details)
+                        .frame(minHeight: 120)
+                }
+
+                Section {
+                    Toggle(
+                        "Block this number after reporting",
+                        isOn: $blockAfterReport
+                    )
+                }
+
+                Section("Message being reported") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(phone)
+                            .font(.subheadline.weight(.semibold))
+
+                        Text(
+                            previewText.isEmpty
+                                ? "No visible text"
+                                : previewText
+                        )
+                        .foregroundStyle(.secondary)
+                        .lineLimit(5)
+                    }
+                }
+            }
+            .navigationTitle("Report message")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel", role: .cancel) {
+                        onCancel()
+                    }
+                    .disabled(isSubmitting)
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Submit") {
+                        onSubmit()
+                    }
+                    .disabled(isSubmitting)
+                }
+            }
+            .overlay {
+                if isSubmitting {
+                    ProgressView()
+                }
+            }
+        }
     }
 }
 

@@ -9,7 +9,11 @@ protocol TwilioVoiceServiceDelegate: AnyObject {
     func twilioVoiceDidConnect(callSid: String?)
     func twilioVoiceDidDisconnect()
     func twilioVoiceDidFail(_ message: String)
-    func twilioVoiceDidReceiveIncoming(from: String, backendCallId: Int?)
+    func twilioVoiceDidReceiveIncoming(
+        from: String,
+        backendCallId: Int?,
+        completion: @escaping () -> Void
+    )
     func twilioVoiceIncomingInviteCanceled()
 }
 
@@ -28,6 +32,7 @@ final class TwilioVoiceService: NSObject {
     private var cancelledCallInvite: CancelledCallInvite?
     private var accessToken: String?
     private var pendingBackendCallId: Int?
+    private var pendingIncomingPushCompletion: (() -> Void)?
 
     private(set) var isReady = false
     private(set) var isMuted = false
@@ -37,10 +42,33 @@ final class TwilioVoiceService: NSObject {
     }
 
     func fetchToken(authToken: String?) async throws -> VoiceTokenResponseDTO {
-        try await APIClient.shared.send(
+        struct Request: Encodable {
+            let platform: String
+            let pushEnvironment: String
+            let deviceId: String
+        }
+
+        #if DEBUG
+        let pushEnvironment = "sandbox"
+        #else
+        let pushEnvironment = "production"
+        #endif
+
+        let body = try JSONEncoder().encode(
+            Request(
+                platform: "ios",
+                pushEnvironment: pushEnvironment,
+                deviceId:
+                    DeviceKeyManager.shared
+                        .getOrCreateDeviceId()
+            )
+        )
+
+        return try await APIClient.shared.send(
             APIRequest(
                 path: "voice/client/token",
                 method: .POST,
+                body: body,
                 requiresAuth: true
             ),
             token: authToken
@@ -66,6 +94,23 @@ final class TwilioVoiceService: NSObject {
 
     func setPendingBackendCallId(_ id: Int?) {
         pendingBackendCallId = id
+    }
+
+    func handleIncomingPushNotification(
+        _ data: [String: Any],
+        backendCallId: Int?,
+        completion: @escaping () -> Void
+    ) {
+        pendingBackendCallId = backendCallId
+        pendingIncomingPushCompletion = completion
+
+        NSLog("📞 Passing incoming PushKit payload to Twilio Voice")
+
+        TwilioVoiceSDK.handleNotification(
+            data,
+            delegate: self,
+            delegateQueue: nil
+        )
     }
 
     func startCall(
@@ -235,20 +280,57 @@ extension TwilioVoiceService: CallDelegate {
 extension TwilioVoiceService: NotificationDelegate {
     nonisolated func callInviteReceived(callInvite: CallInvite) {
         Task { @MainActor in
+            NSLog("📞 Twilio Voice call invite received")
 
             self.callInvite = callInvite
 
-            let from = callInvite.from ??
-                appText(
-                    "calls.incomingCall",
-                    languageCode: appLanguage
-                )
-            let backendCallId = self.pendingBackendCallId
-            self.pendingBackendCallId = nil
+            let customParameters =
+                callInvite.customParameters ?? [:]
 
-            self.delegate?.twilioVoiceDidReceiveIncoming(
+            let customCallerName =
+                customParameters["callerName"]?
+                    .trimmingCharacters(
+                        in: .whitespacesAndNewlines
+                    )
+
+            let from =
+                customCallerName?.isEmpty == false
+                    ? customCallerName!
+                    : (
+                        callInvite.from ??
+                        appText(
+                            "calls.incomingCall",
+                            languageCode: appLanguage
+                        )
+                    )
+
+            let parameterBackendCallId =
+                customParameters["backendCallId"]
+                    .flatMap(Int.init)
+
+            let backendCallId =
+                self.pendingBackendCallId ??
+                parameterBackendCallId
+            let pushCompletion =
+                self.pendingIncomingPushCompletion
+
+            self.pendingBackendCallId = nil
+            self.pendingIncomingPushCompletion = nil
+
+            guard let delegate = self.delegate else {
+                NSLog(
+                    "⚠️ Twilio call invite received without a delegate"
+                )
+                pushCompletion?()
+                return
+            }
+
+            delegate.twilioVoiceDidReceiveIncoming(
                 from: from,
-                backendCallId: backendCallId
+                backendCallId: backendCallId,
+                completion: {
+                    pushCompletion?()
+                }
             )
         }
     }
@@ -258,10 +340,16 @@ extension TwilioVoiceService: NotificationDelegate {
         error: Error
     ) {
         Task { @MainActor in
+            let pushCompletion =
+                self.pendingIncomingPushCompletion
+
             self.cancelledCallInvite = cancelledCallInvite
             self.callInvite = nil
             self.pendingBackendCallId = nil
+            self.pendingIncomingPushCompletion = nil
+
             self.delegate?.twilioVoiceIncomingInviteCanceled()
+            pushCompletion?()
         }
     }
 }

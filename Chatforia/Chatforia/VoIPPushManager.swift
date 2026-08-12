@@ -17,9 +17,32 @@ protocol VoIPPushManagerDelegate: AnyObject {
 final class VoIPPushManager: NSObject {
     static let shared = VoIPPushManager()
 
-    weak var delegate: VoIPPushManagerDelegate?
+    weak var delegate: VoIPPushManagerDelegate? {
+        didSet {
+            deliverCachedTokenIfPossible()
+        }
+    }
 
     private var registry: PKPushRegistry?
+    private var cachedToken: String?
+    private var cachedTokenData: Data?
+
+    private func deliverCachedTokenIfPossible() {
+        guard
+            let delegate,
+            let cachedToken,
+            let cachedTokenData
+        else {
+            return
+        }
+
+        debugLog("📞 Delivering cached VoIP push credentials")
+
+        delegate.voipPushManagerDidUpdateToken(
+            cachedToken,
+            tokenData: cachedTokenData
+        )
+    }
 
     private override init() {
         super.init()
@@ -56,10 +79,10 @@ extension VoIPPushManager: PKPushRegistryDelegate {
 
         Task { @MainActor in
             debugLog("📞 VoIP push credentials received")
-            self.delegate?.voipPushManagerDidUpdateToken(
-                token,
-                tokenData: pushCredentials.token
-            )
+
+            self.cachedToken = token
+            self.cachedTokenData = pushCredentials.token
+            self.deliverCachedTokenIfPossible()
         }
     }
 
@@ -70,6 +93,8 @@ extension VoIPPushManager: PKPushRegistryDelegate {
         guard type == .voIP else { return }
 
         Task { @MainActor in
+            self.cachedToken = nil
+            self.cachedTokenData = nil
             self.delegate?.voipPushManagerDidInvalidateToken()
         }
     }
@@ -110,15 +135,13 @@ extension VoIPPushManager: PKPushRegistryDelegate {
 
             let backendCallId = self.intValue(data["callId"])
 
-            TwilioVoiceService.shared.setPendingBackendCallId(backendCallId)
+            NSLog("📞 Incoming Twilio PushKit notification received")
 
-            TwilioVoiceSDK.handleNotification(
+            TwilioVoiceService.shared.handleIncomingPushNotification(
                 data,
-                delegate: TwilioVoiceService.shared,
-                delegateQueue: nil
+                backendCallId: backendCallId,
+                completion: completion
             )
-
-            completion()
         }
     }
 

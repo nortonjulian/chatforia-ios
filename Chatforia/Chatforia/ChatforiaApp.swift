@@ -52,6 +52,28 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
     ) {
         debugLog("❌ APNs registration failed:", error)
     }
+
+    func application(
+        _ application: UIApplication,
+        didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+        fetchCompletionHandler completionHandler:
+            @escaping (UIBackgroundFetchResult) -> Void
+    ) {
+        Task { @MainActor in
+            let handled =
+                NotificationCoordinator.shared
+                    .handleBackgroundNotification(
+                        userInfo
+                    )
+
+            completionHandler(
+                handled
+                    ? .newData
+                    : .noData
+            )
+        }
+    }
+
 }
 
 @main

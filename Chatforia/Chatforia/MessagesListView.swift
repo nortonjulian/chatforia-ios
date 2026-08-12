@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 private struct BottomSentinelMinYKey: PreferenceKey {
     static var defaultValue: CGFloat = .zero
@@ -146,7 +147,60 @@ struct MessagesListView: View {
                     }
                 )
                 .onPreferenceChange(BottomSentinelMinYKey.self) { bottomMinY in
-                    isNearBottom = bottomMinY <= (viewportHeight + nearBottomThreshold)
+                    isNearBottom =
+                        bottomMinY <=
+                        (
+                            viewportHeight +
+                            nearBottomThreshold
+                        )
+                }
+                .onReceive(
+                    NotificationCenter.default.publisher(
+                        for: UIResponder.keyboardWillChangeFrameNotification
+                    )
+                ) { notification in
+                    /*
+                     * Capture near-bottom state before SwiftUI applies the
+                     * keyboard-driven viewport resize. If the user is reading
+                     * older messages, preserve that position.
+                     */
+                    guard
+                        isNearBottom,
+                        !isRestoringAfterPrepend
+                    else {
+                        return
+                    }
+
+                    let duration =
+                        (
+                            notification.userInfo?[
+                                UIResponder.keyboardAnimationDurationUserInfoKey
+                            ] as? NSNumber
+                        )?.doubleValue
+                        ?? 0.25
+
+                    scrollToBottom(
+                        proxy,
+                        animated: false
+                    )
+
+                    DispatchQueue.main.asyncAfter(
+                        deadline:
+                            .now() +
+                            duration +
+                            0.05
+                    ) {
+                        guard
+                            !isRestoringAfterPrepend
+                        else {
+                            return
+                        }
+
+                        scrollToBottom(
+                            proxy,
+                            animated: false
+                        )
+                    }
                 }
                 .onAppear {
                     canTriggerPaging = false

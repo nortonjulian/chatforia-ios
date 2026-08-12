@@ -194,6 +194,48 @@ final class DeviceRegistrationService {
         }
     }
 
+    func confirmVoiceRegistration(
+        token: String
+    ) async throws {
+        struct VoiceRegistrationConfirmationRequest: Encodable {
+            let deviceId: String
+            let pushEnvironment: String
+        }
+
+        struct VoiceRegistrationConfirmationResponse: Decodable {
+            let ok: Bool?
+            let identity: String?
+            let registrationVersion: Int?
+            let pushEnvironment: String?
+        }
+
+        #if DEBUG
+        let pushEnvironment = "sandbox"
+        #else
+        let pushEnvironment = "production"
+        #endif
+
+        let body = try JSONEncoder().encode(
+            VoiceRegistrationConfirmationRequest(
+                deviceId:
+                    DeviceKeyManager.shared
+                        .getOrCreateDeviceId(),
+                pushEnvironment: pushEnvironment
+            )
+        )
+
+        let _: VoiceRegistrationConfirmationResponse =
+            try await APIClient.shared.send(
+                APIRequest(
+                    path: "voice/client/registration",
+                    method: .POST,
+                    body: body,
+                    requiresAuth: true
+                ),
+                token: token
+            )
+    }
+
     func registerPushToken(_ pushToken: String, token: String) async throws {
         try await registerPushToken(pushToken, provider: "apns", token: token)
     }
@@ -330,6 +372,7 @@ final class DeviceRegistrationService {
             let deviceId: String
             let pushToken: String
             let pushProvider: String
+            let pushEnvironment: String
             let publicKey: String
             let keyAlgorithm: String
             let keyVersion: Int
@@ -344,11 +387,18 @@ final class DeviceRegistrationService {
 
         let keyManager = DeviceKeyManager.shared
 
+        #if DEBUG
+        let pushEnvironment = "sandbox"
+        #else
+        let pushEnvironment = "production"
+        #endif
+
         let body = try JSONEncoder().encode(
             RegisterPushTokenRequest(
                 deviceId: keyManager.getOrCreateDeviceId(),
                 pushToken: pushToken,
                 pushProvider: provider,
+                pushEnvironment: pushEnvironment,
                 publicKey: try keyManager.publicKeyBase64(),
                 keyAlgorithm: "curve25519",
                 keyVersion: 1,

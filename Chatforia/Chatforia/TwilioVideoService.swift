@@ -26,6 +26,8 @@ protocol TwilioVideoServiceDelegate: AnyObject {
 final class TwilioVideoService: NSObject {
     static let shared = TwilioVideoService()
 
+    private let audioDevice = DefaultAudioDevice()
+
     weak var delegate: TwilioVideoServiceDelegate?
     
     private var appLanguage: String {
@@ -57,6 +59,9 @@ final class TwilioVideoService: NSObject {
 
     private override init() {
         super.init()
+
+        TwilioVideoSDK.audioDevice = audioDevice
+        audioDevice.isEnabled = false
     }
 
     // MARK: - Token
@@ -95,41 +100,47 @@ final class TwilioVideoService: NSObject {
     // MARK: - Connect / Disconnect
 
     func connect(
-    authToken: String?,
-    identity: String,
-    roomName: String
-) async throws {
-    do {
-        try await connectOnce(
-            authToken: authToken,
-            identity: identity,
-            roomName: roomName
-        )
-    } catch {
-        cleanupAfterDisconnect(notifyDelegate: true)
+        authToken: String?,
+        identity: String,
+        roomName: String,
+        callUUID: UUID
+    ) async throws {
+        do {
+            try await connectOnce(
+                authToken: authToken,
+                identity: identity,
+                roomName: roomName,
+                callUUID: callUUID
+            )
+        } catch {
+            cleanupAfterDisconnect(
+                notifyDelegate: true
+            )
 
-        try? await Task.sleep(nanoseconds: 700_000_000)
+            try? await Task.sleep(
+                nanoseconds: 700_000_000
+            )
 
-        try await connectOnce(
-            authToken: authToken,
-            identity: identity,
-            roomName: roomName
-        )
+            try await connectOnce(
+                authToken: authToken,
+                identity: identity,
+                roomName: roomName,
+                callUUID: callUUID
+            )
+        }
     }
-}
 
-private func connectOnce(
-    authToken: String?,
-    identity: String,
-    roomName: String
-) async throws {
+    private func connectOnce(
+        authToken: String?,
+        identity: String,
+        roomName: String,
+        callUUID: UUID
+    ) async throws {
     while isCleaningUpVideo || isDisconnectingIntentionally {
         try? await Task.sleep(nanoseconds: 100_000_000)
     }
 
 
-    try await configureAudioSession()
- 
     let token = try await fetchVideoToken(
         authToken: authToken,
         identity: identity,
@@ -145,6 +156,7 @@ private func connectOnce(
         guard let self else { return }
 
         builder.roomName = roomName
+        builder.uuid = callUUID
 
         if let localAudioTrack {
             builder.audioTracks = [localAudioTrack]
@@ -174,6 +186,46 @@ private func connectOnce(
         } else {
             cleanupAfterDisconnect(notifyDelegate: true)
         }
+    }
+
+    // MARK: - CallKit Audio
+
+    func prepareCallKitVideoAudioSession() throws {
+        let session = AVAudioSession.sharedInstance()
+
+        try session.setCategory(
+            .playAndRecord,
+            mode: .videoChat,
+            options: [
+                .allowBluetooth,
+                .defaultToSpeaker
+            ]
+        )
+
+        // Do not call setActive(true) here. CallKit owns activation.
+        NSLog(
+            "[VideoAudioTrace] Prepared PlayAndRecord/VideoChat " +
+            "before CallKit answer fulfillment"
+        )
+    }
+
+
+    func setCallKitAudioEnabled(
+        _ enabled: Bool
+    ) {
+        audioDevice.isEnabled = enabled
+
+    print(
+        enabled
+            ? "✅ Twilio Video audio device enabled"
+            : "ℹ️ Twilio Video audio device disabled"
+    )
+
+        debugLog(
+            enabled
+                ? "✅ Twilio Video audio device enabled"
+                : "ℹ️ Twilio Video audio device disabled"
+        )
     }
 
     // MARK: - Controls

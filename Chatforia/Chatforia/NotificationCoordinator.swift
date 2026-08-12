@@ -8,10 +8,12 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
     static let shared = NotificationCoordinator()
 
     @Published var pendingChatRoomId: Int?
+    @Published var pendingSMSThreadId: Int?
 
     private let apnsTokenDefaultsKey = "apns_token"
     private var isRegisteringPushToken = false
     private var lastRegisteredPushToken: String?
+    private var lastRegisteredPushUserId: Int?
     private var hasRequestedAuthorizationThisLaunch = false
 
     private override init() {
@@ -62,7 +64,69 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
         await registerPushTokenIfPossible(pushToken)
     }
 
+    @discardableResult
+    func handleBackgroundNotification(
+        _ userInfo: [AnyHashable: Any]
+    ) -> Bool {
+        let notificationType =
+            (userInfo["type"] as? String)?
+                .trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                )
+                .lowercased()
+
+        let callLifecycleTypes: Set<String> = [
+            "call_ended",
+            "call_answered_elsewhere",
+        ]
+
+        guard
+            let notificationType,
+            callLifecycleTypes.contains(
+                notificationType
+            )
+        else {
+            return false
+        }
+
+        NotificationCenter.default.post(
+            name: .socketCallEnded,
+            object: nil,
+            userInfo: userInfo
+        )
+
+        return true
+    }
+
     func handleNotificationUserInfo(_ userInfo: [AnyHashable: Any]) {
+        let notificationType =
+            (userInfo["type"] as? String)?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .lowercased()
+
+        if notificationType == "sms_message" {
+            if let threadId = userInfo["threadId"] as? Int,
+               threadId > 0 {
+                pendingSMSThreadId = threadId
+                return
+            }
+
+            if let threadIdNumber = userInfo["threadId"] as? NSNumber,
+               threadIdNumber.intValue > 0 {
+                pendingSMSThreadId = threadIdNumber.intValue
+                return
+            }
+
+            if let threadIdString = userInfo["threadId"] as? String,
+               let threadId = Int(threadIdString),
+               threadId > 0 {
+                pendingSMSThreadId = threadId
+                return
+            }
+
+            return
+        }
+
         if let roomId = userInfo["chatRoomId"] as? Int {
             pendingChatRoomId = roomId
             return
@@ -79,7 +143,19 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
             return
         }
 
-        guard lastRegisteredPushToken != pushToken else {
+        let currentUserId =
+            UserDefaults.standard.integer(
+                forKey: "chatforia.currentUserId"
+            )
+
+        guard currentUserId > 0 else {
+            return
+        }
+
+        guard
+            lastRegisteredPushToken != pushToken
+                || lastRegisteredPushUserId != currentUserId
+        else {
             return
         }
 
@@ -92,7 +168,7 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
 
         do {
             _ = try await DeviceRegistrationService.shared.ensureCurrentDeviceRegistered(
-                userId: 0,
+                userId: currentUserId,
                 token: authToken
             )
 
@@ -102,6 +178,7 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
             )
 
             lastRegisteredPushToken = pushToken
+            lastRegisteredPushUserId = currentUserId
 
         } catch {
             debugLog("❌ push token registration failed:", error)
@@ -113,6 +190,45 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
+        let userInfo = notification.request.content.userInfo
+
+        let notificationType =
+            (userInfo["type"] as? String)?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .lowercased()
+
+        let senderId: Int? = {
+            if let value = userInfo["senderId"] as? Int {
+                return value
+            }
+
+            if let value = userInfo["senderId"] as? NSNumber {
+                return value.intValue
+            }
+
+            if let value = userInfo["senderId"] as? String {
+                return Int(value)
+            }
+
+            return nil
+        }()
+
+        let currentUserId =
+            UserDefaults.standard.integer(
+                forKey: "chatforia.currentUserId"
+            )
+
+        let isMessageNotification =
+            notificationType == "message_new"
+                || notificationType == "message:new"
+
+        if isMessageNotification,
+           currentUserId > 0,
+           senderId == currentUserId {
+            completionHandler([])
+            return
+        }
+
         completionHandler([.banner, .sound, .badge])
     }
 

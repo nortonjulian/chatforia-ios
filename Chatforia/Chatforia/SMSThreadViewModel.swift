@@ -1,6 +1,29 @@
 import Foundation
 import Combine
 
+private struct DeleteSMSMessageResponse: Decodable {
+    let ok: Bool
+}
+
+private struct ReportPSTNMessageRequest: Encodable {
+    let reason: String
+    let details: String?
+    let contextCount: Int
+    let blockAfterReport: Bool
+}
+
+private struct ReportPSTNMessageResponse: Decodable {
+    let success: Bool
+}
+
+private struct BlockPSTNNumberRequest: Encodable {
+    let phone: String
+}
+
+private struct BlockPSTNNumberResponse: Decodable {
+    let success: Bool
+}
+
 @MainActor
 final class SMSThreadViewModel: ObservableObject {
     @Published var thread: SMSThreadDTO?
@@ -206,6 +229,172 @@ final class SMSThreadViewModel: ObservableObject {
         }
     }
 
+    func deleteMessage(
+        messageId: Int,
+        token: String?
+    ) async {
+        guard messageId > 0 else {
+            messages.removeAll { $0.id == messageId }
+            return
+        }
+
+        guard let token else {
+            errorText = appText(
+                "ios.missing_auth_token",
+                languageCode: appLanguage
+            )
+            return
+        }
+
+        errorText = nil
+
+        do {
+            let _: DeleteSMSMessageResponse =
+                try await APIClient.shared.send(
+                    APIRequest(
+                        path: "sms/messages/\(messageId)",
+                        method: .DELETE,
+                        requiresAuth: true
+                    ),
+                    token: token
+                )
+
+            messages.removeAll { $0.id == messageId }
+
+            AnalyticsManager.shared.capture(
+                "sms_message_deleted_for_me",
+                properties: [
+                    "messageId": messageId
+                ]
+            )
+        } catch {
+            errorText = friendlyErrorMessage(error)
+        }
+    }
+
+    func reportMessage(
+        messageId: Int,
+        reason: ReportReason,
+        details: String,
+        contextCount: Int,
+        blockAfterReport: Bool,
+        token: String?
+    ) async -> Bool {
+        guard messageId > 0 else { return false }
+
+        guard let token else {
+            errorText = appText(
+                "ios.missing_auth_token",
+                languageCode: appLanguage
+            )
+            return false
+        }
+
+        errorText = nil
+
+        do {
+            let trimmedDetails =
+                details
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+
+            let body = try JSONEncoder().encode(
+                ReportPSTNMessageRequest(
+                    reason: reason.rawValue,
+                    details: trimmedDetails.isEmpty ? nil : trimmedDetails,
+                    contextCount: max(0, min(contextCount, 20)),
+                    blockAfterReport: blockAfterReport
+                )
+            )
+
+            let response: ReportPSTNMessageResponse =
+                try await APIClient.shared.send(
+                    APIRequest(
+                        path: "sms/messages/\(messageId)/report",
+                        method: .POST,
+                        body: body,
+                        requiresAuth: true
+                    ),
+                    token: token
+                )
+
+            guard response.success else {
+                errorText = "Failed to submit report."
+                return false
+            }
+
+            AnalyticsManager.shared.capture(
+                "sms_message_reported",
+                properties: [
+                    "messageId": messageId,
+                    "reason": reason.rawValue,
+                    "blockAfterReport": blockAfterReport
+                ]
+            )
+
+            return true
+        } catch {
+            errorText = friendlyErrorMessage(error)
+            return false
+        }
+    }
+
+    func blockNumber(
+        phone: String,
+        token: String?
+    ) async -> Bool {
+        let normalizedPhone =
+            phone.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !normalizedPhone.isEmpty else {
+            errorText = "Missing phone number."
+            return false
+        }
+
+        guard let token else {
+            errorText = appText(
+                "ios.missing_auth_token",
+                languageCode: appLanguage
+            )
+            return false
+        }
+
+        errorText = nil
+
+        do {
+            let body = try JSONEncoder().encode(
+                BlockPSTNNumberRequest(phone: normalizedPhone)
+            )
+
+            let response: BlockPSTNNumberResponse =
+                try await APIClient.shared.send(
+                    APIRequest(
+                        path: "sms/blocked-numbers",
+                        method: .POST,
+                        body: body,
+                        requiresAuth: true
+                    ),
+                    token: token
+                )
+
+            guard response.success else {
+                errorText = "Failed to block number."
+                return false
+            }
+
+            AnalyticsManager.shared.capture(
+                "sms_number_blocked",
+                properties: [
+                    "phone": normalizedPhone
+                ]
+            )
+
+            return true
+        } catch {
+            errorText = friendlyErrorMessage(error)
+            return false
+        }
+    }
+
     func resolvedTitle(fallback conversationTitle: String, fallbackPhone: String?) -> String {
         if let preferred = thread?.resolvedTitle.trimmingCharacters(in: .whitespacesAndNewlines).nilIfBlank {
             return preferred
@@ -234,7 +423,12 @@ final class SMSThreadViewModel: ObservableObject {
     private func friendlyErrorMessage(_ error: Error) -> String {
     if let apiError = error as? APIError {
         switch apiError {
-        case .server(let status, _, _, _):
+        case .server(let status, let code, _, _):
+            if code == "SMS_OPTED_OUT" {
+                return "This number has opted out of SMS. " +
+                    "They must reply START before you can message them again."
+            }
+
             if status >= 500 {
                 return "Server temporarily unavailable. Please try again."
             }

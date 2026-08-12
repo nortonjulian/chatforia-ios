@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 import PhotosUI
 
 struct ProfileRootView: View {
@@ -987,6 +988,36 @@ struct ProfileRootView: View {
 
                 Divider()
 
+                NavigationLink {
+                    BlockedPSTNNumbersView()
+                        .environmentObject(themeManager)
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "hand.raised")
+                            .foregroundStyle(themeManager.palette.accent)
+                            .frame(width: 24)
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Blocked contacts and numbers")
+                                .font(.body.weight(.semibold))
+                                .foregroundStyle(themeManager.palette.primaryText)
+
+                            Text("Manage phone numbers blocked from sending you SMS or MMS.")
+                                .font(.footnote)
+                                .foregroundStyle(themeManager.palette.secondaryText)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .foregroundStyle(.tertiary)
+                    }
+                    .padding(.vertical, 4)
+                }
+                .buttonStyle(.plain)
+
+                Divider()
+
                 ThemedToggleRow(
                     title: appText(
                         "setting_allow_explicit_content",
@@ -1895,4 +1926,286 @@ struct ProfileRootView: View {
             }
     }
 
+}
+
+
+private struct BlockedPSTNNumberDTO: Decodable, Identifiable {
+    let id: Int
+    let phone: String
+    let createdAt: String
+    let updatedAt: String
+}
+
+private struct BlockedPSTNNumbersResponse: Decodable {
+    let items: [BlockedPSTNNumberDTO]
+}
+
+private struct UnblockPSTNNumberResponse: Decodable {
+    let success: Bool
+    let id: Int
+}
+
+@MainActor
+private final class BlockedPSTNNumbersViewModel: ObservableObject {
+    @Published var items: [BlockedPSTNNumberDTO] = []
+    @Published var isLoading = false
+    @Published var errorText: String?
+    @Published var unblockingID: Int?
+
+    func load() async {
+        guard let token = TokenStore.shared.read() else {
+            errorText = "You must be signed in to view blocked numbers."
+            return
+        }
+
+        isLoading = true
+        errorText = nil
+        defer { isLoading = false }
+
+        do {
+            let response: BlockedPSTNNumbersResponse =
+                try await APIClient.shared.send(
+                    APIRequest(
+                        path: "sms/blocked-numbers",
+                        method: .GET,
+                        requiresAuth: true
+                    ),
+                    token: token
+                )
+
+            items = response.items
+        } catch {
+            errorText = "Failed to load blocked numbers."
+        }
+    }
+
+    func unblock(_ item: BlockedPSTNNumberDTO) async -> Bool {
+        guard let token = TokenStore.shared.read() else {
+            errorText = "You must be signed in to unblock a number."
+            return false
+        }
+
+        unblockingID = item.id
+        errorText = nil
+        defer { unblockingID = nil }
+
+        do {
+            let response: UnblockPSTNNumberResponse =
+                try await APIClient.shared.send(
+                    APIRequest(
+                        path: "sms/blocked-numbers/\(item.id)",
+                        method: .DELETE,
+                        requiresAuth: true
+                    ),
+                    token: token
+                )
+
+            guard response.success else {
+                errorText = "Failed to unblock number."
+                return false
+            }
+
+            items.removeAll { $0.id == item.id }
+
+            AnalyticsManager.shared.capture(
+                "sms_number_unblocked",
+                properties: [
+                    "phone": item.phone
+                ]
+            )
+
+            return true
+        } catch {
+            errorText = "Failed to unblock number."
+            return false
+        }
+    }
+}
+
+private struct BlockedPSTNNumbersView: View {
+    @StateObject private var viewModel =
+        BlockedPSTNNumbersViewModel()
+
+    @EnvironmentObject private var themeManager: ThemeManager
+
+    @State private var pendingUnblock:
+        BlockedPSTNNumberDTO?
+
+    var body: some View {
+        Group {
+            if viewModel.isLoading && viewModel.items.isEmpty {
+                ProgressView("Loading blocked numbers…")
+                    .frame(
+                        maxWidth: .infinity,
+                        maxHeight: .infinity
+                    )
+            } else if viewModel.items.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "hand.raised")
+                        .font(.system(size: 36))
+                        .foregroundStyle(
+                            themeManager.palette.secondaryText
+                        )
+
+                    Text("No blocked phone numbers")
+                        .font(.headline)
+                        .foregroundStyle(
+                            themeManager.palette.primaryText
+                        )
+
+                    Text(
+                        "Numbers you block from PSTN conversations will appear here."
+                    )
+                    .font(.subheadline)
+                    .foregroundStyle(
+                        themeManager.palette.secondaryText
+                    )
+                    .multilineTextAlignment(.center)
+                }
+                .padding(24)
+                .frame(
+                    maxWidth: .infinity,
+                    maxHeight: .infinity
+                )
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        Text(
+                            "Messages from these phone numbers are not stored, forwarded, or delivered to your devices."
+                        )
+                        .font(.footnote)
+                        .foregroundStyle(
+                            themeManager.palette.secondaryText
+                        )
+                        .frame(
+                            maxWidth: .infinity,
+                            alignment: .leading
+                        )
+                        .padding(.bottom, 4)
+
+                        ForEach(viewModel.items) { item in
+                            HStack(spacing: 12) {
+                                VStack(
+                                    alignment: .leading,
+                                    spacing: 5
+                                ) {
+                                    Text(item.phone)
+                                        .font(
+                                            .body.weight(.semibold)
+                                        )
+                                        .foregroundStyle(
+                                            themeManager
+                                                .palette
+                                                .primaryText
+                                        )
+
+                                    Text(
+                                        "Blocked on \(blockedDate(item.createdAt))"
+                                    )
+                                    .font(.footnote)
+                                    .foregroundStyle(
+                                        themeManager
+                                            .palette
+                                            .secondaryText
+                                    )
+                                }
+
+                                Spacer()
+
+                                if viewModel.unblockingID == item.id {
+                                    ProgressView()
+                                } else {
+                                    Button("Unblock") {
+                                        pendingUnblock = item
+                                    }
+                                    .foregroundStyle(
+                                        themeManager.palette.accent
+                                    )
+                                }
+                            }
+                            .padding(16)
+                            .background(
+                                themeManager.palette.cardBackground
+                            )
+                            .clipShape(
+                                RoundedRectangle(
+                                    cornerRadius: 16,
+                                    style: .continuous
+                                )
+                            )
+                        }
+                    }
+                    .padding(16)
+                }
+                .refreshable {
+                    await viewModel.load()
+                }
+            }
+        }
+        .background(
+            themeManager.palette.screenBackground
+                .ignoresSafeArea()
+        )
+        .navigationTitle("Blocked contacts and numbers")
+        .navigationBarTitleDisplayMode(.inline)
+        .task {
+            await viewModel.load()
+        }
+        .overlay(alignment: .bottom) {
+            if let errorText = viewModel.errorText {
+                Text(errorText)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+                    .padding(12)
+                    .frame(
+                        maxWidth: .infinity,
+                        alignment: .leading
+                    )
+                    .background(
+                        Color.red.opacity(0.08)
+                    )
+            }
+        }
+        .confirmationDialog(
+            "Unblock this phone number?",
+            isPresented: Binding(
+                get: { pendingUnblock != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        pendingUnblock = nil
+                    }
+                }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Unblock") {
+                guard let item = pendingUnblock else {
+                    return
+                }
+
+                Task {
+                    _ = await viewModel.unblock(item)
+                    pendingUnblock = nil
+                }
+            }
+
+            Button("Cancel", role: .cancel) {
+                pendingUnblock = nil
+            }
+        } message: {
+            if let item = pendingUnblock {
+                Text(
+                    "Messages from \(item.phone) will be allowed again."
+                )
+            }
+        }
+    }
+
+    private func blockedDate(_ value: String) -> String {
+        if value.count >= 10 {
+            return String(value.prefix(10))
+        }
+
+        return value
+    }
 }
