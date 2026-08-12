@@ -56,6 +56,8 @@ final class CallManager: ObservableObject {
 
     private var pendingEndOutcome: CallEndOutcome?
     private var finalizedCallUUID: UUID?
+    private var incomingVideoRingTimeoutTask:
+        Task<Void, Never>?
     private var pendingVoIPToken: String?
     private var pendingVoIPTokenData: Data?
     private var isVoIPRegistrationInFlight = false
@@ -414,6 +416,53 @@ final class CallManager: ObservableObject {
         }
     }
 
+    private func scheduleIncomingVideoRingTimeout(
+        for payload: IncomingCallPayload
+    ) {
+        incomingVideoRingTimeoutTask?.cancel()
+        incomingVideoRingTimeoutTask = nil
+
+        guard payload.hasVideo else {
+            return
+        }
+
+        let sessionId = payload.uuid
+
+        incomingVideoRingTimeoutTask =
+            Task { [weak self] in
+                try? await Task.sleep(
+                    nanoseconds: 40_000_000_000
+                )
+
+                guard !Task.isCancelled else {
+                    return
+                }
+
+                self?.expireIncomingVideoCallIfStillRinging(
+                    sessionId: sessionId
+                )
+            }
+    }
+
+    @discardableResult
+    func expireIncomingVideoCallIfStillRinging(
+        sessionId: UUID
+    ) -> Bool {
+        guard let session = activeSession,
+              session.id == sessionId,
+              session.direction == .incoming,
+              session.isVideo,
+              session.status == .ringing,
+              session.answeredAt == nil else {
+            return false
+        }
+
+        pendingEndOutcome = .missed
+        completeCall(outcome: .missed)
+
+        return true
+    }
+
     func handleIncomingCallPayload(
         _ payload: IncomingCallPayload,
         auth: AuthStore?,
@@ -514,6 +563,10 @@ final class CallManager: ObservableObject {
         )
 
         state = .ringingIncoming(payload.displayName)
+
+        scheduleIncomingVideoRingTimeout(
+            for: payload
+        )
 
         callKit.reportIncomingCall(
             uuid: payload.uuid,
@@ -1777,6 +1830,9 @@ final class CallManager: ObservableObject {
         reportToCallKit: Bool = true,
         reportToBackend: Bool = true
     ) {
+        incomingVideoRingTimeoutTask?.cancel()
+        incomingVideoRingTimeoutTask = nil
+
         AudioPlayerService.shared.stopOutgoingRingback()
 
         guard let session = activeSession else {
@@ -1890,6 +1946,9 @@ extension CallManager: CallKitManagerDelegate {
 
             return
         }
+
+        incomingVideoRingTimeoutTask?.cancel()
+        incomingVideoRingTimeoutTask = nil
 
         let now = Date()
 

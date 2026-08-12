@@ -92,6 +92,9 @@ private func makeVoicemail(
         isRead: isRead,
         deleted: false,
         createdAt: Date(),
-        forwardedToEmailAt: nil
+        forwardedToEmailAt: nil,
+        callerUserId: nil,
+        displayName: nil,
+        username: nil
     )
 }

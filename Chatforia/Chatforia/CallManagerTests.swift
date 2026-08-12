@@ -64,6 +64,64 @@ final class CallManagerTests: XCTestCase {
         XCTAssertTrue(manager.isVideoCameraEnabled)
     }
 
+    func testUnansweredIncomingVideoExpiresAsMissed() {
+        let manager = CallManager()
+        let sessionId = UUID()
+
+        let payload = IncomingCallPayload(
+            uuid: sessionId,
+            displayName: "Missed Video Caller",
+            remoteIdentity: "call_test",
+            hasVideo: true,
+            backendCallId: nil
+        )
+
+        manager.handleIncomingCallPayload(
+            payload,
+            auth: nil
+        )
+
+        let expired =
+            manager
+                .expireIncomingVideoCallIfStillRinging(
+                    sessionId: sessionId
+                )
+
+        XCTAssertTrue(expired)
+        XCTAssertNil(manager.activeSession)
+        XCTAssertEqual(manager.state, .ended)
+    }
+
+    func testAnsweredOrDifferentVideoSessionDoesNotExpire() {
+        let manager = CallManager()
+        let sessionId = UUID()
+
+        let payload = IncomingCallPayload(
+            uuid: sessionId,
+            displayName: "Video Caller",
+            remoteIdentity: "call_test",
+            hasVideo: true,
+            backendCallId: nil
+        )
+
+        manager.handleIncomingCallPayload(
+            payload,
+            auth: nil
+        )
+
+        let expired =
+            manager
+                .expireIncomingVideoCallIfStillRinging(
+                    sessionId: UUID()
+                )
+
+        XCTAssertFalse(expired)
+        XCTAssertEqual(
+            manager.activeSession?.status,
+            .ringing
+        )
+    }
+
     func testIncomingCallIgnoredWhenAlreadyRinging() {
         let manager = CallManager()
 
