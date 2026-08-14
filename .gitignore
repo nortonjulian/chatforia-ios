@@ -35,3 +35,5 @@ Carthage/Build/
 # Logs
 *.log
 
+# Local recovery backups
+*.bak-*
