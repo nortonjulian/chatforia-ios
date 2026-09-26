@@ -1,6 +1,13 @@
 import Foundation
 import Combine
 
+struct NumberRegulatoryVerificationState {
+    let e164: String
+    let purchaseIntent: Bool
+    let decision: String
+    let requiresVerification: Bool
+}
+
 @MainActor
 final class PhoneNumberViewModel: ObservableObject {
     @Published var currentNumber: AssignedNumberDTO?
@@ -15,6 +22,7 @@ final class PhoneNumberViewModel: ObservableObject {
     @Published var isSearching = false
     @Published var isLeasing = false
     @Published var errorText: String?
+    @Published var regulatoryVerification: NumberRegulatoryVerificationState?
     
     private var appLanguage: String {
         UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
@@ -102,8 +110,65 @@ final class PhoneNumberViewModel: ObservableObject {
         }
     }
 
+    func retryRegulatoryLease(token: String?) async -> Bool {
+        guard let verification = regulatoryVerification else {
+            return false
+        }
+
+        isLeasing = true
+        errorText = nil
+        defer { isLeasing = false }
+
+        do {
+            _ = try await PhoneNumberPoolService.shared.leaseNumber(
+                e164: verification.e164,
+                purchaseIntent: verification.purchaseIntent,
+                token: token
+            )
+
+            AnalyticsManager.shared.capture(
+                "number_selected",
+                properties: [
+                    "type":
+                        verification.purchaseIntent
+                        ? "premium"
+                        : "free",
+                    "country": selectedCountry
+                ]
+            )
+
+            regulatoryVerification = nil
+            await loadCurrentNumber(token: token)
+            return true
+        } catch let error as PhoneNumberLeaseError {
+            if let regulatory = error.regulatoryResponse,
+               let decision = regulatory.decision {
+                regulatoryVerification =
+                    NumberRegulatoryVerificationState(
+                        e164: verification.e164,
+                        purchaseIntent:
+                            verification.purchaseIntent,
+                        decision: decision,
+                        requiresVerification:
+                            regulatory.requiresVerification
+                            ?? false
+                    )
+                errorText = nil
+                return false
+            }
+
+            errorText = error.localizedDescription
+            return false
+        } catch {
+            errorText = error.localizedDescription
+            return false
+        }
+    }
+
     func lease(_ number: AvailableNumberDTO, token: String?) async -> Bool {
         guard let e164 = number.e164 ?? number.number else { return false }
+
+        let purchaseIntent = mode == .premium
 
         isLeasing = true
         errorText = nil
@@ -112,7 +177,7 @@ final class PhoneNumberViewModel: ObservableObject {
         do {
             _ = try await PhoneNumberPoolService.shared.leaseNumber(
                 e164: e164,
-                purchaseIntent: mode == .premium,
+                purchaseIntent: purchaseIntent,
                 token: token
             )
 
@@ -122,8 +187,26 @@ final class PhoneNumberViewModel: ObservableObject {
                 "country": selectedCountry
             ])
 
+            regulatoryVerification = nil
             await loadCurrentNumber(token: token)
             return true
+        } catch let error as PhoneNumberLeaseError {
+            if let regulatory = error.regulatoryResponse,
+               let decision = regulatory.decision {
+                regulatoryVerification =
+                    NumberRegulatoryVerificationState(
+                        e164: e164,
+                        purchaseIntent: purchaseIntent,
+                        decision: decision,
+                        requiresVerification:
+                            regulatory.requiresVerification ?? false
+                    )
+                errorText = nil
+                return false
+            }
+
+            errorText = error.localizedDescription
+            return false
         } catch {
             errorText = error.localizedDescription
             return false
