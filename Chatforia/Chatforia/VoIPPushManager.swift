@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 import PushKit
 import TwilioVoice
 
@@ -80,6 +81,17 @@ extension VoIPPushManager: PKPushRegistryDelegate {
         Task { @MainActor in
             debugLog("📞 VoIP push credentials received")
 
+            let tokenHash = token.data(using: .utf8).map {
+                SHA256.hash(data: $0)
+                    .map { String(format: "%02x", $0) }
+                    .joined()
+            } ?? "hash-failed"
+
+            debugLog(
+                "📞 Current PushKit token SHA256:",
+                tokenHash
+            )
+
             self.cachedToken = token
             self.cachedTokenData = pushCredentials.token
             self.deliverCachedTokenIfPossible()
@@ -118,7 +130,9 @@ extension VoIPPushManager: PKPushRegistryDelegate {
             }
         }
 
-        Task { @MainActor in
+        // PKPushRegistry was created on the main queue. Handle the call
+        // synchronously so CallKit can be reported during this callback.
+        MainActor.assumeIsolated {
             if let incomingPayload = self.makeChatforiaIncomingCallPayload(from: data) {
                 guard let delegate = self.delegate else {
                     debugLog("⚠️ VoIP push received but no CallManager delegate is attached")
