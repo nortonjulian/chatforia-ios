@@ -33,6 +33,8 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
             }
         }
         Task { @MainActor in
+            // Attach CallKit and Twilio delegates before PushKit can deliver.
+            _ = CallManager.shared
             VoIPPushManager.shared.start()
         }
 
@@ -85,7 +87,7 @@ struct ChatforiaApp: App {
     @StateObject private var notificationCoordinator = NotificationCoordinator.shared
     @StateObject private var deviceReplacementCoordinator =
         DeviceReplacementCoordinator.shared
-    @StateObject private var callManager = CallManager()
+    @StateObject private var callManager = CallManager.shared
     @StateObject private var inviteFlow = InviteFlowManager.shared
     @StateObject private var checkoutReturn = CheckoutReturnCoordinator()
     @StateObject private var settingsVM = SettingsViewModel()
@@ -131,6 +133,9 @@ struct ChatforiaApp: App {
                 await auth.bootstrap()
 
                 if let user = auth.currentUser {
+                    // Start Voice registration before notification permission work.
+                    callManager.startVoIPIfNeeded(auth: auth)
+
                     if let theme = user.theme {
                         themeManager.apply(code: theme)
                     }
@@ -147,8 +152,6 @@ struct ChatforiaApp: App {
 
                     // 🔁 Retry sending token AFTER auth exists
                     await notificationCoordinator.retryPushRegistrationIfPossible()
-
-                    callManager.startVoIPIfNeeded(auth: auth)
                 }
 
                 AppEnvironment.configureSendQueueHandlersIfNeeded()

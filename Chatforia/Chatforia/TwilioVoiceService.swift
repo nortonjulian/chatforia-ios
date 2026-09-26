@@ -28,6 +28,7 @@ final class TwilioVoiceService: NSObject {
     }
 
     private var activeCall: Call?
+    private let audioDevice = DefaultAudioDevice()
     private var callInvite: CallInvite?
     private var cancelledCallInvite: CancelledCallInvite?
     private var accessToken: String?
@@ -37,8 +38,15 @@ final class TwilioVoiceService: NSObject {
     private(set) var isReady = false
     private(set) var isMuted = false
 
+    func setCallKitAudioEnabled(_ enabled: Bool) {
+        audioDevice.isEnabled = enabled
+        NSLog("📞 Twilio Voice audio device enabled=%@", enabled ? "yes" : "no")
+    }
+
     override private init() {
         super.init()
+        audioDevice.isEnabled = false
+        TwilioVoiceSDK.audioDevice = audioDevice
     }
 
     func fetchToken(authToken: String?) async throws -> VoiceTokenResponseDTO {
@@ -135,7 +143,15 @@ final class TwilioVoiceService: NSObject {
         activeCall = TwilioVoiceSDK.connect(options: options, delegate: self)
     }
 
-    func acceptIncomingCall() {
+    private var incomingCallKitAudioPrepared = false
+
+    func prepareIncomingCallKitAudioSession() throws {
+        try configureAudioSession(activate: false)
+        incomingCallKitAudioPrepared = true
+        NSLog("✅ Incoming Voice audio session prepared before CallKit answer fulfillment")
+    }
+
+    func acceptIncomingCall(callKitUUID: UUID) {
 
 
         guard let callInvite else {
@@ -149,12 +165,27 @@ final class TwilioVoiceService: NSObject {
         }
 
         do {
-            try configureAudioSession(activate: false)
+            debugLog(
+                "📞 Accepting incoming Twilio CallInvite:",
+                callInvite.callSid
+            )
 
-            let acceptOptions = AcceptOptions(callInvite: callInvite) { _ in
+            if !incomingCallKitAudioPrepared {
+                try configureAudioSession(activate: false)
+            }
+            incomingCallKitAudioPrepared = false
+
+            let acceptOptions = AcceptOptions(callInvite: callInvite) { builder in
+                builder.uuid = callKitUUID
             }
 
             activeCall = callInvite.accept(options: acceptOptions, delegate: self)
+
+            debugLog(
+                "📞 Twilio CallInvite accept invoked; activeCall:",
+                String(describing: activeCall?.sid)
+            )
+
             self.callInvite = nil
         } catch {
             delegate?.twilioVoiceDidFail(error.localizedDescription)
@@ -239,6 +270,7 @@ extension TwilioVoiceService: CallDelegate {
     }
 
     nonisolated func callDidConnect(call: Call) {
+        NSLog("✅ Twilio callDidConnect: %@", String(describing: call.sid))
         Task { @MainActor in
             self.activeCall = call
             self.delegate?.twilioVoiceDidConnect(callSid: call.sid)
@@ -246,6 +278,7 @@ extension TwilioVoiceService: CallDelegate {
     }
 
     nonisolated func callDidDisconnect(call: Call, error: Error?) {
+        NSLog("ℹ️ Twilio callDidDisconnect: %@", String(describing: error))
         Task { @MainActor in
             #if DEBUG
             if let error {
@@ -268,7 +301,17 @@ extension TwilioVoiceService: CallDelegate {
     }
 
     nonisolated func callDidFailToConnect(call: Call, error: Error) {
+        NSLog("❌ Twilio callDidFailToConnect: %@", error.localizedDescription)
         Task { @MainActor in
+            debugLog("❌ Twilio call failed to connect:", error)
+            debugLog(
+                "❌ Twilio call failed localized:",
+                error.localizedDescription
+            )
+            debugLog(
+                "❌ Twilio failed call SID:",
+                call.sid ?? "nil"
+            )
 
             self.activeCall = nil
             self.isMuted = false
@@ -279,7 +322,7 @@ extension TwilioVoiceService: CallDelegate {
 
 extension TwilioVoiceService: NotificationDelegate {
     nonisolated func callInviteReceived(callInvite: CallInvite) {
-        Task { @MainActor in
+        MainActor.assumeIsolated {
             NSLog("📞 Twilio Voice call invite received")
 
             self.callInvite = callInvite

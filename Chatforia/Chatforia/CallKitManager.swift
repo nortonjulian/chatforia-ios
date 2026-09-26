@@ -141,8 +141,18 @@ extension CallKitManager: CXProviderDelegate {
     }
 
     nonisolated func provider(_ provider: CXProvider, perform action: CXAnswerCallAction) {
+        NSLog("📞 CallKit Answer action received: %@", action.callUUID.uuidString)
+
         Task { @MainActor in
-            delegate?.callKitDidRequestAnswerCall(uuid: action.callUUID)
+            guard let delegate else {
+                NSLog("❌ CallKit Answer has no CallManager delegate")
+                action.fail()
+                return
+            }
+
+            NSLog("📞 Forwarding CallKit Answer to CallManager")
+            delegate.callKitDidRequestAnswerCall(uuid: action.callUUID)
+            NSLog("📞 Fulfilling CallKit Answer: %@", action.callUUID.uuidString)
             action.fulfill()
         }
     }
@@ -165,6 +175,7 @@ extension CallKitManager: CXProviderDelegate {
         _ provider: CXProvider,
         didActivate audioSession: AVAudioSession
     ) {
+        NSLog("✅ CallKit didActivate audio session")
         debugLog("✅ CallKit audio session activated")
 
         Task { @MainActor in
@@ -178,6 +189,7 @@ extension CallKitManager: CXProviderDelegate {
         _ provider: CXProvider,
         didDeactivate audioSession: AVAudioSession
     ) {
+        NSLog("ℹ️ CallKit didDeactivate audio session")
         debugLog("ℹ️ CallKit audio session deactivated")
 
         Task { @MainActor in
