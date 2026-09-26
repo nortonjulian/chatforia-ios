@@ -7,6 +7,8 @@ import AVFoundation
 
 @MainActor
 final class CallManager: ObservableObject {
+    static let shared = CallManager()
+
     @Published var state: CallState = .idle
     @Published var activeSession: CallSession?
     @Published var lastError: String?
@@ -1257,12 +1259,20 @@ final class CallManager: ObservableObject {
 
         let endedAt = Date()
 
+        // Disconnect the live media leg immediately. Waiting for the
+        // backend status PATCH can allow its socket ENDED broadcast to
+        // clear activeSession before Twilio is disconnected.
+        if session.isVideo {
+            twilioVideoService.disconnect()
+        } else {
+            twilioService.hangup()
+        }
+
         Task { [weak self] in
             guard let self else { return }
 
-            // Persist Canceled before disconnecting Twilio.
-            // This prevents the later no-answer callback from
-            // winning the terminal-state race.
+            // Persist caller_canceled before finalizing local state so a
+            // later no-answer callback cannot win the terminal-state race.
             await self.patchCallStatus(
                 callId: callId,
                 token: token,
@@ -1704,6 +1714,8 @@ final class CallManager: ObservableObject {
         guard !isVoIPRegistrationInFlight,
               let voipToken = pendingVoIPToken,
               let voipTokenData = pendingVoIPTokenData,
+              let currentUserId,
+              currentUserId > 0,
               let authToken = TokenStore.shared.read(),
               !authToken.isEmpty
         else {
@@ -1717,7 +1729,7 @@ final class CallManager: ObservableObject {
             do {
                 _ = try await DeviceRegistrationService.shared
                     .ensureCurrentDeviceRegistered(
-                        userId: currentUserId ?? 0,
+                        userId: currentUserId,
                         token: authToken
                     )
 
@@ -1942,8 +1954,14 @@ extension CallManager: CallKitManagerDelegate {
     }
 
     func callKitDidRequestAnswerCall(uuid: UUID) {
-        guard activeSession?.id == uuid else {
+        NSLog(
+            "📞 CallManager Answer; UUID matches=%@; callId=%@",
+            activeSession?.id == uuid ? "yes" : "no",
+            activeSession?.backendCallId.map(String.init) ?? "nil"
+        )
 
+        guard activeSession?.id == uuid else {
+            NSLog("❌ Answer stopped: CallKit UUID does not match active session")
             return
         }
 
@@ -1984,16 +2002,28 @@ extension CallManager: CallKitManagerDelegate {
                 await answerIncomingVideoCall()
             }
         } else {
-            guard
-                let callId =
-                    activeSession?.backendCallId,
-                let token =
-                    TokenStore.shared.read(),
-                !token.isEmpty
-            else {
+            do {
+                try twilioService.prepareIncomingCallKitAudioSession()
+            } catch {
+                NSLog("❌ Incoming Voice audio preparation failed: %@",
+                      error.localizedDescription)
                 failAnswerClaimLocally()
                 return
             }
+
+            guard let callId = activeSession?.backendCallId else {
+                NSLog("❌ Answer stopped: backend call ID missing")
+                failAnswerClaimLocally()
+                return
+            }
+
+            guard let token = TokenStore.shared.read(), !token.isEmpty else {
+                NSLog("❌ Answer stopped: auth token unavailable")
+                failAnswerClaimLocally()
+                return
+            }
+
+            NSLog("📞 Answering backend call %d", callId)
 
             Task {
                 let result =
@@ -2012,8 +2042,7 @@ extension CallManager: CallKitManagerDelegate {
 
                 switch result {
                 case .success:
-                    twilioService
-                        .acceptIncomingCall()
+                    twilioService.acceptIncomingCall(callKitUUID: uuid)
 
                 case .answeredElsewhere:
                     dismissAnsweredElsewhere()
@@ -2082,6 +2111,7 @@ extension CallManager: CallKitManagerDelegate {
 
     func callKitDidActivateAudioSession() {
         isCallKitAudioSessionActive = true
+        twilioService.setCallKitAudioEnabled(true)
 
         print(
             "✅ CallManager latched CallKit audio active; " +
@@ -2096,6 +2126,7 @@ extension CallManager: CallKitManagerDelegate {
 
     func callKitDidDeactivateAudioSession() {
         isCallKitAudioSessionActive = false
+        twilioService.setCallKitAudioEnabled(false)
 
         print(
             "ℹ️ CallManager latched CallKit audio inactive"
@@ -2107,6 +2138,7 @@ extension CallManager: CallKitManagerDelegate {
 
     func callKitProviderDidReset() {
         isCallKitAudioSessionActive = false
+        twilioService.setCallKitAudioEnabled(false)
 
         print(
             "ℹ️ CallManager reset CallKit audio state"
@@ -2353,6 +2385,37 @@ extension CallManager: TwilioVoiceServiceDelegate {
         backendCallId: Int?,
         completion: @escaping () -> Void
     ) {
+        /*
+         * A Chatforia call_incoming VoIP push may have already reported
+         * this PSTN call to CallKit before Twilio's own CallInvite arrives.
+         * TwilioVoiceService has retained the real CallInvite by the time
+         * this delegate method runs, so reuse the existing ringing CallKit
+         * session instead of creating a second UUID/presentation.
+         */
+        if let session = activeSession,
+           session.direction == .incoming,
+           !session.isVideo,
+           session.status == .ringing,
+           (
+               backendCallId == nil ||
+               session.backendCallId == nil ||
+               session.backendCallId == backendCallId
+           ) {
+            NSLog(
+                "📞 Twilio Voice invitation attached to existing CallKit session"
+            )
+
+            if session.backendCallId == nil,
+               let backendCallId {
+                updateSession {
+                    $0.backendCallId = backendCallId
+                }
+            }
+
+            completion()
+            return
+        }
+
         NSLog("📞 Reporting Twilio Voice invitation to CallKit")
 
         let payload = IncomingCallPayload(
