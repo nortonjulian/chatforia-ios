@@ -1128,8 +1128,9 @@ struct ProfileRootView: View {
             VStack(alignment: .leading, spacing: 14) {
                 ThemedToggleRow(
                     title: appText(
-                        "setting_forward_voicemail_email",
-                        languageCode: appLanguage
+                        "setting_enable_voicemail",
+                        languageCode: appLanguage,
+                        fallback: "Enable voicemail"
                     ),
                     isOn: $vm.voicemailEnabled
                 )
