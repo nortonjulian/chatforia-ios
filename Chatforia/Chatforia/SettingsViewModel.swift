@@ -21,7 +21,6 @@ final class SettingsViewModel: ObservableObject {
     @Published var randomChatAllowedBands: [String] = []
     @Published var riaRemember: Bool = true
 
-    @Published var voicemailEnabled: Bool = true
     @Published var voicemailAutoDeleteDays: Int? = nil
     @Published var voicemailForwardEmail: String = ""
     @Published var voicemailGreetingText: String = ""
@@ -72,7 +71,6 @@ final class SettingsViewModel: ObservableObject {
         randomChatAllowedBands = user.randomChatAllowedBands ?? []
         riaRemember = user.riaRemember ?? true
 
-        voicemailEnabled = user.voicemailEnabled ?? true
         voicemailAutoDeleteDays = user.voicemailAutoDeleteDays
         voicemailForwardEmail = user.voicemailForwardEmail ?? ""
         voicemailGreetingText = user.voicemailGreetingText ?? ""
@@ -126,7 +124,6 @@ final class SettingsViewModel: ObservableObject {
             wantsAgeFilter: wantsAgeFilter,
             randomChatAllowedBands: randomChatAllowedBands,
             riaRemember: riaRemember,
-            voicemailEnabled: voicemailEnabled,
             voicemailAutoDeleteDays: voicemailAutoDeleteDays,
             voicemailForwardEmail: voicemailForwardEmail,
             voicemailGreetingText: voicemailGreetingText,
