@@ -1126,14 +1126,6 @@ struct ProfileRootView: View {
             languageCode: appLanguage
         )) {
             VStack(alignment: .leading, spacing: 14) {
-                ThemedToggleRow(
-                    title: appText(
-                        "setting_forward_voicemail_email",
-                        languageCode: appLanguage
-                    ),
-                    isOn: $vm.voicemailEnabled
-                )
-
                 VStack(alignment: .leading, spacing: 6) {
                     Text(appText(
                         "setting_auto_delete_voicemails_days",
