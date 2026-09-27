@@ -74,7 +74,7 @@ final class SettingsViewModel: ObservableObject {
 
         voicemailEnabled = user.voicemailEnabled ?? true
         voicemailAutoDeleteDays = user.voicemailAutoDeleteDays
-        voicemailForwardEmail = user.voicemailForwardEmail ?? (user.email ?? "")
+        voicemailForwardEmail = user.voicemailForwardEmail ?? ""
         voicemailGreetingText = user.voicemailGreetingText ?? ""
         
         a11yUiFont = user.a11yUiFont ?? "md"
