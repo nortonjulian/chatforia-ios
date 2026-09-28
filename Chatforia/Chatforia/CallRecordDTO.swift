@@ -46,9 +46,51 @@ extension CallRecordDTO {
         }
     }
 
+    var externalNumber: String? {
+        let number = externalPhone?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return number?.isEmpty == false ? number : nil
+    }
+
+    func matchedExternalContactName(in contacts: [ContactDTO]) -> String? {
+        guard let externalNumber,
+              let normalized = PhoneContactsService.normalizePhone(externalNumber)
+        else { return nil }
+
+        guard let contact = contacts.first(where: {
+            guard let number = $0.externalPhone else { return false }
+            return PhoneContactsService.normalizePhone(number) == normalized
+        }) else { return nil }
+
+        for candidate in [contact.alias, contact.user?.username, contact.externalName] {
+            if let name = candidate?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !name.isEmpty {
+                return name
+            }
+        }
+
+        return nil
+    }
+
+    func otherPartyName(for currentUserId: Int?, contacts: [ContactDTO]) -> String? {
+        if let externalNumber {
+            return matchedExternalContactName(in: contacts) ?? externalNumber
+        }
+
+        let user = otherUser(for: currentUserId)
+        for candidate in [user?.displayName, user?.username] {
+            if let name = candidate?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !name.isEmpty {
+                return name
+            }
+        }
+
+        return nil
+    }
+
     func otherUser(for currentUserId: Int?) -> CallUserSummaryDTO? {
-        isOutgoing(for: currentUserId)
-            ? callee
-            : caller
+        // PSTN call records may store the account owner as caller.
+        // The actual other party is the external number.
+        guard externalNumber == nil else { return nil }
+        return isOutgoing(for: currentUserId) ? callee : caller
     }
 }
