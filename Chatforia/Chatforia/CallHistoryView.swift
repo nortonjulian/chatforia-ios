@@ -146,9 +146,7 @@ struct CallHistoryView: View {
                             canCall: otherUser != nil || item.externalPhone != nil,
 
                             onRedial: {
-                                let otherUser = (item.callerId == auth.currentUser?.id)
-                                    ? item.callee
-                                    : item.caller
+                                let otherUser = item.otherUser(for: auth.currentUser?.id)
 
                                 var choices: [PendingCallChoice] = []
 
@@ -166,7 +164,7 @@ struct CallHistoryView: View {
                                     choices.append(
                                         .phoneNumber(
                                             number: phone,
-                                            name: resolvedContactName(for: phone) ?? phone
+                                            name: item.matchedExternalContactName(in: savedContacts) ?? phone
                                         )
                                     )
                                 }
@@ -321,7 +319,7 @@ private func title(for choice: PendingCallChoice) -> String {
                let phone = PhoneContactsService.normalizePhone(rawPhone),
                !phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
 
-                let matchedName = resolvedContactName(for: phone)
+                let matchedName = item.matchedExternalContactName(in: savedContacts)
 
                 let contact = ContactSearchResultDTO(
                     id: item.id,
@@ -365,12 +363,10 @@ private func title(for choice: PendingCallChoice) -> String {
         
         do {
             async let fetchedCalls = CallHistoryService.shared.fetchHistory(token: token)
-            async let fetchedContacts = ContactsService.shared.fetchContacts(token: token)
+            async let fetchedContacts = fetchAllContacts(token: token)
             
             let calls = try await fetchedCalls
-            let contactsResponse = try await fetchedContacts
-            
-            savedContacts = contactsResponse.items
+            savedContacts = try await fetchedContacts
             
             items = calls.sorted {
                 ($0.endedAt ?? $0.startedAt ?? $0.createdAt) > ($1.endedAt ?? $1.startedAt ?? $1.createdAt)
@@ -382,30 +378,28 @@ private func title(for choice: PendingCallChoice) -> String {
         isLoading = false
     }
     
-    private func normalizedDigits(_ value: String) -> String {
-        value.filter(\.isNumber)
-    }
+    private func fetchAllContacts(token: String) async throws -> [ContactDTO] {
+        var contacts: [ContactDTO] = []
+        var cursor: Int?
+        var visitedCursors = Set<Int>()
 
-    private func resolvedContactName(for phone: String) -> String? {
-        let target = normalizedDigits(phone)
+        while true {
+            let page = try await ContactsService.shared.fetchContacts(
+                limit: 100,
+                cursor: cursor,
+                token: token
+            )
+            contacts.append(contentsOf: page.items)
 
-        return savedContacts.first(where: {
-            guard let external = $0.externalPhone else { return false }
-            return normalizedDigits(external) == target
-        }).flatMap { contact in
-            if let alias = contact.alias?.trimmingCharacters(in: .whitespacesAndNewlines), !alias.isEmpty {
-                return alias
-            }
-            if let username = contact.user?.username?.trimmingCharacters(in: .whitespacesAndNewlines), !username.isEmpty {
-                return username
-            }
-            if let externalName = contact.externalName?.trimmingCharacters(in: .whitespacesAndNewlines), !externalName.isEmpty {
-                return externalName
-            }
-            return nil
+            guard let next = page.nextCursor,
+                  visitedCursors.insert(next).inserted
+            else { break }
+            cursor = next
         }
+
+        return contacts
     }
-    
+
     private struct CallHistoryRowView: View {
         @EnvironmentObject private var themeManager: ThemeManager
         @AppStorage("chatforia_language") private var appLanguage = "en"
@@ -420,63 +414,17 @@ private func title(for choice: PendingCallChoice) -> String {
         let onVideo: (() -> Void)?
        
         
-        private func normalizedDigits(_ value: String) -> String {
-            value.filter(\.isNumber)
-        }
-
-        private var matchedContactName: String? {
-            guard let external = item.externalPhone else { return nil }
-            let target = normalizedDigits(external)
-
-            return contacts.first(where: {
-                guard let phone = $0.externalPhone else { return false }
-                return normalizedDigits(phone) == target
-            }).flatMap { contact in
-                if let alias = contact.alias?.trimmingCharacters(in: .whitespacesAndNewlines), !alias.isEmpty {
-                    return alias
-                }
-                if let username = contact.user?.username?.trimmingCharacters(in: .whitespacesAndNewlines), !username.isEmpty {
-                    return username
-                }
-                if let externalName = contact.externalName?.trimmingCharacters(in: .whitespacesAndNewlines), !externalName.isEmpty {
-                    return externalName
-                }
-                return nil
-            }
-        }
-        
         private var isOutgoing: Bool {
             item.isOutgoing(for: currentUserId)
         }
         
         private var otherPartyName: String {
-            let other = isOutgoing ? item.callee : item.caller
-
-            if let displayName = other?.displayName,
-               !displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                return displayName
-            }
-
-            if let username = other?.username,
-               !username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                return username
-            }
-
-            if let matchedContactName,
-               !matchedContactName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                return matchedContactName
-            }
-
-            if let external = item.externalPhone,
-               !external.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                return external
-            }
-
-            return isOutgoing
-                ? appText("calls.outgoingCall", languageCode: appLanguage)
-                : appText("calls.incomingCall", languageCode: appLanguage)
+            item.otherPartyName(for: currentUserId, contacts: contacts)
+                ?? (isOutgoing
+                    ? appText("calls.outgoingCall", languageCode: appLanguage)
+                    : appText("calls.incomingCall", languageCode: appLanguage))
         }
-        
+
         private var directionLabel: String {
             isOutgoing
              ? appText("calls.outgoing", languageCode: appLanguage)
