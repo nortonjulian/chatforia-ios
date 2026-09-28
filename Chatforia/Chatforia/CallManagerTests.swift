@@ -272,6 +272,19 @@ final class CallRecordDTOTests: XCTestCase {
         )
     }
 
+    func testSavedOutgoingPSTNCallDisplaysContactName() {
+        let call = makeCall(direction: "OUTGOING")
+        let contact = ContactDTO(
+            id: 13, alias: nil, favorite: false,
+            externalPhone: "+13018019227", externalName: "Jordan",
+            createdAt: nil, userId: nil, user: nil
+        )
+        XCTAssertEqual(
+            call.otherPartyName(for: 65, contacts: [contact]),
+            "Jordan"
+        )
+    }
+
     func testAppToAppCallKeepsOtherUser() {
         let recipient = CallUserSummaryDTO(
             id: 77, username: "julian", displayName: "Julian", avatarUrl: nil
