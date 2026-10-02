@@ -219,3 +219,39 @@ final class CallManagerTests: XCTestCase {
         XCTAssertNil(manager.remoteVideoTracks["user-123"])
     }
 }
+
+@MainActor
+final class VoicemailEmailSettingsTests: XCTestCase {
+    private func user(canForward: Bool) throws -> UserDTO {
+        let data = try JSONSerialization.data(withJSONObject: [
+            "id": 65, "username": "regina", "plan": canForward ? "PLUS" : "FREE",
+            "voicemailEnabled": false,
+            "voicemailForwardEmail": "saved@example.com",
+            "voicemailEmailForwardingEnabled": true,
+            "canForwardVoicemailEmail": canForward
+        ])
+        return try JSONDecoder().decode(UserDTO.self, from: data)
+    }
+
+    func testTurningEmailForwardingOffPreservesAddressAndOmitsVoicemailAvailability() throws {
+        let vm = SettingsViewModel()
+        vm.load(from: try user(canForward: true))
+        vm.voicemailEmailForwardingEnabled = false
+        let body = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(vm.makeRequest())) as? [String: Any])
+        XCTAssertEqual(body["voicemailEmailForwardingEnabled"] as? Bool, false)
+        XCTAssertEqual(body["voicemailForwardEmail"] as? String, "saved@example.com")
+        XCTAssertNil(body["voicemailEnabled"])
+    }
+
+    func testFreeSettingsSaveOmitsPaidPreferencesButKeepsSavedAddress() throws {
+        let vm = SettingsViewModel()
+        vm.load(from: try user(canForward: false))
+        vm.voicemailGreetingText = "Hello"
+        let body = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(vm.makeRequest())) as? [String: Any])
+        XCTAssertNil(body["voicemailEmailForwardingEnabled"])
+        XCTAssertNil(body["voicemailForwardEmail"])
+        XCTAssertNil(body["voicemailEnabled"])
+        XCTAssertEqual(body["voicemailGreetingText"] as? String, "Hello")
+        XCTAssertEqual(vm.voicemailForwardEmail, "saved@example.com")
+    }
+}

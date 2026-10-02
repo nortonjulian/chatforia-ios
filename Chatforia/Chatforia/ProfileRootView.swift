@@ -1149,7 +1149,26 @@ struct ProfileRootView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(appText("setting_forward_voicemail_email", languageCode: appLanguage))
+                    ThemedToggleRow(
+                        title: appText("setting_forward_voicemail_email", languageCode: appLanguage),
+                        isOn: Binding(
+                            get: { vm.canForwardVoicemailEmail && vm.voicemailEmailForwardingEnabled },
+                            set: { vm.voicemailEmailForwardingEnabled = $0 }
+                        )
+                    )
+                    .disabled(!vm.canForwardVoicemailEmail)
+
+                    if !vm.canForwardVoicemailEmail {
+                        Text(appText(
+                            "voicemail_email_requires_plus",
+                            languageCode: appLanguage,
+                            fallback: "Voicemail email forwarding requires Plus or Premium."
+                        ))
+                        .font(.footnote)
+                        .foregroundStyle(themeManager.palette.secondaryText)
+                    }
+
+                    Text(appText("placeholder_email_address", languageCode: appLanguage))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(themeManager.palette.primaryText)
 
@@ -1160,6 +1179,7 @@ struct ProfileRootView: View {
                         ),
                         text: $vm.voicemailForwardEmail
                     )
+                    .disabled(!vm.canForwardVoicemailEmail)
                     .textInputAutocapitalization(.never)
                     .keyboardType(.emailAddress)
                     .textFieldStyle(.roundedBorder)

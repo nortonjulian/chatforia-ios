@@ -23,6 +23,8 @@ final class SettingsViewModel: ObservableObject {
 
     @Published var voicemailAutoDeleteDays: Int? = nil
     @Published var voicemailForwardEmail: String = ""
+    @Published var voicemailEmailForwardingEnabled = false
+    @Published private(set) var canForwardVoicemailEmail = false
     @Published var voicemailGreetingText: String = ""
 
     @Published var isSaving = false
@@ -73,6 +75,8 @@ final class SettingsViewModel: ObservableObject {
 
         voicemailAutoDeleteDays = user.voicemailAutoDeleteDays
         voicemailForwardEmail = user.voicemailForwardEmail ?? ""
+        voicemailEmailForwardingEnabled = user.voicemailEmailForwardingEnabled ?? false
+        canForwardVoicemailEmail = user.canForwardVoicemailEmail ?? false
         voicemailGreetingText = user.voicemailGreetingText ?? ""
         
         a11yUiFont = user.a11yUiFont ?? "md"
@@ -125,7 +129,8 @@ final class SettingsViewModel: ObservableObject {
             randomChatAllowedBands: randomChatAllowedBands,
             riaRemember: riaRemember,
             voicemailAutoDeleteDays: voicemailAutoDeleteDays,
-            voicemailForwardEmail: voicemailForwardEmail,
+            voicemailForwardEmail: canForwardVoicemailEmail ? voicemailForwardEmail : nil,
+            voicemailEmailForwardingEnabled: canForwardVoicemailEmail ? voicemailEmailForwardingEnabled : nil,
             voicemailGreetingText: voicemailGreetingText,
             uiLanguage: preferredLanguage,
             messageTone: messageTone,
