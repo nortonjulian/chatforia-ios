@@ -32,6 +32,8 @@ struct UserDTO: Codable, Identifiable {
     let voicemailEnabled: Bool?
     let voicemailAutoDeleteDays: Int?
     let voicemailForwardEmail: String?
+    let voicemailEmailForwardingEnabled: Bool?
+    let canForwardVoicemailEmail: Bool?
     let voicemailGreetingText: String?
     let voicemailGreetingUrl: String?
 
@@ -81,6 +83,8 @@ struct UserDTO: Codable, Identifiable {
         voicemailEnabled: Bool? = nil,
         voicemailAutoDeleteDays: Int? = nil,
         voicemailForwardEmail: String? = nil,
+        voicemailEmailForwardingEnabled: Bool? = nil,
+        canForwardVoicemailEmail: Bool? = nil,
         voicemailGreetingText: String? = nil,
         voicemailGreetingUrl: String? = nil,
         messageTone: String? = nil,
@@ -128,6 +132,8 @@ struct UserDTO: Codable, Identifiable {
         self.voicemailEnabled = voicemailEnabled
         self.voicemailAutoDeleteDays = voicemailAutoDeleteDays
         self.voicemailForwardEmail = voicemailForwardEmail
+        self.voicemailEmailForwardingEnabled = voicemailEmailForwardingEnabled
+        self.canForwardVoicemailEmail = canForwardVoicemailEmail
         self.voicemailGreetingText = voicemailGreetingText
         self.voicemailGreetingUrl = voicemailGreetingUrl
 
