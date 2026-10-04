@@ -85,16 +85,14 @@ struct LoginView: View {
                             HStack {
                                 Spacer()
 
-                                NavigationLink(
-                                    appText("auth.forgotPasswordQuestion", languageCode: appLanguage)
-                                ) {
-                                    Text(appText("auth.forgotPassword", languageCode: appLanguage))
-                                        .navigationTitle(
-                                            appText("auth.forgotPassword", languageCode: appLanguage)
-                                        )
+                                NavigationLink {
+                                    ForgotPasswordView(initialEmail: vm.identifier.contains("@") ? vm.identifier : "")
+                                } label: {
+                                    Text(appText("auth.forgotPasswordQuestion", languageCode: appLanguage))
                                 }
                                 .font(.footnote)
                                 .foregroundStyle(themeManager.palette.accent)
+                                .accessibilityIdentifier("login.forgotPassword")
                             }
 
                             if let errorText = vm.errorText {
@@ -185,12 +183,66 @@ struct LoginView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)
+            .sheet(isPresented: Binding(
+                get: { vm.pendingMfaToken != nil },
+                set: { if !$0 { vm.cancelMfa() } }
+            )) {
+                MFACodeEntryView(
+                    onVerify: { code in try await vm.completeMfa(code: code, auth: auth) },
+                    onCancel: { vm.cancelMfa() }
+                )
+            }
             .onAppear {
                 vm.onAppear()
             }
             .onChange(of: vm.identifier) { _, newValue in
                 vm.identifierDidChange(newValue)
             }
+        }
+    }
+}
+
+// Shared by sign-in and provider sign-in from the registration screen.
+struct MFACodeEntryView: View {
+    let onVerify: (String) async throws -> Void
+    let onCancel: () -> Void
+    @State private var code = ""
+    @State private var loading = false
+    @State private var errorText: String?
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text("Enter the code from your authenticator app, or one of your backup codes.")
+                    TextField("Authenticator or backup code", text: $code)
+                        .textContentType(.oneTimeCode)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .disabled(loading)
+                        .accessibilityIdentifier("auth.mfa.code")
+                    if let errorText { Text(errorText).foregroundStyle(.red) }
+                    Button(loading ? "Verifying…" : "Verify and sign in") {
+                        guard !loading else { return }
+                        loading = true
+                        errorText = nil
+                        Task { @MainActor in
+                            defer { loading = false }
+                            do { try await onVerify(code) }
+                            catch { errorText = error.localizedDescription }
+                        }
+                    }
+                    .disabled(loading || code.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .accessibilityIdentifier("auth.mfa.verify")
+                }
+            }
+            .navigationTitle("Two-factor authentication")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel", action: onCancel).disabled(loading)
+                }
+            }
+            .interactiveDismissDisabled(loading)
         }
     }
 }

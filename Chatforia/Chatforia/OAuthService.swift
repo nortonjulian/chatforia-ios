@@ -3,7 +3,15 @@ import UIKit
 import GoogleSignIn
 
 struct OAuthResponse: Decodable {
-    let token: String
+    let token: String?
+    let mfaRequired: Bool?
+    let mfaToken: String?
+
+    init(token: String? = nil, mfaRequired: Bool? = nil, mfaToken: String? = nil) {
+        self.token = token
+        self.mfaRequired = mfaRequired
+        self.mfaToken = mfaToken
+    }
 }
 
 @MainActor
@@ -39,7 +47,8 @@ final class OAuthService {
     }
 
     func exchangeGoogleToken(_ idToken: String) async throws -> OAuthResponse {
-        let body = try JSONEncoder().encode(["idToken": idToken])
+        let payload = ["idToken": idToken]
+        let body = try JSONEncoder().encode(payload)
 
         return try await APIClient.shared.send(
             APIRequest(
@@ -58,12 +67,12 @@ final class OAuthService {
         firstName: String?,
         lastName: String?
     ) async throws -> OAuthResponse {
-        let payload: [String: Any] = [
+        var payload: [String: String] = [
             "identityToken": identityToken,
-            "nonce": nonce,
-            "firstName": firstName as Any,
-            "lastName": lastName as Any
+            "nonce": nonce
         ]
+        if let firstName { payload["firstName"] = firstName }
+        if let lastName { payload["lastName"] = lastName }
 
         let data = try JSONSerialization.data(withJSONObject: payload)
 

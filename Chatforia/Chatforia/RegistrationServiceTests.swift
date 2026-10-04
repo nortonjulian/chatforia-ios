@@ -3,63 +3,19 @@ import XCTest
 
 @MainActor
 final class RegistrationServiceTests: XCTestCase {
-
-    func testMakeRegistrationRequestTrimsUsernameAndEmail() {
-        let service = RegistrationService()
-
-        let request = service.makeRegistrationRequest(
-            username: "  julian  ",
-            email: "  julian@example.com  ",
-            password: "password123"
-        )
-
+    func testSignupTrimsIdentityAndPreservesPassword() throws {
+        let request = RegistrationService().makeRegistrationRequest(
+            username: " julian ", email: " julian@example.com ",
+            password: "  Password!23  ")
         XCTAssertEqual(request.username, "julian")
         XCTAssertEqual(request.email, "julian@example.com")
-        XCTAssertEqual(request.password, "password123")
+        XCTAssertEqual(request.password, "  Password!23  ")
     }
 
-    func testMakeRegistrationRequestConvertsEmptyPhoneToNil() {
-        let service = RegistrationService()
-
-        let request = service.makeRegistrationRequest(
-            username: "julian",
-            email: "julian@example.com",
-            password: "password123",
-            phone: "   ",
-            smsConsent: true
-        )
-
-        XCTAssertNil(request.phone)
-        XCTAssertNil(request.smsConsent)
-    }
-
-    func testMakeRegistrationRequestKeepsPhoneAndSmsConsentWhenPhonePresent() {
-        let service = RegistrationService()
-
-        let request = service.makeRegistrationRequest(
-            username: "julian",
-            email: "julian@example.com",
-            password: "password123",
-            phone: " 5551234567 ",
-            smsConsent: true
-        )
-
-        XCTAssertEqual(request.phone, "5551234567")
-        XCTAssertEqual(request.smsConsent, true)
-    }
-
-    func testMakeRegistrationRequestKeepsSmsConsentFalseWhenPhonePresent() {
-        let service = RegistrationService()
-
-        let request = service.makeRegistrationRequest(
-            username: "julian",
-            email: "julian@example.com",
-            password: "password123",
-            phone: "5551234567",
-            smsConsent: false
-        )
-
-        XCTAssertEqual(request.phone, "5551234567")
-        XCTAssertEqual(request.smsConsent, false)
+    func testSignupBodyContainsNoPhoneConsentOrVerificationProof() throws {
+        let request = RegistrationService().makeRegistrationRequest(
+            username: "julian", email: "julian@example.com", password: "Password!23")
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(request)) as? [String: Any])
+        XCTAssertEqual(Set(json.keys), Set(["username", "email", "password"]))
     }
 }
