@@ -103,17 +103,18 @@ final class AuthStoreTests: XCTestCase {
         auth.forceKeyRestore(message: "Restore secure messages")
 
         XCTAssertTrue(auth.needsKeyRestore)
-        XCTAssertEqual(auth.keyRestoreMessage, "Restore your secure message key")
+        XCTAssertEqual(auth.keyRestoreMessage, "Restore secure messages")
     }
 
-    func testMarkKeyRestoreCompleteClearsRestoreState() {
+    func testMarkKeyRestoreCompleteRequiresMatchingAccountKey() {
         let auth = makeAuthStore()
 
         auth.forceKeyRestore(message: "Restore needed")
-        auth.markKeyRestoreComplete()
+        let didComplete = auth.markKeyRestoreComplete()
 
-        XCTAssertFalse(auth.needsKeyRestore)
-        XCTAssertNil(auth.keyRestoreMessage)
+        XCTAssertFalse(didComplete)
+        XCTAssertTrue(auth.needsKeyRestore)
+        XCTAssertEqual(auth.encryptionState, .missing)
     }
 
     func testCurrentUserIsNilWhenLoggedOut() {
@@ -137,7 +138,10 @@ final class AuthStoreTests: XCTestCase {
         AuthStore(
             tokenStore: tokenStore,
             apiClient: apiClient,
-            socket: socket
+            socket: socket,
+            refreshEntitlements: {},
+            ensureLocalKeys: { _, _ in false },
+            finishLoginNotifications: {}
         )
     }
 

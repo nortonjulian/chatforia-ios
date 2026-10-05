@@ -19,7 +19,10 @@ final class LoginViewModelTests: XCTestCase {
         auth = AuthStore(
             tokenStore: tokenStore,
             apiClient: apiClient,
-            socket: socket
+            socket: socket,
+            refreshEntitlements: {},
+            ensureLocalKeys: { _, _ in false },
+            finishLoginNotifications: {}
         )
 
         UserDefaults.standard.removeObject(forKey: "chatforiaHasLoggedIn")
@@ -144,6 +147,78 @@ final class LoginViewModelTests: XCTestCase {
         XCTAssertFalse(vm.resendLoading)
         XCTAssertNil(vm.resendSuccess)
         XCTAssertNotNil(vm.errorText)
+    }
+
+    func testChallengeDecodesWithoutSessionFieldsOrFullUser() throws {
+        let data = Data(#"{"mfaRequired":true,"mfaToken":"challenge","user":{"id":1}}"#.utf8)
+        let response = try JSONDecoder().decode(LoginResponse.self, from: data)
+        XCTAssertEqual(response.mfaToken, "challenge")
+        XCTAssertNil(response.token)
+        XCTAssertNil(response.user)
+        let provider = try JSONDecoder().decode(OAuthResponse.self, from: data)
+        XCTAssertEqual(provider.mfaRequired, true)
+        XCTAssertEqual(provider.mfaToken, "challenge")
+    }
+
+    func testMfaChallengeDoesNotSaveTokenOrMarkLoginComplete() async {
+        apiClient.results = [LoginResponse(mfaRequired: true, mfaToken: "challenge")]
+        let vm = LoginViewModel(apiClient: apiClient)
+        vm.identifier = "julian@example.com"
+        vm.password = "password123"
+        await vm.login(auth: auth, languageCode: "en")
+        XCTAssertEqual(vm.pendingMfaToken, "challenge")
+        XCTAssertNil(tokenStore.savedToken)
+        XCTAssertFalse(vm.hasLoggedInBefore)
+        XCTAssertFalse(UserDefaults.standard.bool(forKey: "chatforiaHasLoggedIn"))
+        XCTAssertTrue(vm.password.isEmpty)
+        XCTAssertNil(vm.errorText)
+    }
+
+    func testMfaCompletionStoresOnlyTheFinalSession() async throws {
+        apiClient.results = [
+            LoginResponse(mfaRequired: true, mfaToken: "challenge"),
+            LoginResponse(token: "verified-session"),
+            MeResponse(user: makeUser()), MeResponse(user: makeUser())
+        ]
+        let vm = LoginViewModel(apiClient: apiClient)
+        vm.identifier = "  julian@example.com  "
+        vm.password = "password123"
+        await vm.login(auth: auth, languageCode: "en")
+        try await vm.completeMfa(code: "123456", auth: auth)
+        XCTAssertNil(vm.pendingMfaToken)
+        XCTAssertEqual(tokenStore.savedToken, "verified-session")
+        XCTAssertTrue(vm.hasLoggedInBefore)
+        XCTAssertEqual(UserDefaults.standard.string(forKey: "chatforia.lastIdentifier"), "julian@example.com")
+    }
+
+    func testWrongMfaCodeKeepsChallengeAvailableForRetry() async {
+        apiClient.results = [LoginResponse(mfaRequired: true, mfaToken: "challenge")]
+        let vm = LoginViewModel(apiClient: apiClient)
+        await vm.login(auth: auth, languageCode: "en")
+        apiClient.error = NSError(domain: "Test", code: 400, userInfo: [NSLocalizedDescriptionKey: "bad_code"])
+        do {
+            try await vm.completeMfa(code: "000000", auth: auth)
+            XCTFail("A rejected code must not complete login")
+        } catch {}
+        XCTAssertEqual(vm.pendingMfaToken, "challenge")
+        XCTAssertNil(tokenStore.savedToken)
+    }
+
+    func testCancellingMfaDoesNotSaveAChallengeAsSession() async {
+        apiClient.results = [LoginResponse(mfaRequired: true, mfaToken: "challenge")]
+        let vm = LoginViewModel(apiClient: apiClient)
+        await vm.login(auth: auth, languageCode: "en")
+        vm.cancelMfa()
+        XCTAssertNil(vm.pendingMfaToken)
+        XCTAssertNil(tokenStore.savedToken)
+        XCTAssertFalse(vm.hasLoggedInBefore)
+    }
+
+    func testMalformedAuthenticationResponsesAreRejected() {
+        XCTAssertThrowsError(try AuthenticationResult.resolve(token: nil, mfaRequired: nil, mfaToken: nil))
+        XCTAssertThrowsError(try AuthenticationResult.resolve(token: "", mfaRequired: false, mfaToken: nil))
+        XCTAssertThrowsError(try AuthenticationResult.resolve(token: "session", mfaRequired: true, mfaToken: " "))
+        XCTAssertThrowsError(try AuthenticationResult.resolve(token: "session", mfaRequired: false, mfaToken: "challenge"))
     }
 
     private func makeUser(

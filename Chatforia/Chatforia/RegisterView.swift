@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct RegisterView: View {
+    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
     @AppStorage("chatforia_language") private var appLanguage = "en"
@@ -22,6 +23,15 @@ struct RegisterView: View {
         }
         .navigationTitle(appText("common.register", languageCode: appLanguage))
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: Binding(
+                get: { vm.pendingMfaToken != nil },
+                set: { if !$0 { vm.cancelMfa() } }
+            )) {
+                MFACodeEntryView(
+                    onVerify: { code in try await vm.completeMfa(code: code, auth: auth) },
+                    onCancel: { vm.cancelMfa() }
+                )
+            }
     }
 
     private var headerSection: some View {
@@ -69,21 +79,6 @@ struct RegisterView: View {
                 contentType: .newPassword
             )
 
-            ThemedTextField(
-                title: appText("auth.phoneOptional", languageCode: appLanguage),
-                text: $vm.phone,
-                keyboard: .phonePad,
-                contentType: .telephoneNumber
-            )
-
-            if !vm.phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                ThemedToggleRow(
-                    title: appText("auth.smsConsent", languageCode: appLanguage),
-                    subtitle: appText("auth.smsConsentSubtitle", languageCode: appLanguage),
-                    isOn: $vm.smsConsent
-                )
-            }
-
             messagesSection
 
             ThemedGradientButton(
@@ -96,7 +91,7 @@ struct RegisterView: View {
                     }
                 },
                 isFullWidth: true,
-                isDisabled: vm.isSubmitting || vm.isOAuthLoading
+                isDisabled: vm.registrationCompleted || vm.isSubmitting || vm.isOAuthLoading
             )
 
             footerSection
@@ -122,7 +117,7 @@ struct RegisterView: View {
                     await vm.handleGoogle(auth: auth)
                 }
             }
-            .disabled(vm.isSubmitting || vm.isOAuthLoading)
+            .disabled(vm.registrationCompleted || vm.isSubmitting || vm.isOAuthLoading)
 
             ThemedOutlineButton(
                 title: vm.isOAuthLoading
@@ -133,7 +128,7 @@ struct RegisterView: View {
                     await vm.handleApple(auth: auth)
                 }
             }
-            .disabled(vm.isSubmitting || vm.isOAuthLoading)
+            .disabled(vm.registrationCompleted || vm.isSubmitting || vm.isOAuthLoading)
         }
     }
 
@@ -179,9 +174,14 @@ struct RegisterView: View {
                     .font(.footnote)
                     .foregroundStyle(themeManager.palette.secondaryText)
 
-                Text(appText("auth.loginPreviousScreen", languageCode: appLanguage))
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(themeManager.palette.accent)
+                Button {
+                    dismiss()
+                } label: {
+                    Text(appText("auth.loginPreviousScreen", languageCode: appLanguage))
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(themeManager.palette.accent)
+                }
+                .accessibilityIdentifier("register.login")
             }
             .padding(.top, 4)
 
