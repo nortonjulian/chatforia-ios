@@ -102,6 +102,10 @@ final class SMSThreadViewModel: ObservableObject {
 
             thread = fetched
             messages = fetched.sortedMessages
+
+            // GET /sms/threads/:id marks this thread read on the server.
+            // Reconcile the app-icon badge from authoritative server state.
+            await NotificationCoordinator.shared.refreshBadgeState()
         } catch {
             if messages.isEmpty {
                 errorText = friendlyErrorMessage(error)

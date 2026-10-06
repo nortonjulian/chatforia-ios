@@ -152,6 +152,9 @@ struct ChatforiaApp: App {
 
                     // 🔁 Retry sending token AFTER auth exists
                     await notificationCoordinator.retryPushRegistrationIfPossible()
+
+                    // 🔢 Load authoritative badge state after authentication.
+                    await notificationCoordinator.refreshBadgeState()
                 }
 
                 AppEnvironment.configureSendQueueHandlersIfNeeded()
@@ -280,6 +283,11 @@ struct ChatforiaApp: App {
                 // 🔁 Retry again when app becomes active
                 Task {
                     await notificationCoordinator.retryPushRegistrationIfPossible()
+                }
+
+                // 🔢 Reconcile the app-icon badge with authoritative server state.
+                Task {
+                    await notificationCoordinator.refreshBadgeState()
                 }
             }
 
