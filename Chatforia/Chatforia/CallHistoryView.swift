@@ -232,7 +232,13 @@ struct CallHistoryView: View {
             }
         }
         .task {
-            await load()
+            async let historyLoad: Void = load()
+            async let missedCallAcknowledgement: Void = acknowledgeMissedCalls()
+
+            _ = await (
+                historyLoad,
+                missedCallAcknowledgement
+            )
         }
         .refreshable {
             await load()
@@ -351,6 +357,21 @@ private func title(for choice: PendingCallChoice) -> String {
         }
     }
     
+    private func acknowledgeMissedCalls() async {
+        guard let token = auth.currentToken, !token.isEmpty else { return }
+
+        do {
+            try await CallHistoryService.shared.acknowledgeMissedCalls(
+                token: token
+            )
+
+            // The server is authoritative for missed-call attention state.
+            await NotificationCoordinator.shared.refreshBadgeState()
+        } catch {
+            debugLog("❌ Failed to acknowledge missed calls:", error)
+        }
+    }
+
     private func load() async {
         guard !isLoading else { return }
         guard let token = auth.currentToken, !token.isEmpty else {

@@ -20,4 +20,15 @@ final class CallHistoryService {
 
         return response.items
     }
+
+    func acknowledgeMissedCalls(token: String) async throws {
+        let _: EmptyResponse = try await APIClient.shared.send(
+            APIRequest(
+                path: "calls/missed/acknowledge",
+                method: .PATCH,
+                requiresAuth: true
+            ),
+            token: token
+        )
+    }
 }

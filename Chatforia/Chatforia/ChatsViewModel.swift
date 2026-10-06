@@ -22,6 +22,40 @@ final class ChatsViewModel: ObservableObject {
     static let conversationsBasePath = "conversations"
 
     init() {
+        NotificationCenter.default.publisher(for: .conversationWasRead)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] note in
+                guard let self,
+                      let roomId = note.userInfo?["roomId"] as? Int,
+                      let index = self.conversations.firstIndex(where: {
+                          $0.kind.lowercased() == "chat" &&
+                          $0.id == roomId
+                      })
+                else { return }
+
+                let convo = self.conversations[index]
+
+                var updated = ConversationDTO(
+                    kind: convo.kind,
+                    id: convo.id,
+                    title: convo.title,
+                    displayName: convo.displayName,
+                    updatedAt: convo.updatedAt,
+                    isGroup: convo.isGroup,
+                    phone: convo.phone,
+                    unreadCount: 0,
+                    avatarUsers: convo.avatarUsers,
+                    last: convo.last
+                )
+
+                updated.isRandomChat = convo.isRandomChat
+                updated.randomChat = convo.randomChat
+                updated.randomChatRoomId = convo.randomChatRoomId
+
+                self.conversations[index] = updated
+            }
+            .store(in: &cancellables)
+
         NotificationCenter.default.publisher(for: .socketMessageUpsert)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] note in

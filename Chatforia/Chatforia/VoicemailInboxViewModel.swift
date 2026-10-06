@@ -60,6 +60,10 @@ final class VoicemailInboxViewModel: ObservableObject {
                 isRead: isRead,
                 token: token
             )
+
+            // The server is authoritative for the aggregate app badge.
+            await NotificationCoordinator.shared.refreshBadgeState()
+
             selectedVoicemail = voicemails[index]
         } catch {
             voicemails[index] = original
@@ -98,6 +102,9 @@ final class VoicemailInboxViewModel: ObservableObject {
                 id: voicemail.id,
                 token: token
             )
+
+            // Deleting an unread voicemail can also change the badge.
+            await NotificationCoordinator.shared.refreshBadgeState()
         } catch {
             voicemails.insert(removed, at: index)
             if wasSelected {
