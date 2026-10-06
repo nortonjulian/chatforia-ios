@@ -376,7 +376,7 @@ final class APIClient {
         }
     }
 
-    func readMessagesBulk(_ messageIds: [Int]) {
+    func readMessagesBulk(_ messageIds: [Int], roomId: Int) {
         guard !messageIds.isEmpty else { return }
 
         struct ReadMessagesBulkRequest: Encodable {
@@ -402,6 +402,19 @@ final class APIClient {
                     ),
                     token: token
                 )
+
+                // The server has now authoritatively recorded these
+                // messages as read. Clear this conversation's local unread
+                // indicator, then reconcile the aggregate app-icon badge.
+                await MainActor.run {
+                    NotificationCenter.default.post(
+                        name: .conversationWasRead,
+                        object: nil,
+                        userInfo: ["roomId": roomId]
+                    )
+                }
+
+                await NotificationCoordinator.shared.refreshBadgeState()
 
             } catch {
                 debugLog("❌ readMessagesBulk failed:", error)

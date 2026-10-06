@@ -55,6 +55,39 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
         }
     }
 
+    func refreshBadgeState() async {
+        guard let authToken = TokenStore.shared.read(),
+              !authToken.isEmpty else {
+            return
+        }
+
+        do {
+            let badgeState =
+                try await BadgeStateService.shared.fetchBadgeState(
+                    token: authToken
+                )
+
+            let badgeCount = max(0, badgeState.total)
+
+            if #available(iOS 16.0, *) {
+                try await UNUserNotificationCenter.current()
+                    .setBadgeCount(badgeCount)
+            } else {
+                UIApplication.shared.applicationIconBadgeNumber = badgeCount
+            }
+
+            debugLog(
+                "🔢 badge state refreshed:",
+                "conversations=\(badgeState.unreadConversations)",
+                "missedCalls=\(badgeState.missedCalls)",
+                "voicemails=\(badgeState.unreadVoicemails)",
+                "total=\(badgeCount)"
+            )
+        } catch {
+            debugLog("❌ badge state refresh failed:", error)
+        }
+    }
+
     func retryPushRegistrationIfPossible() async {
         guard let pushToken = UserDefaults.standard.string(forKey: apnsTokenDefaultsKey),
               !pushToken.isEmpty else {
@@ -221,6 +254,11 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
         let isMessageNotification =
             notificationType == "message_new"
                 || notificationType == "message:new"
+
+        if notificationType == "badge_state_changed" {
+            completionHandler([.badge])
+            return
+        }
 
         if isMessageNotification,
            currentUserId > 0,
