@@ -61,6 +61,9 @@ final class AuthStore: NSObject, ObservableObject {
 
     private let tokenStore: TokenStoring
     private let apiClient: APIClientSending
+    private let refreshEntitlements: () async -> Void
+    private let ensureLocalKeys: (Int, String) async throws -> Bool
+    private let finishLoginNotifications: () async -> Void
     private(set) var socket: SocketManaging
     private var isRefreshingCurrentUser = false
     private var lastUserRefreshAt: Date?
@@ -77,11 +80,24 @@ final class AuthStore: NSObject, ObservableObject {
     init(
         tokenStore: TokenStoring? = nil,
         apiClient: APIClientSending? = nil,
-        socket: SocketManaging? = nil
+        socket: SocketManaging? = nil,
+        refreshEntitlements: @escaping () async -> Void = {
+            await SubscriptionManager.shared.refreshEntitlements()
+        },
+        ensureLocalKeys: @escaping (Int, String) async throws -> Bool = { userId, token in
+            try await AccountKeyManager.shared.ensureLocalKeysExist(userId: userId, token: token)
+        },
+        finishLoginNotifications: @escaping () async -> Void = {
+            await NotificationCoordinator.shared.requestAuthorization()
+            await NotificationCoordinator.shared.retryPushRegistrationIfPossible()
+        }
     ) {
         self.tokenStore = tokenStore ?? TokenStore.shared
         self.apiClient = apiClient ?? APIClient.shared
         self.socket = socket ?? SocketManager.shared
+        self.refreshEntitlements = refreshEntitlements
+        self.ensureLocalKeys = ensureLocalKeys
+        self.finishLoginNotifications = finishLoginNotifications
 
         super.init()
 
@@ -157,11 +173,11 @@ final class AuthStore: NSObject, ObservableObject {
             syncPlan(from: user)
 
             // 🔹 Sync StoreKit entitlements
-            await SubscriptionManager.shared.refreshEntitlements()
+            await refreshEntitlements()
 
             // 🔹 Re-fetch after StoreKit sync
             do {
-                let refreshed: MeResponse = try await APIClient.shared.send(
+                let refreshed: MeResponse = try await apiClient.send(
                     APIRequest(path: "auth/me", method: .GET, requiresAuth: true),
                     token: token
                 )
@@ -177,10 +193,7 @@ final class AuthStore: NSObject, ObservableObject {
 
             // 🔹 Ensure encryption keys exist BEFORE allowing chats/socket
             do {
-                let shouldRestore = try await AccountKeyManager.shared.ensureLocalKeysExist(
-                    userId: user.id,
-                    token: token
-                )
+                let shouldRestore = try await ensureLocalKeys(user.id, token)
 
                 if shouldRestore {
                     encryptionState = .missing
@@ -241,11 +254,7 @@ final class AuthStore: NSObject, ObservableObject {
                 forKey: "chatforia.currentUserId"
             )
 
-            await NotificationCoordinator.shared
-                .requestAuthorization()
-
-            await NotificationCoordinator.shared
-                .retryPushRegistrationIfPossible()
+            await finishLoginNotifications()
         }
 
         AnalyticsManager.shared.capture("login_succeeded", properties: [
@@ -417,6 +426,7 @@ final class AuthStore: NSObject, ObservableObject {
     }
 
     func forceKeyRestore(message: String? = nil) {
+        encryptionState = .missing
         needsKeyRestore = true
         keyRestoreMessage = message
         socket.disconnect()

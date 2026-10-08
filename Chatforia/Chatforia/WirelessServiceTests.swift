@@ -4,37 +4,47 @@ import XCTest
 @MainActor
 final class WirelessServiceTests: XCTestCase {
 
-    override func setUp() {
-        super.setUp()
-        TokenStore.shared.clear()
-    }
-
-    override func tearDown() {
-        TokenStore.shared.clear()
-        super.tearDown()
-    }
-
     func testFetchWirelessStatusThrowsUnauthorizedWhenNoToken() async {
+        let client = StubWirelessAPIClient()
+        let service = WirelessService(apiClient: client, tokenProvider: { nil })
         do {
-            _ = try await WirelessService.shared.fetchWirelessStatus()
+            _ = try await service.fetchWirelessStatus()
             XCTFail("Expected APIError.unauthorized")
         } catch APIError.unauthorized {
             // expected
         } catch {
             XCTFail("Expected APIError.unauthorized, got \(error)")
         }
+        XCTAssertNil(client.receivedToken)
     }
 
-    func testFetchWirelessStatusDoesNotThrowUnauthorizedWhenTokenExists() async {
-        TokenStore.shared.save("fake-test-token")
-
+    func testFetchWirelessStatusSendsStoredToken() async {
+        let client = StubWirelessAPIClient()
+        let service = WirelessService(
+            apiClient: client,
+            tokenProvider: { "fake-test-token" }
+        )
         do {
-            _ = try await WirelessService.shared.fetchWirelessStatus()
-            XCTFail("Expected network/API failure, not success")
-        } catch APIError.unauthorized {
-            XCTFail("Should not fail authorization when token exists")
+            let status = try await service.fetchWirelessStatus()
+            XCTAssertEqual(status.state, "active")
+            XCTAssertEqual(client.receivedToken, "fake-test-token")
+            XCTAssertEqual(client.receivedPath, "api/wireless/status")
         } catch {
-            // expected: token exists, so failure should be network/API/decode, not unauthorized
+            XCTFail("Unexpected failure: \(error)")
         }
+    }
+}
+
+private final class StubWirelessAPIClient: APIClientSending {
+    var receivedToken: String?
+    var receivedPath: String?
+
+    func send<T: Decodable>(_ request: APIRequest, token: String?) async throws -> T {
+        receivedToken = token
+        receivedPath = request.path
+        return try JSONDecoder().decode(
+            T.self,
+            from: Data(#"{"mode":"esim","state":"active"}"#.utf8)
+        )
     }
 }

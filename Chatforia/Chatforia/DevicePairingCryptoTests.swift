@@ -3,14 +3,23 @@ import CryptoKit
 @testable import Chatforia
 
 final class DevicePairingCryptoTests: XCTestCase {
+    private let testUserId = 9_000_001
+    private var previousUserId: Any?
 
     override func setUp() {
         super.setUp()
-        AccountKeyManager.shared.clear(userId: 1)
+        previousUserId = UserDefaults.standard.object(forKey: "chatforia.currentUserId")
+        UserDefaults.standard.set(testUserId, forKey: "chatforia.currentUserId")
+        AccountKeyManager.shared.clear(userId: testUserId)
     }
 
     override func tearDown() {
-        AccountKeyManager.shared.clear(userId: 1)
+        AccountKeyManager.shared.clear(userId: testUserId)
+        if let previousUserId {
+            UserDefaults.standard.set(previousUserId, forKey: "chatforia.currentUserId")
+        } else {
+            UserDefaults.standard.removeObject(forKey: "chatforia.currentUserId")
+        }
         super.tearDown()
     }
 
@@ -36,7 +45,7 @@ final class DevicePairingCryptoTests: XCTestCase {
         let keys = try AccountKeyManager.shared.generateNewAccountKeys()
 
         try AccountKeyManager.shared.saveAccountKeys(
-            userId: 1,
+            userId: testUserId,
             publicKeyBase64: keys.publicKeyBase64,
             privateKeyBase64: keys.privateKeyBase64
         )
@@ -58,7 +67,7 @@ final class DevicePairingCryptoTests: XCTestCase {
         let accountKeys = try AccountKeyManager.shared.generateNewAccountKeys()
 
         try AccountKeyManager.shared.saveAccountKeys(
-            userId: 1,
+            userId: testUserId,
             publicKeyBase64: accountKeys.publicKeyBase64,
             privateKeyBase64: accountKeys.privateKeyBase64
         )
@@ -89,7 +98,7 @@ final class DevicePairingCryptoTests: XCTestCase {
         let accountKeys = try AccountKeyManager.shared.generateNewAccountKeys()
 
         try AccountKeyManager.shared.saveAccountKeys(
-            userId: 1,
+            userId: testUserId,
             publicKeyBase64: accountKeys.publicKeyBase64,
             privateKeyBase64: accountKeys.privateKeyBase64
         )
