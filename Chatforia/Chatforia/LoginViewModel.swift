@@ -197,7 +197,10 @@ final class LoginViewModel: ObservableObject {
 
         do {
             let idToken = try await oauth.signInWithGoogle()
-            let response = try await oauth.exchangeGoogleToken(idToken)
+            let response = try await oauth.exchangeGoogleToken(
+                idToken,
+                referralCode: CreatorReferralStore.shared.currentCode()
+            )
             try await acceptAuthentication(
                 token: response.token, mfaRequired: response.mfaRequired, mfaToken: response.mfaToken,
                 identifier: nil, isOAuth: true, auth: auth
@@ -219,12 +222,14 @@ final class LoginViewModel: ObservableObject {
                 identityToken: result.token,
                 nonce: result.nonce,
                 firstName: result.name?.givenName,
-                lastName: result.name?.familyName
+                lastName: result.name?.familyName,
+                referralCode: CreatorReferralStore.shared.currentCode()
             )
             try await acceptAuthentication(
                 token: response.token, mfaRequired: response.mfaRequired, mfaToken: response.mfaToken,
                 identifier: nil, isOAuth: true, auth: auth
             )
+
         } catch {
             errorText = error.localizedDescription
         }
@@ -271,6 +276,7 @@ final class LoginViewModel: ObservableObject {
         if let identifier { UserDefaults.standard.set(identifier, forKey: lastIdentifierKey) }
         hasLoggedInBefore = true
         password = ""
+        if isOAuth { CreatorReferralStore.shared.clear() }
     }
 }
 

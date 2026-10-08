@@ -3,13 +3,14 @@ import XCTest
 
 @MainActor
 final class RegistrationServiceTests: XCTestCase {
-    func testSignupTrimsIdentityAndPreservesPassword() throws {
+    func testSignupTrimsIdentityAndPreservesPasswordAndReferral() throws {
         let request = RegistrationService().makeRegistrationRequest(
             username: " julian ", email: " julian@example.com ",
-            password: "  Password!23  ")
+            password: "  Password!23  ", referralCode: "CREATOR")
         XCTAssertEqual(request.username, "julian")
         XCTAssertEqual(request.email, "julian@example.com")
         XCTAssertEqual(request.password, "  Password!23  ")
+        XCTAssertEqual(request.referralCode, "CREATOR")
     }
 
     func testSignupBodyContainsNoPhoneConsentOrVerificationProof() throws {

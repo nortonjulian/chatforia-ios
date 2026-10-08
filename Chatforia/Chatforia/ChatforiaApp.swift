@@ -170,6 +170,14 @@ struct ChatforiaApp: App {
                     return
                 }
 
+                if CreatorReferralStore.code(from: url) != nil {
+                    let code = CreatorReferralStore.shared.capture(from: url)
+                    AnalyticsManager.shared.capture("referral_link_visited", properties: [
+                        "referral_code": code ?? ""
+                    ])
+                    return
+                }
+
                 inviteFlow.handleIncomingURL(url)
 
                 Task {
@@ -186,6 +194,14 @@ struct ChatforiaApp: App {
                 }
 
                 if checkoutReturn.handleIncomingURL(url) {
+                    return
+                }
+
+                if CreatorReferralStore.code(from: url) != nil {
+                    let code = CreatorReferralStore.shared.capture(from: url)
+                    AnalyticsManager.shared.capture("referral_link_visited", properties: [
+                        "referral_code": code ?? ""
+                    ])
                     return
                 }
 

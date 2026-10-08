@@ -9,9 +9,7 @@
 /* Begin PBXBuildFile section */
 		470EA6102FF23055001F4CD5 /* UnityAdapterTarget in Frameworks */ = {isa = PBXBuildFile; productRef = 470EA60F2FF23055001F4CD5 /* UnityAdapterTarget */; };
 		4758E8732FA92654004F3C09 /* TwilioVoice in Frameworks */ = {isa = PBXBuildFile; productRef = 4758E8722FA92654004F3C09 /* TwilioVoice */; };
-		4758E8752FA92654004F3C09 /* TwilioVoice-static in Frameworks */ = {isa = PBXBuildFile; productRef = 4758E8742FA92654004F3C09 /* TwilioVoice-static */; };
 		4758E8782FA9266A004F3C09 /* TwilioVideo in Frameworks */ = {isa = PBXBuildFile; productRef = 4758E8772FA9266A004F3C09 /* TwilioVideo */; };
-		4758E87A2FA9266A004F3C09 /* TwilioVideo-static in Frameworks */ = {isa = PBXBuildFile; productRef = 4758E8792FA9266A004F3C09 /* TwilioVideo-static */; };
 		4758E87D2FA9267E004F3C09 /* SocketIO in Frameworks */ = {isa = PBXBuildFile; productRef = 4758E87C2FA9267E004F3C09 /* SocketIO */; };
 		4758E8802FA9269D004F3C09 /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 4758E87F2FA9269D004F3C09 /* GoogleMobileAds */; };
 		4758E8832FA926DA004F3C09 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 4758E8822FA926DA004F3C09 /* GoogleSignIn */; };
@@ -146,10 +144,8 @@
 				4758E8782FA9266A004F3C09 /* TwilioVideo in Frameworks */,
 				4758E8852FA926DA004F3C09 /* GoogleSignInSwift in Frameworks */,
 				470EA6102FF23055001F4CD5 /* UnityAdapterTarget in Frameworks */,
-				4758E87A2FA9266A004F3C09 /* TwilioVideo-static in Frameworks */,
 				4758E87D2FA9267E004F3C09 /* SocketIO in Frameworks */,
 				4758E8882FA92702004F3C09 /* PostHog in Frameworks */,
-				4758E8752FA92654004F3C09 /* TwilioVoice-static in Frameworks */,
 				4758E8832FA926DA004F3C09 /* GoogleSignIn in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -227,9 +223,7 @@
 			name = Chatforia;
 			packageProductDependencies = (
 				4758E8722FA92654004F3C09 /* TwilioVoice */,
-				4758E8742FA92654004F3C09 /* TwilioVoice-static */,
 				4758E8772FA9266A004F3C09 /* TwilioVideo */,
-				4758E8792FA9266A004F3C09 /* TwilioVideo-static */,
 				4758E87C2FA9267E004F3C09 /* SocketIO */,
 				4758E87F2FA9269D004F3C09 /* GoogleMobileAds */,
 				4758E8822FA926DA004F3C09 /* GoogleSignIn */,
@@ -828,20 +822,10 @@
 			package = 4758E8712FA92654004F3C09 /* XCRemoteSwiftPackageReference "twilio-voice-ios" */;
 			productName = TwilioVoice;
 		};
-		4758E8742FA92654004F3C09 /* TwilioVoice-static */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 4758E8712FA92654004F3C09 /* XCRemoteSwiftPackageReference "twilio-voice-ios" */;
-			productName = "TwilioVoice-static";
-		};
 		4758E8772FA9266A004F3C09 /* TwilioVideo */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 4758E8762FA9266A004F3C09 /* XCRemoteSwiftPackageReference "twilio-video-ios" */;
 			productName = TwilioVideo;
-		};
-		4758E8792FA9266A004F3C09 /* TwilioVideo-static */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 4758E8762FA9266A004F3C09 /* XCRemoteSwiftPackageReference "twilio-video-ios" */;
-			productName = "TwilioVideo-static";
 		};
 		4758E87C2FA9267E004F3C09 /* SocketIO */ = {
 			isa = XCSwiftPackageProductDependency;

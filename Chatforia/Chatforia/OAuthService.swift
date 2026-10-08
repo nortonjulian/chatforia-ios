@@ -46,8 +46,9 @@ final class OAuthService {
         return idToken
     }
 
-    func exchangeGoogleToken(_ idToken: String) async throws -> OAuthResponse {
-        let payload = ["idToken": idToken]
+    func exchangeGoogleToken(_ idToken: String, referralCode: String? = nil) async throws -> OAuthResponse {
+        var payload = ["idToken": idToken]
+        if let referralCode { payload["referralCode"] = referralCode }
         let body = try JSONEncoder().encode(payload)
 
         return try await APIClient.shared.send(
@@ -65,7 +66,8 @@ final class OAuthService {
         identityToken: String,
         nonce: String,
         firstName: String?,
-        lastName: String?
+        lastName: String?,
+        referralCode: String? = nil
     ) async throws -> OAuthResponse {
         var payload: [String: String] = [
             "identityToken": identityToken,
@@ -73,6 +75,7 @@ final class OAuthService {
         ]
         if let firstName { payload["firstName"] = firstName }
         if let lastName { payload["lastName"] = lastName }
+        if let referralCode { payload["referralCode"] = referralCode }
 
         let data = try JSONSerialization.data(withJSONObject: payload)
 

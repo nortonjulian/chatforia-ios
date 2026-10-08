@@ -37,7 +37,7 @@ final class APIClientTests: XCTestCase {
         XCTAssertFalse(error.errorDescription?.isEmpty ?? true)
     }
 
-    func testServerErrorDescriptionContainsStatusCode() {
+    func testServerErrorDescriptionUsesServerMessage() {
         let error = APIError.server(
             status: 500,
             message: "Internal Server Error"
@@ -45,7 +45,7 @@ final class APIClientTests: XCTestCase {
 
         let description = error.errorDescription ?? ""
 
-        XCTAssertTrue(description.contains("500"))
+        XCTAssertEqual(description, "Internal Server Error")
     }
 
     func testSendThrowsUnauthorizedWhenTokenMissing() async {

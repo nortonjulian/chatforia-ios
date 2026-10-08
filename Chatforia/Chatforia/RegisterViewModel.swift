@@ -63,10 +63,12 @@ final class RegisterViewModel: ObservableObject {
         defer { isSubmitting = false }
 
         do {
+            let referralCode = CreatorReferralStore.shared.currentCode()
             let response = try await registrationService.register(
                 username: trimmedUsername,
                 email: trimmedEmail,
-                password: password
+                password: password,
+                referralCode: referralCode
             )
 
             registrationCompleted = true
@@ -79,8 +81,10 @@ final class RegisterViewModel: ObservableObject {
             AnalyticsManager.shared.capture("user_registered", properties: [
                 "method": "email",
                 "hasPhone": false,
-                "plan": "FREE"
+                "plan": "FREE",
+                "referral_code": referralCode ?? ""
             ])
+            CreatorReferralStore.shared.clear()
 
             if let privateKey = response.privateKey,
                    let resolvedUser = response.resolvedUser,
@@ -123,7 +127,8 @@ final class RegisterViewModel: ObservableObject {
 
         do {
             let idToken = try await oauthService.signInWithGoogle()
-            let response = try await oauthService.exchangeGoogleToken(idToken)
+            let referralCode = CreatorReferralStore.shared.currentCode()
+            let response = try await oauthService.exchangeGoogleToken(idToken, referralCode: referralCode)
             try await acceptOAuth(response, auth: auth)
         } catch {
             errorMessage = error.localizedDescription
@@ -139,11 +144,13 @@ final class RegisterViewModel: ObservableObject {
 
         do {
             let result = try await appleCoordinator.start()
+            let referralCode = CreatorReferralStore.shared.currentCode()
             let response = try await oauthService.exchangeAppleToken(
                 identityToken: result.token,
                 nonce: result.nonce,
                 firstName: result.name?.givenName,
-                lastName: result.name?.familyName
+                lastName: result.name?.familyName,
+                referralCode: referralCode
             )
 
             try await acceptOAuth(response, auth: auth)
@@ -192,5 +199,6 @@ final class RegisterViewModel: ObservableObject {
             errorMessage = "Unable to finish signing in. Please try again."
             return
         }
+        CreatorReferralStore.shared.clear()
     }
 }

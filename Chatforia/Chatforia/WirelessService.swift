@@ -21,14 +21,23 @@ struct ESIMCheckoutStatusDTO: Decodable, Equatable {
 
 final class WirelessService {
     static let shared = WirelessService()
-    private init() {}
+    private let apiClient: APIClientSending
+    private let tokenProvider: () -> String?
+
+    init(
+        apiClient: APIClientSending = APIClient.shared,
+        tokenProvider: @escaping () -> String? = { TokenStore.shared.read() }
+    ) {
+        self.apiClient = apiClient
+        self.tokenProvider = tokenProvider
+    }
 
     func fetchWirelessStatus() async throws -> WirelessStatusDTO {
-        guard let token = TokenStore.shared.read(), !token.isEmpty else {
+        guard let token = tokenProvider(), !token.isEmpty else {
             throw APIError.unauthorized
         }
 
-        return try await APIClient.shared.send(
+        return try await apiClient.send(
             APIRequest(
                 path: "api/wireless/status",
                 method: .GET,
@@ -41,7 +50,7 @@ final class WirelessService {
     func fetchCheckoutStatus(
         sessionId: String
     ) async throws -> ESIMCheckoutStatusDTO {
-        guard let token = TokenStore.shared.read(),
+        guard let token = tokenProvider(),
               !token.isEmpty else {
             throw APIError.unauthorized
         }
@@ -68,7 +77,7 @@ final class WirelessService {
             throw APIError.invalidURL
         }
 
-        return try await APIClient.shared.send(
+        return try await apiClient.send(
             APIRequest(
                 path:
                     "billing/checkout-status?\(query)",

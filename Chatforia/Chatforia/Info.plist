@@ -31,12 +31,6 @@
 	<string>373788724739-66tb9ar3u0mff2b2rt5vmevi8vu9allj.apps.googleusercontent.com</string>
 	<key>GIDServerClientID</key>
 	<string>373788724739-6t4csha8enhss8bsm9o4nh7ma5ad66co.apps.googleusercontent.com</string>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>remote-notification</string>
-		<string>voip</string>
-		<string>audio</string>
-	</array>
 	<key>SKAdNetworkItems</key>
 	<array>
 		<dict>
@@ -395,6 +389,12 @@
 			<key>SKAdNetworkIdentifier</key>
 			<string>zq492l623r.skadnetwork</string>
 		</dict>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+		<string>voip</string>
+		<string>audio</string>
 	</array>
 </dict>
 </plist>
