@@ -2,9 +2,43 @@ import Foundation
 import StoreKit
 import Combine
 
+struct PlanUsageSnapshot: Decodable, Equatable {
+    let used: Int
+    let limit: Int
+    let remaining: Int
+}
+
+struct AppPlanEntitlementsSnapshot: Decodable, Equatable {
+    let riaActions: Int
+    let translationChars: Int
+    let hostedParticipantMinutes: Int
+    let smsMessages: Int
+    let pstnMinutes: Int
+    let forwardingMinutes: Int
+    let voicemailTranscriptionMinutes: Int
+    let cloudStorageBytes: Int64
+    let messageHistoryDays: Int?
+    let adsEnabled: Bool
+    let aiRewriteLevel: String
+    let supportLevel: String
+}
+
+struct PlanEntitlementsResponse: Decodable, Equatable {
+    let plan: String
+    let entitlements: AppPlanEntitlementsSnapshot
+    let monthKey: String
+    let usage: [String: PlanUsageSnapshot]
+
+    var appPlan: AppPlan {
+        AppPlan(serverValue: plan)
+    }
+}
+
 @MainActor
 final class SubscriptionManager: ObservableObject {
     static let shared = SubscriptionManager()
+
+    @Published private(set) var backendEntitlements: PlanEntitlementsResponse?
 
     private init() {
         listenForTransactions()
@@ -14,12 +48,15 @@ final class SubscriptionManager: ObservableObject {
         for await result in Transaction.currentEntitlements {
             await syncIfVerified(result, shouldFinish: false)
         }
+
+        await refreshBackendEntitlements()
     }
 
     private func listenForTransactions() {
         Task {
             for await result in Transaction.updates {
                 await syncIfVerified(result, shouldFinish: true)
+                await refreshBackendEntitlements()
             }
         }
     }
@@ -92,6 +129,28 @@ final class SubscriptionManager: ObservableObject {
             ])
 
             debugLog("❌ Failed to sync purchase:", error)
+        }
+    }
+
+    func refreshBackendEntitlements() async {
+        guard let token = TokenStore.shared.read(), !token.isEmpty else {
+            backendEntitlements = nil
+            return
+        }
+
+        do {
+            let response: PlanEntitlementsResponse = try await APIClient.shared.send(
+                APIRequest(
+                    path: "premium/entitlements",
+                    method: .GET,
+                    requiresAuth: true
+                ),
+                token: token
+            )
+
+            backendEntitlements = response
+        } catch {
+            debugLog("⚠️ Failed to refresh backend plan entitlements:", error)
         }
     }
 
