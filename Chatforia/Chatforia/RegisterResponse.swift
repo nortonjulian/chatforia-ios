@@ -41,6 +41,8 @@ struct RegistrationResponseDTO: Decodable {
     let voicemailEnabled: Bool?
     let voicemailAutoDeleteDays: Int?
     let voicemailForwardEmail: String?
+    let voicemailEmailForwardingEnabled: Bool?
+    let canForwardVoicemailEmail: Bool?
     let voicemailGreetingText: String?
     let voicemailGreetingUrl: String?
 
@@ -75,6 +77,8 @@ struct RegistrationResponseDTO: Decodable {
                 voicemailEnabled: voicemailEnabled,
                 voicemailAutoDeleteDays: voicemailAutoDeleteDays,
                 voicemailForwardEmail: voicemailForwardEmail,
+                voicemailEmailForwardingEnabled: voicemailEmailForwardingEnabled,
+                canForwardVoicemailEmail: canForwardVoicemailEmail,
                 voicemailGreetingText: voicemailGreetingText,
                 voicemailGreetingUrl: voicemailGreetingUrl,
                 messageTone: messageTone,

@@ -21,9 +21,10 @@ final class SettingsViewModel: ObservableObject {
     @Published var randomChatAllowedBands: [String] = []
     @Published var riaRemember: Bool = true
 
-    @Published var voicemailEnabled: Bool = true
     @Published var voicemailAutoDeleteDays: Int? = nil
     @Published var voicemailForwardEmail: String = ""
+    @Published var voicemailEmailForwardingEnabled = false
+    @Published private(set) var canForwardVoicemailEmail = false
     @Published var voicemailGreetingText: String = ""
 
     @Published var isSaving = false
@@ -72,9 +73,10 @@ final class SettingsViewModel: ObservableObject {
         randomChatAllowedBands = user.randomChatAllowedBands ?? []
         riaRemember = user.riaRemember ?? true
 
-        voicemailEnabled = user.voicemailEnabled ?? true
         voicemailAutoDeleteDays = user.voicemailAutoDeleteDays
-        voicemailForwardEmail = user.voicemailForwardEmail ?? (user.email ?? "")
+        voicemailForwardEmail = user.voicemailForwardEmail ?? ""
+        voicemailEmailForwardingEnabled = user.voicemailEmailForwardingEnabled ?? false
+        canForwardVoicemailEmail = user.canForwardVoicemailEmail ?? false
         voicemailGreetingText = user.voicemailGreetingText ?? ""
         
         a11yUiFont = user.a11yUiFont ?? "md"
@@ -126,9 +128,9 @@ final class SettingsViewModel: ObservableObject {
             wantsAgeFilter: wantsAgeFilter,
             randomChatAllowedBands: randomChatAllowedBands,
             riaRemember: riaRemember,
-            voicemailEnabled: voicemailEnabled,
             voicemailAutoDeleteDays: voicemailAutoDeleteDays,
-            voicemailForwardEmail: voicemailForwardEmail,
+            voicemailForwardEmail: canForwardVoicemailEmail ? voicemailForwardEmail : nil,
+            voicemailEmailForwardingEnabled: canForwardVoicemailEmail ? voicemailEmailForwardingEnabled : nil,
             voicemailGreetingText: voicemailGreetingText,
             uiLanguage: preferredLanguage,
             messageTone: messageTone,
