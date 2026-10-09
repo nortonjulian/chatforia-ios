@@ -6,6 +6,7 @@ struct ChatsRootView: View {
     @AppStorage("chatforia_language") private var appLanguage = "en"
     @Environment(\.scenePhase) private var scenePhase
     @EnvironmentObject private var vm: ChatsViewModel
+    @ObservedObject private var subscriptionManager = SubscriptionManager.shared
 
     @State private var showingStartChat = false
     @State private var selectedRoom: ChatRoomDTO? = nil
@@ -26,7 +27,11 @@ struct ChatsRootView: View {
     @StateObject private var settingsVM = SettingsViewModel()
 
     private var shouldShowAds: Bool {
-        !auth.isPaid
+        resolvedAdsEnabled(
+            backendAdsEnabled:
+                subscriptionManager.backendEntitlements?.entitlements.adsEnabled,
+            isPaid: auth.isPaid
+        )
     }
 
     var body: some View {

@@ -74,4 +74,38 @@ final class SubscriptionManagerTests: XCTestCase {
         XCTAssertEqual(response.usage["riaActions"]?.used, 12)
         XCTAssertEqual(response.usage["riaActions"]?.remaining, 488)
     }
+    func testResolvedAdsEnabledBackendFalseWinsForFreeUser() {
+        XCTAssertFalse(
+            resolvedAdsEnabled(
+                backendAdsEnabled: false,
+                isPaid: false
+            )
+        )
+    }
+
+    func testResolvedAdsEnabledBackendTrueWinsForPaidUser() {
+        XCTAssertTrue(
+            resolvedAdsEnabled(
+                backendAdsEnabled: true,
+                isPaid: true
+            )
+        )
+    }
+
+    func testResolvedAdsEnabledFallsBackToPlanWhileEntitlementsLoad() {
+        XCTAssertTrue(
+            resolvedAdsEnabled(
+                backendAdsEnabled: nil,
+                isPaid: false
+            )
+        )
+
+        XCTAssertFalse(
+            resolvedAdsEnabled(
+                backendAdsEnabled: nil,
+                isPaid: true
+            )
+        )
+    }
+
 }

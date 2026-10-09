@@ -34,6 +34,13 @@ struct PlanEntitlementsResponse: Decodable, Equatable {
     }
 }
 
+func resolvedAdsEnabled(
+    backendAdsEnabled: Bool?,
+    isPaid: Bool
+) -> Bool {
+    backendAdsEnabled ?? !isPaid
+}
+
 @MainActor
 final class SubscriptionManager: ObservableObject {
     static let shared = SubscriptionManager()
