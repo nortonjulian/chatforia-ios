@@ -17,6 +17,7 @@ struct ChatThreadView: View {
     @EnvironmentObject private var settingsVM: SettingsViewModel
 
     @StateObject private var riaVM = RiaViewModel()
+    @ObservedObject private var subscriptionManager = SubscriptionManager.shared
     @State private var showingRewriteSheet = false
 
     @State private var draft = ""
@@ -52,6 +53,18 @@ struct ChatThreadView: View {
     @State private var showEditEmojiPicker = false
 
     @State private var isSendingText = false
+
+    private var aiRewriteLevel: String {
+        resolvedAiRewriteLevel(
+            backendLevel:
+                subscriptionManager.backendEntitlements?.entitlements.aiRewriteLevel,
+            fallbackPlan: auth.subscriptionPlan
+        )
+    }
+
+    private var composerAiEnabled: Bool {
+        aiRewriteLevel != "NONE"
+    }
 
     // MARK: - Voice notes
 
@@ -655,7 +668,7 @@ extension ChatThreadView {
 
                     riaVM.loadSuggestions(
                         token: auth.currentToken,
-                        enabled: settingsVM.enableSmartReplies,
+                        enabled: settingsVM.enableSmartReplies && composerAiEnabled,
                         filterProfanity: settingsVM.maskAIProfanity,
                         draft: draft,
                         messages: vm.messages.suffix(8).map {
@@ -689,6 +702,7 @@ extension ChatThreadView {
                 onSuggestionTap: { suggestion in
                     draft = suggestion
                 },
+                aiComposerToolsEnabled: composerAiEnabled,
                 onRewriteTap: {
                     showingRewriteSheet = true
                 },
