@@ -41,5 +41,4 @@ enum AppPlan: String, CaseIterable {
     var hasPremiumSounds: Bool { canAccess(.premium) }
     var canManageBilling: Bool { canAccess(.plus) }
     var canUseForwarding: Bool { canAccess(.plus) }
-    var canUseAITools: Bool { canAccess(.premium) }
 }
