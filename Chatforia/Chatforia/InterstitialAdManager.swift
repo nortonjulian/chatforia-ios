@@ -9,6 +9,7 @@ final class InterstitialAdManager: NSObject, FullScreenContentDelegate {
     private var interstitialAd: InterstitialAd?
     private var isLoading = false
     private var showing = false
+    private var adsEnabled = false
 
     private var openCount = 0
     private let showEveryNOpenings = 4
@@ -20,7 +21,22 @@ final class InterstitialAdManager: NSObject, FullScreenContentDelegate {
         super.init()
     }
 
+    func setAdsEnabled(_ enabled: Bool) {
+        guard adsEnabled != enabled else { return }
+
+        adsEnabled = enabled
+
+        if !enabled {
+            interstitialAd = nil
+            openCount = 0
+            return
+        }
+
+        preloadIfNeeded()
+    }
+
     func preloadIfNeeded() {
+        guard adsEnabled else { return }
         guard interstitialAd == nil, !isLoading else { return }
 
         isLoading = true
@@ -39,6 +55,11 @@ final class InterstitialAdManager: NSObject, FullScreenContentDelegate {
                     return
                 }
 
+                guard self.adsEnabled else {
+                    self.interstitialAd = nil
+                    return
+                }
+
                 self.interstitialAd = ad
                 self.interstitialAd?.fullScreenContentDelegate = self
 
@@ -48,6 +69,7 @@ final class InterstitialAdManager: NSObject, FullScreenContentDelegate {
     }
 
     func recordChatOpenAndMaybeShow() {
+        guard adsEnabled else { return }
         guard !showing else { return }
 
         openCount += 1
@@ -59,6 +81,7 @@ final class InterstitialAdManager: NSObject, FullScreenContentDelegate {
     }
 
     func showIfReady() {
+        guard adsEnabled else { return }
         guard !showing else { return }
 
         if let lastShownAt,
@@ -91,7 +114,9 @@ final class InterstitialAdManager: NSObject, FullScreenContentDelegate {
     func adDidDismissFullScreenContent(_ ad: FullScreenPresentingAd) {
         showing = false
         interstitialAd = nil
-        preloadIfNeeded()
+        if adsEnabled {
+            preloadIfNeeded()
+        }
     }
 
     func ad(
@@ -101,6 +126,8 @@ final class InterstitialAdManager: NSObject, FullScreenContentDelegate {
         showing = false
         interstitialAd = nil
         debugLog("❌ AdMob interstitial failed to present:", error.localizedDescription)
-        preloadIfNeeded()
+        if adsEnabled {
+            preloadIfNeeded()
+        }
     }
 }

@@ -74,4 +74,90 @@ final class SubscriptionManagerTests: XCTestCase {
         XCTAssertEqual(response.usage["riaActions"]?.used, 12)
         XCTAssertEqual(response.usage["riaActions"]?.remaining, 488)
     }
+    func testResolvedAdsEnabledBackendFalseWinsForFreeUser() {
+        XCTAssertFalse(
+            resolvedAdsEnabled(
+                backendAdsEnabled: false,
+                isPaid: false
+            )
+        )
+    }
+
+    func testResolvedAdsEnabledBackendTrueWinsForPaidUser() {
+        XCTAssertTrue(
+            resolvedAdsEnabled(
+                backendAdsEnabled: true,
+                isPaid: true
+            )
+        )
+    }
+
+    func testResolvedAdsEnabledFallsBackToPlanWhileEntitlementsLoad() {
+        XCTAssertTrue(
+            resolvedAdsEnabled(
+                backendAdsEnabled: nil,
+                isPaid: false
+            )
+        )
+
+        XCTAssertFalse(
+            resolvedAdsEnabled(
+                backendAdsEnabled: nil,
+                isPaid: true
+            )
+        )
+    }
+
+    func testResolvedAiRewriteLevelUsesBackendWhenPresent() {
+        XCTAssertEqual(
+            resolvedAiRewriteLevel(
+                backendLevel: "NONE",
+                fallbackPlan: .premium
+            ),
+            "NONE"
+        )
+
+        XCTAssertEqual(
+            resolvedAiRewriteLevel(
+                backendLevel: "STANDARD",
+                fallbackPlan: .free
+            ),
+            "STANDARD"
+        )
+
+        XCTAssertEqual(
+            resolvedAiRewriteLevel(
+                backendLevel: "FULL",
+                fallbackPlan: .free
+            ),
+            "FULL"
+        )
+    }
+
+    func testResolvedAiRewriteLevelFallsBackToCurrentPlan() {
+        XCTAssertEqual(
+            resolvedAiRewriteLevel(
+                backendLevel: nil,
+                fallbackPlan: .free
+            ),
+            "NONE"
+        )
+
+        XCTAssertEqual(
+            resolvedAiRewriteLevel(
+                backendLevel: nil,
+                fallbackPlan: .plus
+            ),
+            "STANDARD"
+        )
+
+        XCTAssertEqual(
+            resolvedAiRewriteLevel(
+                backendLevel: nil,
+                fallbackPlan: .premium
+            ),
+            "FULL"
+        )
+    }
+
 }

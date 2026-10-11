@@ -34,6 +34,40 @@ struct PlanEntitlementsResponse: Decodable, Equatable {
     }
 }
 
+func resolvedAdsEnabled(
+    backendAdsEnabled: Bool?,
+    isPaid: Bool
+) -> Bool {
+    backendAdsEnabled ?? !isPaid
+}
+
+func resolvedAiRewriteLevel(
+    backendLevel: String?,
+    fallbackPlan: AuthStore.SubscriptionPlan
+) -> String {
+    let normalizedBackend =
+        backendLevel?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .uppercased()
+
+    if
+        normalizedBackend == "NONE" ||
+        normalizedBackend == "STANDARD" ||
+        normalizedBackend == "FULL"
+    {
+        return normalizedBackend ?? "NONE"
+    }
+
+    switch fallbackPlan {
+    case .plus:
+        return "STANDARD"
+    case .premium:
+        return "FULL"
+    case .free:
+        return "NONE"
+    }
+}
+
 @MainActor
 final class SubscriptionManager: ObservableObject {
     static let shared = SubscriptionManager()

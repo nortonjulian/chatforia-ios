@@ -161,7 +161,14 @@ struct ChatforiaApp: App {
                 SendQueueManager.shared.replayQueuedJobs()
                 await inviteFlow.redeemPendingInviteIfNeeded(auth: auth)
 
-                if !auth.isPaid {
+                let shouldShowAds = resolvedAdsEnabled(
+                    backendAdsEnabled:
+                        SubscriptionManager.shared.backendEntitlements?.entitlements.adsEnabled,
+                    isPaid: auth.isPaid
+                )
+
+                InterstitialAdManager.shared.setAdsEnabled(shouldShowAds)
+                if shouldShowAds {
                     InterstitialAdManager.shared.preloadIfNeeded()
                 }
             }
@@ -311,7 +318,14 @@ struct ChatforiaApp: App {
                 await inviteFlow.redeemPendingInviteIfNeeded(auth: auth)
             }
 
-            if !auth.isPaid {
+            let shouldShowAds = resolvedAdsEnabled(
+                backendAdsEnabled:
+                    SubscriptionManager.shared.backendEntitlements?.entitlements.adsEnabled,
+                isPaid: auth.isPaid
+            )
+
+            InterstitialAdManager.shared.setAdsEnabled(shouldShowAds)
+            if shouldShowAds {
                 InterstitialAdManager.shared.preloadIfNeeded()
             }
         }
