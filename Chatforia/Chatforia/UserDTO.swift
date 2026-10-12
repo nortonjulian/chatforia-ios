@@ -153,10 +153,25 @@ struct UserDTO: Codable, Identifiable {
 
 extension UserDTO {
     var normalizedPlan: String {
-        let trimmed = plan?.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        let trimmed =
+            plan?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .uppercased()
+
+        if trimmed == "PREMIUM" {
+            if let isPremium {
+                return isPremium ? "PREMIUM" : "FREE"
+            }
+
+            // Backward-compatible fallback for older payloads that do not
+            // include the server-authoritative isPremium flag.
+            return "PREMIUM"
+        }
+
         if let trimmed, !trimmed.isEmpty {
             return trimmed
         }
+
         return (isPremium ?? false) ? "PREMIUM" : "FREE"
     }
 

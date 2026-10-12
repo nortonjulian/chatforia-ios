@@ -134,6 +134,48 @@ final class AuthStoreTests: XCTestCase {
         XCTAssertEqual(auth.subscriptionPlan, .free)
     }
 
+    func testPlusRemainsPaidButNotPremium() {
+        let auth = makeAuthStore()
+        auth.replaceCurrentUser(
+            makeUser(plan: "PLUS", isPremium: false)
+        )
+
+        XCTAssertTrue(auth.isPlus)
+        XCTAssertFalse(auth.isPremium)
+        XCTAssertTrue(auth.isPaid)
+        XCTAssertEqual(auth.subscriptionPlan, .plus)
+    }
+
+    func testBackendConfirmedPremiumIsPremium() {
+        let auth = makeAuthStore()
+        auth.replaceCurrentUser(
+            makeUser(plan: "PREMIUM", isPremium: true)
+        )
+
+        XCTAssertFalse(auth.isPlus)
+        XCTAssertTrue(auth.isPremium)
+        XCTAssertTrue(auth.isPaid)
+        XCTAssertEqual(auth.subscriptionPlan, .premium)
+    }
+
+    func testBackendDeniedPremiumFallsBackToFree() {
+        let auth = makeAuthStore()
+        auth.replaceCurrentUser(
+            makeUser(plan: "PREMIUM", isPremium: false)
+        )
+
+        XCTAssertFalse(auth.isPlus)
+        XCTAssertFalse(auth.isPremium)
+        XCTAssertFalse(auth.isPaid)
+        XCTAssertEqual(auth.subscriptionPlan, .free)
+    }
+
+    func testUserDTOPremiumWithoutAuthoritativeFlagFallsBackToPremium() {
+        let user = makeUser(plan: "PREMIUM", isPremium: nil)
+
+        XCTAssertEqual(user.normalizedPlan, "PREMIUM")
+    }
+
     private func makeAuthStore() -> AuthStore {
         AuthStore(
             tokenStore: tokenStore,
@@ -151,6 +193,7 @@ final class AuthStoreTests: XCTestCase {
         email: String? = "julian@example.com",
         preferredLanguage: String? = "en",
         plan: String? = "FREE",
+        isPremium: Bool? = nil,
         publicKey: String? = nil,
         role: String? = "USER",
         theme: String? = "Dawn",
@@ -164,7 +207,7 @@ final class AuthStoreTests: XCTestCase {
             "publicKey": publicKey,
             "role": role,
             "plan": plan,
-            "isPremium": plan == "PREMIUM",
+            "isPremium": isPremium ?? (plan == "PREMIUM"),
             "preferredLanguage": preferredLanguage,
             "uiLanguage": uiLanguage,
             "theme": theme,
