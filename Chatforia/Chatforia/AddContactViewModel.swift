@@ -28,9 +28,14 @@ final class AddContactViewModel: ObservableObject {
     @Published var alias: String
     @Published var favorite: Bool
 
+    @Published var searchResults: [PeopleSearchItemDTO] = []
+    @Published var selectedUser: PeopleSearchItemDTO?
+    @Published var isSearching = false
     @Published var isSaving = false
     @Published var errorText: String?
     @Published var successText: String?
+
+    private var searchTask: Task<Void, Never>?
     
     private var appLanguage: String {
         UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
@@ -55,10 +60,61 @@ final class AddContactViewModel: ObservableObject {
     var canSave: Bool {
         switch mode {
         case .username:
-            return !username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            return selectedUser?.userId != nil || !username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         case .phone:
             return PhoneContactsService.normalizePhone(phoneNumber) != nil
         }
+    }
+
+    func usernameChanged(token: String?) {
+        selectedUser = nil
+        searchTask?.cancel()
+        searchResults = []
+
+        let query = username.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard mode == .username, query.count >= 3, let token, !token.isEmpty else {
+            isSearching = false
+            return
+        }
+
+        searchTask = Task { [weak self] in
+            do {
+                try await Task.sleep(nanoseconds: 300_000_000)
+                guard !Task.isCancelled, let self else { return }
+                self.isSearching = true
+                defer { self.isSearching = false }
+
+                let response = try await ContactsService.shared.searchPeople(
+                    query: query,
+                    token: token
+                )
+
+                guard !Task.isCancelled else { return }
+                self.searchResults = response.items.filter {
+                    $0.kind == "user" && $0.userId != nil
+                }
+                self.errorText = nil
+            } catch is CancellationError {
+                return
+            } catch {
+                guard !Task.isCancelled, let self else { return }
+                self.searchResults = []
+                self.errorText = error.localizedDescription
+            }
+        }
+    }
+
+    func selectUser(_ user: PeopleSearchItemDTO) {
+        selectedUser = user
+        searchResults = []
+        errorText = nil
+    }
+
+    func clearSelectedUser() {
+        selectedUser = nil
+        username = ""
+        searchResults = []
+        errorText = nil
     }
 
     func save(token: String?) async throws -> ContactDTO {
@@ -75,58 +131,62 @@ final class AddContactViewModel: ObservableObject {
         case .username:
             let trimmedUsername = username.trimmingCharacters(in: .whitespacesAndNewlines)
 
-            guard !trimmedUsername.isEmpty else {
-                throw NSError(
-                    domain: "AddContactViewModel",
-                    code: 1,
-                    userInfo: [
-                        NSLocalizedDescriptionKey:
-                            appText(
-                                "contacts.enterUsername",
-                                languageCode: appLanguage
-                            )
-                    ]
-                )
-            }
-
-            do {
-                let lookup = try await ContactsService.shared.lookupUser(
-                    username: trimmedUsername,
-                    token: token
-                )
-
-                let contact = try await ContactsService.shared.saveUserContact(
-                    userId: lookup.userId,
-                    alias: alias.nilIfEmpty,
-                    favorite: favorite,
-                    token: token
-                )
-
-                successText = appText(
-                    "contacts.contactSaved",
-                    languageCode: appLanguage
-                )
-                return contact
-
-            } catch let error as APIError {
-                switch error {
-                case .server(let status, _, _, _) where status == 404:
+            let userId: Int
+            if let selectedId = selectedUser?.userId {
+                userId = selectedId
+            } else {
+                guard !trimmedUsername.isEmpty else {
                     throw NSError(
                         domain: "AddContactViewModel",
-                        code: 404,
+                        code: 1,
                         userInfo: [
                             NSLocalizedDescriptionKey:
                                 appText(
-                                    "contacts.noUserFoundUsePhone",
+                                    "contacts.enterUsername",
                                     languageCode: appLanguage
                                 )
                         ]
                     )
+                }
 
-                default:
-                    throw error
+                do {
+                    let lookup = try await ContactsService.shared.lookupUser(
+                        username: trimmedUsername.replacingOccurrences(of: "@", with: ""),
+                        token: token
+                    )
+                    userId = lookup.userId
+                } catch let error as APIError {
+                    switch error {
+                    case .server(let status, _, _, _) where status == 404:
+                        throw NSError(
+                            domain: "AddContactViewModel",
+                            code: 404,
+                            userInfo: [
+                                NSLocalizedDescriptionKey:
+                                    appText(
+                                        "contacts.noUserFoundUsePhone",
+                                        languageCode: appLanguage
+                                    )
+                            ]
+                        )
+                    default:
+                        throw error
+                    }
                 }
             }
+
+            let contact = try await ContactsService.shared.saveUserContact(
+                userId: userId,
+                alias: alias.nilIfEmpty,
+                favorite: favorite,
+                token: token
+            )
+
+            successText = appText(
+                "contacts.contactSaved",
+                languageCode: appLanguage
+            )
+            return contact
 
         case .phone:
             guard let normalized = PhoneContactsService.normalizePhone(phoneNumber) else {
