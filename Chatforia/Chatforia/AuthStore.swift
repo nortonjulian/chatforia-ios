@@ -433,9 +433,7 @@ final class AuthStore: NSObject, ObservableObject {
     }
 
     private func syncPlan(from user: UserDTO) {
-        let normalized = (user.plan ?? "FREE").uppercased()
-
-        switch normalized {
+        switch user.normalizedPlan {
         case "PREMIUM":
             subscriptionPlan = .premium
         case "PLUS":
