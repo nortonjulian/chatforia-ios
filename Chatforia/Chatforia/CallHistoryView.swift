@@ -137,7 +137,7 @@ struct CallHistoryView: View {
             } else {
                 List {
                     ForEach(items) { item in
-                        let otherUser = item.otherUser(for: auth.currentUser?.id)
+                        let otherUser = item.otherUser(for: auth.currentUser?.id, contacts: savedContacts)
                         
                         CallHistoryRowView(
                             item: item,
@@ -146,7 +146,7 @@ struct CallHistoryView: View {
                             canCall: otherUser != nil || item.externalNumber != nil,
 
                             onRedial: {
-                                let otherUser = item.otherUser(for: auth.currentUser?.id)
+                                let otherUser = item.otherUser(for: auth.currentUser?.id, contacts: savedContacts)
 
                                 var choices: [PendingCallChoice] = []
 
@@ -297,7 +297,7 @@ private func title(for choice: PendingCallChoice) -> String {
     
     private func handleMessage(for item: CallRecordDTO) async {
         do {
-            let otherUser = item.otherUser(for: auth.currentUser?.id)
+            let otherUser = item.otherUser(for: auth.currentUser?.id, contacts: savedContacts)
 
             if let user = otherUser {
                 let destination = try await startChatVM.createOrOpenDirectChat(targetUserId: user.id)
