@@ -19,6 +19,11 @@ struct CallRecordDTO: Decodable, Identifiable, Equatable {
     let callee: CallUserSummaryDTO?
     let hasVoicemail: Bool?
     let voicemailId: String?
+
+    // Older history responses may provide the number through these fields.
+    var phoneNumber: String? = nil
+    var fromLabel: String? = nil
+    var toLabel: String? = nil
 }
 
 struct CallUserSummaryDTO: Decodable, Equatable {
@@ -47,8 +52,25 @@ extension CallRecordDTO {
     }
 
     var externalNumber: String? {
-        let number = externalPhone?.trimmingCharacters(in: .whitespacesAndNewlines)
-        return number?.isEmpty == false ? number : nil
+        var candidates = [externalPhone, phoneNumber]
+
+        // Only use endpoint labels for a one-account phone-call record.
+        // App-to-app calls can also have Twilio SIDs, so a SID is not a type check.
+        if calleeId == nil || calleeId == callerId {
+            switch direction?.trimmingCharacters(in: .whitespacesAndNewlines).uppercased() {
+            case "INCOMING": candidates.append(fromLabel)
+            case "OUTGOING": candidates.append(toLabel)
+            default: break
+            }
+        }
+
+        for candidate in candidates {
+            guard let value = candidate?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  PhoneContactsService.normalizePhone(value) != nil
+            else { continue }
+            return value
+        }
+        return nil
     }
 
     func matchedExternalContactName(in contacts: [ContactDTO]) -> String? {
@@ -90,7 +112,32 @@ extension CallRecordDTO {
     func otherUser(for currentUserId: Int?) -> CallUserSummaryDTO? {
         // PSTN call records may store the account owner as caller.
         // The actual other party is the external number.
-        guard externalNumber == nil else { return nil }
-        return isOutgoing(for: currentUserId) ? callee : caller
+        guard externalNumber == nil,
+              externalPhone?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false,
+              phoneNumber?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false,
+              let currentUserId,
+              currentUserId > 0,
+              let calleeId,
+              callerId > 0,
+              calleeId > 0,
+              callerId != calleeId
+        else { return nil }
+
+        // User identity is independent of display direction. Never offer
+        // app actions to the account owner or to someone outside this call.
+        let expectedId: Int
+        let user: CallUserSummaryDTO?
+        if currentUserId == callerId {
+            expectedId = calleeId
+            user = callee
+        } else if currentUserId == calleeId {
+            expectedId = callerId
+            user = caller
+        } else {
+            return nil
+        }
+
+        guard user?.id == expectedId else { return nil }
+        return user
     }
 }
