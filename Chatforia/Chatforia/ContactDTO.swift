@@ -15,6 +15,7 @@ struct ContactUserDTO: Codable, Identifiable, Equatable, Hashable {
     let id: Int
     let username: String?
     let avatarUrl: String?
+    var displayName: String? = nil
 }
 
 struct ContactsResponseDTO: Decodable {
