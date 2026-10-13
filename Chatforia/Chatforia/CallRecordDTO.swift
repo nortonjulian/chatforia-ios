@@ -73,23 +73,26 @@ extension CallRecordDTO {
         return nil
     }
 
-    func matchedExternalContactName(in contacts: [ContactDTO]) -> String? {
+    func matchedExternalContact(in contacts: [ContactDTO]) -> ContactDTO? {
         guard let externalNumber,
               let normalized = PhoneContactsService.normalizePhone(externalNumber)
         else { return nil }
-
-        guard let contact = contacts.first(where: {
+        let matches = contacts.filter {
             guard let number = $0.externalPhone else { return false }
             return PhoneContactsService.normalizePhone(number) == normalized
-        }) else { return nil }
+        }
+        return matches.first(where: { $0.user != nil }) ?? matches.first
+    }
 
-        for candidate in [contact.alias, contact.user?.username, contact.externalName] {
+    func matchedExternalContactName(in contacts: [ContactDTO]) -> String? {
+        guard let contact = matchedExternalContact(in: contacts) else { return nil }
+        for candidate in [contact.alias, contact.externalName,
+                          contact.user?.displayName, contact.user?.username] {
             if let name = candidate?.trimmingCharacters(in: .whitespacesAndNewlines),
                !name.isEmpty {
                 return name
             }
         }
-
         return nil
     }
 
@@ -109,7 +112,20 @@ extension CallRecordDTO {
         return nil
     }
 
-    func otherUser(for currentUserId: Int?) -> CallUserSummaryDTO? {
+    func otherUser(for currentUserId: Int?, contacts: [ContactDTO] = []) -> CallUserSummaryDTO? {
+        if externalNumber != nil {
+            // Alternate app actions require an explicitly linked contact.
+            // The historical call remains a phone call and retains its number.
+            guard let currentUserId, currentUserId > 0,
+                  let user = matchedExternalContact(in: contacts)?.user,
+                  user.id > 0, user.id != currentUserId
+            else { return nil }
+            return CallUserSummaryDTO(
+                id: user.id, username: user.username,
+                displayName: user.displayName, avatarUrl: user.avatarUrl
+            )
+        }
+
         // PSTN call records may store the account owner as caller.
         // The actual other party is the external number.
         guard externalNumber == nil,
