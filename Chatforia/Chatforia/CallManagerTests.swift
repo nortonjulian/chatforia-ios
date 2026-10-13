@@ -299,4 +299,60 @@ final class CallRecordDTOTests: XCTestCase {
         )
         XCTAssertEqual(call.otherUser(for: 65)?.id, 77)
     }
+    func testMissingExternalNumberNeverOffersAccountOwnerAsOtherUser() {
+        let call = makeCall(externalPhone: nil)
+        XCTAssertNil(call.otherUser(for: 65))
+        XCTAssertNil(call.otherPartyName(for: 65, contacts: []))
+    }
+
+    func testOneAccountLegacyCallUsesIncomingPhoneLabel() {
+        var call = makeCall(externalPhone: nil)
+        call.fromLabel = "+13018019227"
+        call.toLabel = "+14155550101"
+        XCTAssertEqual(call.externalNumber, "+13018019227")
+        XCTAssertNil(call.otherUser(for: 65))
+    }
+
+    func testOneAccountLegacyCallUsesOutgoingPhoneLabel() {
+        var call = makeCall(direction: "OUTGOING", externalPhone: nil)
+        call.fromLabel = "+14155550101"
+        call.toLabel = "+13018019227"
+        XCTAssertEqual(call.externalNumber, "+13018019227")
+        XCTAssertNil(call.otherUser(for: 65))
+    }
+
+    func testLegacyPhoneNumberIsDecodedFromHistoryResponse() throws {
+        let payload = """
+        {"id":922,"callerId":65,"mode":"AUDIO","status":"DECLINED",
+         "direction":"INCOMING","phoneNumber":"+13018019227",
+         "fromLabel":"+13018019227","toLabel":"+14155550101",
+         "createdAt":"2026-09-27T22:05:00Z"}
+        """
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let call = try decoder.decode(CallRecordDTO.self, from: Data(payload.utf8))
+        XCTAssertEqual(call.externalNumber, "+13018019227")
+        XCTAssertEqual(call.fromLabel, "+13018019227")
+        XCTAssertNil(call.otherUser(for: 65))
+    }
+
+    func testIncomingAppCallResolvesDistinctCaller() {
+        let caller = CallUserSummaryDTO(
+            id: 77, username: "julian", displayName: "Julian", avatarUrl: nil
+        )
+        let call = makeCall(
+            callerId: 77, calleeId: 65, externalPhone: nil, caller: caller
+        )
+        XCTAssertEqual(call.otherUser(for: 65)?.id, 77)
+        XCTAssertEqual(call.otherPartyName(for: 65, contacts: []), "Julian")
+        XCTAssertNil(call.otherUser(for: nil))
+        XCTAssertNil(call.otherUser(for: 999))
+    }
+
+    func testSelfCallNeverOffersVideoOrOwnerName() {
+        let call = makeCall(calleeId: 65, externalPhone: nil)
+        XCTAssertNil(call.otherUser(for: 65))
+        XCTAssertNil(call.otherPartyName(for: 65, contacts: []))
+    }
+
 }
