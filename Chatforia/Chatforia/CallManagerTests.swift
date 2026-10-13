@@ -355,4 +355,46 @@ final class CallRecordDTOTests: XCTestCase {
         XCTAssertNil(call.otherPartyName(for: 65, contacts: []))
     }
 
+    func testLinkedExternalContactOffersTheDistinctUserAndFullName() {
+        let call = makeCall(externalPhone: "+17609249652")
+        var user = ContactUserDTO(id: 1, username: "julian", avatarUrl: nil)
+        user.displayName = "Julian Norton"
+        let contact = ContactDTO(
+            id: 17, alias: nil, favorite: false,
+            externalPhone: "+17609249652", externalName: nil,
+            createdAt: nil, userId: 1, user: user
+        )
+        XCTAssertEqual(call.otherPartyName(for: 65, contacts: [contact]), "Julian Norton")
+        XCTAssertEqual(call.otherUser(for: 65, contacts: [contact])?.id, 1)
+        XCTAssertEqual(call.externalNumber, "+17609249652")
+        XCTAssertNil(call.otherUser(for: 1, contacts: [contact]))
+    }
+
+    func testNamedPhoneOnlyContactDoesNotOfferAppActions() {
+        let call = makeCall()
+        let contact = ContactDTO(
+            id: 18, alias: "Julian Norton", favorite: false,
+            externalPhone: "+13018019227", externalName: nil,
+            createdAt: nil, userId: nil, user: nil
+        )
+        XCTAssertEqual(call.otherPartyName(for: 65, contacts: [contact]), "Julian Norton")
+        XCTAssertNil(call.otherUser(for: 65, contacts: [contact]))
+    }
+
+    func testLinkedContactWinsOverAnUnlinkedDuplicateNumber() {
+        let call = makeCall()
+        let unlinked = ContactDTO(
+            id: 18, alias: nil, favorite: false, externalPhone: "+13018019227",
+            externalName: nil, createdAt: nil, userId: nil, user: nil
+        )
+        var user = ContactUserDTO(id: 1, username: "julian", avatarUrl: nil)
+        user.displayName = "Julian Norton"
+        let linked = ContactDTO(
+            id: 17, alias: nil, favorite: false, externalPhone: "(301) 801-9227",
+            externalName: nil, createdAt: nil, userId: 1, user: user
+        )
+        XCTAssertEqual(call.otherPartyName(for: 65, contacts: [unlinked, linked]), "Julian Norton")
+        XCTAssertEqual(call.otherUser(for: 65, contacts: [unlinked, linked])?.id, 1)
+    }
+
 }
