@@ -143,7 +143,7 @@ struct CallHistoryView: View {
                             item: item,
                             currentUserId: auth.currentUser?.id,
                             contacts: savedContacts,
-                            canCall: otherUser != nil || item.externalPhone != nil,
+                            canCall: otherUser != nil || item.externalNumber != nil,
 
                             onRedial: {
                                 let otherUser = item.otherUser(for: auth.currentUser?.id)
@@ -159,7 +159,7 @@ struct CallHistoryView: View {
                                     )
                                 }
 
-                                if let phone = item.externalPhone,
+                                if let phone = item.externalNumber,
                                 !phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                                     choices.append(
                                         .phoneNumber(
@@ -196,7 +196,7 @@ struct CallHistoryView: View {
                             }
                         )
                         .onAppear {
-                            debugLog("CALL HISTORY:", item.id, "callerId:", item.callerId, "calleeId:", item.calleeId as Any, "status:", item.status, "externalPhone:", item.externalPhone as Any)
+                            debugLog("CALL HISTORY IDENTITY V2:", item.id, "currentUserId:", auth.currentUser?.id as Any, "callerId:", item.callerId, "calleeId:", item.calleeId as Any, "direction:", item.direction as Any, "status:", item.status, "hasExternalNumber:", item.externalNumber != nil, "otherUserId:", otherUser?.id as Any)
                         }
                         .listRowBackground(themeManager.palette.cardBackground)
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -315,7 +315,7 @@ private func title(for choice: PendingCallChoice) -> String {
                 return
             }
 
-            if let rawPhone = item.externalPhone,
+            if let rawPhone = item.externalNumber,
                let phone = PhoneContactsService.normalizePhone(rawPhone),
                !phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
 
