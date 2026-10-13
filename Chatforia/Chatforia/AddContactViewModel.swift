@@ -36,7 +36,7 @@ final class AddContactViewModel: ObservableObject {
     @Published var successText: String?
 
     private var searchTask: Task<Void, Never>?
-    
+
     private var appLanguage: String {
         UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
     }
@@ -60,7 +60,7 @@ final class AddContactViewModel: ObservableObject {
     var canSave: Bool {
         switch mode {
         case .username:
-            return selectedUser?.userId != nil || !username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            return selectedUser?.userId != nil
         case .phone:
             return PhoneContactsService.normalizePhone(phoneNumber) != nil
         }
@@ -129,50 +129,14 @@ final class AddContactViewModel: ObservableObject {
 
         switch mode {
         case .username:
-            let trimmedUsername = username.trimmingCharacters(in: .whitespacesAndNewlines)
-
-            let userId: Int
-            if let selectedId = selectedUser?.userId {
-                userId = selectedId
-            } else {
-                guard !trimmedUsername.isEmpty else {
-                    throw NSError(
-                        domain: "AddContactViewModel",
-                        code: 1,
-                        userInfo: [
-                            NSLocalizedDescriptionKey:
-                                appText(
-                                    "contacts.enterUsername",
-                                    languageCode: appLanguage
-                                )
-                        ]
-                    )
-                }
-
-                do {
-                    let lookup = try await ContactsService.shared.lookupUser(
-                        username: trimmedUsername.replacingOccurrences(of: "@", with: ""),
-                        token: token
-                    )
-                    userId = lookup.userId
-                } catch let error as APIError {
-                    switch error {
-                    case .server(let status, _, _, _) where status == 404:
-                        throw NSError(
-                            domain: "AddContactViewModel",
-                            code: 404,
-                            userInfo: [
-                                NSLocalizedDescriptionKey:
-                                    appText(
-                                        "contacts.noUserFoundUsePhone",
-                                        languageCode: appLanguage
-                                    )
-                            ]
-                        )
-                    default:
-                        throw error
-                    }
-                }
+            guard let userId = selectedUser?.userId else {
+                throw NSError(
+                    domain: "AddContactViewModel",
+                    code: 1,
+                    userInfo: [
+                        NSLocalizedDescriptionKey: "Select the person you want to save."
+                    ]
+                )
             }
 
             let contact = try await ContactsService.shared.saveUserContact(
