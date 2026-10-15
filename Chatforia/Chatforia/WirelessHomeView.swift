@@ -24,6 +24,11 @@ struct WirelessHomeView: View {
     @State private var hasLoadedActivation = false
     @State private var checkoutReturnState: CheckoutReturnState = .idle
 
+    @State private var showReplaceEsimConfirmation = false
+    @State private var isReplacingEsim = false
+    @State private var replacementErrorMessage: String?
+    @State private var replacementIdempotencyKey: String?
+
 
     enum ESIMStatus {
         case none
@@ -52,6 +57,8 @@ struct WirelessHomeView: View {
 
                 packsSection
                 actionsSection
+
+
                 disclaimerSection
             }
             .padding()
@@ -86,6 +93,25 @@ struct WirelessHomeView: View {
                     viewModel: ESIMActivationViewModel(payload: payload)
                 )
             }
+        }
+        .alert(
+            "Replace eSIM?",
+            isPresented: $showReplaceEsimConfirmation
+        ) {
+            Button("Cancel", role: .cancel) {
+                replacementIdempotencyKey = nil
+            }
+
+            Button("Replace eSIM", role: .destructive) {
+                Task {
+                    await replaceEsimForNewPhone()
+                }
+            }
+        } message: {
+            Text(
+                "Your remaining data and expiration date will move to a new eSIM. "
+                + "After the replacement succeeds, the old eSIM will stop working."
+            )
         }
     }
 
@@ -382,6 +408,91 @@ struct WirelessHomeView: View {
                     }
                     .padding(.vertical, 8)
 
+                    if let queuedPacks = status.queuedPacks,
+                       let nextPack = queuedPacks.first,
+                       let queuedRemainingMb = nextPack.remainingDataMb,
+                       queuedRemainingMb > 0 {
+
+                        Divider()
+                            .padding(.vertical, 2)
+
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Next Data Pack")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(
+                                    themeManager.palette.primaryText
+                                )
+
+                            HStack(alignment: .firstTextBaseline) {
+                                Text(formatGB(queuedRemainingMb))
+                                    .font(.title3.weight(.bold))
+                                    .foregroundStyle(
+                                        themeManager.palette.primaryText
+                                    )
+
+                                Spacer()
+
+                                Text("Queued")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.orange)
+                            }
+
+                            Text("Ready after your current pack")
+                                .font(.footnote)
+                                .foregroundStyle(
+                                    themeManager.palette.secondaryText
+                                )
+
+                            if queuedPacks.count > 1 {
+                                Text(
+                                    "\(queuedPacks.count) data packs queued"
+                                )
+                                .font(.caption)
+                                .foregroundStyle(
+                                    themeManager.palette.secondaryText
+                                )
+                            }
+                        }
+                        .padding(.vertical, 4)
+
+                        if let totalAvailableMb =
+                                status.totalAvailableDataMb,
+                           totalAvailableMb > remainingMb {
+
+                            Divider()
+                                .padding(.vertical, 2)
+
+                            HStack(alignment: .firstTextBaseline) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Total Data Available")
+                                        .font(
+                                            .subheadline.weight(.semibold)
+                                        )
+                                        .foregroundStyle(
+                                            themeManager.palette.primaryText
+                                        )
+
+                                    Text(
+                                        "Current + queued data packs"
+                                    )
+                                    .font(.footnote)
+                                    .foregroundStyle(
+                                        themeManager.palette.secondaryText
+                                    )
+                                }
+
+                                Spacer()
+
+                                Text(formatGB(totalAvailableMb))
+                                    .font(.title3.weight(.bold))
+                                    .foregroundStyle(
+                                        themeManager.palette.primaryText
+                                    )
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+
                 } else if let status = wirelessStatus,
                         status.mode.uppercased() == "NONE" {
 
@@ -464,6 +575,7 @@ struct WirelessHomeView: View {
         do {
             let status = try await WirelessService.shared.fetchWirelessStatus()
             wirelessStatus = status
+
         } catch {
             // Preserve existing usage information during a failed refresh.
             // Only show an error when there is no previously loaded status.
@@ -623,11 +735,70 @@ struct WirelessHomeView: View {
                     handleManageWirelessTapped()
                 }
 
+                if canReplaceEsim {
+                    ThemedOutlineButton(
+                        title: isReplacingEsim
+                            ? "Replacing eSIM..."
+                            : "Request eSIM for a new phone"
+                    ) {
+                        guard !isReplacingEsim else {
+                            return
+                        }
+
+                        replacementErrorMessage = nil
+
+                        if replacementIdempotencyKey == nil {
+                            replacementIdempotencyKey =
+                                UUID().uuidString
+                        }
+
+                        showReplaceEsimConfirmation = true
+                    }
+
+                    if let replacementErrorMessage {
+                        Text(replacementErrorMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                            .frame(
+                                maxWidth: .infinity,
+                                alignment: .leading
+                            )
+                    }
+                }
+
                 // Porting is not available yet.
                 // Keep this hidden until number porting is ready.
             }
             .padding(.vertical, 8)
         }
+    }
+
+    private var canReplaceEsim: Bool {
+        guard
+            activationPayload != nil,
+            let source = wirelessStatus?.source,
+            let purchaseId = source.id,
+            purchaseId > 0
+        else {
+            return false
+        }
+
+        if wirelessStatus?.exhausted == true ||
+            wirelessStatus?.expired == true {
+            return false
+        }
+
+        if source.remainingDataMb == 0 {
+            return false
+        }
+
+        if source.addonKind?
+            .uppercased()
+            .contains("UNLIMITED") == true {
+            return false
+        }
+
+        return true
     }
 
     private var heroSection: some View {
@@ -867,7 +1038,7 @@ struct WirelessHomeView: View {
             openActivation()
         }
     }
-    
+
     private var disclaimerSection: some View {
         Text(
             appText(
@@ -1013,6 +1184,84 @@ struct WirelessHomeView: View {
             openActivation()
         } else {
             openURL(URL(string: "https://chatforia.com/account/esim")!)
+        }
+    }
+
+    @MainActor
+    private func replaceEsimForNewPhone() async {
+        guard !isReplacingEsim else {
+            return
+        }
+
+        guard
+            canReplaceEsim,
+            let purchaseId = wirelessStatus?.source?.id
+        else {
+            replacementErrorMessage =
+                "This eSIM is not currently eligible for replacement."
+            return
+        }
+
+        // Keep one key for the entire logical replacement attempt.
+        // If the network outcome is uncertain, retrying with this same
+        // key lets the backend return/reconcile the original operation
+        // instead of creating another replacement.
+        let idempotencyKey: String
+
+        if let existingKey = replacementIdempotencyKey {
+            idempotencyKey = existingKey
+        } else {
+            let newKey = UUID().uuidString
+            replacementIdempotencyKey = newKey
+            idempotencyKey = newKey
+        }
+
+        replacementErrorMessage = nil
+        isReplacingEsim = true
+
+        defer {
+            isReplacingEsim = false
+        }
+
+        do {
+            let response = try await WirelessService.shared.replaceEsim(
+                purchaseId: purchaseId,
+                idempotencyKey: idempotencyKey
+            )
+
+            guard response.ok else {
+                replacementErrorMessage =
+                    "Chatforia could not replace this eSIM."
+                return
+            }
+
+            // The backend has completed the logical replacement.
+            // A future replacement should use a new idempotency key.
+            replacementIdempotencyKey = nil
+
+            // Re-read the canonical subscriber rather than duplicating
+            // installation mapping from the replacement response.
+            await loadActivationIfExists()
+            await loadWirelessStatus()
+
+            guard activationPayload != nil else {
+                replacementErrorMessage =
+                    "Your replacement eSIM was created, but its installation details could not be loaded. Please try Manage Wireless again."
+                return
+            }
+
+            openActivation()
+        } catch {
+            // Deliberately retain replacementIdempotencyKey here.
+            // The request may have reached the server even when the
+            // client received an error or lost its connection.
+            replacementErrorMessage =
+                "We couldn't confirm the eSIM replacement. Try again to safely check the same replacement request."
+
+            debugLog(
+                "Failed to replace eSIM:",
+                error
+            )
         }
     }
 

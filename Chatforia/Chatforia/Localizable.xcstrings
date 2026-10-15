@@ -10,10 +10,16 @@
     "—" : {
 
     },
+    "@%@" : {
+
+    },
     "%@ avatar" : {
 
     },
     "%lld" : {
+
+    },
+    "%lld data packs queued" : {
 
     },
     "%lld selected" : {
@@ -405941,6 +405947,9 @@
         }
       }
     },
+    "Change" : {
+
+    },
     "chat.archiveConversationFailed" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -592018,6 +592027,9 @@
     "Create Secure Messages Passcode" : {
 
     },
+    "Current + queued data packs" : {
+
+    },
     "current_plan_format" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -741640,6 +741652,9 @@
         }
       }
     },
+    "Enter at least 3 characters to search people." : {
+
+    },
     "Enter Secure Messages Passcode" : {
 
     },
@@ -741670,6 +741685,9 @@
           }
         }
       }
+    },
+    "eSIM Installation" : {
+
     },
     "esim.activate" : {
       "extractionState" : "stale",
@@ -992896,6 +992914,9 @@
 
     },
     "Identity information complete." : {
+
+    },
+    "Install your Chatforia eSIM" : {
 
     },
     "invite.fromPhoneContacts" : {
@@ -1452105,6 +1452126,9 @@
         }
       }
     },
+    "Manual setup" : {
+
+    },
     "me@example.com" : {
 
     },
@@ -1551821,6 +1551845,9 @@
 
     },
     "Next" : {
+
+    },
+    "Next Data Pack" : {
 
     },
     "No accepted document type was returned for this requirement." : {
@@ -1876987,6 +1877014,9 @@
         }
       }
     },
+    "Queued" : {
+
+    },
     "random.stranger" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1930521,6 +1930551,9 @@
         }
       }
     },
+    "Ready after your current pack" : {
+
+    },
     "refund.contact.body" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1942524,6 +1942557,12 @@
 
     },
     "Replace an existing device?" : {
+
+    },
+    "Replace eSIM" : {
+
+    },
+    "Replace eSIM?" : {
 
     },
     "Report" : {
@@ -2361882,6 +2361921,9 @@
           }
         }
       }
+    },
+    "Total Data Available" : {
+
     },
     "Two-factor authentication" : {
 
