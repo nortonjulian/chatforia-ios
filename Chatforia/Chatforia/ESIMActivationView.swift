@@ -174,71 +174,77 @@ struct ESIMActivationView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    Text("Install your Chatforia eSIM")
-                        .font(.title2.weight(.bold))
+                    if viewModel.showsProvisioningDetails {
+                        Text("Install your Chatforia eSIM")
+                            .font(.title2.weight(.bold))
 
-                    Text(
-                        "Use the QR code to install this eSIM on another supported device, "
-                        + "or use the manual activation details below."
-                    )
-                    .font(.body)
-                    .foregroundStyle(.secondary)
+                        Text(
+                            "Use the QR code to install this eSIM on another supported device, "
+                            + "or use the manual activation details below."
+                        )
+                        .font(.body)
+                        .foregroundStyle(.secondary)
 
-                    if let payload = qrPayload,
-                       let image = makeQRCode(from: payload) {
-                        VStack(spacing: 12) {
-                            Image(uiImage: image)
-                                .interpolation(.none)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(maxWidth: 260)
-                                .padding()
-                                .background(Color.white)
-                                .clipShape(
-                                    RoundedRectangle(
-                                        cornerRadius: 16,
-                                        style: .continuous
+                        if let payload = qrPayload,
+                           let image = makeQRCode(from: payload) {
+                            VStack(spacing: 12) {
+                                Image(uiImage: image)
+                                    .interpolation(.none)
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(maxWidth: 260)
+                                    .padding()
+                                    .background(Color.white)
+                                    .clipShape(
+                                        RoundedRectangle(
+                                            cornerRadius: 16,
+                                            style: .continuous
+                                        )
                                     )
+
+                                Text(
+                                    "To install on another device, scan this QR code "
+                                    + "from that device's eSIM setup screen."
                                 )
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+
+                        Divider()
+
+                        VStack(alignment: .leading, spacing: 14) {
+                            Text("Manual setup")
+                                .font(.headline)
 
                             Text(
-                                "To install on another device, scan this QR code "
-                                + "from that device's eSIM setup screen."
+                                "On this iPhone, open Settings → Cellular → Add eSIM "
+                                + "and choose the option to enter the details manually."
                             )
                             .font(.footnote)
                             .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
+
+                            activationDetail(
+                                title: "SM-DP+ Address",
+                                value: manualSMDPAddress
+                            )
+
+                            activationDetail(
+                                title: "Activation Code",
+                                value: manualActivationCode
+                            )
+
+                            activationDetail(
+                                title: "Confirmation Code",
+                                value: viewModel.confirmationCodeText
+                            )
                         }
-                        .frame(maxWidth: .infinity)
-                    }
-
-                    Divider()
-
-                    VStack(alignment: .leading, spacing: 14) {
-                        Text("Manual setup")
-                            .font(.headline)
-
-                        Text(
-                            "On this iPhone, open Settings → Cellular → Add eSIM "
-                            + "and choose the option to enter the details manually."
-                        )
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-
-                        activationDetail(
-                            title: "SM-DP+ Address",
-                            value: manualSMDPAddress
-                        )
-
-                        activationDetail(
-                            title: "Activation Code",
-                            value: manualActivationCode
-                        )
-
-                        activationDetail(
-                            title: "Confirmation Code",
-                            value: viewModel.confirmationCodeText
-                        )
+                    } else {
+                        Text("This eSIM is already active.")
+                            .font(.body)
+                            .foregroundStyle(.secondary)
                     }
                 }
                 .padding()
@@ -257,6 +263,10 @@ struct ESIMActivationView: View {
     }
 
     private var qrPayload: String? {
+        guard viewModel.showsProvisioningDetails else {
+            return nil
+        }
+
         let candidates = [
             viewModel.explicitLpaText,
             viewModel.qrCodeURLText
@@ -400,11 +410,15 @@ struct ESIMActivationView: View {
                 .foregroundStyle(themeManager.palette.primaryText)
 
             detailRow(title: "esim.plan", value: viewModel.payload.planName)
-            detailRow(title: "esim.lpaUri", value: viewModel.explicitLpaText)
-            detailRow(title: "esim.activationCode", value: viewModel.installationCodeText)
-            detailRow(title: "esim.confirmationCode", value: viewModel.confirmationCodeText)
-            detailRow(title: "esim.smdpAddress", value: viewModel.smdpAddressText)
-            detailRow(title: "esim.iccid", value: viewModel.iccidText)
+
+            if viewModel.showsProvisioningDetails {
+                detailRow(title: "esim.lpaUri", value: viewModel.explicitLpaText)
+                detailRow(title: "esim.activationCode", value: viewModel.installationCodeText)
+                detailRow(title: "esim.confirmationCode", value: viewModel.confirmationCodeText)
+                detailRow(title: "esim.smdpAddress", value: viewModel.smdpAddressText)
+            }
+
+            detailRow(title: "esim.iccid", value: viewModel.displayIccidText)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
