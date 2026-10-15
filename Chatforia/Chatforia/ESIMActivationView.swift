@@ -1,10 +1,13 @@
 import SwiftUI
+import UIKit
+import CoreImage
+import CoreImage.CIFilterBuiltins
 
 struct ESIMActivationView: View {
     @StateObject var viewModel: ESIMActivationViewModel
     @EnvironmentObject private var themeManager: ThemeManager
     @AppStorage("chatforia_language") private var appLanguage = "en"
-    @Environment(\.openURL) private var openURL
+    @State private var showingInstallationOptions = false
 
     var body: some View {
         ScrollView {
@@ -27,6 +30,9 @@ struct ESIMActivationView: View {
         .background(themeManager.palette.screenBackground.ignoresSafeArea())
         .navigationTitle(appText("esim.title", languageCode: appLanguage))
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showingInstallationOptions) {
+            installationOptionsSheet
+        }
         .alert(
             appText("esim.unableToInstall", languageCode: appLanguage),
             isPresented: errorBinding
@@ -112,13 +118,7 @@ struct ESIMActivationView: View {
                 .foregroundStyle(themeManager.palette.secondaryText)
 
             Button {
-                Task {
-                    guard let url = await viewModel.beginInstall() else {
-                        return
-                    }
-
-                    openURL(url)
-                }
+                showingInstallationOptions = true
             } label: {
                 Text(viewModel.installButtonTitle)
                     .font(.headline)
@@ -168,6 +168,229 @@ struct ESIMActivationView: View {
                 .stroke(themeManager.palette.border, lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private var installationOptionsSheet: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    Text("Install your Chatforia eSIM")
+                        .font(.title2.weight(.bold))
+
+                    Text(
+                        "Use the QR code to install this eSIM on another supported device, "
+                        + "or use the manual activation details below."
+                    )
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+
+                    if let payload = qrPayload,
+                       let image = makeQRCode(from: payload) {
+                        VStack(spacing: 12) {
+                            Image(uiImage: image)
+                                .interpolation(.none)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(maxWidth: 260)
+                                .padding()
+                                .background(Color.white)
+                                .clipShape(
+                                    RoundedRectangle(
+                                        cornerRadius: 16,
+                                        style: .continuous
+                                    )
+                                )
+
+                            Text(
+                                "To install on another device, scan this QR code "
+                                + "from that device's eSIM setup screen."
+                            )
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+
+                    Divider()
+
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text("Manual setup")
+                            .font(.headline)
+
+                        Text(
+                            "On this iPhone, open Settings → Cellular → Add eSIM "
+                            + "and choose the option to enter the details manually."
+                        )
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+
+                        activationDetail(
+                            title: "SM-DP+ Address",
+                            value: manualSMDPAddress
+                        )
+
+                        activationDetail(
+                            title: "Activation Code",
+                            value: manualActivationCode
+                        )
+
+                        activationDetail(
+                            title: "Confirmation Code",
+                            value: viewModel.confirmationCodeText
+                        )
+                    }
+                }
+                .padding()
+            }
+            .navigationTitle("eSIM Installation")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        showingInstallationOptions = false
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+
+    private var qrPayload: String? {
+        let candidates = [
+            viewModel.explicitLpaText,
+            viewModel.qrCodeURLText
+        ]
+
+        for candidate in candidates {
+            guard let candidate else {
+                continue
+            }
+
+            let trimmed = candidate.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+
+            if trimmed.lowercased().hasPrefix("lpa:") {
+                return trimmed
+            }
+        }
+
+        guard
+            let smdp = viewModel.smdpAddressText,
+            let activationCode = viewModel.installationCodeText
+        else {
+            return nil
+        }
+
+        return "LPA:1$\(smdp)$\(activationCode)"
+    }
+
+    private var manualLPAComponents: (smdp: String, activationCode: String)? {
+        let candidates = [
+            viewModel.explicitLpaText,
+            viewModel.installationCodeText
+        ]
+
+        for candidate in candidates {
+            guard let candidate else {
+                continue
+            }
+
+            let trimmed = candidate.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+
+            guard trimmed.lowercased().hasPrefix("lpa:1$") else {
+                continue
+            }
+
+            let components = trimmed.split(
+                separator: "$",
+                omittingEmptySubsequences: false
+            )
+
+            guard components.count >= 3 else {
+                continue
+            }
+
+            let smdp = String(components[1])
+            let activationCode = String(components[2])
+
+            guard !smdp.isEmpty, !activationCode.isEmpty else {
+                continue
+            }
+
+            return (smdp, activationCode)
+        }
+
+        return nil
+    }
+
+    private var manualSMDPAddress: String? {
+        if let parsed = manualLPAComponents {
+            return parsed.smdp
+        }
+
+        return viewModel.smdpAddressText
+    }
+
+    private var manualActivationCode: String? {
+        if let parsed = manualLPAComponents {
+            return parsed.activationCode
+        }
+
+        guard
+            let value = viewModel.installationCodeText,
+            !value.lowercased().hasPrefix("lpa:")
+        else {
+            return nil
+        }
+
+        return value
+    }
+
+    private func makeQRCode(from value: String) -> UIImage? {
+        let filter = CIFilter.qrCodeGenerator()
+        filter.message = Data(value.utf8)
+        filter.correctionLevel = "M"
+
+        guard let outputImage = filter.outputImage else {
+            return nil
+        }
+
+        let transformed = outputImage.transformed(
+            by: CGAffineTransform(scaleX: 10, y: 10)
+        )
+
+        let context = CIContext()
+
+        guard let cgImage = context.createCGImage(
+            transformed,
+            from: transformed.extent
+        ) else {
+            return nil
+        }
+
+        return UIImage(cgImage: cgImage)
+    }
+
+    @ViewBuilder
+    private func activationDetail(
+        title: String,
+        value: String?
+    ) -> some View {
+        if let value, !value.isEmpty {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+
+                Text(value)
+                    .font(.body)
+                    .textSelection(.enabled)
+            }
+        }
     }
 
     private var detailsSection: some View {
