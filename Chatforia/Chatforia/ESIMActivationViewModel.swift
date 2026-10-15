@@ -70,6 +70,19 @@ final class ESIMActivationViewModel: ObservableObject {
         return status == "active"
     }
 
+    var showsProvisioningDetails: Bool {
+        !isActive
+    }
+
+    var displayIccidText: String? {
+        guard let iccid = iccidText else {
+            return nil
+        }
+
+        let suffix = String(iccid.suffix(4))
+        return "•••• •••• •••• \(suffix)"
+    }
+
     var isMockProfile: Bool {
         let values = [
             payload.smdpAddress,
