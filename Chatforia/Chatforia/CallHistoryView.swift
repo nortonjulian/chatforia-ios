@@ -25,6 +25,12 @@ struct CallHistoryView: View {
     @State private var showDialer = false
     @State private var savedContacts: [ContactDTO] = []
 
+    @State private var isEditingRecents = false
+    @State private var selectedCallIds: Set<Int> = []
+    @State private var showDeleteSelectedConfirmation = false
+    @State private var showClearAllConfirmation = false
+    @State private var isDeletingHistory = false
+
     @State private var callChoices: [PendingCallChoice] = []
     @State private var showCallChoices = false
     
@@ -59,21 +65,86 @@ struct CallHistoryView: View {
                     VoicemailInboxView()
                 }
             }
+
+            if selectedSegment == .recents &&
+                isEditingRecents &&
+                !items.isEmpty {
+
+                Divider()
+
+                HStack(spacing: 18) {
+                    Button(
+                        selectedCallIds.count == items.count
+                            ? "Deselect All"
+                            : "Select All"
+                    ) {
+                        if selectedCallIds.count == items.count {
+                            selectedCallIds.removeAll()
+                        } else {
+                            selectedCallIds = Set(items.map(\.id))
+                        }
+                    }
+
+                    Spacer()
+
+                    Button(role: .destructive) {
+                        showDeleteSelectedConfirmation = true
+                    } label: {
+                        Text(
+                            selectedCallIds.isEmpty
+                                ? "Delete"
+                                : "Delete (\(selectedCallIds.count))"
+                        )
+                    }
+                    .disabled(
+                        selectedCallIds.isEmpty ||
+                        isDeletingHistory
+                    )
+
+                    Button(role: .destructive) {
+                        showClearAllConfirmation = true
+                    } label: {
+                        Text("Clear All")
+                    }
+                    .disabled(isDeletingHistory)
+                }
+                .font(.body.weight(.semibold))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(themeManager.palette.cardBackground)
+            }
         }
         .navigationTitle(
             appText("tab_calls", languageCode: appLanguage)
         )
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showDialer = true
-                } label: {
-                    Image(systemName: "circle.grid.3x3.fill")
+            if selectedSegment == .recents && !items.isEmpty {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(isEditingRecents ? "Done" : "Edit") {
+                        withAnimation {
+                            isEditingRecents.toggle()
+
+                            if !isEditingRecents {
+                                selectedCallIds.removeAll()
+                            }
+                        }
+                    }
+                    .disabled(isDeletingHistory)
                 }
-                .accessibilityLabel(
-                    Text(appText("dialer.openDialPad", languageCode: appLanguage))
-                )
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                if !isEditingRecents {
+                    Button {
+                        showDialer = true
+                    } label: {
+                        Image(systemName: "circle.grid.3x3.fill")
+                    }
+                    .accessibilityLabel(
+                        Text(appText("dialer.openDialPad", languageCode: appLanguage))
+                    )
+                }
             }
         }
         .sheet(isPresented: $showDialer) {
@@ -107,6 +178,54 @@ struct CallHistoryView: View {
                 role: .cancel
             ) { }
         }
+        .confirmationDialog(
+            "Delete selected calls?",
+            isPresented: $showDeleteSelectedConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(
+                "Delete \(selectedCallIds.count) Calls",
+                role: .destructive
+            ) {
+                Task {
+                    await deleteSelectedCalls()
+                }
+            }
+
+            Button(
+                appText("common.cancel", languageCode: appLanguage),
+                role: .cancel
+            ) { }
+        } message: {
+            Text("These calls will be removed from your Recents only.")
+        }
+        .confirmationDialog(
+            "Clear all Recents?",
+            isPresented: $showClearAllConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(
+                "Clear All",
+                role: .destructive
+            ) {
+                Task {
+                    await clearAllCalls()
+                }
+            }
+
+            Button(
+                appText("common.cancel", languageCode: appLanguage),
+                role: .cancel
+            ) { }
+        } message: {
+            Text("This removes all calls from your Recents only.")
+        }
+        .onChange(of: selectedSegment) { _, newSegment in
+            if newSegment != .recents {
+                isEditingRecents = false
+                selectedCallIds.removeAll()
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .callHistoryShouldRefresh)) { _ in
             guard selectedSegment == .recents else { return }
 
@@ -135,7 +254,7 @@ struct CallHistoryView: View {
                     message: appText("callHistory.emptySubtitle", languageCode: appLanguage)
                 )
             } else {
-                List {
+                List(selection: $selectedCallIds) {
                     ForEach(items) { item in
                         let otherUser = item.otherUser(for: auth.currentUser?.id)
                         
@@ -197,6 +316,7 @@ struct CallHistoryView: View {
                                 )
                             }
                         )
+                        .tag(item.id)
                         .onAppear {
                             debugLog("CALL HISTORY:", item.id, "callerId:", item.callerId, "calleeId:", item.calleeId as Any, "status:", item.status, "externalPhone:", item.externalPhone as Any)
                         }
@@ -228,6 +348,10 @@ struct CallHistoryView: View {
                         }
                     }
                 }
+                .environment(
+                    \.editMode,
+                    .constant(isEditingRecents ? .active : .inactive)
+                )
                 .scrollContentBackground(.hidden)
             }
         }
@@ -266,6 +390,60 @@ struct CallHistoryView: View {
         .padding(24)
     }
     
+    private func deleteSelectedCalls() async {
+        guard !selectedCallIds.isEmpty else { return }
+        guard let token = auth.currentToken, !token.isEmpty else { return }
+        guard !isDeletingHistory else { return }
+
+        let ids = Array(selectedCallIds)
+
+        isDeletingHistory = true
+        defer {
+            isDeletingHistory = false
+        }
+
+        do {
+            try await CallHistoryService.shared.deleteSelected(
+                ids: ids,
+                token: token
+            )
+
+            items.removeAll {
+                selectedCallIds.contains($0.id)
+            }
+
+            selectedCallIds.removeAll()
+
+            if items.isEmpty {
+                isEditingRecents = false
+            }
+        } catch {
+            debugLog("❌ Failed to delete selected calls:", error)
+        }
+    }
+
+    private func clearAllCalls() async {
+        guard let token = auth.currentToken, !token.isEmpty else { return }
+        guard !isDeletingHistory else { return }
+
+        isDeletingHistory = true
+        defer {
+            isDeletingHistory = false
+        }
+
+        do {
+            try await CallHistoryService.shared.clearHistory(
+                token: token
+            )
+
+            items.removeAll()
+            selectedCallIds.removeAll()
+            isEditingRecents = false
+        } catch {
+            debugLog("❌ Failed to clear call history:", error)
+        }
+    }
+
     private func delete(_ item: CallRecordDTO) async {
         guard let token = auth.currentToken, !token.isEmpty else { return }
         
