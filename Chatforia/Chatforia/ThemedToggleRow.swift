@@ -4,6 +4,9 @@ struct ThemedToggleRow: View {
     let title: String
     var subtitle: String? = nil
     @Binding var isOn: Bool
+    var isEnabled: Bool = true
+    var actionTitle: String? = nil
+    var onAction: (() -> Void)? = nil
 
     @EnvironmentObject private var themeManager: ThemeManager
     @AppStorage("chatforia_language") private var appLanguage = "en"
@@ -25,11 +28,24 @@ struct ThemedToggleRow: View {
                         .foregroundStyle(themeManager.palette.secondaryText)
                 }
             }
+            .opacity(isEnabled ? 1 : 0.55)
 
             Spacer(minLength: 12)
 
+            if let actionTitle,
+               let onAction {
+                Button(action: onAction) {
+                    Text(appText(actionTitle, languageCode: appLanguage))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(themeManager.palette.accent)
+                }
+                .buttonStyle(.plain)
+            }
+
             Toggle("", isOn: $isOn)
                 .labelsHidden()
+                .disabled(!isEnabled)
+                .opacity(isEnabled ? 1 : 0.55)
                 .tint(themeManager.palette.accent)
         }
         .padding(.vertical, 4)

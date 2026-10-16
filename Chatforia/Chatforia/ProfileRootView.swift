@@ -12,6 +12,7 @@ struct ProfileRootView: View {
     @EnvironmentObject private var appSettings: SettingsViewModel
 
     @StateObject private var vm = SettingsViewModel()
+    @ObservedObject private var subscriptionManager = SubscriptionManager.shared
 
     @State private var selectedAvatarItem: PhotosPickerItem?
     @State private var isUploadingAvatar = false
@@ -44,6 +45,18 @@ struct ProfileRootView: View {
     
     @AppStorage("chatforia_language")
     private var appLanguage = "en"
+
+    private var aiRewriteLevel: String {
+        resolvedAiRewriteLevel(
+            backendLevel:
+                subscriptionManager.backendEntitlements?.entitlements.aiRewriteLevel,
+            fallbackPlan: auth.subscriptionPlan
+        )
+    }
+
+    private var smartRepliesAvailable: Bool {
+        aiRewriteLevel != "NONE"
+    }
     
 
     var body: some View {
@@ -687,19 +700,35 @@ struct ProfileRootView: View {
                     isOn: $vm.showReadReceipts
                 )
                 
-                VStack(alignment: .leading, spacing: 6) {
-                    ThemedToggleRow(
-                        title: appText("setting_smart_reply_suggestions", languageCode: appLanguage),
-                        isOn: Binding(
-                            get: { vm.enableSmartReplies },
-                            set: { vm.setEnableSmartReplies($0) }
-                        )
-                    )
-
-                    Text(appText("setting_smart_reply_description", languageCode: appLanguage))
-                        .font(.caption)
-                        .foregroundStyle(themeManager.palette.secondaryText)
-                }
+                ThemedToggleRow(
+                    title: "setting_smart_reply_suggestions",
+                    subtitle:
+                        smartRepliesAvailable
+                            ? "setting_smart_reply_description"
+                            : "smart_replies_upgrade_hint",
+                    isOn: Binding(
+                        get: {
+                            smartRepliesAvailable &&
+                                vm.enableSmartReplies
+                        },
+                        set: { enabled in
+                            if smartRepliesAvailable {
+                                vm.setEnableSmartReplies(enabled)
+                            }
+                        }
+                    ),
+                    isEnabled: smartRepliesAvailable,
+                    actionTitle:
+                        smartRepliesAvailable
+                            ? nil
+                            : "common.upgrade",
+                    onAction:
+                        smartRepliesAvailable
+                            ? nil
+                            : {
+                                showUpgradeView = true
+                            }
+                )
             }
         }
     }

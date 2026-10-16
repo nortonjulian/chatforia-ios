@@ -2769941,6 +2769941,16 @@
     },
     "Your information has been submitted. Check the status to see whether the number is ready to be assigned." : {
 
+    },
+    "smart_replies_upgrade_hint" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Available with Plus or Premium."
+          }
+        }
+      }
     }
   },
   "version" : "1.2"
