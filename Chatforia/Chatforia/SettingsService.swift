@@ -87,7 +87,7 @@ final class SettingsService {
     func updateAccessibility(_ request: AccessibilitySettingsUpdateRequest, token: String) async throws -> UserDTO {
         let body = try JSONEncoder().encode(request)
 
-        let response: UserEnvelopeResponse = try await APIClient.shared.send(
+        _ = try await APIClient.shared.sendRaw(
             APIRequest(
                 path: "users/me/a11y",
                 method: .PATCH,
@@ -96,10 +96,6 @@ final class SettingsService {
             ),
             token: token
         )
-
-        if let user = response.user {
-            return user
-        }
 
         let me: MeResponse = try await APIClient.shared.send(
             APIRequest(
