@@ -1,25 +1,148 @@
 import SwiftUI
 
 struct VoicemailInboxView: View {
+    @Binding var isEditingVoicemails: Bool
+
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
     @EnvironmentObject private var callManager: CallManager
     @AppStorage("chatforia_language") private var appLanguage = "en"
     @StateObject private var viewModel = VoicemailInboxViewModel()
 
+    @State private var selectedVoicemailIds: Set<String> = []
+    @State private var showDeleteSelectedConfirmation = false
+    @State private var showClearAllConfirmation = false
+
     var body: some View {
-        Group {
-            if viewModel.isLoading && viewModel.voicemails.isEmpty {
-                loadingView
-            } else if let errorMessage = viewModel.errorMessage, viewModel.voicemails.isEmpty {
-                errorView(errorMessage)
-            } else if viewModel.voicemails.isEmpty {
-                emptyView
-            } else {
-                listView
+        VStack(spacing: 0) {
+            Group {
+                if viewModel.isLoading && viewModel.voicemails.isEmpty {
+                    loadingView
+                } else if let errorMessage = viewModel.errorMessage, viewModel.voicemails.isEmpty {
+                    errorView(errorMessage)
+                } else if viewModel.voicemails.isEmpty {
+                    emptyView
+                } else {
+                    listView
+                }
+            }
+
+            if isEditingVoicemails &&
+                !viewModel.voicemails.isEmpty {
+
+                Divider()
+
+                HStack(spacing: 18) {
+                    Button(
+                        selectedVoicemailIds.count ==
+                            viewModel.voicemails.count
+                        ? "Deselect All"
+                        : "Select All"
+                    ) {
+                        if selectedVoicemailIds.count ==
+                            viewModel.voicemails.count {
+                            selectedVoicemailIds.removeAll()
+                        } else {
+                            selectedVoicemailIds =
+                                Set(viewModel.voicemails.map(\.id))
+                        }
+                    }
+
+                    Spacer()
+
+                    Button(role: .destructive) {
+                        showDeleteSelectedConfirmation = true
+                    } label: {
+                        Text(
+                            selectedVoicemailIds.isEmpty
+                            ? "Delete"
+                            : "Delete (\(selectedVoicemailIds.count))"
+                        )
+                    }
+                    .disabled(selectedVoicemailIds.isEmpty)
+
+                    Button(role: .destructive) {
+                        showClearAllConfirmation = true
+                    } label: {
+                        Text("Clear All")
+                    }
+                }
+                .font(.body.weight(.semibold))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(themeManager.palette.cardBackground)
             }
         }
         .background(themeManager.palette.screenBackground.ignoresSafeArea())
+        .toolbar {
+            if !viewModel.voicemails.isEmpty {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(
+                        isEditingVoicemails ? "Done" : "Edit"
+                    ) {
+                        isEditingVoicemails.toggle()
+
+                        if !isEditingVoicemails {
+                            selectedVoicemailIds.removeAll()
+                        }
+                    }
+                }
+            }
+
+        }
+        .confirmationDialog(
+            "Delete selected voicemails?",
+            isPresented: $showDeleteSelectedConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                guard let token = auth.currentToken, !token.isEmpty else { return }
+
+                let ids = selectedVoicemailIds
+                selectedVoicemailIds.removeAll()
+
+                Task {
+                    await viewModel.deleteSelected(
+                        ids: ids,
+                        token: token
+                    )
+
+                    if viewModel.voicemails.isEmpty {
+                        isEditingVoicemails = false
+                    }
+                }
+            }
+
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(
+                "These voicemails will be removed from your voicemail inbox."
+            )
+        }
+        .confirmationDialog(
+            "Clear all voicemails?",
+            isPresented: $showClearAllConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Clear All", role: .destructive) {
+                guard let token = auth.currentToken, !token.isEmpty else { return }
+
+                selectedVoicemailIds.removeAll()
+                isEditingVoicemails = false
+
+                Task {
+                    await viewModel.clearAll(
+                        token: token
+                    )
+                }
+            }
+
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(
+                "This will remove all voicemails from your voicemail inbox."
+            )
+        }
         .task {
             guard let token = auth.currentToken, !token.isEmpty else {
                 viewModel.errorMessage =
@@ -31,6 +154,14 @@ struct VoicemailInboxView: View {
         .refreshable {
             guard let token = auth.currentToken, !token.isEmpty else { return }
             await viewModel.refresh(token: token)
+        }
+        .onChange(of: viewModel.voicemails.map(\.id)) { _, ids in
+            selectedVoicemailIds =
+                selectedVoicemailIds.intersection(Set(ids))
+
+            if ids.isEmpty {
+                isEditingVoicemails = false
+            }
         }
         .sheet(
             item: Binding(
@@ -93,31 +224,65 @@ struct VoicemailInboxView: View {
     private var listView: some View {
         List {
             ForEach(viewModel.voicemails) { voicemail in
-                VoicemailRowView(
-                    voicemail: voicemail,
-                    onTap: {
-                        viewModel.select(voicemail)
-                    },
-                    onToggleRead: {
-                        guard let token = auth.currentToken, !token.isEmpty else { return }
-                        Task {
-                            await viewModel.markRead(
-                                voicemail,
-                                isRead: !voicemail.isRead,
-                                token: token
+                HStack(spacing: 10) {
+                    if isEditingVoicemails {
+                        Button {
+                            if selectedVoicemailIds.contains(voicemail.id) {
+                                selectedVoicemailIds.remove(voicemail.id)
+                            } else {
+                                selectedVoicemailIds.insert(voicemail.id)
+                            }
+                        } label: {
+                            Image(
+                                systemName:
+                                    selectedVoicemailIds.contains(voicemail.id)
+                                    ? "checkmark.circle.fill"
+                                    : "circle"
                             )
+                            .font(.title3)
+                            .foregroundStyle(themeManager.palette.accent)
                         }
-                    },
-                    onDelete: {
-                        guard let token = auth.currentToken, !token.isEmpty else { return }
-                        Task {
-                            await viewModel.delete(
-                                voicemail,
-                                token: token
-                            )
-                        }
+                        .buttonStyle(.plain)
                     }
-                )
+
+                    VoicemailRowView(
+                        voicemail: voicemail,
+                        onTap: {
+                            if isEditingVoicemails {
+                                if selectedVoicemailIds.contains(voicemail.id) {
+                                    selectedVoicemailIds.remove(voicemail.id)
+                                } else {
+                                    selectedVoicemailIds.insert(voicemail.id)
+                                }
+                            } else {
+                                viewModel.select(voicemail)
+                            }
+                        },
+                        onToggleRead: {
+                            guard !isEditingVoicemails else { return }
+                            guard let token = auth.currentToken, !token.isEmpty else { return }
+
+                            Task {
+                                await viewModel.markRead(
+                                    voicemail,
+                                    isRead: !voicemail.isRead,
+                                    token: token
+                                )
+                            }
+                        },
+                        onDelete: {
+                            guard !isEditingVoicemails else { return }
+                            guard let token = auth.currentToken, !token.isEmpty else { return }
+
+                            Task {
+                                await viewModel.delete(
+                                    voicemail,
+                                    token: token
+                                )
+                            }
+                        }
+                    )
+                }
                 .listRowInsets(EdgeInsets())
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)

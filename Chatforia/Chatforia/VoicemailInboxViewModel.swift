@@ -114,6 +114,58 @@ final class VoicemailInboxViewModel: ObservableObject {
         }
     }
 
+    func deleteSelected(
+        ids: Set<String>,
+        token: String
+    ) async {
+        guard !ids.isEmpty else { return }
+
+        let originalVoicemails = voicemails
+        let originalSelectedVoicemail = selectedVoicemail
+
+        voicemails.removeAll { ids.contains($0.id) }
+
+        if let selectedVoicemail,
+           ids.contains(selectedVoicemail.id) {
+            self.selectedVoicemail = nil
+        }
+
+        do {
+            try await VoicemailService.shared.deleteSelected(
+                ids: Array(ids),
+                token: token
+            )
+
+            await NotificationCoordinator.shared.refreshBadgeState()
+        } catch {
+            voicemails = originalVoicemails
+            selectedVoicemail = originalSelectedVoicemail
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func clearAll(
+        token: String
+    ) async {
+        let originalVoicemails = voicemails
+        let originalSelectedVoicemail = selectedVoicemail
+
+        voicemails = []
+        selectedVoicemail = nil
+
+        do {
+            try await VoicemailService.shared.clearVoicemails(
+                token: token
+            )
+
+            await NotificationCoordinator.shared.refreshBadgeState()
+        } catch {
+            voicemails = originalVoicemails
+            selectedVoicemail = originalSelectedVoicemail
+            errorMessage = error.localizedDescription
+        }
+    }
+
     private func bindSocketEvents() {
         let center = NotificationCenter.default
 

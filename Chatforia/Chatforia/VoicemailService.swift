@@ -39,6 +39,52 @@ final class VoicemailService {
         )
     }
 
+    func deleteSelected(
+        ids: [String],
+        token: String
+    ) async throws {
+        struct Body: Encodable {
+            let ids: [String]
+        }
+
+        let normalizedIds = Array(
+            Set(
+                ids
+                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                    .filter { !$0.isEmpty }
+            )
+        )
+
+        guard !normalizedIds.isEmpty else { return }
+
+        let body = try JSONEncoder().encode(
+            Body(ids: normalizedIds)
+        )
+
+        let _: EmptyResponse = try await APIClient.shared.send(
+            APIRequest(
+                path: "voicemail/delete-selected",
+                method: .POST,
+                body: body,
+                requiresAuth: true
+            ),
+            token: token
+        )
+    }
+
+    func clearVoicemails(
+        token: String
+    ) async throws {
+        let _: EmptyResponse = try await APIClient.shared.send(
+            APIRequest(
+                path: "voicemail",
+                method: .DELETE,
+                requiresAuth: true
+            ),
+            token: token
+        )
+    }
+
     func deleteVoicemail(
         id: String,
         token: String

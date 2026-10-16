@@ -26,6 +26,7 @@ struct CallHistoryView: View {
     @State private var savedContacts: [ContactDTO] = []
 
     @State private var isEditingRecents = false
+    @State private var isEditingVoicemails = false
     @State private var selectedCallIds: Set<Int> = []
     @State private var showDeleteSelectedConfirmation = false
     @State private var showClearAllConfirmation = false
@@ -62,7 +63,9 @@ struct CallHistoryView: View {
                     recentsContent
                     
                 case .voicemail:
-                    VoicemailInboxView()
+                    VoicemailInboxView(
+                        isEditingVoicemails: $isEditingVoicemails
+                    )
                 }
             }
 
@@ -135,7 +138,7 @@ struct CallHistoryView: View {
             }
 
             ToolbarItem(placement: .topBarTrailing) {
-                if !isEditingRecents {
+                if !isEditingRecents && !isEditingVoicemails {
                     Button {
                         showDialer = true
                     } label: {
@@ -224,6 +227,10 @@ struct CallHistoryView: View {
             if newSegment != .recents {
                 isEditingRecents = false
                 selectedCallIds.removeAll()
+            }
+
+            if newSegment != .voicemail {
+                isEditingVoicemails = false
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .callHistoryShouldRefresh)) { _ in
