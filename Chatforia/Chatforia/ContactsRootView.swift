@@ -153,6 +153,7 @@ struct ContactsRootView: View {
             }
             .sheet(isPresented: $showingAddContact) {
                 AddContactView { _ in
+                    NotificationCenter.default.post(name: .callHistoryShouldRefresh, object: nil)
                     Task { await reload() }
                 }
                 .environmentObject(auth)
@@ -168,6 +169,7 @@ struct ContactsRootView: View {
                     initialFavorite: contact.favorite ?? false
                 ) { _ in
                     contactToEdit = nil
+                    NotificationCenter.default.post(name: .callHistoryShouldRefresh, object: nil)
                     Task { await reload() }
                 }
                 .environmentObject(auth)
@@ -175,6 +177,7 @@ struct ContactsRootView: View {
             }
             .sheet(isPresented: $showingImportContacts) {
                 ImportPhoneContactsView {
+                    NotificationCenter.default.post(name: .callHistoryShouldRefresh, object: nil)
                     Task { await reload() }
                 }
                 .environmentObject(auth)

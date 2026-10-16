@@ -7,12 +7,20 @@ struct APIRequest {
     let method: HTTPMethod
     let body: Data?
     let requiresAuth: Bool
+    let headers: [String: String]
 
-    init(path: String, method: HTTPMethod, body: Data? = nil, requiresAuth: Bool = true) {
+    init(
+        path: String,
+        method: HTTPMethod,
+        body: Data? = nil,
+        requiresAuth: Bool = true,
+        headers: [String: String] = [:]
+    ) {
         self.path = path
         self.method = method
         self.body = body
         self.requiresAuth = requiresAuth
+        self.headers = headers
     }
 }
 
@@ -22,7 +30,7 @@ enum APIError: Error, LocalizedError {
     case server(status: Int, code: String? = nil, message: String?, body: Data? = nil)
     case decoding(Error)
     case network(Error)
-    
+
     private var appLanguage: String {
             UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
     }
@@ -99,7 +107,7 @@ struct EmptyResponse: Decodable {}
 final class APIClient {
     static let shared = APIClient()
     private init() {}
-    
+
     private var appLanguage: String {
         UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
     }
@@ -156,6 +164,10 @@ final class APIClient {
         req.httpMethod = request.method.rawValue
         req.timeoutInterval = AppEnvironment.requestTimeout
         req.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        for (field, value) in request.headers {
+            req.setValue(value, forHTTPHeaderField: field)
+        }
 
         if let body = request.body {
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -376,7 +388,7 @@ final class APIClient {
         }
     }
 
-    func readMessagesBulk(_ messageIds: [Int]) {
+    func readMessagesBulk(_ messageIds: [Int], roomId: Int) {
         guard !messageIds.isEmpty else { return }
 
         struct ReadMessagesBulkRequest: Encodable {
@@ -402,6 +414,19 @@ final class APIClient {
                     ),
                     token: token
                 )
+
+                // The server has now authoritatively recorded these
+                // messages as read. Clear this conversation's local unread
+                // indicator, then reconcile the aggregate app-icon badge.
+                await MainActor.run {
+                    NotificationCenter.default.post(
+                        name: .conversationWasRead,
+                        object: nil,
+                        userInfo: ["roomId": roomId]
+                    )
+                }
+
+                await NotificationCoordinator.shared.refreshBadgeState()
 
             } catch {
                 debugLog("❌ readMessagesBulk failed:", error)

@@ -72,6 +72,7 @@ final class ContactsViewModel: ObservableObject {
             )
 
             contacts.removeAll { $0.id == contact.id }
+            NotificationCenter.default.post(name: .callHistoryShouldRefresh, object: nil)
         } catch {
             errorText = error.localizedDescription
         }
@@ -103,6 +104,7 @@ final class ContactsViewModel: ObservableObject {
             } else {
                 contacts.insert(updated, at: 0)
             }
+            NotificationCenter.default.post(name: .callHistoryShouldRefresh, object: nil)
         } catch {
             errorText = error.localizedDescription
         }
@@ -113,6 +115,9 @@ final class ContactsViewModel: ObservableObject {
             return alias
         }
 
+        if let name = contact.user?.displayName?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty {
+            return name
+        }
         if let username = contact.user?.username?.trimmingCharacters(in: .whitespacesAndNewlines), !username.isEmpty {
             return username
         }

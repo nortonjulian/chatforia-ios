@@ -60,6 +60,10 @@ final class VoicemailInboxViewModel: ObservableObject {
                 isRead: isRead,
                 token: token
             )
+
+            // The server is authoritative for the aggregate app badge.
+            await NotificationCoordinator.shared.refreshBadgeState()
+
             selectedVoicemail = voicemails[index]
         } catch {
             voicemails[index] = original
@@ -98,11 +102,66 @@ final class VoicemailInboxViewModel: ObservableObject {
                 id: voicemail.id,
                 token: token
             )
+
+            // Deleting an unread voicemail can also change the badge.
+            await NotificationCoordinator.shared.refreshBadgeState()
         } catch {
             voicemails.insert(removed, at: index)
             if wasSelected {
                 selectedVoicemail = removed
             }
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func deleteSelected(
+        ids: Set<String>,
+        token: String
+    ) async {
+        guard !ids.isEmpty else { return }
+
+        let originalVoicemails = voicemails
+        let originalSelectedVoicemail = selectedVoicemail
+
+        voicemails.removeAll { ids.contains($0.id) }
+
+        if let selectedVoicemail,
+           ids.contains(selectedVoicemail.id) {
+            self.selectedVoicemail = nil
+        }
+
+        do {
+            try await VoicemailService.shared.deleteSelected(
+                ids: Array(ids),
+                token: token
+            )
+
+            await NotificationCoordinator.shared.refreshBadgeState()
+        } catch {
+            voicemails = originalVoicemails
+            selectedVoicemail = originalSelectedVoicemail
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func clearAll(
+        token: String
+    ) async {
+        let originalVoicemails = voicemails
+        let originalSelectedVoicemail = selectedVoicemail
+
+        voicemails = []
+        selectedVoicemail = nil
+
+        do {
+            try await VoicemailService.shared.clearVoicemails(
+                token: token
+            )
+
+            await NotificationCoordinator.shared.refreshBadgeState()
+        } catch {
+            voicemails = originalVoicemails
+            selectedVoicemail = originalSelectedVoicemail
             errorMessage = error.localizedDescription
         }
     }

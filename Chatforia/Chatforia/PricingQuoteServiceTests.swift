@@ -64,7 +64,7 @@ final class PricingQuoteServiceTests: XCTestCase {
             locale: Locale(identifier: "en_US")
         )
 
-        XCTAssertEqual(result, "$4.99")
+        XCTAssertEqual(result, "$7.99")
     }
 
     func testFormattedPriceSupportsZeroDecimalCurrency() {

@@ -16,6 +16,7 @@ struct MessageComposerView: View {
     let suggestions: [String]
     let isLoadingSuggestions: Bool
     let onSuggestionTap: (String) -> Void
+    let aiComposerToolsEnabled: Bool
     let onRewriteTap: () -> Void
 
     let isRecordingVoice: Bool
@@ -42,6 +43,7 @@ struct MessageComposerView: View {
         suggestions: [String] = [],
         isLoadingSuggestions: Bool = false,
         onSuggestionTap: @escaping (String) -> Void = { _ in },
+        aiComposerToolsEnabled: Bool = true,
         onRewriteTap: @escaping () -> Void = {},
         isRecordingVoice: Bool = false,
         recordingDurationText: String = "0:00",
@@ -66,6 +68,7 @@ struct MessageComposerView: View {
         self.suggestions = suggestions
         self.isLoadingSuggestions = isLoadingSuggestions
         self.onSuggestionTap = onSuggestionTap
+        self.aiComposerToolsEnabled = aiComposerToolsEnabled
         self.onRewriteTap = onRewriteTap
         self.isRecordingVoice = isRecordingVoice
         self.recordingDurationText = recordingDurationText
@@ -96,7 +99,7 @@ struct MessageComposerView: View {
     var body: some View {
         
         VStack(spacing: 0) {
-            if settingsVM.enableSmartReplies && !suggestions.isEmpty {
+            if aiComposerToolsEnabled && settingsVM.enableSmartReplies && !suggestions.isEmpty {
                 RiaSuggestionBar(
                     suggestions: suggestions,
                     isLoading: isLoadingSuggestions,
@@ -143,16 +146,24 @@ struct MessageComposerView: View {
             .disabled(isSending || isSendingVoice || hasVoiceDraft || isRecordingVoice)
 
             HStack(alignment: .bottom, spacing: 8) {
-                Button {
-                    onRewriteTap()
-                } label: {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(themeManager.palette.accent)
-                        .frame(width: 28, height: 28)
+                if aiComposerToolsEnabled {
+                    Button {
+                        onRewriteTap()
+                    } label: {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(themeManager.palette.accent)
+                            .frame(width: 28, height: 28)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(
+                        isSending ||
+                            isSendingVoice ||
+                            trimmedDraft.isEmpty ||
+                            hasVoiceDraft ||
+                            isRecordingVoice
+                    )
                 }
-                .buttonStyle(.plain)
-                .disabled(isSending || isSendingVoice || trimmedDraft.isEmpty || hasVoiceDraft || isRecordingVoice)
 
                 TextField(
                     isCaptioningPendingMedia

@@ -152,18 +152,36 @@ struct ChatforiaApp: App {
 
                     // 🔁 Retry sending token AFTER auth exists
                     await notificationCoordinator.retryPushRegistrationIfPossible()
+
+                    // 🔢 Load authoritative badge state after authentication.
+                    await notificationCoordinator.refreshBadgeState()
                 }
 
                 AppEnvironment.configureSendQueueHandlersIfNeeded()
                 SendQueueManager.shared.replayQueuedJobs()
                 await inviteFlow.redeemPendingInviteIfNeeded(auth: auth)
 
-                if !auth.isPaid {
+                let shouldShowAds = resolvedAdsEnabled(
+                    backendAdsEnabled:
+                        SubscriptionManager.shared.backendEntitlements?.entitlements.adsEnabled,
+                    isPaid: auth.isPaid
+                )
+
+                InterstitialAdManager.shared.setAdsEnabled(shouldShowAds)
+                if shouldShowAds {
                     InterstitialAdManager.shared.preloadIfNeeded()
                 }
             }
             .onOpenURL { url in
                 if checkoutReturn.handleIncomingURL(url) {
+                    return
+                }
+
+                if CreatorReferralStore.code(from: url) != nil {
+                    let code = CreatorReferralStore.shared.capture(from: url)
+                    AnalyticsManager.shared.capture("referral_link_visited", properties: [
+                        "referral_code": code ?? ""
+                    ])
                     return
                 }
 
@@ -183,6 +201,14 @@ struct ChatforiaApp: App {
                 }
 
                 if checkoutReturn.handleIncomingURL(url) {
+                    return
+                }
+
+                if CreatorReferralStore.code(from: url) != nil {
+                    let code = CreatorReferralStore.shared.capture(from: url)
+                    AnalyticsManager.shared.capture("referral_link_visited", properties: [
+                        "referral_code": code ?? ""
+                    ])
                     return
                 }
 
@@ -281,13 +307,25 @@ struct ChatforiaApp: App {
                 Task {
                     await notificationCoordinator.retryPushRegistrationIfPossible()
                 }
+
+                // 🔢 Reconcile the app-icon badge with authoritative server state.
+                Task {
+                    await notificationCoordinator.refreshBadgeState()
+                }
             }
 
             Task {
                 await inviteFlow.redeemPendingInviteIfNeeded(auth: auth)
             }
 
-            if !auth.isPaid {
+            let shouldShowAds = resolvedAdsEnabled(
+                backendAdsEnabled:
+                    SubscriptionManager.shared.backendEntitlements?.entitlements.adsEnabled,
+                isPaid: auth.isPaid
+            )
+
+            InterstitialAdManager.shared.setAdsEnabled(shouldShowAds)
+            if shouldShowAds {
                 InterstitialAdManager.shared.preloadIfNeeded()
             }
         }

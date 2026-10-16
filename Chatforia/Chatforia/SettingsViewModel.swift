@@ -206,3 +206,4 @@ final class SettingsViewModel: ObservableObject {
         UserDefaults.standard.set(value, forKey: maskAIProfanityKey)
     }
 }
+

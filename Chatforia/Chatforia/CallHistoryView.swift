@@ -25,6 +25,13 @@ struct CallHistoryView: View {
     @State private var showDialer = false
     @State private var savedContacts: [ContactDTO] = []
 
+    @State private var isEditingRecents = false
+    @State private var isEditingVoicemails = false
+    @State private var selectedCallIds: Set<Int> = []
+    @State private var showDeleteSelectedConfirmation = false
+    @State private var showClearAllConfirmation = false
+    @State private var isDeletingHistory = false
+
     @State private var callChoices: [PendingCallChoice] = []
     @State private var showCallChoices = false
     
@@ -56,8 +63,58 @@ struct CallHistoryView: View {
                     recentsContent
                     
                 case .voicemail:
-                    VoicemailInboxView()
+                    VoicemailInboxView(
+                        isEditingVoicemails: $isEditingVoicemails
+                    )
                 }
+            }
+
+            if selectedSegment == .recents &&
+                isEditingRecents &&
+                !items.isEmpty {
+
+                Divider()
+
+                HStack(spacing: 18) {
+                    Button(
+                        selectedCallIds.count == items.count
+                            ? "Deselect All"
+                            : "Select All"
+                    ) {
+                        if selectedCallIds.count == items.count {
+                            selectedCallIds.removeAll()
+                        } else {
+                            selectedCallIds = Set(items.map(\.id))
+                        }
+                    }
+
+                    Spacer()
+
+                    Button(role: .destructive) {
+                        showDeleteSelectedConfirmation = true
+                    } label: {
+                        Text(
+                            selectedCallIds.isEmpty
+                                ? "Delete"
+                                : "Delete (\(selectedCallIds.count))"
+                        )
+                    }
+                    .disabled(
+                        selectedCallIds.isEmpty ||
+                        isDeletingHistory
+                    )
+
+                    Button(role: .destructive) {
+                        showClearAllConfirmation = true
+                    } label: {
+                        Text("Clear All")
+                    }
+                    .disabled(isDeletingHistory)
+                }
+                .font(.body.weight(.semibold))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(themeManager.palette.cardBackground)
             }
         }
         .navigationTitle(
@@ -65,15 +122,32 @@ struct CallHistoryView: View {
         )
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showDialer = true
-                } label: {
-                    Image(systemName: "circle.grid.3x3.fill")
+            if selectedSegment == .recents && !items.isEmpty {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(isEditingRecents ? "Done" : "Edit") {
+                        withAnimation {
+                            isEditingRecents.toggle()
+
+                            if !isEditingRecents {
+                                selectedCallIds.removeAll()
+                            }
+                        }
+                    }
+                    .disabled(isDeletingHistory)
                 }
-                .accessibilityLabel(
-                    Text(appText("dialer.openDialPad", languageCode: appLanguage))
-                )
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                if !isEditingRecents && !isEditingVoicemails {
+                    Button {
+                        showDialer = true
+                    } label: {
+                        Image(systemName: "circle.grid.3x3.fill")
+                    }
+                    .accessibilityLabel(
+                        Text(appText("dialer.openDialPad", languageCode: appLanguage))
+                    )
+                }
             }
         }
         .sheet(isPresented: $showDialer) {
@@ -107,6 +181,58 @@ struct CallHistoryView: View {
                 role: .cancel
             ) { }
         }
+        .confirmationDialog(
+            "Delete selected calls?",
+            isPresented: $showDeleteSelectedConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(
+                "Delete \(selectedCallIds.count) Calls",
+                role: .destructive
+            ) {
+                Task {
+                    await deleteSelectedCalls()
+                }
+            }
+
+            Button(
+                appText("common.cancel", languageCode: appLanguage),
+                role: .cancel
+            ) { }
+        } message: {
+            Text("These calls will be removed from your Recents only.")
+        }
+        .confirmationDialog(
+            "Clear all Recents?",
+            isPresented: $showClearAllConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(
+                "Clear All",
+                role: .destructive
+            ) {
+                Task {
+                    await clearAllCalls()
+                }
+            }
+
+            Button(
+                appText("common.cancel", languageCode: appLanguage),
+                role: .cancel
+            ) { }
+        } message: {
+            Text("This removes all calls from your Recents only.")
+        }
+        .onChange(of: selectedSegment) { _, newSegment in
+            if newSegment != .recents {
+                isEditingRecents = false
+                selectedCallIds.removeAll()
+            }
+
+            if newSegment != .voicemail {
+                isEditingVoicemails = false
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .callHistoryShouldRefresh)) { _ in
             guard selectedSegment == .recents else { return }
 
@@ -135,20 +261,18 @@ struct CallHistoryView: View {
                     message: appText("callHistory.emptySubtitle", languageCode: appLanguage)
                 )
             } else {
-                List {
+                List(selection: $selectedCallIds) {
                     ForEach(items) { item in
-                        let otherUser = item.otherUser(for: auth.currentUser?.id)
+                        let otherUser = item.otherUser(for: auth.currentUser?.id, contacts: savedContacts)
                         
                         CallHistoryRowView(
                             item: item,
                             currentUserId: auth.currentUser?.id,
                             contacts: savedContacts,
-                            canCall: otherUser != nil || item.externalPhone != nil,
+                            canCall: otherUser != nil || item.externalNumber != nil,
 
                             onRedial: {
-                                let otherUser = (item.callerId == auth.currentUser?.id)
-                                    ? item.callee
-                                    : item.caller
+                                let otherUser = item.otherUser(for: auth.currentUser?.id, contacts: savedContacts)
 
                                 var choices: [PendingCallChoice] = []
 
@@ -161,12 +285,12 @@ struct CallHistoryView: View {
                                     )
                                 }
 
-                                if let phone = item.externalPhone,
+                                if let phone = item.externalNumber,
                                 !phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                                     choices.append(
                                         .phoneNumber(
                                             number: phone,
-                                            name: resolvedContactName(for: phone) ?? phone
+                                            name: item.matchedExternalContactName(in: savedContacts) ?? phone
                                         )
                                     )
                                 }
@@ -197,8 +321,9 @@ struct CallHistoryView: View {
                                 )
                             }
                         )
+                        .tag(item.id)
                         .onAppear {
-                            debugLog("CALL HISTORY:", item.id, "callerId:", item.callerId, "calleeId:", item.calleeId as Any, "status:", item.status, "externalPhone:", item.externalPhone as Any)
+                            debugLog("CALL HISTORY IDENTITY V2:", item.id, "currentUserId:", auth.currentUser?.id as Any, "callerId:", item.callerId, "calleeId:", item.calleeId as Any, "direction:", item.direction as Any, "status:", item.status, "hasExternalNumber:", item.externalNumber != nil, "otherUserId:", otherUser?.id as Any)
                         }
                         .listRowBackground(themeManager.palette.cardBackground)
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -228,11 +353,21 @@ struct CallHistoryView: View {
                         }
                     }
                 }
+                .environment(
+                    \.editMode,
+                    .constant(isEditingRecents ? .active : .inactive)
+                )
                 .scrollContentBackground(.hidden)
             }
         }
         .task {
-            await load()
+            async let historyLoad: Void = load()
+            async let missedCallAcknowledgement: Void = acknowledgeMissedCalls()
+
+            _ = await (
+                historyLoad,
+                missedCallAcknowledgement
+            )
         }
         .refreshable {
             await load()
@@ -260,6 +395,60 @@ struct CallHistoryView: View {
         .padding(24)
     }
     
+    private func deleteSelectedCalls() async {
+        guard !selectedCallIds.isEmpty else { return }
+        guard let token = auth.currentToken, !token.isEmpty else { return }
+        guard !isDeletingHistory else { return }
+
+        let ids = Array(selectedCallIds)
+
+        isDeletingHistory = true
+        defer {
+            isDeletingHistory = false
+        }
+
+        do {
+            try await CallHistoryService.shared.deleteSelected(
+                ids: ids,
+                token: token
+            )
+
+            items.removeAll {
+                selectedCallIds.contains($0.id)
+            }
+
+            selectedCallIds.removeAll()
+
+            if items.isEmpty {
+                isEditingRecents = false
+            }
+        } catch {
+            debugLog("❌ Failed to delete selected calls:", error)
+        }
+    }
+
+    private func clearAllCalls() async {
+        guard let token = auth.currentToken, !token.isEmpty else { return }
+        guard !isDeletingHistory else { return }
+
+        isDeletingHistory = true
+        defer {
+            isDeletingHistory = false
+        }
+
+        do {
+            try await CallHistoryService.shared.clearHistory(
+                token: token
+            )
+
+            items.removeAll()
+            selectedCallIds.removeAll()
+            isEditingRecents = false
+        } catch {
+            debugLog("❌ Failed to clear call history:", error)
+        }
+    }
+
     private func delete(_ item: CallRecordDTO) async {
         guard let token = auth.currentToken, !token.isEmpty else { return }
         
@@ -299,7 +488,7 @@ private func title(for choice: PendingCallChoice) -> String {
     
     private func handleMessage(for item: CallRecordDTO) async {
         do {
-            let otherUser = item.otherUser(for: auth.currentUser?.id)
+            let otherUser = item.otherUser(for: auth.currentUser?.id, contacts: savedContacts)
 
             if let user = otherUser {
                 let destination = try await startChatVM.createOrOpenDirectChat(targetUserId: user.id)
@@ -317,11 +506,11 @@ private func title(for choice: PendingCallChoice) -> String {
                 return
             }
 
-            if let rawPhone = item.externalPhone,
+            if let rawPhone = item.externalNumber,
                let phone = PhoneContactsService.normalizePhone(rawPhone),
                !phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
 
-                let matchedName = resolvedContactName(for: phone)
+                let matchedName = item.matchedExternalContactName(in: savedContacts)
 
                 let contact = ContactSearchResultDTO(
                     id: item.id,
@@ -351,6 +540,21 @@ private func title(for choice: PendingCallChoice) -> String {
         }
     }
     
+    private func acknowledgeMissedCalls() async {
+        guard let token = auth.currentToken, !token.isEmpty else { return }
+
+        do {
+            try await CallHistoryService.shared.acknowledgeMissedCalls(
+                token: token
+            )
+
+            // The server is authoritative for missed-call attention state.
+            await NotificationCoordinator.shared.refreshBadgeState()
+        } catch {
+            debugLog("❌ Failed to acknowledge missed calls:", error)
+        }
+    }
+
     private func load() async {
         guard !isLoading else { return }
         guard let token = auth.currentToken, !token.isEmpty else {
@@ -365,12 +569,10 @@ private func title(for choice: PendingCallChoice) -> String {
         
         do {
             async let fetchedCalls = CallHistoryService.shared.fetchHistory(token: token)
-            async let fetchedContacts = ContactsService.shared.fetchContacts(token: token)
+            async let fetchedContacts = fetchAllContacts(token: token)
             
             let calls = try await fetchedCalls
-            let contactsResponse = try await fetchedContacts
-            
-            savedContacts = contactsResponse.items
+            savedContacts = try await fetchedContacts
             
             items = calls.sorted {
                 ($0.endedAt ?? $0.startedAt ?? $0.createdAt) > ($1.endedAt ?? $1.startedAt ?? $1.createdAt)
@@ -382,30 +584,28 @@ private func title(for choice: PendingCallChoice) -> String {
         isLoading = false
     }
     
-    private func normalizedDigits(_ value: String) -> String {
-        value.filter(\.isNumber)
-    }
+    private func fetchAllContacts(token: String) async throws -> [ContactDTO] {
+        var contacts: [ContactDTO] = []
+        var cursor: Int?
+        var visitedCursors = Set<Int>()
 
-    private func resolvedContactName(for phone: String) -> String? {
-        let target = normalizedDigits(phone)
+        while true {
+            let page = try await ContactsService.shared.fetchContacts(
+                limit: 100,
+                cursor: cursor,
+                token: token
+            )
+            contacts.append(contentsOf: page.items)
 
-        return savedContacts.first(where: {
-            guard let external = $0.externalPhone else { return false }
-            return normalizedDigits(external) == target
-        }).flatMap { contact in
-            if let alias = contact.alias?.trimmingCharacters(in: .whitespacesAndNewlines), !alias.isEmpty {
-                return alias
-            }
-            if let username = contact.user?.username?.trimmingCharacters(in: .whitespacesAndNewlines), !username.isEmpty {
-                return username
-            }
-            if let externalName = contact.externalName?.trimmingCharacters(in: .whitespacesAndNewlines), !externalName.isEmpty {
-                return externalName
-            }
-            return nil
+            guard let next = page.nextCursor,
+                  visitedCursors.insert(next).inserted
+            else { break }
+            cursor = next
         }
+
+        return contacts
     }
-    
+
     private struct CallHistoryRowView: View {
         @EnvironmentObject private var themeManager: ThemeManager
         @AppStorage("chatforia_language") private var appLanguage = "en"
@@ -420,63 +620,17 @@ private func title(for choice: PendingCallChoice) -> String {
         let onVideo: (() -> Void)?
        
         
-        private func normalizedDigits(_ value: String) -> String {
-            value.filter(\.isNumber)
-        }
-
-        private var matchedContactName: String? {
-            guard let external = item.externalPhone else { return nil }
-            let target = normalizedDigits(external)
-
-            return contacts.first(where: {
-                guard let phone = $0.externalPhone else { return false }
-                return normalizedDigits(phone) == target
-            }).flatMap { contact in
-                if let alias = contact.alias?.trimmingCharacters(in: .whitespacesAndNewlines), !alias.isEmpty {
-                    return alias
-                }
-                if let username = contact.user?.username?.trimmingCharacters(in: .whitespacesAndNewlines), !username.isEmpty {
-                    return username
-                }
-                if let externalName = contact.externalName?.trimmingCharacters(in: .whitespacesAndNewlines), !externalName.isEmpty {
-                    return externalName
-                }
-                return nil
-            }
-        }
-        
         private var isOutgoing: Bool {
             item.isOutgoing(for: currentUserId)
         }
         
         private var otherPartyName: String {
-            let other = isOutgoing ? item.callee : item.caller
-
-            if let displayName = other?.displayName,
-               !displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                return displayName
-            }
-
-            if let username = other?.username,
-               !username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                return username
-            }
-
-            if let matchedContactName,
-               !matchedContactName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                return matchedContactName
-            }
-
-            if let external = item.externalPhone,
-               !external.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                return external
-            }
-
-            return isOutgoing
-                ? appText("calls.outgoingCall", languageCode: appLanguage)
-                : appText("calls.incomingCall", languageCode: appLanguage)
+            item.otherPartyName(for: currentUserId, contacts: contacts)
+                ?? (isOutgoing
+                    ? appText("calls.outgoingCall", languageCode: appLanguage)
+                    : appText("calls.incomingCall", languageCode: appLanguage))
         }
-        
+
         private var directionLabel: String {
             isOutgoing
              ? appText("calls.outgoing", languageCode: appLanguage)

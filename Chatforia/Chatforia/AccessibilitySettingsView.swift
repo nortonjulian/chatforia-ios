@@ -62,8 +62,23 @@ struct AccessibilitySettingsView: View {
                     VStack(alignment: .leading, spacing: 14) {
                         ThemedToggleRow(
                             title: appText("accessibility_enable_live_captions", languageCode: appLanguage),
-                            isOn: $vm.a11yLiveCaptions
+                            isOn: Binding(
+                                get: { vm.a11yLiveCaptions },
+                                set: { enabled in
+                                    if enabled && !auth.isPremium {
+                                        vm.a11yLiveCaptions = false
+                                    } else {
+                                        vm.a11yLiveCaptions = enabled
+                                    }
+                                }
+                            )
                         )
+
+                        if !auth.isPremium {
+                            Text("Premium required")
+                                .font(.caption)
+                                .foregroundStyle(themeManager.palette.secondaryText)
+                        }
 
                         Picker(
                             appText("accessibility_caption_font_size", languageCode: appLanguage),

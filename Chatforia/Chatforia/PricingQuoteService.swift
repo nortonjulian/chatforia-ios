@@ -50,21 +50,21 @@ final class PricingQuoteService {
     private init() {}
 
     private let fallbackQuotes: [PricingProduct: (currency: String, unitAmount: Int)] = [
-        .plus: ("USD", 499),
-        .premiumMonthly: ("USD", 2499),
-        .premiumAnnual: ("USD", 22500),
+        .plus: ("USD", 799),
+        .premiumMonthly: ("USD", 1299),
+        .premiumAnnual: ("USD", 11999),
 
         .esimLocalUnlimited: ("USD", 5999),
-        .esimLocal3: ("USD", 1499),
-        .esimLocal5: ("USD", 2299),
-        .esimLocal10: ("USD", 3499),
-        .esimLocal20: ("USD", 5499),
+        .esimLocal3: ("USD", 999),
+        .esimLocal5: ("USD", 1499),
+        .esimLocal10: ("USD", 2499),
+        .esimLocal20: ("USD", 3999),
 
         .esimEuropeUnlimited: ("USD", 6999),
-        .esimEurope3: ("USD", 1699),
-        .esimEurope5: ("USD", 2499),
-        .esimEurope10: ("USD", 3699),
-        .esimEurope20: ("USD", 6499),
+        .esimEurope3: ("USD", 1299),
+        .esimEurope5: ("USD", 1999),
+        .esimEurope10: ("USD", 3299),
+        .esimEurope20: ("USD", 4999),
 
         .esimGlobalUnlimited: ("USD", 7999),
         .esimGlobal3: ("USD", 2199),

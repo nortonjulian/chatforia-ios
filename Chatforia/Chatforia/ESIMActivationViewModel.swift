@@ -70,6 +70,19 @@ final class ESIMActivationViewModel: ObservableObject {
         return status == "active"
     }
 
+    var showsProvisioningDetails: Bool {
+        !isActive
+    }
+
+    var displayIccidText: String? {
+        guard let iccid = iccidText else {
+            return nil
+        }
+
+        let suffix = String(iccid.suffix(4))
+        return "•••• •••• •••• \(suffix)"
+    }
+
     var isMockProfile: Bool {
         let values = [
             payload.smdpAddress,
@@ -101,23 +114,54 @@ final class ESIMActivationViewModel: ObservableObject {
     }
 
     var installURL: URL? {
-        if let explicit = explicitLpaText,
-           let url = normalizedInstallURL(from: explicit) {
-            return url
+        guard !isActive,
+              let lpaCode = installLPACode else {
+            return nil
         }
 
-        if let activation = installationCodeText,
-           let url = normalizedInstallURL(from: activation) {
-            return url
+        var components = URLComponents()
+        components.scheme = "https"
+        components.host = "esimsetup.apple.com"
+        components.path = "/esim_qrcode_provisioning"
+        components.queryItems = [
+            URLQueryItem(
+                name: "carddata",
+                value: lpaCode
+            )
+        ]
+
+        return components.url
+    }
+
+    private var installLPACode: String? {
+        let candidates = [
+            explicitLpaText,
+            qrCodeURLText,
+            installationCodeText
+        ]
+
+        for candidate in candidates {
+            guard let candidate else {
+                continue
+            }
+
+            let trimmed = candidate.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+
+            if trimmed.lowercased().hasPrefix("lpa:") {
+                return trimmed
+            }
         }
 
-        if let smdp = smdpAddressText,
-           let activation = installationCodeText {
-            let raw = "LPA:1$\(smdp)$\(activation)"
-            return normalizedInstallURL(from: raw)
+        guard
+            let smdp = smdpAddressText,
+            let activation = installationCodeText
+        else {
+            return nil
         }
 
-        return nil
+        return "LPA:1$\(smdp)$\(activation)"
     }
 
     var manualSetupAvailable: Bool {
@@ -189,24 +233,6 @@ final class ESIMActivationViewModel: ObservableObject {
             "planName": payload.planName ?? "unknown",
             "iccidPresent": payload.iccid != nil
         ])
-    }
-
-    private func normalizedInstallURL(from raw: String) -> URL? {
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard !trimmed.isEmpty else {
-            return nil
-        }
-
-        if trimmed.lowercased().hasPrefix("lpa:") {
-            return URL(string: trimmed)
-        }
-
-        if let url = URL(string: trimmed), url.scheme != nil {
-            return url
-        }
-
-        return nil
     }
 
     private func nonEmpty(_ value: String?) -> String? {

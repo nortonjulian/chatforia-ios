@@ -90,3 +90,4 @@ struct RegistrationResponseDTO: Decodable {
         return nil
     }
 }
+

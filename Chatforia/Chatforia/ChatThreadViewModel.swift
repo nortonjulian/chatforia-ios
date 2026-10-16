@@ -707,7 +707,8 @@ final class ChatThreadViewModel: ObservableObject {
             guard !ids.isEmpty else { return }
 
             self.pendingReadMessageIds.removeAll()
-            APIClient.shared.readMessagesBulk(ids)
+            guard let roomId = self.roomId else { return }
+            APIClient.shared.readMessagesBulk(ids, roomId: roomId)
         }
     }
 

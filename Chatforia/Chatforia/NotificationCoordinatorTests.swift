@@ -175,7 +175,8 @@ final class NotificationCoordinatorTests: XCTestCase {
             DeviceRegistrationService.replacementError(
                 from: APIError.server(
                     status: 409,
-                    message: responseBody
+                    message: responseBody,
+                    body: Data(responseBody.utf8)
                 )
             )
 
@@ -209,7 +210,8 @@ final class NotificationCoordinatorTests: XCTestCase {
             DeviceRegistrationService.replacementError(
                 from: APIError.server(
                     status: 409,
-                    message: responseBody
+                    message: responseBody,
+                    body: Data(responseBody.utf8)
                 )
             )
 

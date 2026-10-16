@@ -19,16 +19,53 @@ struct ESIMCheckoutStatusDTO: Decodable, Equatable {
     let purchase: ESIMCheckoutPurchaseDTO?
 }
 
+struct ESIMReplacementInstallationDTO: Decodable, Equatable {
+    let subscriberId: Int
+    let iccid: String?
+    let providerProfileId: String?
+    let smdp: String?
+    let activationCode: String?
+    let lpaUri: String?
+    let qrPayload: String?
+}
+
+struct ESIMReplacementDTO: Decodable, Equatable {
+    let id: String
+    let purchaseId: Int
+    let status: String
+    let oldIccid: String
+    let newIccid: String?
+    let remainingDataMb: Int
+    let expiresAt: Date?
+    let createdAt: Date?
+    let completedAt: Date?
+    let installation: ESIMReplacementInstallationDTO?
+}
+
+struct ESIMReplacementResponseDTO: Decodable, Equatable {
+    let ok: Bool
+    let replacement: ESIMReplacementDTO
+}
+
 final class WirelessService {
     static let shared = WirelessService()
-    private init() {}
+    private let apiClient: APIClientSending
+    private let tokenProvider: () -> String?
+
+    init(
+        apiClient: APIClientSending = APIClient.shared,
+        tokenProvider: @escaping () -> String? = { TokenStore.shared.read() }
+    ) {
+        self.apiClient = apiClient
+        self.tokenProvider = tokenProvider
+    }
 
     func fetchWirelessStatus() async throws -> WirelessStatusDTO {
-        guard let token = TokenStore.shared.read(), !token.isEmpty else {
+        guard let token = tokenProvider(), !token.isEmpty else {
             throw APIError.unauthorized
         }
 
-        return try await APIClient.shared.send(
+        return try await apiClient.send(
             APIRequest(
                 path: "api/wireless/status",
                 method: .GET,
@@ -38,10 +75,45 @@ final class WirelessService {
         )
     }
 
+    func replaceEsim(
+        purchaseId: Int,
+        idempotencyKey: String
+    ) async throws -> ESIMReplacementResponseDTO {
+        guard let token = tokenProvider(),
+              !token.isEmpty else {
+            throw APIError.unauthorized
+        }
+
+        guard purchaseId > 0 else {
+            throw APIError.invalidURL
+        }
+
+        let key =
+            idempotencyKey.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+
+        guard !key.isEmpty, key.count <= 200 else {
+            throw APIError.invalidURL
+        }
+
+        return try await apiClient.send(
+            APIRequest(
+                path: "api/wireless/esim/\(purchaseId)/replace",
+                method: .POST,
+                requiresAuth: true,
+                headers: [
+                    "Idempotency-Key": key
+                ]
+            ),
+            token: token
+        )
+    }
+
     func fetchCheckoutStatus(
         sessionId: String
     ) async throws -> ESIMCheckoutStatusDTO {
-        guard let token = TokenStore.shared.read(),
+        guard let token = tokenProvider(),
               !token.isEmpty else {
             throw APIError.unauthorized
         }
@@ -68,7 +140,7 @@ final class WirelessService {
             throw APIError.invalidURL
         }
 
-        return try await APIClient.shared.send(
+        return try await apiClient.send(
             APIRequest(
                 path:
                     "billing/checkout-status?\(query)",

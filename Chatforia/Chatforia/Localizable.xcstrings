@@ -10,10 +10,16 @@
     "—" : {
 
     },
+    "@%@" : {
+
+    },
     "%@ avatar" : {
 
     },
     "%lld" : {
+
+    },
+    "%lld data packs queued" : {
 
     },
     "%lld selected" : {
@@ -247269,6 +247275,9 @@
         }
       }
     },
+    "Authenticator or backup code" : {
+
+    },
     "available_on_current_plan" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -252063,7 +252072,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Go ad-free with Plus, or unlock AI tools and customization with Premium."
+            "value" : "Go ad-free with Plus and get Standard AI tools. Premium adds Full AI tools and customization."
           }
         },
         "eo" : {
@@ -405938,6 +405947,9 @@
         }
       }
     },
+    "Change" : {
+
+    },
     "chat.archiveConversationFailed" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -434551,10 +434563,19 @@
         }
       }
     },
+    "Check status" : {
+
+    },
     "Checking recovery backup…" : {
 
     },
     "Checking secure message recovery…" : {
+
+    },
+    "Choose document" : {
+
+    },
+    "Close" : {
 
     },
     "common.additionalDetails" : {
@@ -518134,6 +518155,9 @@
     "Confirm Secure Messages Passcode" : {
 
     },
+    "Contact email" : {
+
+    },
     "contact.errorSend" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -590142,6 +590166,9 @@
     "Context" : {
 
     },
+    "Continue" : {
+
+    },
     "Controls who can find you by username in Chatforia search." : {
 
     },
@@ -591998,6 +592025,9 @@
 
     },
     "Create Secure Messages Passcode" : {
+
+    },
+    "Current + queued data packs" : {
 
     },
     "current_plan_format" : {
@@ -628040,6 +628070,12 @@
           }
         }
       }
+    },
+    "Document type" : {
+
+    },
+    "Document uploaded." : {
+
     },
     "Done" : {
 
@@ -741616,7 +741652,13 @@
         }
       }
     },
+    "Enter at least 3 characters to search people." : {
+
+    },
     "Enter Secure Messages Passcode" : {
+
+    },
+    "Enter the code from your authenticator app, or one of your backup codes." : {
 
     },
     "Enter the Secure Messages Passcode you created on another trusted device." : {
@@ -741643,6 +741685,9 @@
           }
         }
       }
+    },
+    "eSIM Installation" : {
+
     },
     "esim.activate" : {
       "extractionState" : "stale",
@@ -992865,6 +992910,15 @@
     "I can’t recover my secure messages" : {
 
     },
+    "Identity information" : {
+
+    },
+    "Identity information complete." : {
+
+    },
+    "Install your Chatforia eSIM" : {
+
+    },
     "invite.fromPhoneContacts" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1065386,7 +1065440,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Go ad-free with Plus, or unlock AI tools and customization with Premium."
+            "value" : "Go ad-free with Plus and get Standard AI tools. Premium adds Full AI tools and customization."
           }
         },
         "eo" : {
@@ -1124458,7 +1124512,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plus removes ads and adds forwarding. Premium unlocks additional themes, message tones, ringtones, AI tools, and the full Chatforia experience."
+            "value" : "Plus removes ads, adds forwarding, and includes Standard AI tools. Premium adds Full AI tools, additional themes, message tones, and ringtones."
           }
         },
         "eo" : {
@@ -1402213,6 +1402267,9 @@
     "Loading message" : {
 
     },
+    "Loading verification requirements…" : {
+
+    },
     "loading_setting_things_up" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1452068,6 +1452125,9 @@
           }
         }
       }
+    },
+    "Manual setup" : {
+
     },
     "me@example.com" : {
 
@@ -1551787,6 +1551847,15 @@
     "Next" : {
 
     },
+    "Next Data Pack" : {
+
+    },
+    "No accepted document type was returned for this requirement." : {
+
+    },
+    "No additional identity fields are required." : {
+
+    },
     "No blocked phone numbers" : {
 
     },
@@ -1551794,6 +1551863,9 @@
 
     },
     "No recovery backup found" : {
+
+    },
+    "Number verification" : {
 
     },
     "Numbers you block from PSTN conversations will appear here." : {
@@ -1665336,6 +1665408,9 @@
           }
         }
       }
+    },
+    "Premium required" : {
+
     },
     "premium_message_tone_title" : {
       "extractionState" : "manual",
@@ -1876939,6 +1877014,9 @@
         }
       }
     },
+    "Queued" : {
+
+    },
     "random.stranger" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1930473,6 +1930551,9 @@
         }
       }
     },
+    "Ready after your current pack" : {
+
+    },
     "refund.contact.body" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1942476,6 +1942557,12 @@
 
     },
     "Replace an existing device?" : {
+
+    },
+    "Replace eSIM" : {
+
+    },
+    "Replace eSIM?" : {
 
     },
     "Report" : {
@@ -2094744,6 +2094831,9 @@
           }
         }
       }
+    },
+    "Select a document" : {
+
     },
     "select_age_range" : {
       "extractionState" : "stale",
@@ -2286110,6 +2286200,9 @@
     "Submit" : {
 
     },
+    "Submit for review" : {
+
+    },
     "support.actionCompleted" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2315646,6 +2315739,12 @@
         }
       }
     },
+    "Supporting documents" : {
+
+    },
+    "Supporting documents complete." : {
+
+    },
     "tab_calls" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2337798,6 +2337897,9 @@
         }
       }
     },
+    "The previous verification was rejected. Review and correct the information below, then submit it again." : {
+
+    },
     "themes.amoled" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2345186,6 +2345288,9 @@
 
     },
     "This device does not have the correct secure message key, and no account recovery backup exists yet." : {
+
+    },
+    "This field is required." : {
 
     },
     "This iPhone has the correct secure message key. Create a Secure Messages Passcode so you can restore secure messages on the website, Android, or another iPhone." : {
@@ -2361817,6 +2361922,12 @@
         }
       }
     },
+    "Total Data Available" : {
+
+    },
+    "Two-factor authentication" : {
+
+    },
     "Type START FRESH to continue" : {
 
     },
@@ -2362920,7 +2363031,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plus removes ads and adds forwarding. Premium unlocks additional themes, message tones, ringtones, AI tools, and the full Chatforia experience."
+            "value" : "Plus removes ads, adds forwarding, and includes Standard AI tools. Premium adds Full AI tools, additional themes, message tones, and ringtones."
           }
         },
         "eo" : {
@@ -2450627,7 +2450738,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plus removes ads and extends your message history — perfect for everyday use. Premium adds extra customization, AI tools for rewrites and replies, and priority support for heavy users."
+            "value" : "Plus includes Standard AI tools, removes ads, and extends your message history. Premium upgrades you to Full AI tools, more customization, and priority support."
           }
         },
         "eo" : {
@@ -2554014,7 +2554125,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AI-powered smart replies and instant translation (fair use)"
+            "value" : "Limited Ria chat and instant translation"
           }
         },
         "eo" : {
@@ -2585396,7 +2585507,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The full Chatforia experience: AI power tools, customization, and priority support."
+            "value" : "The full Chatforia experience: Full AI tools, customization, and priority support."
           }
         },
         "eo" : {
@@ -2586319,7 +2586430,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Premium-only AI power tools for rewrites, smart replies, and summaries"
+            "value" : "Full AI tools, including advanced rewrites and summaries"
           }
         },
         "eo" : {
@@ -2644454,6 +2644565,9 @@
         }
       }
     },
+    "Upload the documents required for this phone number." : {
+
+    },
     "Use another account" : {
 
     },
@@ -2645094,6 +2645208,15 @@
           }
         }
       }
+    },
+    "Verification under review" : {
+
+    },
+    "Verify and sign in" : {
+
+    },
+    "Verifying…" : {
+
     },
     "video.chooseType" : {
       "extractionState" : "stale",
@@ -2769815,6 +2769938,19 @@
     },
     "You've been paired for a random chat. Be kind!" : {
 
+    },
+    "Your information has been submitted. Check the status to see whether the number is ready to be assigned." : {
+
+    },
+    "smart_replies_upgrade_hint" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Available with Plus or Premium."
+          }
+        }
+      }
     }
   },
   "version" : "1.2"

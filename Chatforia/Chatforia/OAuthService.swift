@@ -3,7 +3,15 @@ import UIKit
 import GoogleSignIn
 
 struct OAuthResponse: Decodable {
-    let token: String
+    let token: String?
+    let mfaRequired: Bool?
+    let mfaToken: String?
+
+    init(token: String? = nil, mfaRequired: Bool? = nil, mfaToken: String? = nil) {
+        self.token = token
+        self.mfaRequired = mfaRequired
+        self.mfaToken = mfaToken
+    }
 }
 
 @MainActor
@@ -38,8 +46,10 @@ final class OAuthService {
         return idToken
     }
 
-    func exchangeGoogleToken(_ idToken: String) async throws -> OAuthResponse {
-        let body = try JSONEncoder().encode(["idToken": idToken])
+    func exchangeGoogleToken(_ idToken: String, referralCode: String? = nil) async throws -> OAuthResponse {
+        var payload = ["idToken": idToken]
+        if let referralCode { payload["referralCode"] = referralCode }
+        let body = try JSONEncoder().encode(payload)
 
         return try await APIClient.shared.send(
             APIRequest(
@@ -56,14 +66,16 @@ final class OAuthService {
         identityToken: String,
         nonce: String,
         firstName: String?,
-        lastName: String?
+        lastName: String?,
+        referralCode: String? = nil
     ) async throws -> OAuthResponse {
-        let payload: [String: Any] = [
+        var payload: [String: String] = [
             "identityToken": identityToken,
-            "nonce": nonce,
-            "firstName": firstName as Any,
-            "lastName": lastName as Any
+            "nonce": nonce
         ]
+        if let firstName { payload["firstName"] = firstName }
+        if let lastName { payload["lastName"] = lastName }
+        if let referralCode { payload["referralCode"] = referralCode }
 
         let data = try JSONSerialization.data(withJSONObject: payload)
 

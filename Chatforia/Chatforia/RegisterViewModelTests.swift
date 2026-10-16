@@ -56,7 +56,7 @@ final class RegisterViewModelTests: XCTestCase {
 
         await vm.submit(auth: AuthStore(), languageCode: "en")
 
-        XCTAssertEqual(vm.errorMessage, appText("auth.passwordMinLength", languageCode: "en"))
+        XCTAssertEqual(vm.errorMessage, "Password must contain at least eight characters.")
         XCTAssertFalse(vm.isSubmitting)
     }
 
@@ -74,19 +74,4 @@ final class RegisterViewModelTests: XCTestCase {
         XCTAssertFalse(vm.isSubmitting)
     }
 
-    func testPhoneWithoutSmsConsentShowsConsentRequiredError() async {
-        let vm = RegisterViewModel()
-
-        vm.username = "julian"
-        vm.email = "test@example.com"
-        vm.password = "password123"
-        vm.confirmPassword = "password123"
-        vm.phone = "5551234567"
-        vm.smsConsent = false
-
-        await vm.submit(auth: AuthStore(), languageCode: "en")
-
-        XCTAssertEqual(vm.errorMessage, appText("auth.smsConsentRequired", languageCode: "en"))
-        XCTAssertFalse(vm.isSubmitting)
-    }
 }

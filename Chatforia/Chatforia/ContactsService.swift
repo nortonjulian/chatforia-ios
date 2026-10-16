@@ -25,6 +25,16 @@ final class ContactsService {
         )
     }
 
+    func searchPeople(query: String, token: String) async throws -> PeopleSearchResponseDTO {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        let encoded = trimmed.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? trimmed
+
+        return try await APIClient.shared.send(
+            APIRequest(path: "search/people?q=\(encoded)&limit=12", method: .GET, requiresAuth: true),
+            token: token
+        )
+    }
+
     func saveUserContact(userId: Int, alias: String? = nil, favorite: Bool = false, token: String) async throws -> ContactDTO {
         struct Request: Encodable {
             let userId: Int
@@ -168,6 +178,29 @@ struct EmptyResponseDTO: Decodable {}
 struct UserLookupResponseDTO: Decodable {
     let userId: Int
     let username: String
+}
+
+struct PeopleSearchResponseDTO: Decodable {
+    let items: [PeopleSearchItemDTO]
+}
+
+struct PeopleSearchItemDTO: Decodable, Identifiable, Equatable {
+    let kind: String
+    let id: Int
+    let label: String?
+    let username: String?
+    let displayName: String?
+    let phone: String?
+    let userId: Int?
+    let avatarUrl: String?
+
+    var resolvedDisplayName: String {
+        let display = displayName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !display.isEmpty { return display }
+        let fallback = label?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !fallback.isEmpty { return fallback }
+        return username ?? "Chatforia user"
+    }
 }
 
 struct ImportedContactsResponseDTO: Decodable {
