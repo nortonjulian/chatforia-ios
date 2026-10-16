@@ -123,6 +123,58 @@ final class ChatsViewModel: ObservableObject {
             }
             .store(in: &cancellables)
 
+        NotificationCenter.default.publisher(for: .socketMessageDeleted)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] note in
+                guard let self else { return }
+                guard let payload = note.userInfo?["payload"] as? [String: Any] else { return }
+
+                let raw =
+                    (payload["item"] as? [String: Any]) ??
+                    (payload["shaped"] as? [String: Any]) ??
+                    (payload["message"] as? [String: Any]) ??
+                    payload
+
+                let roomId: Int? = {
+                    if let value = raw["chatRoomId"] as? Int { return value }
+                    if let value = raw["chatRoomId"] as? NSNumber { return value.intValue }
+                    if let value = raw["chatRoomId"] as? String { return Int(value) }
+                    if let value = raw["roomId"] as? Int { return value }
+                    if let value = raw["roomId"] as? NSNumber { return value.intValue }
+                    if let value = raw["roomId"] as? String { return Int(value) }
+                    return nil
+                }()
+
+                let messageId: Int? = {
+                    if let value = raw["id"] as? Int { return value }
+                    if let value = raw["id"] as? NSNumber { return value.intValue }
+                    if let value = raw["id"] as? String { return Int(value) }
+                    if let value = raw["messageId"] as? Int { return value }
+                    if let value = raw["messageId"] as? NSNumber { return value.intValue }
+                    if let value = raw["messageId"] as? String { return Int(value) }
+                    return nil
+                }()
+
+                guard
+                    let roomId,
+                    let messageId,
+                    let index = self.conversations.firstIndex(where: {
+                        $0.kind.lowercased() == "chat" &&
+                        $0.id == roomId
+                    })
+                else { return }
+
+                let currentLastMessageId = self.conversations[index].last?.messageId
+                guard currentLastMessageId == messageId else { return }
+
+                Task {
+                    await self.loadConversations(
+                        token: TokenStore.shared.read()
+                    )
+                }
+            }
+            .store(in: &cancellables)
+
         NotificationCenter.default.publisher(for: .MessagesChanged)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
