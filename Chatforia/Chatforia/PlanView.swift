@@ -116,7 +116,7 @@ struct PlanView: View {
             planRow(appText("billing.feature.adFree", languageCode: appLanguage), plus: true, premium: true)
             planRow(appText("billing.feature.longerHistory", languageCode: appLanguage), plus: true, premium: true)
             planRow(appText("billing.feature.forwarding", languageCode: appLanguage), plus: true, premium: true)
-            planRow(appText("billing.feature.aiTools", languageCode: appLanguage), plus: false, premium: true)
+            planRow(appText("billing.feature.aiTools", languageCode: appLanguage), plus: true, premium: true)
             planRow(appText("billing.feature.premiumThemes", languageCode: appLanguage), plus: false, premium: true)
             planRow(appText("billing.feature.prioritySupport", languageCode: appLanguage), plus: false, premium: true)
         }
@@ -132,12 +132,12 @@ struct PlanView: View {
                 if currentPlan == .plus || currentPlan == .premium {
                     featureRow(appText("billing.included.expandedAccess", languageCode: appLanguage))
                     featureRow(appText("billing.included.enhancedFeatures", languageCode: appLanguage))
+                    featureRow(appText("billing.included.aiTools", languageCode: appLanguage))
                 }
 
                 if currentPlan == .premium {
                     featureRow(appText("billing.included.premiumThemes", languageCode: appLanguage))
                     featureRow(appText("billing.included.premiumSounds", languageCode: appLanguage))
-                    featureRow(appText("billing.included.aiTools", languageCode: appLanguage))
                     featureRow(appText("billing.included.prioritySupport", languageCode: appLanguage))
                 }
             }
