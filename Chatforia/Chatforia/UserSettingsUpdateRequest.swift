@@ -21,9 +21,9 @@ struct UserSettingsUpdateRequest: Encodable {
     let randomChatAllowedBands: [String]
     let riaRemember: Bool
 
-    let voicemailEnabled: Bool
     let voicemailAutoDeleteDays: Int?
-    let voicemailForwardEmail: String
+    let voicemailForwardEmail: String?
+    let voicemailEmailForwardingEnabled: Bool?
     let voicemailGreetingText: String
 
     let uiLanguage: String
