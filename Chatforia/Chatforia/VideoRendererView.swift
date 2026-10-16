@@ -23,17 +23,19 @@ struct VideoRendererView: UIViewRepresentable {
         Coordinator()
     }
 
-    func makeUIView(context: Context) -> VideoView {
-        let view = VideoView()
+    func makeUIView(context: Context) -> SceneVideoContainer {
+        let container = SceneVideoContainer()
+        let view = container.videoView
         view.contentMode = contentMode
         view.shouldMirror = mirror
         view.backgroundColor = .black
 
         attachRendererIfNeeded(to: view, coordinator: context.coordinator)
-        return view
+        return container
     }
 
-    func updateUIView(_ uiView: VideoView, context: Context) {
+    func updateUIView(_ container: SceneVideoContainer, context: Context) {
+        let uiView = container.videoView
         uiView.shouldMirror = mirror
         uiView.contentMode = contentMode
 
@@ -41,7 +43,8 @@ struct VideoRendererView: UIViewRepresentable {
         attachRendererIfNeeded(to: uiView, coordinator: context.coordinator)
     }
 
-    static func dismantleUIView(_ uiView: VideoView, coordinator: Coordinator) {
+    static func dismantleUIView(_ container: SceneVideoContainer, coordinator: Coordinator) {
+        let uiView = container.videoView
         if let remoteTrack = coordinator.remoteTrack {
             remoteTrack.removeRenderer(uiView)
             coordinator.remoteTrack = nil
@@ -97,5 +100,47 @@ struct VideoRendererView: UIViewRepresentable {
             currentLocal.removeRenderer(view)
             coordinator.localTrack = nil
         }
+    }
+}
+
+// Twilio VideoView does not support subclassing. Wrap it to forward the
+// scene's orientation after SwiftUI/UIKit attaches or lays out the video.
+final class SceneVideoContainer: UIView {
+    let videoView = VideoView()
+    private weak var lastScene: UIWindowScene?
+    private var lastOrientation: UIInterfaceOrientation = .unknown
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        backgroundColor = .black
+        clipsToBounds = true
+        addSubview(videoView)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        refreshCameraOrientation()
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        videoView.frame = bounds
+        refreshCameraOrientation()
+    }
+
+
+    private func refreshCameraOrientation() {
+        guard let scene = window?.windowScene,
+              scene.interfaceOrientation != .unknown
+        else { return }
+        guard scene !== lastScene || scene.interfaceOrientation != lastOrientation
+        else { return }
+        lastScene = scene
+        lastOrientation = scene.interfaceOrientation
+        UserInterfaceTracker.sceneInterfaceOrientationDidChange(scene)
     }
 }

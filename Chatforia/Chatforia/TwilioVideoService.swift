@@ -1,5 +1,6 @@
 import Foundation
 import AVFoundation
+import UIKit
 import TwilioVideo
 
 @MainActor
@@ -46,6 +47,8 @@ final class TwilioVideoService: NSObject {
     }
 
     private var cameraSource: CameraSource?
+    // Keep the scene tracker alive for the full camera capture lifecycle.
+    private var cameraOrientationTracker: UserInterfaceTracker?
     private var localVideoTrack: LocalVideoTrack?
     private var localAudioTrack: LocalAudioTrack?
     private var remoteVideoTracks: [String: RemoteVideoTrack] = [:]
@@ -265,6 +268,7 @@ final class TwilioVideoService: NSObject {
                 }
 
                 service.isFrontCamera.toggle()
+
             }
         }
     }
@@ -284,9 +288,26 @@ final class TwilioVideoService: NSObject {
     private func createLocalTracks() throws {
         localAudioTrack = LocalAudioTrack(options: nil, enabled: true, name: "microphone")
 
+        // SwiftUI uses window scenes. The SDK's UIApplication-based default
+        // can report an unknown orientation and capture portrait video sideways.
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        let cameraScene = scenes.first(where: {
+            $0.windows.contains(where: { $0.isKeyWindow })
+        }) ?? scenes.first(where: {
+            $0.activationState == .foregroundActive
+        }) ?? scenes.first(where: {
+            $0.activationState == .foregroundInactive
+        })
+
+        let tracker = cameraScene.map { UserInterfaceTracker(scene: $0) }
+        cameraOrientationTracker = tracker
         let options = CameraSourceOptions { builder in
             builder.rotationTags = .keep
+            if let tracker {
+                builder.orientationTracker = tracker
+            }
         }
+
 
         guard let cameraSource = CameraSource(options: options, delegate: self) else {
             throw NSError(
@@ -408,6 +429,7 @@ final class TwilioVideoService: NSObject {
         localVideoTrack = nil
         localAudioTrack = nil
         cameraSource = nil
+        cameraOrientationTracker = nil
 
         isMuted = false
         isCameraEnabled = true
