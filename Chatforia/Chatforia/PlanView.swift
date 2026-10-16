@@ -116,7 +116,7 @@ struct PlanView: View {
             planRow(appText("billing.feature.adFree", languageCode: appLanguage), plus: true, premium: true)
             planRow(appText("billing.feature.longerHistory", languageCode: appLanguage), plus: true, premium: true)
             planRow(appText("billing.feature.forwarding", languageCode: appLanguage), plus: true, premium: true)
-            planRow(appText("billing.feature.aiTools", languageCode: appLanguage), plus: false, premium: true)
+            planRow(appText("billing.feature.aiTools", languageCode: appLanguage), plus: true, premium: true)
             planRow(appText("billing.feature.premiumThemes", languageCode: appLanguage), plus: false, premium: true)
             planRow(appText("billing.feature.prioritySupport", languageCode: appLanguage), plus: false, premium: true)
         }
