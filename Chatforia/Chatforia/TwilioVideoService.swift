@@ -47,6 +47,7 @@ final class TwilioVideoService: NSObject {
     }
 
     private var cameraSource: CameraSource?
+    // Keep the scene tracker alive for the full camera capture lifecycle.
     private var cameraOrientationTracker: UserInterfaceTracker?
     private var localVideoTrack: LocalVideoTrack?
     private var localAudioTrack: LocalAudioTrack?
@@ -267,7 +268,7 @@ final class TwilioVideoService: NSObject {
                 }
 
                 service.isFrontCamera.toggle()
-                service.traceVideoOrientation("camera flipped")
+
             }
         }
     }
@@ -306,7 +307,7 @@ final class TwilioVideoService: NSObject {
                 builder.orientationTracker = tracker
             }
         }
-        traceVideoOrientation("camera setup")
+
 
         guard let cameraSource = CameraSource(options: options, delegate: self) else {
             throw NSError(
@@ -357,20 +358,11 @@ final class TwilioVideoService: NSObject {
                     return
                 }
 
-                service.traceVideoOrientation("capture started")
                 if let track = service.localVideoTrack {
                     service.delegate?.twilioVideoDidAddLocalVideoTrack(track)
                 }
             }
         }
-    }
-
-    private func traceVideoOrientation(_ event: String) {
-#if DEBUG
-        let trackerOrientation = cameraOrientationTracker.map { String($0.orientation.rawValue) } ?? "none"
-        let sceneOrientation = (cameraOrientationTracker?.scene).map { String($0.interfaceOrientation.rawValue) } ?? "none"
-        print("[VideoOrientationV3] capture event=\(event) scene=\(sceneOrientation) tracker=\(trackerOrientation) device=\(UIDevice.current.orientation.rawValue) front=\(isFrontCamera) rotationTags=keep")
-#endif
     }
 
     private func configureAudioSession() async throws {
