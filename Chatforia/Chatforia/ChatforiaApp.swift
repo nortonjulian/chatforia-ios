@@ -15,20 +15,20 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
             "eeabc7521a642912e973c52628ff8c3c"
         ]
         #endif
-        
+
         MobileAds.shared.start { status in
             #if DEBUG
             debugLog("✅ Google Mobile Ads SDK started:", status.adapterStatusesByClassName)
             #endif
         }
-        
+
 
         NotificationCoordinator.shared.configure()
 
         UNUserNotificationCenter.current().getNotificationSettings { settings in
 
             DispatchQueue.main.async {
-            
+
                 UIApplication.shared.registerForRemoteNotifications()
             }
         }
@@ -92,7 +92,7 @@ struct ChatforiaApp: App {
     @StateObject private var checkoutReturn = CheckoutReturnCoordinator()
     @StateObject private var settingsVM = SettingsViewModel()
     @StateObject private var chatsVM = ChatsViewModel()
-    
+
     @AppStorage("chatforia_language")
     private var appLanguage = "en"
 
@@ -119,11 +119,79 @@ struct ChatforiaApp: App {
         }
     }
 
+    private var accessibilityVisualAlertsEnabled: Bool {
+        auth.currentUser?.a11yVisualAlerts ?? settingsVM.a11yVisualAlerts
+    }
+
     var body: some Scene {
         WindowGroup {
-            ZStack {
+            ZStack(alignment: .top) {
                 ContentView()
                 CallOverlayHostView()
+
+                if let message = notificationCoordinator.accessibilityVisualAlertMessage {
+                    HStack(spacing: 10) {
+                        Image(systemName: "message.fill")
+                            .accessibilityHidden(true)
+
+                        Text(message)
+                            .font(.headline)
+
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(.regularMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .shadow(radius: 4)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .zIndex(100)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel(message)
+                    .onTapGesture {
+                        notificationCoordinator.dismissAccessibilityVisualAlert()
+                    }
+                }
+            }
+            .animation(
+                .easeInOut(duration: 0.2),
+                value: notificationCoordinator.accessibilityVisualAlertMessage
+            )
+            .onReceive(
+                NotificationCenter.default.publisher(for: .socketMessageUpsert)
+            ) { notification in
+                guard accessibilityVisualAlertsEnabled,
+                      scenePhase == .active,
+                      let senderId = notification.userInfo?["senderId"] as? Int,
+                      senderId != auth.currentUser?.id else {
+                    return
+                }
+
+                notificationCoordinator.showAccessibilityVisualAlert()
+            }
+            .onReceive(
+                NotificationCenter.default.publisher(for: .foregroundMessageNotification)
+            ) { _ in
+                guard accessibilityVisualAlertsEnabled,
+                      scenePhase == .active else {
+                    return
+                }
+
+                notificationCoordinator.showAccessibilityVisualAlert()
+            }
+            .onReceive(
+                NotificationCenter.default.publisher(for: .socketSMSMessageNew)
+            ) { notification in
+                guard accessibilityVisualAlertsEnabled,
+                      scenePhase == .active,
+                      let senderId = notification.userInfo?["senderId"] as? Int,
+                      senderId != auth.currentUser?.id else {
+                    return
+                }
+
+                notificationCoordinator.showAccessibilityVisualAlert()
             }
             .id(appLanguage)
             .dynamicTypeSize(accessibilityDynamicTypeSize)
@@ -154,11 +222,11 @@ struct ChatforiaApp: App {
                         themeManager.apply(code: theme)
                     }
                     settingsVM.load(from: user)
-                    
+
                     appLanguage = user.uiLanguage ?? user.preferredLanguage ?? "en"
                     let path = Bundle.main.path(forResource: "es", ofType: "lproj")
                     let esBundle = path.flatMap { Bundle(path: $0) }
-                    
+
                     settingsVM.loadLocalAISettings()
 
                     // 🔔 Request permission + trigger APNs
