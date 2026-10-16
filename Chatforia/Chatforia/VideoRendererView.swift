@@ -25,6 +25,7 @@ struct VideoRendererView: UIViewRepresentable {
 
     func makeUIView(context: Context) -> SceneVideoContainer {
         let container = SceneVideoContainer()
+        container.diagnosticRole = remoteTrack != nil ? "remote" : "local"
         let view = container.videoView
         view.contentMode = contentMode
         view.shouldMirror = mirror
@@ -35,6 +36,7 @@ struct VideoRendererView: UIViewRepresentable {
     }
 
     func updateUIView(_ container: SceneVideoContainer, context: Context) {
+        container.diagnosticRole = remoteTrack != nil ? "remote" : "local"
         let uiView = container.videoView
         uiView.shouldMirror = mirror
         uiView.contentMode = contentMode
@@ -107,6 +109,11 @@ struct VideoRendererView: UIViewRepresentable {
 // scene's orientation after SwiftUI/UIKit attaches or lays out the video.
 final class SceneVideoContainer: UIView {
     let videoView = VideoView()
+    var diagnosticRole = "unknown"
+#if DEBUG
+    private var orientationTraceTimer: Timer?
+    private var remainingTraceSamples = 0
+#endif
     private weak var lastScene: UIWindowScene?
     private var lastOrientation: UIInterfaceOrientation = .unknown
 
@@ -124,6 +131,23 @@ final class SceneVideoContainer: UIView {
     override func didMoveToWindow() {
         super.didMoveToWindow()
         refreshCameraOrientation()
+#if DEBUG
+        orientationTraceTimer?.invalidate()
+        orientationTraceTimer = nil
+        guard window != nil else { return }
+        remainingTraceSamples = 12
+        traceRenderedOrientation()
+        orientationTraceTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] timer in
+            Task { @MainActor [weak self] in
+                guard let self, self.window != nil, self.remainingTraceSamples > 0 else {
+                    timer.invalidate()
+                    return
+                }
+                self.remainingTraceSamples -= 1
+                self.traceRenderedOrientation()
+            }
+        }
+#endif
     }
 
     override func layoutSubviews() {
@@ -131,6 +155,14 @@ final class SceneVideoContainer: UIView {
         videoView.frame = bounds
         refreshCameraOrientation()
     }
+
+#if DEBUG
+    private func traceRenderedOrientation() {
+        let dimensions = videoView.videoDimensions
+        let sceneOrientation = (window?.windowScene).map { String($0.interfaceOrientation.rawValue) } ?? "none"
+        print("[VideoOrientationV3] renderer role=\(diagnosticRole) scene=\(sceneOrientation) frameRotation=\(videoView.videoOrientation.rawValue) pixels=\(dimensions.width)x\(dimensions.height) bounds=\(bounds.size) autoRotate=\(videoView.viewShouldRotateContent) mirror=\(videoView.shouldMirror) hasFrame=\(videoView.hasVideoData)")
+    }
+#endif
 
     private func refreshCameraOrientation() {
         guard let scene = window?.windowScene,
@@ -141,5 +173,8 @@ final class SceneVideoContainer: UIView {
         lastScene = scene
         lastOrientation = scene.interfaceOrientation
         UserInterfaceTracker.sceneInterfaceOrientationDidChange(scene)
+#if DEBUG
+        traceRenderedOrientation()
+#endif
     }
 }
