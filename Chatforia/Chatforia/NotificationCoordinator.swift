@@ -10,6 +10,10 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
     @Published var pendingChatRoomId: Int?
     @Published var pendingSMSThreadId: Int?
 
+    @Published private(set) var accessibilityVisualAlertMessage: String?
+
+    private var accessibilityVisualAlertDismissTask: Task<Void, Never>?
+
     private let apnsTokenDefaultsKey = "apns_token"
     private var isRegisteringPushToken = false
     private var lastRegisteredPushToken: String?
@@ -171,6 +175,25 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
         }
     }
 
+    func showAccessibilityVisualAlert(_ message: String = "New message") {
+        accessibilityVisualAlertDismissTask?.cancel()
+
+        accessibilityVisualAlertMessage = message
+
+        accessibilityVisualAlertDismissTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(3))
+
+            guard !Task.isCancelled else { return }
+            self?.accessibilityVisualAlertMessage = nil
+        }
+    }
+
+    func dismissAccessibilityVisualAlert() {
+        accessibilityVisualAlertDismissTask?.cancel()
+        accessibilityVisualAlertDismissTask = nil
+        accessibilityVisualAlertMessage = nil
+    }
+
     private func registerPushTokenIfPossible(_ pushToken: String) async {
         guard !isRegisteringPushToken else {
             return
@@ -255,6 +278,9 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
             notificationType == "message_new"
                 || notificationType == "message:new"
 
+        let isSMSNotification =
+            notificationType == "sms_message"
+
         if notificationType == "badge_state_changed" {
             completionHandler([.badge])
             return
@@ -265,6 +291,14 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
            senderId == currentUserId {
             completionHandler([])
             return
+        }
+
+        if isMessageNotification || isSMSNotification {
+            NotificationCenter.default.post(
+                name: .foregroundMessageNotification,
+                object: nil,
+                userInfo: userInfo
+            )
         }
 
         completionHandler([.banner, .sound, .badge])

@@ -14,6 +14,7 @@ extension Notification.Name {
     static let socketCallIncoming = Notification.Name("socketCallIncoming")
     static let socketCallEnded = Notification.Name("socketCallEnded")
     static let socketSMSMessageNew = Notification.Name("socketSMSMessageNew")
+    static let foregroundMessageNotification = Notification.Name("foregroundMessageNotification")
     static let socketVideoIncoming = Notification.Name("socketVideoIncoming")
     static let socketVideoEnded = Notification.Name("socketVideoEnded")
 }
@@ -220,10 +221,15 @@ final class SocketManager: ObservableObject {
                 AudioPlayerService.shared.playCurrentMessageTone()
             }
 
+            var notificationUserInfo = payload
+            if let senderId {
+                notificationUserInfo["senderId"] = senderId
+            }
+
             NotificationCenter.default.post(
                 name: .socketSMSMessageNew,
                 object: nil,
-                userInfo: payload
+                userInfo: notificationUserInfo
             )
         }
 
@@ -309,10 +315,19 @@ final class SocketManager: ObservableObject {
                 AudioPlayerService.shared.playCurrentMessageTone()
             }
 
+            var notificationUserInfo: [AnyHashable: Any] = [
+                "payload": payload
+            ]
+
+            if let senderId {
+                notificationUserInfo["senderId"] = senderId
+            }
+
+
             NotificationCenter.default.post(
                 name: .socketMessageUpsert,
                 object: nil,
-                userInfo: ["payload": payload]
+                userInfo: notificationUserInfo
             )
         }
 
