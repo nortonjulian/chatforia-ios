@@ -106,6 +106,19 @@ struct ChatforiaApp: App {
         SendQueueManager.shared.startIfNeeded()
     }
 
+    private var accessibilityDynamicTypeSize: DynamicTypeSize {
+        switch auth.currentUser?.a11yUiFont ?? settingsVM.a11yUiFont {
+        case "sm":
+            return .small
+        case "lg":
+            return .xLarge
+        case "xl":
+            return .xxxLarge
+        default:
+            return .medium
+        }
+    }
+
     var body: some Scene {
         WindowGroup {
             ZStack {
@@ -113,6 +126,7 @@ struct ChatforiaApp: App {
                 CallOverlayHostView()
             }
             .id(appLanguage)
+            .dynamicTypeSize(accessibilityDynamicTypeSize)
             .onAppear {
                     AnalyticsManager.shared.capture("app_opened")
             }
