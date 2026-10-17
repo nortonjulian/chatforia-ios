@@ -90,7 +90,9 @@ final class SMSThreadViewModel: ObservableObject {
             return
         }
 
-        isLoading = true
+        // Show loading only before this thread has first loaded.
+        // Refreshes should keep empty conversations and messages visible.
+        isLoading = thread?.id != threadId
         errorText = nil
         defer { isLoading = false }
 

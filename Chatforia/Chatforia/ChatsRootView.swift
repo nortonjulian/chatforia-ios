@@ -14,6 +14,12 @@ struct ChatsRootView: View {
     @State private var selectedSMSConversation: ConversationDTO? = nil
     @State private var showSelectedSMS = false
 
+    @State private var isEditingConversations = false
+    @State private var selectedConversationIDs = Set<String>()
+    @State private var pendingBulkDeletion: [ConversationDTO] = []
+    @State private var showBulkDeleteConfirm = false
+    @State private var isDeletingConversations = false
+
     @State private var showDeleteConfirm = false
     @State private var pendingConversation: ConversationDTO?
 
@@ -116,18 +122,45 @@ struct ChatsRootView: View {
                                 ForEach(vm.filteredConversations, id: \.uniqueId) { conversation in
                             
                                     Button {
+                                        if isEditingConversations {
+                                            if selectedConversationIDs.contains(conversation.uniqueId) {
+                                                selectedConversationIDs.remove(conversation.uniqueId)
+                                            } else {
+                                                selectedConversationIDs.insert(conversation.uniqueId)
+                                            }
+                                        } else {
                                             openConversationFromList(conversation)
+                                        }
                                     } label: {
-                                        ChatListRowView(
-                                            title: conversationTitle(conversation),
-                                            subtitle: conversationSubtitle(conversation),
-                                            timestamp: conversationTimestamp(conversation),
-                                            unreadCount: conversation.unreadCount ?? 0,
-                                            avatarUsers: conversation.avatarUsers ?? [],
-                                            isPinned: false
-                                        )
+                                        HStack(spacing: 12) {
+                                            if isEditingConversations {
+                                                Image(
+                                                    systemName: selectedConversationIDs.contains(conversation.uniqueId)
+                                                        ? "checkmark.circle.fill"
+                                                        : "circle"
+                                                )
+                                                .font(.title2)
+                                                .foregroundStyle(themeManager.palette.accent)
+                                                .accessibilityHidden(true)
+                                            }
+
+                                            ChatListRowView(
+                                                title: conversationTitle(conversation),
+                                                subtitle: conversationSubtitle(conversation),
+                                                timestamp: conversationTimestamp(conversation),
+                                                unreadCount: conversation.unreadCount ?? 0,
+                                                avatarUsers: conversation.avatarUsers ?? [],
+                                                isPinned: false
+                                            )
+                                        }
+                                        .contentShape(Rectangle())
                                     }
                                     .buttonStyle(.plain)
+                                    .accessibilityAddTraits(
+                                        selectedConversationIDs.contains(conversation.uniqueId)
+                                            ? [.isSelected] : []
+                                    )
+                                    .disabled(isDeletingConversations)
                                     .swipeActions(edge: .leading, allowsFullSwipe: false) {
                                         if isRandomChatConversation(conversation) {
                                             Button {
@@ -177,6 +210,27 @@ struct ChatsRootView: View {
                         }
                     }
 
+                    if isEditingConversations {
+                        HStack {
+                            Spacer()
+                            Button(role: .destructive) {
+                                pendingBulkDeletion = vm.conversations.filter {
+                                    selectedConversationIDs.contains($0.uniqueId)
+                                }
+                                showBulkDeleteConfirm = !pendingBulkDeletion.isEmpty
+                            } label: {
+                                Text("Delete (\(selectedConversationIDs.count))")
+                            }
+                            .disabled(
+                                selectedConversationIDs.isEmpty || isDeletingConversations
+                            )
+                            Spacer()
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(themeManager.palette.screenBackground)
+                    }
+
                     if shouldShowAds {
                         BannerAdView()
                             .frame(height: 50)
@@ -221,6 +275,38 @@ struct ChatsRootView: View {
                 )
             )
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        isEditingConversations.toggle()
+                        selectedConversationIDs.removeAll()
+                    } label: {
+                        Text(isEditingConversations ? "Done" : "Edit")
+                    }
+                    .disabled(isDeletingConversations)
+                }
+
+                if isEditingConversations {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            let visibleIDs = Set(vm.filteredConversations.map(\.uniqueId))
+                            if !visibleIDs.isEmpty &&
+                                visibleIDs.isSubset(of: selectedConversationIDs) {
+                                selectedConversationIDs.subtract(visibleIDs)
+                            } else {
+                                selectedConversationIDs.formUnion(visibleIDs)
+                            }
+                        } label: {
+                            let visibleIDs = Set(vm.filteredConversations.map(\.uniqueId))
+                            Text(
+                                !visibleIDs.isEmpty &&
+                                visibleIDs.isSubset(of: selectedConversationIDs)
+                                    ? "Deselect All" : "Select All"
+                            )
+                        }
+                        .disabled(isDeletingConversations || vm.filteredConversations.isEmpty)
+                    }
+
+                } else {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button {
                         showingStartChat = true
@@ -250,6 +336,58 @@ struct ChatsRootView: View {
                     }
                     .foregroundStyle(themeManager.palette.accent)
                 }
+                }
+            }
+            .onChange(of: vm.conversations.map(\.uniqueId)) { _, currentIDs in
+                selectedConversationIDs.formIntersection(Set(currentIDs))
+            }
+            .confirmationDialog(
+                "Delete \(pendingBulkDeletion.count) conversations?",
+                isPresented: $showBulkDeleteConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("Delete", role: .destructive) {
+                    let conversationsToDelete = pendingBulkDeletion
+                    pendingBulkDeletion = []
+                    isDeletingConversations = true
+
+                    Task { @MainActor in
+                        let token = TokenStore.shared.read()
+                        var failedCount = 0
+                        var firstError: String?
+
+                        for conversation in conversationsToDelete {
+                            await vm.deleteConversation(conversation, token: token)
+
+                            if vm.conversations.contains(where: {
+                                $0.uniqueId == conversation.uniqueId
+                            }) {
+                                failedCount += 1
+                                if firstError == nil {
+                                    firstError = vm.errorText
+                                }
+                            } else {
+                                selectedConversationIDs.remove(conversation.uniqueId)
+                            }
+                        }
+
+                        if failedCount > 0 {
+                            vm.errorText = "\(failedCount) conversations could not be deleted. " +
+                                (firstError ?? "Please try again.")
+                        } else {
+                            isEditingConversations = false
+                            selectedConversationIDs.removeAll()
+                        }
+
+                        isDeletingConversations = false
+                    }
+                }
+
+                Button("Cancel", role: .cancel) {
+                    pendingBulkDeletion = []
+                }
+            } message: {
+                Text("This will remove the selected conversations from your list.")
             }
             .sheet(isPresented: $showingStartChat) {
                 StartChatView { destination in
