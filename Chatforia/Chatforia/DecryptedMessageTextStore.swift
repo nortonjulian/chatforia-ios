@@ -27,6 +27,43 @@ final class DecryptedMessageTextStore: ObservableObject {
         values.removeValue(forKey: messageId)
     }
 
+    // Duplicate edited events and receipt updates must not evict valid text.
+    // Only a new message version, changed encryption bundle, or deletion does.
+    func invalidateTextIfNeeded(for incoming: MessageDTO, current: MessageDTO?) {
+        guard incoming.id > 0 else { return }
+
+        if incoming.deletedForAll == true || incoming.deletedBySender == true {
+            removeText(for: incoming.id)
+            return
+        }
+
+        guard let current else {
+            if incoming.editedAt != nil { removeText(for: incoming.id) }
+            return
+        }
+
+        let newerRevision = (incoming.revision ?? 0) > (current.revision ?? 0)
+        let newerEdit = incoming.editedAt.map {
+            $0 > (current.editedAt ?? .distantPast)
+        } ?? false
+        let changedPayload = incoming.encryptedPayloadForMe.map {
+            $0 != current.encryptedPayloadForMe
+        } ?? false
+        let changedLegacyBundle: Bool
+        if let ciphertext = incoming.contentCiphertext,
+           let key = incoming.encryptedKeyForMe {
+            changedLegacyBundle = ciphertext != current.contentCiphertext ||
+                key != current.encryptedKeyForMe
+        } else {
+            // Partial metadata must not be treated as a new encryption bundle.
+            changedLegacyBundle = false
+        }
+
+        if newerRevision || newerEdit || changedPayload || changedLegacyBundle {
+            removeText(for: incoming.id)
+        }
+    }
+
     func replaceTextIfPresent(_ text: String, for messageId: Int) {
         guard values[messageId] != nil else { return }
 

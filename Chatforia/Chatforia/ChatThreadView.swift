@@ -80,7 +80,7 @@ struct ChatThreadView: View {
     @State private var voicePlaybackTask: Task<Void, Never>?
     @State private var isPlayingVoiceDraft = false
 
-    @FocusState private var isEditEditorFocused: Bool
+    @State private var isEditEditorFocused = false
 
     struct IdentifiableURL: Identifiable {
         let id = UUID()
@@ -1129,10 +1129,7 @@ extension ChatThreadView {
 
                 EditMessageTextView(
                     text: $editDraft,
-                    isFocused: Binding(
-                        get: { isEditEditorFocused },
-                        set: { isEditEditorFocused = $0 }
-                    )
+                    isFocused: $isEditEditorFocused
                 )
                 .frame(minHeight: 180)
                 .background(
@@ -1189,6 +1186,15 @@ extension ChatThreadView {
                         }
                     }
                 }
+            }
+            .onAppear {
+                isEditEditorFocused = true
+            }
+            .onDisappear {
+                isEditEditorFocused = false
+            }
+            .onChange(of: showEditGIFPicker) { _, isPresented in
+                isEditEditorFocused = !isPresented
             }
             .sheet(isPresented: $showEditGIFPicker) {
                 GIFPickerView { url in
