@@ -44,7 +44,6 @@ struct UserDTO: Codable, Identifiable {
     
     let a11yUiFont: String?
     let a11yVisualAlerts: Bool?
-    let a11yFlashOnCall: Bool?
     let a11yLiveCaptions: Bool?
     let a11yVoiceNoteSTT: Bool?
     let a11yCaptionFont: String?
@@ -94,7 +93,6 @@ struct UserDTO: Codable, Identifiable {
         
         a11yUiFont: String? = nil,
         a11yVisualAlerts: Bool? = nil,
-        a11yFlashOnCall: Bool? = nil,
         a11yLiveCaptions: Bool? = nil,
         a11yVoiceNoteSTT: Bool? = nil,
         a11yCaptionFont: String? = nil,
@@ -146,7 +144,6 @@ struct UserDTO: Codable, Identifiable {
         
         self.a11yUiFont = a11yUiFont
         self.a11yVisualAlerts = a11yVisualAlerts
-        self.a11yFlashOnCall = a11yFlashOnCall
         self.a11yLiveCaptions = a11yLiveCaptions
         self.a11yVoiceNoteSTT = a11yVoiceNoteSTT
         self.a11yCaptionFont = a11yCaptionFont
