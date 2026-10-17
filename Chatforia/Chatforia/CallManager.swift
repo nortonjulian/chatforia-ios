@@ -16,6 +16,8 @@ final class CallManager: ObservableObject {
     @Published var remoteVideoTracks: [String: RemoteVideoTrack] = [:]
     @Published var remoteParticipantIdentity: String?
     @Published var isVideoCameraEnabled: Bool = true
+    @Published private(set) var liveCaptionText: String = ""
+    @Published private(set) var liveCaptionIsFinal: Bool = false
 
     private let pstnService = PSTNCallService.shared
     private let twilioService = TwilioVoiceService.shared
@@ -87,6 +89,13 @@ final class CallManager: ObservableObject {
             self,
             selector: #selector(handleSocketCallEnded(_:)),
             name: .socketCallEnded,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleSocketCallCaption(_:)),
+            name: .socketCallCaption,
             object: nil
         )
         
@@ -193,6 +202,38 @@ final class CallManager: ObservableObject {
         }
 
         return eventCallId == currentCallId
+    }
+
+    @objc private func handleSocketCallCaption(
+        _ notification: Notification
+    ) {
+        guard let data = notification.userInfo else { return }
+        guard shouldHandleLifecycleEvent(data) else { return }
+
+        let text =
+            (data["text"] as? String)?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+        guard !text.isEmpty else { return }
+
+        let isFinal: Bool = {
+            if let value = data["isFinal"] as? Bool {
+                return value
+            }
+
+            if let value = data["isFinal"] as? NSNumber {
+                return value.boolValue
+            }
+
+            if let value = data["isFinal"] as? String {
+                return value.lowercased() == "true"
+            }
+
+            return false
+        }()
+
+        liveCaptionText = text
+        liveCaptionIsFinal = isFinal
     }
 
     @objc private func handleSocketCallEnded(
@@ -1574,6 +1615,9 @@ final class CallManager: ObservableObject {
     }
 
     private func resetTransientState() {
+        liveCaptionText = ""
+        liveCaptionIsFinal = false
+
         outgoingIntentPending = false
         outgoingAudioAnswerWatchTask?.cancel()
         outgoingAudioAnswerWatchTask = nil

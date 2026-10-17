@@ -13,6 +13,7 @@ extension Notification.Name {
     static let socketVoicemailDeleted = Notification.Name("socketVoicemailDeleted")
     static let socketCallIncoming = Notification.Name("socketCallIncoming")
     static let socketCallEnded = Notification.Name("socketCallEnded")
+    static let socketCallCaption = Notification.Name("socketCallCaption")
     static let socketSMSMessageNew = Notification.Name("socketSMSMessageNew")
     static let foregroundMessageNotification = Notification.Name("foregroundMessageNotification")
     static let socketVideoIncoming = Notification.Name("socketVideoIncoming")
@@ -381,6 +382,16 @@ final class SocketManager: ObservableObject {
 
             NotificationCenter.default.post(
                 name: .socketCallEnded,
+                object: nil,
+                userInfo: payload
+            )
+        }
+
+        socket.on("call:caption") { [weak self] data, _ in
+            guard let payload = self?.normalizeFirstPayload(data) else { return }
+
+            NotificationCenter.default.post(
+                name: .socketCallCaption,
                 object: nil,
                 userInfo: payload
             )
