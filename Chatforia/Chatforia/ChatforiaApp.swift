@@ -130,26 +130,39 @@ struct ChatforiaApp: App {
                 CallOverlayHostView()
 
                 if let message = notificationCoordinator.accessibilityVisualAlertMessage {
-                    HStack(spacing: 10) {
+                    HStack(spacing: 12) {
                         Image(systemName: "message.fill")
+                            .font(.title3)
+                            .foregroundStyle(themeManager.palette.accent)
                             .accessibilityHidden(true)
 
-                        Text(message)
-                            .font(.headline)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(message)
+                                .font(.headline)
+                                .foregroundStyle(themeManager.palette.primaryText)
+
+                            Text("Chatforia")
+                                .font(.caption)
+                                .foregroundStyle(themeManager.palette.secondaryText)
+                        }
 
                         Spacer(minLength: 0)
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
-                    .background(.regularMaterial)
+                    .background(themeManager.palette.cardBackground)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(themeManager.palette.accent, lineWidth: 1.5)
+                    }
                     .shadow(radius: 4)
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
                     .transition(.move(edge: .top).combined(with: .opacity))
                     .zIndex(100)
                     .accessibilityElement(children: .combine)
-                    .accessibilityLabel(message)
+                    .accessibilityLabel("\(message), Chatforia")
                     .onTapGesture {
                         notificationCoordinator.dismissAccessibilityVisualAlert()
                     }
@@ -164,6 +177,7 @@ struct ChatforiaApp: App {
             ) { notification in
                 guard accessibilityVisualAlertsEnabled,
                       scenePhase == .active,
+                      notification.userInfo?["isNewIncomingMessage"] as? Bool == true,
                       let senderId = notification.userInfo?["senderId"] as? Int,
                       senderId != auth.currentUser?.id else {
                     return
