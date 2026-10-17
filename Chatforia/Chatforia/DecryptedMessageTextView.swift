@@ -5,7 +5,6 @@ struct DecryptMessageTextView: View {
     let fallbackColor: Color
 
     @StateObject private var store = DecryptedMessageTextStore.shared
-    @State private var attempted = false
     @State private var isDecrypting = false
     @State private var didAttemptDecrypt = false
 
@@ -24,10 +23,9 @@ struct DecryptMessageTextView: View {
                     .foregroundStyle(fallbackColor)
             }
         }
-        .task(id: msg.id) {
-            await decryptIfNeeded()
+        .task(id: decryptionKey) { @MainActor in
+            decryptIfNeeded()
         }
-        .onReceive(store.$values) { _ in }
     }
 
     private func preferredVisibleText() -> String? {
@@ -44,61 +42,51 @@ struct DecryptMessageTextView: View {
         return nil
     }
 
-    private func waitForMinimumLoadingTime(startedAt: Date) async {
-        let elapsed = Date().timeIntervalSince(startedAt)
-        let remaining = max(0, 0 - elapsed)
-
-        if remaining > 0 {
-            try? await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000))
-        }
+    // A message keeps its ID after edits. Retry when its version, complete
+    // encryption bundle, or cached text changes (including cache eviction).
+    private var decryptionKey: [String] {
+        [
+            String(msg.id),
+            String(msg.revision ?? 0),
+            String(msg.editedAt?.timeIntervalSince1970 ?? 0),
+            msg.encryptedPayloadForMe?.contentCiphertext ?? msg.contentCiphertext ?? "",
+            msg.encryptedPayloadForMe?.encryptedKey ?? msg.encryptedKeyForMe ?? "",
+            msg.rawContent ?? "",
+            store.text(for: msg.id) ?? "",
+            String(msg.deletedForAll == true || msg.deletedBySender == true),
+            String(UserDefaults.standard.integer(forKey: "chatforia.currentUserId"))
+        ]
     }
 
-    private func decryptIfNeeded() async {
-        if let text = preferredVisibleText(),
-        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            didAttemptDecrypt = true
-            isDecrypting = false
-            return
-        }
-
-        guard !attempted else { return }
-
-        attempted = true
-        isDecrypting = true
-
-        let startedAt = Date()
+    @MainActor
+    private func decryptIfNeeded() {
+        isDecrypting = false
+        didAttemptDecrypt = false
 
         guard msg.deletedForAll != true, msg.deletedBySender != true else {
-            await waitForMinimumLoadingTime(startedAt: startedAt)
-            isDecrypting = false
             didAttemptDecrypt = true
             return
         }
 
-        let ciphertext =
-            msg.encryptedPayloadForMe?.contentCiphertext
-            ?? msg.contentCiphertext
-
-        let encryptedKeyPayload =
-            msg.encryptedPayloadForMe?.encryptedKey
-            ?? msg.encryptedKeyForMe
-
-        guard let ciphertext, let encryptedKeyPayload else {
-
-            await waitForMinimumLoadingTime(startedAt: startedAt)
-            isDecrypting = false
+        if let text = preferredVisibleText(),
+           !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             didAttemptDecrypt = true
             return
         }
 
+        let ciphertext = msg.encryptedPayloadForMe?.contentCiphertext ?? msg.contentCiphertext
+        let encryptedKeyPayload = msg.encryptedPayloadForMe?.encryptedKey ?? msg.encryptedKeyForMe
         let currentUserId = UserDefaults.standard.integer(forKey: "chatforia.currentUserId")
 
-        guard currentUserId > 0 else {
-
-            await waitForMinimumLoadingTime(startedAt: startedAt)
-            isDecrypting = false
+        guard let ciphertext, let encryptedKeyPayload, currentUserId > 0 else {
             didAttemptDecrypt = true
             return
+        }
+
+        isDecrypting = true
+        defer {
+            isDecrypting = false
+            didAttemptDecrypt = true
         }
 
         do {
@@ -107,20 +95,10 @@ struct DecryptMessageTextView: View {
                 encryptedKeyPayload: encryptedKeyPayload,
                 userId: currentUserId
             )
-
-            await waitForMinimumLoadingTime(startedAt: startedAt)
-
-            await MainActor.run {
-                DecryptedMessageTextStore.shared.setText(plaintext, for: msg.id)
-                isDecrypting = false
-                didAttemptDecrypt = true
-            }
+            store.setText(plaintext, for: msg.id)
         } catch {
-
-            await waitForMinimumLoadingTime(startedAt: startedAt)
-
-            isDecrypting = false
-            didAttemptDecrypt = true
+            // Keep the encrypted placeholder. A changed payload or cache
+            // invalidation can trigger another attempt for this message ID.
         }
     }
 }

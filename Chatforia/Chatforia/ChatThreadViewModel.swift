@@ -767,9 +767,11 @@ final class ChatThreadViewModel: ObservableObject {
 
             SocketManager.shared.markMessagesAsAlreadySounded(page.items)
 
-            // Preserve the existing edited-message decryption behavior.
-            for message in page.items where message.id > 0 && message.editedAt != nil {
-                DecryptedMessageTextStore.shared.removeText(for: message.id)
+            for message in page.items {
+                DecryptedMessageTextStore.shared.invalidateTextIfNeeded(
+                    for: message,
+                    current: MessageStore.shared.message(withId: message.id)
+                )
             }
 
             // Replace the server window atomically instead of clearing and rebuilding it.
@@ -1457,9 +1459,10 @@ final class ChatThreadViewModel: ObservableObject {
     }
 
     private func applyToStore(_ message: MessageDTO) {
-        if message.id > 0, message.editedAt != nil {
-            DecryptedMessageTextStore.shared.removeText(for: message.id)
-        }
+        DecryptedMessageTextStore.shared.invalidateTextIfNeeded(
+            for: message,
+            current: MessageStore.shared.message(withId: message.id)
+        )
 
         MessageStore.shared.upsertMessage(message)
 
@@ -1472,9 +1475,10 @@ final class ChatThreadViewModel: ObservableObject {
         guard !newMessages.isEmpty else { return }
 
         for message in newMessages {
-            if message.id > 0, message.editedAt != nil {
-                DecryptedMessageTextStore.shared.removeText(for: message.id)
-            }
+            DecryptedMessageTextStore.shared.invalidateTextIfNeeded(
+                for: message,
+                current: MessageStore.shared.message(withId: message.id)
+            )
 
             MessageStore.shared.upsertMessage(message)
 
