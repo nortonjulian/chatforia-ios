@@ -5,7 +5,6 @@ struct AccessibilitySettingsView: View {
 
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @AppStorage("chatforia_language") private var appLanguage = "en"
 
@@ -37,19 +36,6 @@ struct AccessibilitySettingsView: View {
                             isOn: $vm.a11yVisualAlerts
                         )
 
-                        ThemedToggleRow(
-                            title: appText("accessibility_flash_on_call", languageCode: appLanguage),
-                            isOn: Binding(
-                                get: { reduceMotion ? false : vm.a11yFlashOnCall },
-                                set: { vm.a11yFlashOnCall = reduceMotion ? false : $0 }
-                            )
-                        )
-
-                        if reduceMotion {
-                            Text(appText("accessibility_flash_disabled_reduce_motion", languageCode: appLanguage))
-                                .font(.caption)
-                                .foregroundStyle(themeManager.palette.secondaryText)
-                        }
                     }
                 }
 
@@ -145,7 +131,6 @@ struct AccessibilitySettingsView: View {
                 SettingsService.AccessibilitySettingsUpdateRequest(
                     a11yUiFont: vm.a11yUiFont,
                     a11yVisualAlerts: vm.a11yVisualAlerts,
-                    a11yFlashOnCall: vm.a11yFlashOnCall,
                     a11yLiveCaptions: vm.a11yLiveCaptions,
                     a11yVoiceNoteSTT: vm.a11yVoiceNoteSTT,
                     a11yCaptionFont: vm.a11yCaptionFont,
