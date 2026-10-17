@@ -4,6 +4,7 @@ import UIKit
 struct ActiveCallView: View {
     @EnvironmentObject private var callManager: CallManager
     @EnvironmentObject private var themeManager: ThemeManager
+    @EnvironmentObject private var auth: AuthStore
 
     @State private var isShowingCallOptions = false
     @State private var isShowingAddParticipant = false
@@ -14,6 +15,58 @@ struct ActiveCallView: View {
 
     private var stateLabel: String {
         callManager.state.label
+    }
+
+    private var captionFont: Font {
+        let rawValue =
+            auth.currentUser?.a11yCaptionFont ?? A11yFontSize.lg.rawValue
+
+        return A11yFontSize(rawValue: rawValue)?.swiftUIFont ?? .title3
+    }
+
+    private var captionBackground: A11yCaptionBackground {
+        let rawValue =
+            auth.currentUser?.a11yCaptionBg ??
+            A11yCaptionBackground.dark.rawValue
+
+        return A11yCaptionBackground(rawValue: rawValue) ?? .dark
+    }
+
+    private var captionForegroundColor: Color {
+        switch captionBackground {
+        case .light:
+            return .black
+        case .dark, .transparent:
+            return .white
+        }
+    }
+
+    @ViewBuilder
+    private var liveCaptionView: some View {
+        if !callManager.liveCaptionText.isEmpty {
+            Text(callManager.liveCaptionText)
+                .font(captionFont)
+                .fontWeight(.medium)
+                .foregroundStyle(captionForegroundColor)
+                .multilineTextAlignment(.center)
+                .lineLimit(3)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 12)
+                .background {
+                    switch captionBackground {
+                    case .light:
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(Color.white.opacity(0.92))
+                    case .dark:
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(Color.black.opacity(0.82))
+                    case .transparent:
+                        Color.clear
+                    }
+                }
+                .accessibilityLabel(callManager.liveCaptionText)
+                .transition(.opacity)
+        }
     }
 
     var body: some View {
@@ -49,6 +102,15 @@ struct ActiveCallView: View {
                         .font(.headline)
                         .foregroundStyle(themeManager.palette.secondaryText)
                 }
+
+                Spacer()
+
+                liveCaptionView
+                    .frame(maxWidth: 560)
+                    .animation(
+                        .easeInOut(duration: 0.15),
+                        value: callManager.liveCaptionText
+                    )
 
                 Spacer()
 
