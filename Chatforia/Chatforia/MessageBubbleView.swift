@@ -6,13 +6,23 @@ struct MessageBubbleView: View {
     let isGroupedWithPrevious: Bool
     let isGroupedWithNext: Bool
     
+    @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
+    @State private var decryptedOriginal: String?
+    @State private var decryptedOriginalKey: String?
     @AppStorage("chatforia_language") private var appLanguage = "en"
     @StateObject private var decryptedStore = DecryptedMessageTextStore.shared
     
     var body: some View {
-        content
+        VStack(alignment: .leading, spacing: 6) {
+            content
+            if let original = visibleOriginal {
+                LinkifiedMessageText(text: original)
+                    .font(.callout)
+            }
+        }
             .id(contentRenderKey)
+            .task(id: originalLoadKey) { loadOriginal() }
             .font(.body)
             .foregroundStyle(isMe ? themeManager.palette.bubbleOutgoingText : themeManager.palette.bubbleIncomingText)
             .tint(
@@ -46,6 +56,58 @@ struct MessageBubbleView: View {
             )
     }
     
+    private var originalEnvelope: String? {
+        msg.encryptedPayloadForMe?.encryptedKey ?? msg.encryptedKeyForMe
+    }
+
+    private var originalLoadKey: String {
+        "\(auth.currentUser?.id ?? 0)|\(msg.id)|\(msg.revision ?? 0)|\(msg.editedAt?.timeIntervalSince1970 ?? 0)|\(originalEnvelope ?? "")|\(msg.deletedForAll == true || msg.deletedBySender == true)"
+    }
+
+    private var visibleOriginal: String? {
+        guard !isMe,
+              msg.deletedForAll != true, msg.deletedBySender != true,
+              auth.currentUser?.showOriginalWithTranslation == true else { return nil }
+
+        let original: String?
+        let primary: String?
+        if let envelope = originalEnvelope {
+            guard decryptedOriginalKey == originalLoadKey,
+                  envelope.contains("originalContentCiphertext") else { return nil }
+            original = decryptedOriginal
+            primary = msg.translatedForMe ?? decryptedText
+        } else if msg.contentCiphertext == nil, msg.translatedForMe != nil {
+            original = msg.rawContent
+            primary = msg.translatedForMe
+        } else {
+            return nil
+        }
+        guard let primary, !primary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              let original, !original.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              original.trimmingCharacters(in: .whitespacesAndNewlines) != primary.trimmingCharacters(in: .whitespacesAndNewlines)
+        else { return nil }
+        return original
+    }
+
+    private func loadOriginal() {
+        decryptedOriginal = nil
+        decryptedOriginalKey = nil
+        guard !isMe, msg.deletedForAll != true, msg.deletedBySender != true,
+              let userId = auth.currentUser?.id,
+              let envelope = originalEnvelope,
+              let data = envelope.data(using: .utf8),
+              let fields = try? JSONSerialization.jsonObject(with: data) as? [String: String],
+              fields["alg"] == "x25519-aesgcm",
+              let ciphertext = fields["originalContentCiphertext"] else { return }
+        // Optional original failure never changes the main message's rendering.
+        decryptedOriginal = try? MessageCryptoService.shared.decryptMessageForCurrentBackend(
+            ciphertextBase64: ciphertext,
+            encryptedKeyPayload: envelope,
+            userId: userId
+        )
+        decryptedOriginalKey = originalLoadKey
+    }
+
     private var gifAttachment: AttachmentDTO? {
         msg.attachments?.first(where: { att in
             let kind = (att.kind ?? "").uppercased()

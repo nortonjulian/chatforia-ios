@@ -569,7 +569,8 @@ final class ChatThreadViewModel: ObservableObject {
                     recipientUserId: participant.userId,
                     recipientPublicKeyBase64: publicKey,
                     language: preferredLang,
-                    sourceLanguage: nil
+                    sourceLanguage: nil,
+                    originalText: plaintextForUser != plaintext ? plaintext : nil
                 )
         }
 

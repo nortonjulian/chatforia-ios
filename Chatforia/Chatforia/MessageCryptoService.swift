@@ -50,7 +50,8 @@ final class MessageCryptoService {
     recipientUserId: Int,
     recipientPublicKeyBase64: String,
     language: String? = nil,
-    sourceLanguage: String? = nil
+    sourceLanguage: String? = nil,
+    originalText: String? = nil
 ) throws -> EncryptedMessagePayloadForUser {
     guard let plaintextData = plaintext.data(using: .utf8) else {
         throw MessageCryptoError.invalidUTF8
@@ -109,11 +110,19 @@ final class MessageCryptoService {
         )
     }
 
-    let wrappedPayload: [String: String] = [
+    var wrappedPayload: [String: String] = [
         "alg": "x25519-aesgcm",
         "epk": ephemeralPrivate.publicKey.rawRepresentation.base64EncodedString(),
         "wrappedKey": wrappedCombined.base64EncodedString()
     ]
+
+    if let originalText, originalText != plaintext {
+        let sealedOriginal = try AES.GCM.seal(Data(originalText.utf8), using: messageKey)
+        guard let combinedOriginal = sealedOriginal.combined else {
+            throw MessageCryptoError.invalidUTF8
+        }
+        wrappedPayload["originalContentCiphertext"] = combinedOriginal.base64EncodedString()
+    }
 
     let wrappedPayloadData = try JSONSerialization.data(
         withJSONObject: wrappedPayload,
