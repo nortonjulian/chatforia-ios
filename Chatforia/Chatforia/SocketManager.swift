@@ -305,18 +305,23 @@ final class SocketManager: ObservableObject {
 
             let shouldSuppressTone = Date() < self.suppressMessageToneUntil
 
-            if let messageId,
-               let senderId,
-               senderId != currentUserId,
-               !shouldSuppressTone,
-               !self.hasAlreadySounded(messageId: messageId) {
+            let isNewIncomingMessage =
+                messageId.map { !self.hasAlreadySounded(messageId: $0) } == true &&
+                senderId != nil &&
+                senderId != currentUserId
 
+            if let messageId,
+               isNewIncomingMessage {
                 self.markSounded(messageId: messageId)
-                AudioPlayerService.shared.playCurrentMessageTone()
+
+                if !shouldSuppressTone {
+                    AudioPlayerService.shared.playCurrentMessageTone()
+                }
             }
 
             var notificationUserInfo: [AnyHashable: Any] = [
-                "payload": payload
+                "payload": payload,
+                "isNewIncomingMessage": isNewIncomingMessage
             ]
 
             if let senderId {

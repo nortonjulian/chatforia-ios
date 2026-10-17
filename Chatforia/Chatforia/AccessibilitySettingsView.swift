@@ -38,11 +38,6 @@ struct AccessibilitySettingsView: View {
                         )
 
                         ThemedToggleRow(
-                            title: appText("accessibility_vibrate_on_new", languageCode: appLanguage),
-                            isOn: $vm.a11yVibrate
-                        )
-
-                        ThemedToggleRow(
                             title: appText("accessibility_flash_on_call", languageCode: appLanguage),
                             isOn: Binding(
                                 get: { reduceMotion ? false : vm.a11yFlashOnCall },
@@ -150,7 +145,6 @@ struct AccessibilitySettingsView: View {
                 SettingsService.AccessibilitySettingsUpdateRequest(
                     a11yUiFont: vm.a11yUiFont,
                     a11yVisualAlerts: vm.a11yVisualAlerts,
-                    a11yVibrate: vm.a11yVibrate,
                     a11yFlashOnCall: vm.a11yFlashOnCall,
                     a11yLiveCaptions: vm.a11yLiveCaptions,
                     a11yVoiceNoteSTT: vm.a11yVoiceNoteSTT,

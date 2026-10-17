@@ -40,7 +40,6 @@ final class SettingsViewModel: ObservableObject {
     
     @Published var a11yUiFont: String = "md"
     @Published var a11yVisualAlerts: Bool = false
-    @Published var a11yVibrate: Bool = false
     @Published var a11yFlashOnCall: Bool = false
     @Published var a11yLiveCaptions: Bool = false
     @Published var a11yVoiceNoteSTT: Bool = false
@@ -81,7 +80,6 @@ final class SettingsViewModel: ObservableObject {
         
         a11yUiFont = user.a11yUiFont ?? "md"
         a11yVisualAlerts = user.a11yVisualAlerts ?? false
-        a11yVibrate = user.a11yVibrate ?? false
         a11yFlashOnCall = user.a11yFlashOnCall ?? false
         a11yLiveCaptions = user.a11yLiveCaptions ?? false
         a11yVoiceNoteSTT = user.a11yVoiceNoteSTT ?? false
