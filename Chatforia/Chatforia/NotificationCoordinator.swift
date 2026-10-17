@@ -301,7 +301,28 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
             )
         }
 
+        if isMessageNotification,
+           let messageId = Self.chatMessageId(in: userInfo), currentUserId > 0 {
+            // Foreground APNs and socket delivery share one message-ID gate.
+            // Background APNs sound is still presented by iOS normally.
+            Task { @MainActor in
+                guard UserDefaults.standard.integer(forKey: "chatforia.currentUserId") == currentUserId else { return }
+                AudioPlayerService.shared.playIncomingChatTone(
+                    messageId: messageId, userId: currentUserId
+                )
+            }
+            completionHandler([.banner, .badge])
+            return
+        }
+
         completionHandler([.banner, .sound, .badge])
+    }
+
+    nonisolated static func chatMessageId(in userInfo: [AnyHashable: Any]) -> Int? {
+        let value = userInfo["messageId"]
+        let id = (value as? Int) ?? (value as? String).flatMap(Int.init)
+        guard let id, id > 0 else { return nil }
+        return id
     }
 
     nonisolated func userNotificationCenter(
