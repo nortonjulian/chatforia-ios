@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import UIKit
 
 @MainActor
 final class ChatsViewModel: ObservableObject {
@@ -12,6 +13,8 @@ final class ChatsViewModel: ObservableObject {
 
     private var initialLoadToken: String?
     private var isInitialLoadInProgress = false
+    private var liveRefreshTask: Task<Void, Never>?
+    private var conversationLoadVersion = 0
 
     private var appLanguage: String {
         UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
@@ -53,6 +56,7 @@ final class ChatsViewModel: ObservableObject {
                 updated.randomChatRoomId = convo.randomChatRoomId
 
                 self.conversations[index] = updated
+                self.scheduleLiveRefresh()
             }
             .store(in: &cancellables)
 
@@ -167,11 +171,7 @@ final class ChatsViewModel: ObservableObject {
                 let currentLastMessageId = self.conversations[index].last?.messageId
                 guard currentLastMessageId == messageId else { return }
 
-                Task {
-                    await self.loadConversations(
-                        token: TokenStore.shared.read()
-                    )
-                }
+                self.scheduleLiveRefresh()
             }
             .store(in: &cancellables)
 
@@ -216,6 +216,33 @@ final class ChatsViewModel: ObservableObject {
                 self.resortConversations()
             }
             .store(in: &cancellables)
+
+        // Socket payloads can be edits, receipts or duplicate deliveries.
+        // Fetch authoritative previews/counts rather than incrementing locally.
+        let liveEvents: [Notification.Name] = [
+            .socketMessageUpsert, .socketMessageEdited, .socketMessageDeleted,
+            .socketMessageExpired, .socketSMSMessageNew,
+            .foregroundMessageNotification, .socketDidReconnect,
+            UIApplication.didBecomeActiveNotification,
+        ]
+        for name in liveEvents {
+            NotificationCenter.default.publisher(for: name)
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in self?.scheduleLiveRefresh() }
+                .store(in: &cancellables)
+        }
+    }
+
+    private func scheduleLiveRefresh() {
+        // Invalidate an older response immediately, including during debounce.
+        conversationLoadVersion += 1
+        liveRefreshTask?.cancel()
+        liveRefreshTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 150_000_000)
+            guard !Task.isCancelled,
+                  let token = TokenStore.shared.read(), !token.isEmpty else { return }
+            await self?.loadConversations(token: token, showLoading: false)
+        }
     }
 
     private func bumpConversation(
@@ -226,11 +253,7 @@ final class ChatsViewModel: ObservableObject {
             $0.kind.lowercased() == "chat" &&
             $0.id == roomId
         }) else {
-            Task {
-                await self.loadConversations(
-                    token: TokenStore.shared.read()
-                )
-            }
+            scheduleLiveRefresh()
             return
         }
 
@@ -611,16 +634,20 @@ final class ChatsViewModel: ObservableObject {
         await loadConversations(token: token)
     }
 
-    func loadConversations(token: String?) async {
+    func loadConversations(token: String?, showLoading: Bool = true) async {
+        conversationLoadVersion += 1
+        let requestVersion = conversationLoadVersion
         guard let token else {
             errorText = appText("ios.missing_auth_token", languageCode: appLanguage)
             conversations = []
             return
         }
 
-        isLoading = true
+        if showLoading { isLoading = true }
         errorText = nil
-        defer { isLoading = false }
+        defer {
+            if requestVersion == conversationLoadVersion { isLoading = false }
+        }
 
         do {
             let response: ConversationsResponse = try await APIClient.shared.send(
@@ -633,6 +660,7 @@ final class ChatsViewModel: ObservableObject {
             )
 
             let fetched = response.conversations ?? response.items ?? []
+            guard requestVersion == conversationLoadVersion, !Task.isCancelled else { return }
 
             let hydrated = fetched.map { convo in
                 guard let last = convo.last,
@@ -690,6 +718,7 @@ final class ChatsViewModel: ObservableObject {
             }
 
         } catch {
+            guard requestVersion == conversationLoadVersion, !Task.isCancelled else { return }
             errorText = error.localizedDescription
         }
     }
@@ -801,6 +830,7 @@ final class ChatsViewModel: ObservableObject {
 
         guard let roomId = conversation.id else { return }
         guard let token, !token.isEmpty else { return }
+        let hydrationVersion = conversationLoadVersion
 
         do {
             let page: MessagesPageResponse = try await APIClient.shared.send(
@@ -812,6 +842,7 @@ final class ChatsViewModel: ObservableObject {
                 token: token
             )
 
+            guard hydrationVersion == conversationLoadVersion else { return }
             let targetMessageId = conversation.last?.messageId
 
             let newest: MessageDTO?
@@ -916,6 +947,9 @@ final class ChatsViewModel: ObservableObject {
                 ) else { return }
 
                 let convo = self.conversations[idx]
+                // A delayed decrypt must not replace a newer preview.
+                guard hydrationVersion == self.conversationLoadVersion,
+                      convo.last?.messageId == targetMessageId else { return }
 
                 self.conversations[idx] = ConversationDTO(
                     kind: convo.kind,

@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import SocketIO
+import UIKit
 
 extension Notification.Name {
     static let socketMessageExpired = Notification.Name("socketMessageExpired")
@@ -315,8 +316,10 @@ final class SocketManager: ObservableObject {
                isNewIncomingMessage {
                 self.markSounded(messageId: messageId)
 
-                if !shouldSuppressTone {
-                    AudioPlayerService.shared.playCurrentMessageTone()
+                if !shouldSuppressTone, UIApplication.shared.applicationState == .active {
+                    AudioPlayerService.shared.playIncomingChatTone(
+                        messageId: messageId, userId: currentUserId
+                    )
                 }
             }
 

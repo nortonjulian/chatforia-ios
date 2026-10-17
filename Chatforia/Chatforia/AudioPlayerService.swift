@@ -11,6 +11,7 @@ final class AudioPlayerService {
     private var ringbackPlayer: AVAudioPlayer?
     
     private var lastPlayedAt: Date = .distantPast
+    private var incomingChatTones = IncomingChatToneLedger()
     
 
     private let messageToneKey = "chatforia.messageTone"
@@ -37,6 +38,11 @@ final class AudioPlayerService {
         let filename = UserDefaults.standard.string(forKey: messageToneKey) ?? "Default.mp3"
         let volume = UserDefaults.standard.object(forKey: soundVolumeKey) as? Int ?? 70
         playSound(filename: filename, volume: volume)
+    }
+
+    func playIncomingChatTone(messageId: Int, userId: Int) {
+        guard incomingChatTones.claim(messageId: messageId, userId: userId) else { return }
+        playCurrentMessageTone()
     }
 
     func previewMessageTone(filename: String, volume: Int) {
@@ -149,5 +155,21 @@ final class AudioPlayerService {
         } catch {
             debugLog("❌ Failed to play sound:", error)
         }
+    }
+}
+
+// Shared by foreground APNs and socket chat delivery. Distinct messages and
+// accounts remain independent; the bounded ledger cannot grow indefinitely.
+struct IncomingChatToneLedger {
+    private var keys = Set<String>()
+    private var order: [String] = []
+
+    mutating func claim(messageId: Int, userId: Int) -> Bool {
+        guard messageId > 0, userId > 0 else { return false }
+        let key = "\(userId):\(messageId)"
+        guard keys.insert(key).inserted else { return false }
+        order.append(key)
+        if order.count > 512 { keys.remove(order.removeFirst()) }
+        return true
     }
 }
