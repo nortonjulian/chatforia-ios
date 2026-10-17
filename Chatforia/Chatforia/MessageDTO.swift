@@ -327,7 +327,7 @@ struct MessageDTO: Codable, Identifiable, Equatable {
     let deletedById: Int?
 
     let sender: SenderDTO
-    let readBy: [UserSummaryDTO]?
+    var readBy: [UserSummaryDTO]?
 
     let chatRoomId: Int?
 

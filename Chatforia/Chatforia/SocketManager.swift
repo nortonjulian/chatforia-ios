@@ -337,6 +337,13 @@ final class SocketManager: ObservableObject {
             )
         }
 
+        for event in ["message_read", "message:read"] {
+            socket.on(event) { [weak self] data, _ in
+                guard let self, let payload = self.normalizeFirstPayload(data) else { return }
+                MessageStore.shared.applyReadReceipt(payload)
+            }
+        }
+
         socket.on("message:edited") { [weak self] data, _ in
             guard let payload = self?.normalizeFirstPayload(data) else { return }
 

@@ -304,6 +304,49 @@ final class MessageStore {
 
     // MARK: - Core upsert
 
+    // Receipt events update metadata on existing rows only. They never create
+    // messages, replace encryption bundles, or pass through incoming-message audio.
+    func applyReadReceipt(_ payload: [String: Any]) {
+        func positiveInt(_ value: Any?) -> Int? {
+            let number = (value as? Int) ?? (value as? String).flatMap(Int.init)
+            guard let number, number > 0 else { return nil }
+            return number
+        }
+        let rawReader = payload["reader"] as? [String: Any]
+        guard let readerId = positiveInt(rawReader?["id"] ?? rawReader?["userId"] ??
+                                        payload["readerId"] ?? payload["userId"]) else { return }
+        let rawIds = (payload["messageIds"] as? [Any]) ??
+            payload["messageId"].map { [$0] } ?? []
+        let ids = Set(rawIds.compactMap(positiveInt))
+        guard !ids.isEmpty else { return }
+        let roomId = positiveInt(payload["chatRoomId"] ?? payload["roomId"])
+        let reader = UserSummaryDTO(
+            id: readerId,
+            username: rawReader?["username"] as? String,
+            avatarUrl: rawReader?["avatarUrl"] as? String
+        )
+
+        lock.async(flags: .barrier) {
+            var changed = false
+            for index in self.messages.indices {
+                let message = self.messages[index]
+                guard ids.contains(message.id), message.id > 0,
+                      message.sender.id != readerId,
+                      message.deletedForAll != true, message.deletedAt == nil,
+                      roomId == nil || message.chatRoomId == roomId else { continue }
+                var readers = message.readBy ?? []
+                guard !readers.contains(where: { $0.id == readerId }) else { continue }
+                readers.append(reader)
+                self.messages[index].readBy = readers
+                changed = true
+            }
+            if changed {
+                self.persistLocked()
+                self.postMessagesChanged()
+            }
+        }
+    }
+
     func upsertMessage(_ incoming: MessageDTO) {
         lock.async(flags: .barrier) {
             self.upsertMessageLocked(incoming)

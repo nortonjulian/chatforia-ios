@@ -2,6 +2,9 @@ import SwiftUI
 
 struct MessageComposerView: View {
     @Binding var draft: String
+    @FocusState private var isDraftFocused: Bool
+    @State private var draftFieldGeneration = 0
+    @State private var restoreDraftFocus = false
 
     @EnvironmentObject var settingsVM: SettingsViewModel
     @EnvironmentObject private var themeManager: ThemeManager
@@ -178,12 +181,25 @@ struct MessageComposerView: View {
                     text: $draft,
                     axis: .vertical
                 )
+                .id(draftFieldGeneration)
+                .focused($isDraftFocused)
+                .task(id: draftFieldGeneration) {
+                    guard restoreDraftFocus else { return }
+                    isDraftFocused = true
+                    restoreDraftFocus = false
+                }
                 .textFieldStyle(.plain)
                 .foregroundStyle(themeManager.palette.primaryText)
                 .lineLimit(1...5)
                 .padding(.vertical, 11)
                 .disabled(hasVoiceDraft || isRecordingVoice)
-                .onChange(of: draft) { _, _ in
+                .onChange(of: draft) { oldValue, newValue in
+                    // The multiline TextField can retain its native display
+                    // after the binding clears. Recreate only on that transition.
+                    if !oldValue.isEmpty && newValue.isEmpty {
+                        restoreDraftFocus = isDraftFocused
+                        draftFieldGeneration += 1
+                    }
                     onDraftChanged()
                 }
 
