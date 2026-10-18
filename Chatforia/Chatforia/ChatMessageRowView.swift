@@ -603,13 +603,7 @@ struct ChatMessageRowView: View {
         if readers.count == 1 {
             let raw = readers[0].username?.trimmingCharacters(in: .whitespacesAndNewlines)
             if let raw, !raw.isEmpty {
-                return String(
-                    format: appText(
-                        "messages.readByUser",
-                        languageCode: appLanguage
-                    ),
-                    raw
-                )
+                return GroupReceiptLabel.readByUser(raw, languageCode: appLanguage)
             }
             return appText(
                 "common.read",
@@ -617,13 +611,7 @@ struct ChatMessageRowView: View {
             )
         }
 
-        return String(
-            format: appText(
-                "messages.readByCount",
-                languageCode: appLanguage
-            ),
-            readers.count
-        )
+        return GroupReceiptLabel.readByCount(readers.count, languageCode: appLanguage)
     }
 
     private var resolvedReceiptColor: Color {

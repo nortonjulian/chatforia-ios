@@ -82,10 +82,7 @@ struct MessageReceiptSheet: View {
                 return appText("messages.seenByOnePerson", languageCode: appLanguage)
             }
 
-            return String(
-                format: appText("messages.seenByPeopleCount", languageCode: appLanguage),
-                readers.count
-            )
+            return GroupReceiptLabel.seenByPeopleCount(readers.count, languageCode: appLanguage)
         }
 
         return appText("messages.seen", languageCode: appLanguage)
@@ -98,10 +95,7 @@ struct MessageReceiptSheet: View {
             return raw
         }
 
-        return String(
-            format: appText("common.userWithId", languageCode: appLanguage),
-            user.id
-        )
+        return GroupReceiptLabel.userWithId(user.id, languageCode: appLanguage)
     }
 
     private func initials(for user: UserSummaryDTO) -> String {
@@ -117,5 +111,40 @@ struct MessageReceiptSheet: View {
         }
 
         return String(name.prefix(1)).uppercased()
+    }
+}
+
+// Scoped to receipt labels. The catalog mixes named and legacy printf tokens;
+// substitute literally so participant names are never interpreted as formats.
+enum GroupReceiptLabel {
+    static func readByUser(_ name: String, languageCode: String) -> String {
+        render(appText("messages.readByUser", languageCode: languageCode),
+               token: "name", value: name, fallback: "Read by \(name)")
+    }
+
+    static func readByCount(_ count: Int, languageCode: String) -> String {
+        render(appText("messages.readByCount", languageCode: languageCode),
+               token: "count", value: String(count), fallback: "Read by \(count)")
+    }
+
+    static func seenByPeopleCount(_ count: Int, languageCode: String) -> String {
+        render(appText("messages.seenByPeopleCount", languageCode: languageCode),
+               token: "count", value: String(count), fallback: "Seen by \(count) people")
+    }
+
+    static func userWithId(_ id: Int, languageCode: String) -> String {
+        render(appText("common.userWithId", languageCode: languageCode),
+               token: "id", value: String(id), fallback: "User \(id)")
+    }
+
+    private static func render(_ template: String, token: String, value: String, fallback: String) -> String {
+        let formats = token == "name"
+            ? ["{name}", "%1$@", "%@"]
+            : ["{\(token)}", "%1$lld", "%lld", "%1$ld", "%ld", "%1$d", "%d"]
+        for format in formats where template.contains(format) {
+            return template.replacingOccurrences(of: format, with: value)
+        }
+        // A missing/malformed translation must still identify its reader/count.
+        return fallback
     }
 }
