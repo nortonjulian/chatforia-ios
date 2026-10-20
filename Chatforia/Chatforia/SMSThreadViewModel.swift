@@ -37,6 +37,7 @@ final class SMSThreadViewModel: ObservableObject {
     }
 
     private var observers: [NSObjectProtocol] = []
+    private var refreshVersion = 0
 
     init() {
         let observer = NotificationCenter.default.addObserver(
@@ -53,7 +54,7 @@ final class SMSThreadViewModel: ObservableObject {
                     let threadId,
                     let messagePayload,
                     let data = try? JSONSerialization.data(withJSONObject: messagePayload),
-                    let message = try? JSONDecoder().decode(SMSMessageDTO.self, from: data)
+                    let message = try? JSONDecoder.tolerantISO8601Decoder().decode(SMSMessageDTO.self, from: data)
                 else { return }
 
                 let currentThreadId = self.thread?.id ?? message.threadId
@@ -82,7 +83,10 @@ final class SMSThreadViewModel: ObservableObject {
     }
     
     func loadThread(threadId: Int, token: String?) async {
+        refreshVersion += 1
+        let requestVersion = refreshVersion
         guard let token else {
+            isLoading = false
             errorText = appText(
                 "ios.missing_auth_token",
                 languageCode: appLanguage
@@ -94,7 +98,9 @@ final class SMSThreadViewModel: ObservableObject {
         // Refreshes should keep empty conversations and messages visible.
         isLoading = thread?.id != threadId
         errorText = nil
-        defer { isLoading = false }
+        defer {
+            if requestVersion == refreshVersion { isLoading = false }
+        }
 
         do {
             let fetched: SMSThreadDTO = try await APIClient.shared.send(
@@ -102,13 +108,21 @@ final class SMSThreadViewModel: ObservableObject {
                 token: token
             )
 
+            guard requestVersion == refreshVersion, !Task.isCancelled,
+                  TokenStore.shared.read() == token else { return }
+
             thread = fetched
             messages = fetched.sortedMessages
+            errorText = nil
 
             // GET /sms/threads/:id marks this thread read on the server.
             // Reconcile the app-icon badge from authoritative server state.
             await NotificationCoordinator.shared.refreshBadgeState()
         } catch {
+            guard requestVersion == refreshVersion, !Task.isCancelled,
+                  TokenStore.shared.read() == token,
+                  !isCancelledRefresh(error) else { return }
+
             if messages.isEmpty {
                 errorText = friendlyErrorMessage(error)
             } else {
@@ -119,6 +133,18 @@ final class SMSThreadViewModel: ObservableObject {
             }
 
         }
+    }
+
+    // APIClient wraps URLSession cancellation in APIError.network.
+    // Cancellation is expected when leaving or restarting a refresh.
+    private func isCancelledRefresh(_ error: Error) -> Bool {
+        if error is CancellationError { return true }
+        if let apiError = error as? APIError,
+           case .network(let underlying) = apiError {
+            return isCancelledRefresh(underlying)
+        }
+        let nsError = error as NSError
+        return nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled
     }
 
     func sendTextMessage(
@@ -220,6 +246,9 @@ final class SMSThreadViewModel: ObservableObject {
                 token: token
             )
 
+            guard response.ok, response.threadId > 0 else {
+                throw URLError(.badServerResponse)
+            }
             isSending = false
             
             AnalyticsManager.shared.capture("sms_sent", properties: [

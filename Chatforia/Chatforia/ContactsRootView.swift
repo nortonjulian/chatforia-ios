@@ -12,6 +12,8 @@ struct ContactsRootView: View {
     @State private var showSelectedSMS = false
 
     @State private var showingStartChat = false
+    @State private var transportContact: ContactDTO?
+    @State private var showingTransportChoice = false
     @State private var showingAddContact = false
     @State private var showingImportContacts = false
     
@@ -46,6 +48,15 @@ struct ContactsRootView: View {
                 )
                 .environmentObject(auth)
                 .environmentObject(themeManager)
+                .confirmationDialog(
+                    appText("common.openConversation", languageCode: appLanguage),
+                    isPresented: $showingTransportChoice
+                ) {
+                    if let contact = transportContact {
+                        Button("Chatforia") { Task { await open(contact, preferSMS: false) } }
+                        Button("SMS") { Task { await open(contact, preferSMS: true) } }
+                    }
+                }
             }
             .navigationDestination(isPresented: $showSelectedSMS) {
                 if let conversation = selectedSMSConversation {
@@ -324,30 +335,20 @@ struct ContactsRootView: View {
         await vm.loadContacts(token: auth.currentToken)
     }
     
-    private func open(_ contact: ContactDTO) async {
+    private func open(_ contact: ContactDTO, preferSMS: Bool? = nil) async {
+        let hasAppUser = (contact.user?.id ?? contact.userId) != nil
+        let phone = contact.externalPhone?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if hasAppUser, let phone, !phone.isEmpty, preferSMS == nil {
+            transportContact = contact
+            showingTransportChoice = true
+            return
+        }
         do {
-            if let externalPhone = contact.externalPhone, !externalPhone.isEmpty {
-                let resolvedTitle = vm.displayName(for: contact)
-
-                selectedSMSConversation = ConversationDTO(
-                    kind: "sms",
-                    id: nil,
-                    title: resolvedTitle,
-                    displayName: resolvedTitle,
-                    updatedAt: ISO8601DateFormatter().string(from: Date()),
-                    isGroup: false,
-                    phone: externalPhone,
-                    unreadCount: 0,
-                    avatarUsers: [
-                        ConversationAvatarUserDTO(
-                            id: 0,
-                            username: resolvedTitle,
-                            displayName: resolvedTitle,
-                            avatarUrl: nil
-                        )
-                    ],
-                    last: nil
-                )
+            if let externalPhone = phone, !externalPhone.isEmpty, preferSMS != false {
+                guard let token = auth.currentToken, !token.isEmpty else { throw APIError.unauthorized }
+                selectedSMSConversation = try await ChatRoomService.shared.startSMSThread(
+                    phone: externalPhone, contactId: contact.id,
+                    displayName: vm.displayName(for: contact), token: token)
                 showSelectedSMS = true
                 return
             }

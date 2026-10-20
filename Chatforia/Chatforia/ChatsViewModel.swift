@@ -586,6 +586,7 @@ final class ChatsViewModel: ObservableObject {
             return title.contains(query)
                 || phone.contains(query)
                 || lastText.contains(query)
+                || ConversationLookup.matches(item, query: query)
         }
     }
 

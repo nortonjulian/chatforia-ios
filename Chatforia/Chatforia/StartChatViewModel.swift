@@ -92,6 +92,9 @@ final class StartChatViewModel: ObservableObject {
     @Published var isCreating: Bool = false
     @Published var errorText: String?
     @Published var contactResults: [ContactSearchResultDTO] = []
+    @Published var conversationResults: [ConversationDTO] = []
+    private var searchVersion = 0
+    private var conversationResultsToken: String?
 
     @Published var isGroupMode: Bool = false
     @Published var groupName: String = ""
@@ -112,14 +115,17 @@ final class StartChatViewModel: ObservableObject {
     }
 
     var looksLikePhoneInput: Bool {
-        let raw = trimmedQuery
-        guard !raw.isEmpty else { return false }
-        let digits = raw.filter(\.isNumber)
-        return digits.count >= 7
+        normalizedPhoneCandidate != nil
     }
 
     func handleSearchTextChanged(currentUserId: Int?) {
         searchTask?.cancel()
+        searchVersion += 1
+        results = []
+        contactResults = []
+        conversationResults = []
+        conversationResultsToken = nil
+        errorText = nil
 
         let query = trimmedQuery
         guard !query.isEmpty else {
@@ -136,6 +142,8 @@ final class StartChatViewModel: ObservableObject {
                 do {
                     try await Task.sleep(nanoseconds: 300_000_000)
                     if Task.isCancelled { return }
+                    await self.searchExistingConversations(query: query)
+                    guard !Task.isCancelled else { return }
                     await self.searchContactsOnly(query: query)
                 } catch {
                     return
@@ -150,6 +158,8 @@ final class StartChatViewModel: ObservableObject {
             do {
                 try await Task.sleep(nanoseconds: 300_000_000)
                 if Task.isCancelled { return }
+                await self.searchExistingConversations(query: query)
+                guard !Task.isCancelled else { return }
                 await self.searchUsers(query: query, currentUserId: currentUserId)
             } catch {
                 return
@@ -177,9 +187,10 @@ final class StartChatViewModel: ObservableObject {
             return
         }
 
+        let version = searchVersion
         isLoading = true
         errorText = nil
-        defer { isLoading = false }
+        defer { if version == searchVersion { isLoading = false } }
 
         let encoded = trimmed.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? trimmed
 
@@ -227,6 +238,8 @@ final class StartChatViewModel: ObservableObject {
             debugLog("❌ contact search error:", error)
         }
 
+        guard version == searchVersion, !Task.isCancelled,
+              TokenStore.shared.read() == token else { return }
         results = fetchedUsers
         contactResults = fetchedContacts
 
@@ -259,9 +272,10 @@ final class StartChatViewModel: ObservableObject {
             return
         }
 
+        let version = searchVersion
         isLoading = true
         errorText = nil
-        defer { isLoading = false }
+        defer { if version == searchVersion { isLoading = false } }
 
         do {
             let encoded = trimmed.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? trimmed
@@ -271,6 +285,8 @@ final class StartChatViewModel: ObservableObject {
                 token: token
             )
 
+            guard version == searchVersion, !Task.isCancelled,
+                  TokenStore.shared.read() == token else { return }
             contactResults = contacts.items.map {
                 ContactSearchResultDTO(
                     id: $0.id,
@@ -286,6 +302,8 @@ final class StartChatViewModel: ObservableObject {
 
             results = [] // 👈 important: hide user results in phone mode
         } catch {
+            guard version == searchVersion, !Task.isCancelled,
+                  TokenStore.shared.read() == token else { return }
             errorText = appText(
                 "startChat.fetchContactsFailed",
                 languageCode: appLanguage
@@ -294,9 +312,51 @@ final class StartChatViewModel: ObservableObject {
         }
     }
     
+    func searchExistingConversations(query: String) async {
+        guard !isGroupMode else { return }
+        guard let token = TokenStore.shared.read(), !token.isEmpty else { return }
+        let version = searchVersion
+        isLoading = true
+        defer { if version == searchVersion { isLoading = false } }
+        do {
+            struct Response: Decodable {
+                let items: [ConversationDTO]?
+                let conversations: [ConversationDTO]?
+            }
+            let response: Response = try await APIClient.shared.send(
+                APIRequest(path: "conversations?t=\(Int(Date().timeIntervalSince1970 * 1000))",
+                           method: .GET, requiresAuth: true), token: token)
+            guard version == searchVersion, !Task.isCancelled,
+                  TokenStore.shared.read() == token else { return }
+            conversationResultsToken = token
+            conversationResults = (response.items ?? response.conversations ?? []).filter {
+                ($0.id ?? 0) > 0 && ($0.kind.lowercased() == "chat" || $0.kind.lowercased() == "sms") &&
+                $0.isRandomChat != true && $0.randomChat == nil &&
+                ConversationLookup.matches($0, query: query)
+            }
+        } catch {
+            // People and contact search remain available if this read fails.
+            guard version == searchVersion, !Task.isCancelled,
+                  TokenStore.shared.read() == token else { return }
+            conversationResults = []
+        }
+    }
+
+    func destinationForExistingConversation(_ conversation: ConversationDTO) throws -> StartDestination {
+        guard let token = TokenStore.shared.read(), !token.isEmpty,
+              token == conversationResultsToken,
+              conversationResults.contains(where: { $0.uniqueId == conversation.uniqueId }),
+              let id = conversation.id, id > 0 else { throw APIError.unauthorized }
+        if conversation.kind.lowercased() == "sms" { return .sms(conversation) }
+        guard conversation.kind.lowercased() == "chat", let room = conversation.asChatRoomDTO else {
+            throw APIError.unauthorized
+        }
+        return .chat(room)
+    }
+
     func destinationForContactResult(_ contact: ContactSearchResultDTO) async throws -> StartDestination {
         if let userId = contact.user?.id ?? contact.userId {
-            return try await createOrOpenDirectChat(targetUserId: userId)
+            return try await createOrOpenDirectChat(targetUserId: userId, displayName: contact.displayName)
         }
 
         if let phone = contact.externalPhone, !phone.isEmpty {
@@ -304,42 +364,8 @@ final class StartChatViewModel: ObservableObject {
                 throw APIError.unauthorized
             }
 
-            struct Request: Encodable {
-                let phone: String
-                let contactId: Int?
-            }
-
-            let body = try JSONEncoder().encode(
-                Request(phone: phone, contactId: contact.id)
-            )
-
-            let thread: SMSStartThreadResponseDTO = try await APIClient.shared.send(
-                APIRequest(path: "sms/threads/start", method: .POST, body: body, requiresAuth: true),
-                token: token
-            )
-
-            let resolvedTitle = thread.displayName ?? thread.contactName ?? thread.contactPhone ?? phone
-
-            let conversation = ConversationDTO(
-                kind: "sms",
-                id: thread.id,
-                title: resolvedTitle,
-                displayName: resolvedTitle,
-                updatedAt: thread.updatedAt ?? ISO8601DateFormatter().string(from: Date()),
-                isGroup: false,
-                phone: thread.contactPhone ?? phone,
-                unreadCount: 0,
-                avatarUsers: [
-                    ConversationAvatarUserDTO(
-                        id: 0,
-                        username: resolvedTitle,
-                        displayName: resolvedTitle,
-                        avatarUrl: nil
-                    )
-                ],
-                last: nil
-            )
-
+            let conversation = try await ChatRoomService.shared.startSMSThread(
+                phone: phone, contactId: contact.id, displayName: contact.displayName, token: token)
             return .sms(conversation)
         }
 
@@ -355,7 +381,7 @@ final class StartChatViewModel: ObservableObject {
         )
     }
 
-    func createOrOpenDirectChat(targetUserId: Int) async throws -> StartDestination {
+    func createOrOpenDirectChat(targetUserId: Int, displayName: String? = nil) async throws -> StartDestination {
         guard let token = TokenStore.shared.read(), !token.isEmpty else {
             throw APIError.unauthorized
         }
@@ -366,7 +392,8 @@ final class StartChatViewModel: ObservableObject {
 
         let room = try await ChatRoomService.shared.startDirectChat(
             userId: targetUserId,
-            token: token
+            token: token,
+            displayName: displayName
         )
 
         return .chat(room)
@@ -394,39 +421,7 @@ final class StartChatViewModel: ObservableObject {
         errorText = nil
         defer { isCreating = false }
 
-        struct Request: Encodable {
-            let phone: String
-        }
-
-        let body = try JSONEncoder().encode(Request(phone: normalized))
-
-        let thread: SMSStartThreadResponseDTO = try await APIClient.shared.send(
-            APIRequest(path: "sms/threads/start", method: .POST, body: body, requiresAuth: true),
-            token: token
-        )
-
-        let resolvedTitle = thread.displayName ?? thread.contactName ?? thread.contactPhone ?? normalized
-
-        let conversation = ConversationDTO(
-            kind: "sms",
-            id: thread.id,
-            title: resolvedTitle,
-            displayName: resolvedTitle,
-            updatedAt: thread.updatedAt ?? ISO8601DateFormatter().string(from: Date()),
-            isGroup: false,
-            phone: thread.contactPhone ?? normalized,
-            unreadCount: 0,
-            avatarUsers: [
-                ConversationAvatarUserDTO(
-                    id: 0,
-                    username: resolvedTitle,
-                    displayName: resolvedTitle,
-                    avatarUrl: nil
-                )
-            ],
-            last: nil
-        )
-
+        let conversation = try await ChatRoomService.shared.startSMSThread(phone: normalized, token: token)
         return .sms(conversation)
     }
 
@@ -501,28 +496,9 @@ final class StartChatViewModel: ObservableObject {
     }
 
     static func normalizePhone(_ input: String) -> String? {
-        let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-
-        let hasLeadingPlus = trimmed.hasPrefix("+")
-        let digits = trimmed.filter(\.isNumber)
-
-        guard digits.count >= 7 else { return nil }
-
-        if hasLeadingPlus {
-            return "+\(digits)"
-        }
-
-        if digits.count == 10 {
-            return "+1\(digits)"
-        }
-
-        if digits.count == 11, digits.hasPrefix("1") {
-            return "+\(digits)"
-        }
-
-        return "+\(digits)"
+        ConversationLookup.normalizePhone(input)
     }
+
 }
 
 extension DirectChatRoomResponseDTO {
