@@ -1262,12 +1262,22 @@ private struct SMSAudioAttachmentCard: View {
     let mediaIndex: Int
     let maxWidth: CGFloat
     @EnvironmentObject private var auth: AuthStore
+    @AppStorage("chatforia_language") private var appLanguage = "en"
     @StateObject private var playback = SMSAttachmentPlayback.shared
     @State private var knownDuration: Double = 0
 
     private var identity: String { "\(auth.currentUser?.id ?? 0):\(message.id):\(mediaIndex)" }
     private var active: Bool { playback.identity == identity }
-    private var total: Double { active ? playback.duration : knownDuration }
+    private var total: Double {
+        let value = active && playback.duration > 0
+            ? playback.duration
+            : (playback.cachedDuration(for: identity) ?? knownDuration)
+        return value.isFinite && value > 0 ? value : 0
+    }
+    private var elapsed: Double {
+        let value = active ? playback.currentTime : 0
+        return value.isFinite ? max(0, total > 0 ? min(value, total) : value) : 0
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -1276,23 +1286,42 @@ private struct SMSAudioAttachmentCard: View {
                     playback.toggle(identity: identity, messageID: message.id,
                         mediaIndex: mediaIndex, token: TokenStore.shared.read())
                 } label: {
-                    if active && playback.isLoading { ProgressView() }
-                    else { Image(systemName: active && playback.isPlaying ? "pause.circle.fill" : "play.circle.fill").font(.title) }
+                    ZStack {
+                        Circle()
+                            .fill(Color.accentColor)
+                            .frame(width: 44, height: 44)
+                        if active && playback.isLoading {
+                            ProgressView().tint(.white)
+                        } else {
+                            Image(systemName: active && playback.isPlaying ? "pause.fill" : "play.fill")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .offset(x: active && playback.isPlaying ? 0 : 1)
+                        }
+                    }
                 }
                 .buttonStyle(.plain)
                 .disabled(active && playback.isLoading)
                 .accessibilityLabel(active && playback.isPlaying
                     ? String(localized: "audio.pause", defaultValue: "Pause voice note")
                     : String(localized: "audio.play", defaultValue: "Play voice note"))
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(String(localized: "sms.voiceNote", defaultValue: "Voice note"))
-                        .font(.subheadline.weight(.semibold))
-                    Text("\(AudioAttachmentCardView.formatTime(active ? playback.currentTime : 0)) • \(AudioAttachmentCardView.formatTime(total))")
-                        .font(.caption)
+                VStack(alignment: .leading, spacing: 7) {
+                    Text(appText("composer.voiceNote", languageCode: appLanguage, fallback: "Voice note"))
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                    ProgressView(value: elapsed, total: max(total, 1))
+                        .progressViewStyle(.linear)
+                        .tint(Color.accentColor)
+                    HStack {
+                        Text(AudioAttachmentCardView.formatTime(elapsed))
+                        Spacer(minLength: 8)
+                        Text(total > 0 ? AudioAttachmentCardView.formatTime(total) : "—:—")
+                    }
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
                 }
-            }
-            if total > 0 {
-                ProgressView(value: active ? min(playback.currentTime / total, 1) : 0)
             }
             if active, let error = playback.errorText {
                 Text(error).font(.caption).foregroundStyle(.red)
@@ -1300,12 +1329,25 @@ private struct SMSAudioAttachmentCard: View {
         }
         .padding(12)
         .frame(maxWidth: min(maxWidth, 280), alignment: .leading)
-        .background(Color.primary.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .background(Color(uiColor: .secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .onChange(of: playback.duration) { _, value in
-            if active, value > 0 { knownDuration = value }
+            if active, value.isFinite, value > 0 { knownDuration = value }
         }
-        .onDisappear { playback.stop(ifIdentity: identity) }
+        .onAppear {
+            playback.prefetchDuration(identity: identity, messageID: message.id,
+                mediaIndex: mediaIndex, token: TokenStore.shared.read())
+        }
+        .onChange(of: identity) { oldValue, newValue in
+            playback.stop(ifIdentity: oldValue)
+            playback.cancelDurationPrefetch(identity: oldValue)
+            playback.prefetchDuration(identity: newValue, messageID: message.id,
+                mediaIndex: mediaIndex, token: TokenStore.shared.read())
+        }
+        .onDisappear {
+            playback.stop(ifIdentity: identity)
+            playback.cancelDurationPrefetch(identity: identity)
+        }
     }
 }
 
@@ -1325,7 +1367,143 @@ private final class SMSAttachmentPlayback: ObservableObject {
     private var timerTask: Task<Void, Never>?
     private var generation = 0
 
+    // Duration lookups never own or activate an audio session. Keep only a
+    // bounded in-memory cache scoped to the current signed-in session.
+    @Published private var knownDurations: [String: Double] = [:]
+    private var mediaBytes: [String: Data] = [:]
+    private var mediaOrder: [String] = []
+    private var durationOrder: [String] = []
+    private var mediaTasks: [String: Task<Data, Error>] = [:]
+    private var mediaRequestIDs: [String: UUID] = [:]
+    private var durationInterests: Set<String> = []
+    private var durationQueue: [(identity: String, messageID: Int, mediaIndex: Int, token: String)] = []
+    private var durationRequests: [String: (identity: String, messageID: Int, mediaIndex: Int, token: String)] = [:]
+    private var mediaAccountToken: String?
+    private var mediaEpoch = 0
+
+    func cachedDuration(for identity: String) -> Double? {
+        guard mediaAccountToken == TokenStore.shared.read() else { return nil }
+        return knownDurations[identity]
+    }
+
+    private func useMediaAccount(_ token: String?) {
+        guard token != mediaAccountToken else { return }
+        mediaEpoch += 1
+        mediaTasks.values.forEach { $0.cancel() }
+        mediaTasks.removeAll(); mediaRequestIDs.removeAll()
+        durationQueue.removeAll(); durationInterests.removeAll(); durationRequests.removeAll()
+        mediaBytes.removeAll(); mediaOrder.removeAll()
+        knownDurations.removeAll(); durationOrder.removeAll()
+        mediaAccountToken = token
+    }
+
+    func prefetchDuration(identity: String, messageID: Int, mediaIndex: Int, token: String?) {
+        useMediaAccount(token)
+        guard let token, !token.isEmpty, token == TokenStore.shared.read(),
+              messageID > 0, mediaIndex >= 0 else { return }
+        durationInterests.insert(identity)
+        durationRequests[identity] = (identity, messageID, mediaIndex, token)
+        guard knownDurations[identity] == nil, mediaTasks[identity] == nil,
+              !durationQueue.contains(where: { $0.identity == identity }),
+              durationQueue.count < 32 else { return }
+        durationQueue.append((identity, messageID, mediaIndex, token))
+        drainDurationQueue()
+    }
+
+    func cancelDurationPrefetch(identity: String) {
+        durationInterests.remove(identity)
+        durationRequests.removeValue(forKey: identity)
+        durationQueue.removeAll { $0.identity == identity }
+        if self.identity != identity { cancelMediaTask(identity) }
+        drainDurationQueue()
+    }
+
+    private func cancelMediaTask(_ identity: String) {
+        mediaRequestIDs.removeValue(forKey: identity)
+        mediaTasks.removeValue(forKey: identity)?.cancel()
+    }
+
+    private func drainDurationQueue() {
+        // At most two media fetches; explicit Play takes priority.
+        while mediaTasks.count < 2, !durationQueue.isEmpty {
+            let item = durationQueue.removeFirst()
+            guard durationInterests.contains(item.identity),
+                  item.token == TokenStore.shared.read(), knownDurations[item.identity] == nil else { continue }
+            _ = mediaTask(identity: item.identity, messageID: item.messageID,
+                mediaIndex: item.mediaIndex, token: item.token)
+        }
+    }
+
+    private func mediaTask(identity: String, messageID: Int, mediaIndex: Int, token: String) -> Task<Data, Error> {
+        if let task = mediaTasks[identity] { return task }
+        let epoch = mediaEpoch
+        let requestID = UUID()
+        let task = Task<Data, Error> { @MainActor [weak self] in
+            guard let self else { throw CancellationError() }
+            defer {
+                if self.mediaEpoch == epoch, self.mediaRequestIDs[identity] == requestID {
+                    self.mediaTasks.removeValue(forKey: identity)
+                    self.mediaRequestIDs.removeValue(forKey: identity)
+                    self.drainDurationQueue()
+                }
+            }
+            try Task.checkCancellation()
+            guard self.mediaEpoch == epoch, TokenStore.shared.read() == token else { throw CancellationError() }
+            let request = APIRequest(path: "sms/media/\(messageID)/\(mediaIndex)",
+                method: .GET, requiresAuth: true)
+            let (data, response) = try await APIClient.shared.sendRaw(request, token: token)
+            try Task.checkCancellation()
+            guard self.mediaEpoch == epoch, TokenStore.shared.read() == token else { throw CancellationError() }
+            guard (200...299).contains(response.statusCode), !data.isEmpty else {
+                throw URLError(.badServerResponse)
+            }
+            // Inspect bytes off the main thread. No prepareToPlay(), play(),
+            // AVAudioSession activation, or shared-player replacement here.
+            let measured = try await Task.detached(priority: .utility) {
+                try AVAudioPlayer(data: data).duration
+            }.value
+            try Task.checkCancellation()
+            guard self.mediaEpoch == epoch, TokenStore.shared.read() == token else { throw CancellationError() }
+            guard measured.isFinite, measured > 0 else { throw URLError(.cannotDecodeContentData) }
+            self.knownDurations[identity] = measured
+            self.durationOrder.removeAll { $0 == identity }; self.durationOrder.append(identity)
+            while self.durationOrder.count > 128 {
+                self.knownDurations.removeValue(forKey: self.durationOrder.removeFirst())
+            }
+            // Reuse inspected bytes on Play, without unbounded media retention.
+            if data.count <= 8 * 1_024 * 1_024 {
+                self.mediaBytes[identity] = data
+                self.mediaOrder.removeAll { $0 == identity }; self.mediaOrder.append(identity)
+                while self.mediaOrder.count > 32 || self.mediaBytes.values.reduce(0, { $0 + $1.count }) > 8 * 1_024 * 1_024 {
+                    self.mediaBytes.removeValue(forKey: self.mediaOrder.removeFirst())
+                }
+            }
+            return data
+        }
+        mediaTasks[identity] = task; mediaRequestIDs[identity] = requestID
+        return task
+    }
+
+    private func playbackBytes(identity: String, messageID: Int, mediaIndex: Int, token: String) async throws -> Data {
+        useMediaAccount(token)
+        guard TokenStore.shared.read() == token else { throw CancellationError() }
+        if let data = mediaBytes[identity] { return data }
+        durationQueue.removeAll { $0.identity == identity }
+        // Prioritize an explicit Play without exceeding two media fetches.
+        if mediaTasks[identity] == nil, mediaTasks.count >= 2,
+           let quietIdentity = mediaTasks.keys.first(where: { $0 != identity }) {
+            cancelMediaTask(quietIdentity)
+            if let request = durationRequests[quietIdentity], durationQueue.count < 32,
+               !durationQueue.contains(where: { $0.identity == quietIdentity }) {
+                durationQueue.append(request)
+            }
+        }
+        return try await mediaTask(identity: identity, messageID: messageID,
+            mediaIndex: mediaIndex, token: token).value
+    }
+
     func toggle(identity requested: String, messageID: Int, mediaIndex: Int, token: String?) {
+        useMediaAccount(token)
         guard let token, !token.isEmpty else {
             stop(); identity = requested
             errorText = "Sign in to play this voice note."
@@ -1345,14 +1523,10 @@ private final class SMSAttachmentPlayback: ObservableObject {
         downloadTask = Task { @MainActor [weak self] in
             guard let self else { return }
             do {
-                let request = APIRequest(path: "sms/media/\(messageID)/\(mediaIndex)",
-                    method: .GET, requiresAuth: true)
-                let (data, response) = try await APIClient.shared.sendRaw(request, token: token)
+                let data = try await self.playbackBytes(identity: requested,
+                    messageID: messageID, mediaIndex: mediaIndex, token: token)
                 guard !Task.isCancelled, revision == self.generation else { return }
                 guard TokenStore.shared.read() == token else { self.stop(); return }
-                guard (200...299).contains(response.statusCode), !data.isEmpty else {
-                    throw URLError(.badServerResponse)
-                }
                 let player = try AVAudioPlayer(data: data)
                 guard player.duration.isFinite, player.duration > 0, player.prepareToPlay() else {
                     throw URLError(.cannotDecodeContentData)
@@ -1362,6 +1536,9 @@ private final class SMSAttachmentPlayback: ObservableObject {
                 self.play(player)
             } catch {
                 guard !Task.isCancelled, revision == self.generation else { return }
+                guard TokenStore.shared.read() == token else {
+                    self.stop(); self.useMediaAccount(TokenStore.shared.read()); return
+                }
                 self.isLoading = false; self.isPlaying = false
                 self.errorText = "Could not play this voice note. Tap Play to retry."
             }
@@ -1394,6 +1571,7 @@ private final class SMSAttachmentPlayback: ObservableObject {
     func stop(ifIdentity expected: String? = nil) {
         if let expected, identity != expected { return }
         generation += 1
+        if let identity, !durationInterests.contains(identity) { cancelMediaTask(identity) }
         downloadTask?.cancel(); downloadTask = nil
         timerTask?.cancel(); timerTask = nil
         let hadPlayer = player != nil
