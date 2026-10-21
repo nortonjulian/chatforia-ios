@@ -20,6 +20,9 @@ struct ChatThreadView: View {
     @ObservedObject private var subscriptionManager = SubscriptionManager.shared
     @State private var showingRewriteSheet = false
 
+    @State private var voiceRecorderBusy = false
+    @State private var voiceRecorderRevision = 0
+    @State private var voiceRecorderCleanup: Task<Void, Never>?
     @State private var draft = ""
     @State private var lastMessageId: Int? = nil
 
@@ -757,7 +760,11 @@ extension ChatThreadView {
 }
 
 extension ChatThreadView {
+    @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .principal) {
+            ConversationTransportTitle(title: roomDisplayTitle, isSMS: false)
+        }
         ToolbarItemGroup(placement: .navigationBarTrailing) {
             Button {
                 showSearchSheet = true
@@ -1211,7 +1218,7 @@ extension ChatThreadView {
 extension ChatThreadView {
     @MainActor
     private func startVoiceRecording() {
-        guard !isRecordingVoice else { return }
+        guard !isRecordingVoice, !voiceRecorderBusy else { return }
         guard voiceDraft == nil else { return }
 
         guard pendingGIFURL == nil,
@@ -1225,14 +1232,23 @@ extension ChatThreadView {
         vm.errorText = nil
         stopVoiceDraftPlayback(reset: true)
 
+        voiceRecorderBusy = true
+        let revision = voiceRecorderRevision
         Task { @MainActor in
+            defer { voiceRecorderBusy = false }
             do {
+                await voiceRecorderCleanup?.value
+                guard revision == voiceRecorderRevision else { return }
                 try await audioRecorder.start()
-
+                guard revision == voiceRecorderRevision else {
+                    await audioRecorder.cancel()
+                    return
+                }
                 isRecordingVoice = true
                 recordingElapsed = 0
                 startRecordingTicker()
             } catch {
+                guard revision == voiceRecorderRevision else { return }
                 isRecordingVoice = false
                 stopRecordingTicker()
                 vm.errorText = error.localizedDescription
@@ -1242,27 +1258,35 @@ extension ChatThreadView {
 
     @MainActor
     private func stopVoiceRecording() {
-        guard isRecordingVoice else { return }
-
-        let completedDraft = audioRecorder.stop()
-
-        isRecordingVoice = false
+        guard isRecordingVoice, !voiceRecorderBusy else { return }
+        voiceRecorderBusy = true
+        let revision = voiceRecorderRevision
         stopRecordingTicker()
-
-        guard let completedDraft else {
-            vm.errorText = "The voice recording could not be saved."
-            return
+        Task { @MainActor in
+            defer { voiceRecorderBusy = false }
+            let completedDraft = await audioRecorder.stop()
+            guard revision == voiceRecorderRevision else {
+                if let completedDraft { try? FileManager.default.removeItem(at: completedDraft.fileURL) }
+                return
+            }
+            isRecordingVoice = false
+            guard let completedDraft else {
+                vm.errorText = "The voice recording could not be saved."
+                return
+            }
+            voiceDraft = completedDraft
         }
-
-        voiceDraft = completedDraft
     }
 
     @MainActor
     private func cancelVoiceRecording() {
-        guard isRecordingVoice else { return }
-
-        audioRecorder.cancel()
-
+        guard isRecordingVoice || voiceRecorderBusy else { return }
+        voiceRecorderRevision += 1
+        let previousCleanup = voiceRecorderCleanup
+        voiceRecorderCleanup = Task {
+            await previousCleanup?.value
+            await audioRecorder.cancel()
+        }
         isRecordingVoice = false
         recordingElapsed = 0
         stopRecordingTicker()

@@ -16,6 +16,9 @@
     "%@ avatar" : {
 
     },
+    "%@, Chatforia" : {
+
+    },
     "%lld" : {
 
     },
@@ -129882,6 +129885,28 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Play through speaker"
+          }
+        }
+      }
+    },
+    "audio.pause" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Pause voice note"
+          }
+        }
+      }
+    },
+    "audio.play" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Play voice note"
           }
         }
       }
@@ -432658,6 +432683,9 @@
         }
       }
     },
+    "Chatforia" : {
+
+    },
     "Check status" : {
 
     },
@@ -432668,6 +432696,15 @@
 
     },
     "Choose document" : {
+
+    },
+    "Clear All" : {
+
+    },
+    "Clear all Recents?" : {
+
+    },
+    "Clear all voicemails?" : {
 
     },
     "Close" : {
@@ -591048,6 +591085,24 @@
         }
       }
     },
+    "Delete" : {
+
+    },
+    "Delete (%lld)" : {
+
+    },
+    "Delete %lld Calls" : {
+
+    },
+    "Delete %lld conversations?" : {
+
+    },
+    "Delete selected calls?" : {
+
+    },
+    "Delete selected voicemails?" : {
+
+    },
     "delete_account_warning" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -591091,6 +591146,9 @@
           }
         }
       }
+    },
+    "Deselect All" : {
+
     },
     "dialer.availableNumbers" : {
       "extractionState" : "stale",
@@ -628943,6 +629001,9 @@
           }
         }
       }
+    },
+    "Edit" : {
+
     },
     "encryption.backup.enterPassword" : {
       "extractionState" : "manual",
@@ -2092930,6 +2092991,9 @@
     "Select a document" : {
 
     },
+    "Select All" : {
+
+    },
     "select_age_range" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2150433,6 +2150497,17 @@
     },
     "Sign out without changing or deleting this account’s secure message keys." : {
 
+    },
+    "smart_replies_upgrade_hint" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Available with Plus or Premium."
+          }
+        }
+      }
     },
     "SMS" : {
 
@@ -2343379,10 +2343454,19 @@
         }
       }
     },
+    "These calls will be removed from your Recents only." : {
+
+    },
+    "These voicemails will be removed from your voicemail inbox." : {
+
+    },
     "This creates a new secure message key for your account. Older app-to-app secure messages may no longer be readable on any device. SMS/text message conversations are not affected." : {
 
     },
     "This device does not have the correct secure message key, and no account recovery backup exists yet." : {
+
+    },
+    "This eSIM is already active." : {
 
     },
     "This field is required." : {
@@ -2343401,6 +2343485,15 @@
 
     },
     "This plus previous 20" : {
+
+    },
+    "This removes all calls from your Recents only." : {
+
+    },
+    "This will remove all voicemails from your voicemail inbox." : {
+
+    },
+    "This will remove the selected conversations from your list." : {
 
     },
     "threadActions.about" : {
@@ -2768036,16 +2768129,6 @@
     },
     "Your information has been submitted. Check the status to see whether the number is ready to be assigned." : {
 
-    },
-    "smart_replies_upgrade_hint" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Available with Plus or Premium."
-          }
-        }
-      }
     }
   },
   "version" : "1.2"

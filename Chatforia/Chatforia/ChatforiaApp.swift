@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 import UIKit
 import GoogleMobileAds
 import GoogleSignIn
@@ -78,6 +79,46 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 
 }
 
+
+// Routing only: a link never authenticates a user or supplies recording bytes.
+struct VoicemailLinkTarget: Equatable {
+    let voicemailID: String?
+
+    static func parse(_ url: URL) -> VoicemailLinkTarget? {
+        guard let parts = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              parts.scheme?.lowercased() == "https",
+              ["chatforia.com", "www.chatforia.com"].contains(parts.host?.lowercased() ?? ""),
+              parts.user == nil, parts.password == nil, parts.port == nil,
+              parts.fragment == nil,
+              ["/voicemail", "/voicemail/"].contains(parts.percentEncodedPath) else { return nil }
+        let ids = (parts.queryItems ?? []).filter { $0.name == "id" }
+        guard ids.count <= 1 else { return nil }
+        if let item = ids.first {
+            guard let value = item.value,
+                  value.range(of: "^[A-Za-z0-9_-]{1,128}$", options: .regularExpression) != nil else { return nil }
+            return VoicemailLinkTarget(voicemailID: value)
+        }
+        return VoicemailLinkTarget(voicemailID: nil)
+    }
+}
+
+struct VoicemailLinkRequest: Identifiable, Equatable {
+    let id = UUID()
+    let target: VoicemailLinkTarget
+}
+
+@MainActor
+final class VoicemailLinkCoordinator: ObservableObject {
+    @Published var pending: VoicemailLinkRequest?
+
+    @discardableResult
+    func handle(_ url: URL) -> Bool {
+        guard let target = VoicemailLinkTarget.parse(url) else { return false }
+        pending = VoicemailLinkRequest(target: target)
+        return true
+    }
+}
+
 @main
 struct ChatforiaApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
@@ -92,6 +133,7 @@ struct ChatforiaApp: App {
     @StateObject private var checkoutReturn = CheckoutReturnCoordinator()
     @StateObject private var settingsVM = SettingsViewModel()
     @StateObject private var chatsVM = ChatsViewModel()
+    @StateObject private var voicemailLinks = VoicemailLinkCoordinator()
 
     @AppStorage("chatforia_language")
     private var appLanguage = "en"
@@ -220,6 +262,7 @@ struct ChatforiaApp: App {
             .environmentObject(checkoutReturn)
             .environmentObject(settingsVM)
             .environmentObject(chatsVM)
+            .environmentObject(voicemailLinks)
             .tint(themeManager.palette.accent)
             .environment(
                 \.locale,
@@ -269,6 +312,8 @@ struct ChatforiaApp: App {
                 }
             }
             .onOpenURL { url in
+                if voicemailLinks.handle(url) { return }
+
                 if checkoutReturn.handleIncomingURL(url) {
                     return
                 }
@@ -295,6 +340,8 @@ struct ChatforiaApp: App {
                 guard let url = activity.webpageURL else {
                     return
                 }
+
+                if voicemailLinks.handle(url) { return }
 
                 if checkoutReturn.handleIncomingURL(url) {
                     return

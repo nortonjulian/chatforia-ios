@@ -262,8 +262,9 @@ struct MessageAttachmentsView: View {
     @ViewBuilder
     private func audioCard(_ attachment: AttachmentDTO) -> some View {
         let title = attachment.caption?.nilIfBlank ?? appText(
-            "messages.audio",
-            languageCode: appLanguage
+            "composer.voiceNote",
+            languageCode: appLanguage,
+            fallback: "Voice note"
         )
 
         if let url = resolvedURL(from: attachment.url) {

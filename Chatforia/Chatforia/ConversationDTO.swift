@@ -103,3 +103,43 @@ struct MessagePreviewDTO: Codable, Identifiable, Hashable {
     let createdAt: String?
     let sender: UserPreviewDTO?
 }
+
+// Shared by Chats search and New Chat. Display names are search terms, never
+// identity keys: SMS identity is the normalized number; app identity is user ID.
+enum ConversationLookup {
+    static func phoneDigits(_ value: String) -> String? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        let allowed = CharacterSet(charactersIn: "+()-.").union(.whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed.unicodeScalars.allSatisfy({
+            (48...57).contains(Int($0.value)) || allowed.contains($0)
+        }), trimmed.filter({ $0 == "+" }).count <= 1,
+        !trimmed.contains("+") || trimmed.hasPrefix("+") else { return nil }
+        return trimmed.filter { "0123456789".contains($0) }
+    }
+
+    static func normalizePhone(_ value: String) -> String? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard var digits = phoneDigits(trimmed) else { return nil }
+        let international = trimmed.hasPrefix("+") || digits.hasPrefix("00")
+        if !trimmed.hasPrefix("+"), digits.hasPrefix("00") { digits.removeFirst(2) }
+        guard (7...15).contains(digits.count), !digits.hasPrefix("0") else { return nil }
+        if !international, digits.count == 10 { digits = "1" + digits }
+        return "+" + digits
+    }
+
+    static func matches(_ item: ConversationDTO, query: String) -> Bool {
+        let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return true }
+        let names = (item.avatarUsers ?? []).flatMap { [$0.username, $0.displayName] }
+        let fields = [item.title, item.displayName, item.phone, item.last?.text] + names
+        if fields.compactMap({ $0 }).contains(where: { $0.localizedCaseInsensitiveContains(query) }) {
+            return true
+        }
+        guard let phone = item.phone,
+              let queryDigits = phoneDigits(query), queryDigits.count >= 3,
+              let storedDigits = phoneDigits(phone) else { return false }
+        if let normalized = normalizePhone(query), normalized == normalizePhone(phone) { return true }
+        return storedDigits.contains(queryDigits)
+    }
+
+}

@@ -25,6 +25,16 @@ final class ChatsViewModel: ObservableObject {
     static let conversationsBasePath = "conversations"
 
     init() {
+        NotificationCenter.default.publisher(for: Notification.Name("smsThreadWasRead"))
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] note in
+                guard let self,
+                      let threadId = note.userInfo?["threadId"] as? Int,
+                      let accountId = note.userInfo?["accountId"] as? Int else { return }
+                self.applySMSRead(threadId: threadId, accountId: accountId)
+            }
+            .store(in: &cancellables)
+
         NotificationCenter.default.publisher(for: .conversationWasRead)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] note in
@@ -233,6 +243,35 @@ final class ChatsViewModel: ObservableObject {
         }
     }
 
+    private func applySMSRead(threadId: Int, accountId: Int) {
+        guard threadId > 0, accountId > 0,
+              UserDefaults.standard.integer(forKey: "chatforia.currentUserId") == accountId,
+              let index = conversations.firstIndex(where: {
+                  $0.kind.lowercased() == "sms" && $0.id == threadId
+              }),
+              conversations[index].unreadCount != 0 else { return }
+
+        let conversation = conversations[index]
+        var updated = ConversationDTO(
+            kind: conversation.kind,
+            id: conversation.id,
+            title: conversation.title,
+            displayName: conversation.displayName,
+            updatedAt: conversation.updatedAt,
+            isGroup: conversation.isGroup,
+            phone: conversation.phone,
+            unreadCount: 0,
+            avatarUsers: conversation.avatarUsers,
+            last: conversation.last
+        )
+        updated.isRandomChat = conversation.isRandomChat
+        updated.randomChat = conversation.randomChat
+        updated.randomChatRoomId = conversation.randomChatRoomId
+        conversations[index] = updated
+        // Invalidates in-flight list responses before the debounced refresh.
+        scheduleLiveRefresh()
+    }
+
     private func scheduleLiveRefresh() {
         // Invalidate an older response immediately, including during debounce.
         conversationLoadVersion += 1
@@ -350,6 +389,26 @@ final class ChatsViewModel: ObservableObject {
         }
 
         let newText: String? = {
+            if let text = payload["rawContent"] as? String {
+                let trimmed = text.trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                )
+
+                if !trimmed.isEmpty {
+                    return trimmed
+                }
+            }
+
+            if let text = payload["translatedForMe"] as? String {
+                let trimmed = text.trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                )
+
+                if !trimmed.isEmpty {
+                    return trimmed
+                }
+            }
+
             if let ciphertext = payload["contentCiphertext"] as? String {
                 if let messageId = incomingMessageId,
                 let decrypted =
@@ -388,27 +447,7 @@ final class ChatsViewModel: ObservableObject {
                     }
                 }
 
-                return currentLast?.text ?? "Message"
-            }
-
-            if let text = payload["rawContent"] as? String {
-                let trimmed = text.trimmingCharacters(
-                    in: .whitespacesAndNewlines
-                )
-
-                if !trimmed.isEmpty {
-                    return trimmed
-                }
-            }
-
-            if let text = payload["translatedForMe"] as? String {
-                let trimmed = text.trimmingCharacters(
-                    in: .whitespacesAndNewlines
-                )
-
-                if !trimmed.isEmpty {
-                    return trimmed
-                }
+                return (isSameAsCurrentLast ? currentLast?.text : nil) ?? "Message"
             }
 
             if let clientMessageId =
@@ -421,7 +460,7 @@ final class ChatsViewModel: ObservableObject {
                         }) {
                 return localMessage.rawContent ??
                     localMessage.translatedForMe ??
-                    currentLast?.text
+                    (isSameAsCurrentLast ? currentLast?.text : nil)
             }
 
             if payload["deletedForAll"] as? Bool == true {
@@ -436,7 +475,7 @@ final class ChatsViewModel: ObservableObject {
                 return "[media]"
             }
 
-            return currentLast?.text
+            return isSameAsCurrentLast ? currentLast?.text : "Message"
         }()
 
         let hasMedia: Bool = {
@@ -445,7 +484,7 @@ final class ChatsViewModel: ObservableObject {
                 return !attachments.isEmpty
             }
 
-            return currentLast?.hasMedia ?? false
+            return isSameAsCurrentLast ? (currentLast?.hasMedia ?? false) : false
         }()
 
         let mediaCount: Int? = {
@@ -454,7 +493,7 @@ final class ChatsViewModel: ObservableObject {
                 return attachments.count
             }
 
-            return currentLast?.mediaCount
+            return isSameAsCurrentLast ? currentLast?.mediaCount : nil
         }()
 
         let mediaKinds: [String]? = {
@@ -465,11 +504,11 @@ final class ChatsViewModel: ObservableObject {
                 }
 
                 return kinds.isEmpty
-                    ? currentLast?.mediaKinds
+                    ? nil
                     : kinds
             }
 
-            return currentLast?.mediaKinds
+            return isSameAsCurrentLast ? currentLast?.mediaKinds : nil
         }()
 
         let thumbUrl: String? = {
@@ -490,7 +529,7 @@ final class ChatsViewModel: ObservableObject {
                 }
             }
 
-            return currentLast?.thumbUrl
+            return isSameAsCurrentLast ? currentLast?.thumbUrl : nil
         }()
 
         let nowISO = ISO8601DateFormatter().string(
@@ -521,7 +560,8 @@ final class ChatsViewModel: ObservableObject {
             mediaCount: mediaCount,
             mediaKinds: mediaKinds,
             thumbUrl: thumbUrl,
-            senderName: currentLast?.senderName
+            senderName: (payload["sender"] as? [String: Any])?["username"] as? String
+                ?? (isSameAsCurrentLast ? currentLast?.senderName : nil)
         )
 
         var updated = ConversationDTO(
@@ -586,6 +626,7 @@ final class ChatsViewModel: ObservableObject {
             return title.contains(query)
                 || phone.contains(query)
                 || lastText.contains(query)
+                || ConversationLookup.matches(item, query: query)
         }
     }
 
@@ -845,17 +886,11 @@ final class ChatsViewModel: ObservableObject {
             guard hydrationVersion == conversationLoadVersion else { return }
             let targetMessageId = conversation.last?.messageId
 
-            let newest: MessageDTO?
-
-            if let targetMessageId {
-                newest =
-                    page.items.first(where: { $0.id == targetMessageId })
-                    ?? page.items.first
-            } else {
-                newest = page.items.first
-            }
-
-            guard let newest else { return }
+            // The conversation response identifies the authoritative last message.
+            // Never substitute another row when that message is absent/expired.
+            guard let targetMessageId,
+                  let newest = page.items.first(where: { $0.id == targetMessageId }),
+                  newest.expiresAt.map({ $0 > Date() }) ?? true else { return }
 
             let decrypted: String
 
@@ -982,7 +1017,8 @@ final class ChatsViewModel: ObservableObject {
 
     private func shouldHydrateEncryptedPreview(_ conversation: ConversationDTO) -> Bool {
         guard conversation.kind.lowercased() == "chat" else { return false }
-        guard conversation.id != nil else { return false }
+        guard conversation.id != nil,
+              let messageId = conversation.last?.messageId, messageId > 0 else { return false }
 
         let text =
             conversation.last?.text?
@@ -1038,9 +1074,11 @@ final class ChatsViewModel: ObservableObject {
                 return incoming
             }
 
-            if let incomingMessageId = incoming.last?.messageId,
-            let existingMessageId = existingLast.messageId,
-            incomingMessageId != existingMessageId {
+            // An absent last message is authoritative, not an encrypted placeholder.
+            // Preserve plaintext only when both responses identify the same message.
+            guard let incomingMessageId = incoming.last?.messageId,
+                  incomingMessageId > 0,
+                  incomingMessageId == existingLast.messageId else {
                 return incoming
             }
 

@@ -55,7 +55,8 @@ final class ContactsViewModel: ObservableObject {
 
         return try await ChatRoomService.shared.startDirectChat(
             userId: userId,
-            token: token
+            token: token,
+            displayName: displayName(for: contact)
         )
     }
     

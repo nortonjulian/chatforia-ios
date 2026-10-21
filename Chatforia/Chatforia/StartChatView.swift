@@ -7,6 +7,8 @@ struct StartChatView: View {
     @AppStorage("chatforia_language") private var appLanguage = "en"
 
     @StateObject private var vm = StartChatViewModel()
+    @State private var transportContact: ContactSearchResultDTO?
+    @State private var showingTransportChoice = false
 
     let onDestinationReady: (StartDestination) -> Void
 
@@ -17,7 +19,7 @@ struct StartChatView: View {
                     .ignoresSafeArea()
 
                 Group {
-                    if vm.isLoading && vm.results.isEmpty {
+                    if vm.isLoading && vm.results.isEmpty && vm.contactResults.isEmpty && vm.conversationResults.isEmpty {
                         LoadingStateView(
                             title: appText(
                                 "ios.searching",
@@ -28,7 +30,7 @@ struct StartChatView: View {
                                 languageCode: appLanguage
                             )
                         )
-                    } else if let errorText = vm.errorText, !errorText.isEmpty, vm.results.isEmpty {
+                    } else if let errorText = vm.errorText, !errorText.isEmpty, vm.results.isEmpty, vm.contactResults.isEmpty, vm.conversationResults.isEmpty {
                         EmptyStateView(
                             systemImage: "exclamationmark.magnifyingglass",
                             title: appText(
@@ -49,10 +51,10 @@ struct StartChatView: View {
                                 languageCode: appLanguage
                             )
                         )
-                    } else if vm.looksLikePhoneInput && vm.contactResults.isEmpty,
+                    } else if vm.looksLikePhoneInput && vm.contactResults.isEmpty && vm.conversationResults.isEmpty,
                               let phone = vm.normalizedPhoneCandidate {
                           phoneCandidateRow(phone: phone)
-                      } else if vm.results.isEmpty && vm.contactResults.isEmpty {
+                      } else if vm.results.isEmpty && vm.contactResults.isEmpty && vm.conversationResults.isEmpty {
                         EmptyStateView(
                             systemImage: "magnifyingglass",
                             title: appText(
@@ -66,6 +68,32 @@ struct StartChatView: View {
                         )
                     } else {
                         List {
+                            if !vm.isGroupMode && !vm.conversationResults.isEmpty {
+                                Section(appText("common.openConversation", languageCode: appLanguage)) {
+                                    ForEach(vm.conversationResults, id: \.uniqueId) { conversation in
+                                        Button {
+                                            selectExistingConversation(conversation)
+                                        } label: {
+                                            HStack(spacing: 12) {
+                                                avatarView(for: conversation.displayName ?? conversation.title)
+                                                VStack(alignment: .leading, spacing: 4) {
+                                                    Text(conversation.displayName ?? conversation.title)
+                                                        .foregroundStyle(themeManager.palette.primaryText)
+                                                    Text(conversation.kind.lowercased() == "sms" ? "SMS" : "Chatforia")
+                                                        .font(.footnote)
+                                                        .foregroundStyle(themeManager.palette.secondaryText)
+                                                }
+                                                Spacer()
+                                                Image(systemName: "chevron.right")
+                                            }
+                                            .padding(.vertical, 6)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .disabled(vm.isCreating)
+                                        .listRowBackground(themeManager.palette.cardBackground)
+                                    }
+                                }
+                            }
                             if vm.looksLikePhoneInput, let phone = vm.normalizedPhoneCandidate {
                                 Section(
                                     appText(
@@ -196,6 +224,15 @@ struct StartChatView: View {
                     }
                 }
             }
+            .confirmationDialog(
+                appText("common.openConversation", languageCode: appLanguage),
+                isPresented: $showingTransportChoice
+            ) {
+                if let contact = transportContact {
+                    Button("Chatforia") { Task { await selectContact(contact, preferSMS: false) } }
+                    Button("SMS") { Task { await selectContact(contact, preferSMS: true) } }
+                }
+            }
             .navigationBarTitleDisplayMode(.inline)
             .searchable(
                 text: $vm.searchText,
@@ -207,6 +244,9 @@ struct StartChatView: View {
                 )
             )
             .onChange(of: vm.searchText) { _, _ in
+                vm.handleSearchTextChanged(currentUserId: auth.currentUser?.id)
+            }
+            .onChange(of: auth.currentUser?.id) { _, _ in
                 vm.handleSearchTextChanged(currentUserId: auth.currentUser?.id)
             }
             .toolbar {
@@ -236,6 +276,7 @@ struct StartChatView: View {
                             : appText("startChatModal.group", languageCode: appLanguage)
                     ) {
                         vm.isGroupMode.toggle()
+                        vm.handleSearchTextChanged(currentUserId: auth.currentUser?.id)
 
                         if !vm.isGroupMode {
                             vm.resetGroupSelection()
@@ -253,9 +294,24 @@ struct StartChatView: View {
     }
     
     
-    private func selectContact(_ contact: ContactSearchResultDTO) async {
+    private func selectContact(_ contact: ContactSearchResultDTO, preferSMS: Bool? = nil) async {
+        let hasAppUser = (contact.user?.id ?? contact.userId) != nil
+        let phone = contact.externalPhone?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if hasAppUser, let phone, !phone.isEmpty, preferSMS == nil {
+            transportContact = contact
+            showingTransportChoice = true
+            return
+        }
         do {
-            let destination = try await vm.destinationForContactResult(contact)
+            let destination: StartDestination
+            if preferSMS == true, let phone {
+                guard let token = auth.currentToken, !token.isEmpty else { throw APIError.unauthorized }
+                let conversation = try await ChatRoomService.shared.startSMSThread(
+                    phone: phone, contactId: contact.id, displayName: contact.displayName, token: token)
+                destination = .sms(conversation)
+            } else {
+                destination = try await vm.destinationForContactResult(contact)
+            }
             dismiss()
             onDestinationReady(destination)
         } catch {
@@ -369,9 +425,19 @@ struct StartChatView: View {
         }
     }
 
+    private func selectExistingConversation(_ conversation: ConversationDTO) {
+        do {
+            let destination = try vm.destinationForExistingConversation(conversation)
+            dismiss()
+            onDestinationReady(destination)
+        } catch {
+            vm.errorText = error.localizedDescription
+        }
+    }
+
     private func selectUser(_ user: UserSearchResultDTO) async {
         do {
-            let destination = try await vm.createOrOpenDirectChat(targetUserId: user.id)
+            let destination = try await vm.createOrOpenDirectChat(targetUserId: user.id, displayName: user.username)
             dismiss()
             onDestinationReady(destination)
         } catch {
@@ -380,29 +446,13 @@ struct StartChatView: View {
     }
 
     private func selectPhone() async {
-        guard let phone = vm.normalizedPhoneCandidate else {
-            vm.errorText = appText(
-                "ios.invalid_phone_number",
-                languageCode: appLanguage
-            )
-            return
+        do {
+            let destination = try await vm.createOrOpenExistingSMSThread()
+            dismiss()
+            onDestinationReady(destination)
+        } catch {
+            vm.errorText = error.localizedDescription
         }
-
-        let conversation = ConversationDTO(
-            kind: "sms",
-            id: nil,
-            title: phone,
-            displayName: phone,
-            updatedAt: ISO8601DateFormatter().string(from: Date()),
-            isGroup: false,
-            phone: phone,
-            unreadCount: 0,
-            avatarUsers: nil,
-            last: nil
-        )
-
-        dismiss()
-        onDestinationReady(.sms(conversation))
     }
 
     @ViewBuilder

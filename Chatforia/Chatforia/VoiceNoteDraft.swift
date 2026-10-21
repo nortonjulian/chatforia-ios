@@ -1,6 +1,6 @@
 import Foundation
 
-struct VoiceNoteDraft: Identifiable, Equatable {
+struct VoiceNoteDraft: Identifiable, Equatable, Sendable {
     let id = UUID()
     let fileURL: URL
     let durationSec: Double

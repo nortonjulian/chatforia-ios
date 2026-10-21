@@ -162,6 +162,7 @@ final class ChatThreadViewModel: ObservableObject {
     }
 
     private var expiryTask: Task<Void, Never>?
+    private var expiredMessageIds = Set<Int>()
     private var typingStopTask: Task<Void, Never>?
     private var smartReplyTask: Task<Void, Never>?
     private var hasSentTypingStart: Bool = false
@@ -230,7 +231,7 @@ final class ChatThreadViewModel: ObservableObject {
             .sink { [weak self] note in
                 guard let self else { return }
                 guard let payload = note.userInfo?["payload"] as? [String: Any] else { return }
-                self.handleSocketUpsert(payload)
+                self.handleMessageExpiredEvent(payload)
             }
             .store(in: &cancellables)
 
@@ -667,8 +668,14 @@ final class ChatThreadViewModel: ObservableObject {
     private func refreshFromMessageStore() {
         guard let roomId = self.roomId else { return }
 
-        let snapshot = MessageStore.shared.currentWindow()
-            .filter { $0.chatRoomId == roomId }
+        let window = MessageStore.shared.currentWindow().filter { $0.chatRoomId == roomId }
+        for message in window where isExpired(message) || expiredMessageIds.contains(message.id) {
+            expiredMessageIds.insert(message.id)
+            DecryptedMessageTextStore.shared.removeText(for: message.id)
+            MessageStore.shared.removeMessage(id: message.id)
+        }
+        let snapshot = window
+            .filter { !isExpired($0) && !expiredMessageIds.contains($0.id) }
             .sorted { a, b in
                 if a.createdAt != b.createdAt { return a.createdAt < b.createdAt }
                 return a.id < b.id
@@ -715,13 +722,43 @@ final class ChatThreadViewModel: ObservableObject {
 
     func startExpiryLoop() {
         expiryTask?.cancel()
-        expiryTask = Task { [weak self] in
-            guard let self else { return }
+        pruneExpiredMessages()
+        expiryTask = Task { @MainActor [weak self] in
             while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 20_000_000_000)
-                await MainActor.run { self.nowTick = Date() }
+                do { try await Task.sleep(nanoseconds: 1_000_000_000) }
+                catch { return }
+                guard let self else { return }
+                self.nowTick = Date()
+                self.pruneExpiredMessages()
             }
         }
+    }
+
+    private func pruneExpiredMessages() {
+        let expired = messages.filter { isExpired($0) }
+        guard !expired.isEmpty else { return }
+        for message in expired {
+            expiredMessageIds.insert(message.id)
+            DecryptedMessageTextStore.shared.removeText(for: message.id)
+            MessageStore.shared.removeMessage(id: message.id)
+        }
+        messages.removeAll { isExpired($0) || expiredMessageIds.contains($0.id) }
+    }
+
+    private func handleMessageExpiredEvent(_ payload: [String: Any]) {
+        let raw = (payload["item"] as? [String: Any]) ?? payload
+        let incomingRoom = (raw["chatRoomId"] as? Int) ?? (raw["roomId"] as? Int)
+        guard incomingRoom == roomId,
+              let id = (raw["id"] as? Int) ?? (raw["messageId"] as? Int), id > 0,
+              let value = raw["expiresAt"] as? String else { return }
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let deadline = formatter.date(from: value) ?? ISO8601DateFormatter().date(from: value)
+        guard let deadline, deadline <= Date() else { return }
+        expiredMessageIds.insert(id)
+        messages.removeAll { $0.id == id }
+        DecryptedMessageTextStore.shared.removeText(for: id)
+        MessageStore.shared.removeMessage(id: id)
     }
 
     func stopExpiryLoop() {
@@ -1451,6 +1488,7 @@ final class ChatThreadViewModel: ObservableObject {
     }
     
     private func configureRoom(roomId: Int) {
+        if self.roomId != roomId { expiredMessageIds.removeAll() }
         self.roomId = roomId
         self.activeRoomId = roomId
         self.lastServerMessageId = readPersistedLastServerMessageId(roomId: roomId)
@@ -1529,6 +1567,13 @@ final class ChatThreadViewModel: ObservableObject {
         }
         
         let incomingId = incoming.id
+        if isExpired(incoming) || expiredMessageIds.contains(incomingId) {
+            expiredMessageIds.insert(incomingId)
+            messages.removeAll { $0.id == incomingId }
+            DecryptedMessageTextStore.shared.removeText(for: incomingId)
+            MessageStore.shared.removeMessage(id: incomingId)
+            return
+        }
         
         // if incomingId > 0,
         //    incomingId <= lastServerMessageId,

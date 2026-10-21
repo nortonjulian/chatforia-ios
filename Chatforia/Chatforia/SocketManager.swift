@@ -32,6 +32,8 @@ final class SocketManager: ObservableObject {
     private var manager: SocketIO.SocketManager?
     private var socket: SocketIOClient?
 
+    private var incomingSMSTones = IncomingSMSToneGate()
+
     private var currentToken: String?
     private var joinedRoomIds = Set<Int>()
     private var isInRandomQueue = false
@@ -219,7 +221,11 @@ final class SocketManager: ObservableObject {
 
             let shouldSuppressTone = Date() < (self?.suppressMessageToneUntil ?? .distantPast)
 
-            if let senderId, senderId != currentUserId, !shouldSuppressTone {
+            if self?.incomingSMSTones.claim(
+                payload: payload,
+                userId: currentUserId,
+                suppressed: shouldSuppressTone
+            ) == true {
                 AudioPlayerService.shared.playCurrentMessageTone()
             }
 
@@ -618,5 +624,36 @@ func markRandomMatchCompleted() {
         }
 
         return nil
+    }
+}
+
+// Carrier SMS has direction and message identity, not a Chatforia sender ID.
+// Keep this gate separate from app-to-app IDs and keep memory bounded.
+struct IncomingSMSToneGate {
+    private var keys = Set<String>()
+    private var order: [String] = []
+
+    mutating func claim(payload: [String: Any], userId: Int, suppressed: Bool) -> Bool {
+        guard userId > 0,
+              let message = payload["message"] as? [String: Any],
+              message["direction"] as? String == "in",
+              let messageId = Self.positiveID(message["id"]),
+              let threadId = Self.positiveID(payload["threadId"]),
+              Self.positiveID(message["threadId"]) == threadId else { return false }
+        let key = "\(userId):\(threadId):\(messageId)"
+        guard keys.insert(key).inserted else { return false }
+        order.append(key)
+        if order.count > 512 { keys.remove(order.removeFirst()) }
+        // A suppressed delivery stays consumed if it is repeated later.
+        return !suppressed
+    }
+
+    private static func positiveID(_ value: Any?) -> Int? {
+        guard let value else { return nil }
+        // JSON booleans must never become message or thread ID 1.
+        if let number = value as? NSNumber,
+           String(cString: number.objCType) == "c" { return nil }
+        guard let id = Int(String(describing: value)), id > 0 else { return nil }
+        return id
     }
 }

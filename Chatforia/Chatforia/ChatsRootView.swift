@@ -150,7 +150,8 @@ struct ChatsRootView: View {
                                                 timestamp: conversationTimestamp(conversation),
                                                 unreadCount: conversation.unreadCount ?? 0,
                                                 avatarUsers: conversation.avatarUsers ?? [],
-                                                isPinned: false
+                                                isPinned: false,
+                                                isSMS: conversation.kind.lowercased() == "sms"
                                             )
                                         }
                                         .contentShape(Rectangle())
@@ -791,7 +792,14 @@ struct ChatsRootView: View {
                 )
         }
 
-        let text = last.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let rawText = last.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        // Normalize only the legacy media marker, never brackets in real text
+        // or participant names. Keep the stored message and preview unchanged.
+        let voiceNoteLabel = appText("sms.voiceNote", languageCode: appLanguage)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let text = rawText.caseInsensitiveCompare("[voice note]") == .orderedSame
+            ? (voiceNoteLabel.isEmpty || voiceNoteLabel == "sms.voiceNote" ? "Voice note" : voiceNoteLabel)
+            : rawText
 
         if !text.isEmpty {
             if (conversation.isGroup ?? false),

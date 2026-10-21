@@ -1,6 +1,8 @@
 import SwiftUI
+import Combine
 import PhotosUI
 import UIKit
+import AVFoundation
 
 struct SendSMSResponseDTO: Decodable {
     let ok: Bool
@@ -17,6 +19,8 @@ struct SMSThreadView: View {
     @State private var draft: String = ""
     @State private var selectedPhotos: [PhotosPickerItem] = []
     @State private var isUploadingMedia = false
+    @StateObject private var voice = SMSVoiceNoteController()
+    @State private var isPreparingVoiceSend = false
 
     @Environment(\.scenePhase) private var scenePhase
     @EnvironmentObject private var themeManager: ThemeManager
@@ -44,6 +48,7 @@ struct SMSThreadView: View {
     @StateObject private var numberVM = PhoneNumberViewModel()
     @State private var showNumberPicker = false
     @EnvironmentObject private var auth: AuthStore
+    @EnvironmentObject private var callManager: CallManager
     @AppStorage("chatforia_language") private var appLanguage = "en"
     
     init(conversation: ConversationDTO) {
@@ -69,12 +74,30 @@ struct SMSThreadView: View {
         )
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                ConversationTransportTitle(
+                    title: vm.resolvedTitle(
+                        fallback: activeConversation.title,
+                        fallbackPhone: activeConversation.phone
+                    ),
+                    isSMS: true
+                )
+            }
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button {
                     showSearchSheet = true
                 } label: {
                     Image(systemName: "magnifyingglass")
                 }
+
+                Button {
+                    startPhoneCall()
+                } label: {
+                    Image(systemName: "phone.fill")
+                }
+                .accessibilityLabel(
+                    appText("common.call", languageCode: appLanguage)
+                )
 
                 Button {
                     showingAddContact = true
@@ -113,6 +136,10 @@ struct SMSThreadView: View {
         }
         .onDisappear {
             stopPolling()
+            voice.discard()
+        }
+        .onChange(of: auth.currentUser?.id) { _, _ in
+            voice.discard()
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
@@ -122,6 +149,7 @@ struct SMSThreadView: View {
                 }
             } else {
                 stopPolling()
+                if newPhase == .background && (voice.isRecording || voice.isStarting) { voice.discard() }
             }
         }
         .sheet(isPresented: $showSearchSheet) {
@@ -238,9 +266,29 @@ struct SMSThreadView: View {
         return ""
     }
 
+    private func startPhoneCall() {
+        guard let phone = vm.resolvedPhone(
+            fallback: activeConversation.phone
+        )?.trimmingCharacters(in: .whitespacesAndNewlines),
+        !phone.isEmpty else {
+            vm.errorText = "Could not find a phone number to call."
+            return
+        }
+
+        let displayName = vm.resolvedTitle(
+            fallback: activeConversation.title,
+            fallbackPhone: activeConversation.phone
+        )
+
+        callManager.startCall(
+            to: .phoneNumber(phone, displayName: displayName),
+            auth: auth
+        )
+    }
+
     private var errorBanner: some View {
         Group {
-            if let err = vm.errorText, !err.isEmpty {
+            if let err = voice.errorText ?? vm.errorText, !err.isEmpty {
                 Text(err)
                     .font(.footnote)
                     .foregroundStyle(.red)
@@ -313,7 +361,8 @@ struct SMSThreadView: View {
     private var composer: some View {
         MessageComposerView(
             draft: $draft,
-            isSending: isUploadingMedia || vm.isSending,
+            isSending: isUploadingMedia || vm.isSending || voice.isStarting || isPreparingVoiceSend,
+            isSendingVoice: voice.isSending,
             onDraftChanged: {},
             onAttachmentTap: {
                 showPhotoPicker = true
@@ -322,7 +371,24 @@ struct SMSThreadView: View {
                 Task {
                     await send()
                 }
-            }
+            },
+            isRecordingVoice: voice.isRecording,
+            recordingDurationText: AudioAttachmentCardView.formatTime(voice.elapsed),
+            voiceDraftDurationText: voice.draft.map { AudioAttachmentCardView.formatTime($0.durationSec) },
+            onMicTap: {
+                guard selectedPhotos.isEmpty, !isUploadingMedia, !vm.isSending,
+                      !isPreparingVoiceSend, !voice.isSending else { return }
+                vm.errorText = nil
+                Task { await voice.start(token: TokenStore.shared.read()) }
+            },
+            onStopRecordingTap: { Task { await voice.stop() } },
+            onCancelRecordingTap: { voice.discard() },
+            onCancelVoiceDraftTap: { voice.discard() },
+            onSendVoiceDraftTap: { Task { await sendSMSVoiceDraft() } },
+            onPlayVoiceDraftTap: { voice.togglePreview() },
+            isPlayingVoiceDraft: voice.isPlaying,
+            hasVoiceDraft: voice.draft != nil,
+            hasPendingAttachment: !selectedPhotos.isEmpty
         )
         .photosPicker(
             isPresented: $showPhotoPicker,
@@ -358,7 +424,47 @@ struct SMSThreadView: View {
     }
 
 
+    @MainActor
+    private func sendSMSVoiceDraft() async {
+        guard !isPreparingVoiceSend, !voice.isSending, !vm.isSending,
+              !isUploadingMedia, voice.draft != nil else { return }
+        guard let token = TokenStore.shared.read(), !token.isEmpty else {
+            voice.errorText = "Your session has expired. Please sign in again."
+            return
+        }
+        isPreparingVoiceSend = true
+        defer { isPreparingVoiceSend = false }
+        await numberVM.loadCurrentNumber(token: token)
+        guard TokenStore.shared.read() == token, voice.draft != nil else { return }
+        guard numberVM.currentNumber != nil else {
+            voice.errorText = appText("sms.chooseNumberBeforeSending", languageCode: appLanguage)
+            showNumberPicker = true
+            return
+        }
+        guard let to = vm.resolvedPhone(fallback: activeConversation.phone) else {
+            voice.errorText = appText("sms.missingDestinationNumber", languageCode: appLanguage)
+            return
+        }
+        let destinationID = activeConversation.id
+        _ = await voice.send(token: token) { url in
+            let threadID = await vm.sendMediaMessage(existingThreadId: destinationID,
+                to: to, mediaUrls: [url], token: token)
+            guard TokenStore.shared.read() == token, let threadID else { return false }
+            if activeConversation.id == nil {
+                activeConversation = ConversationDTO(kind: activeConversation.kind, id: threadID,
+                    title: activeConversation.title, displayName: activeConversation.displayName,
+                    updatedAt: activeConversation.updatedAt, isGroup: false, phone: to,
+                    unreadCount: activeConversation.unreadCount,
+                    avatarUsers: activeConversation.avatarUsers, last: activeConversation.last)
+                startPolling()
+            }
+            return true
+        }
+    }
+
     private func send() async {
+        guard !voice.isRecording, !voice.isStarting, voice.draft == nil,
+              !voice.isSending, !isPreparingVoiceSend else { return }
         let token = TokenStore.shared.read()
         
         await numberVM.loadCurrentNumber(token: token)
@@ -961,6 +1067,8 @@ private struct SMSMediaStackView: View {
                         title: item.displayLabel,
                         maxWidth: min(maxWidth, 240)
                     )
+                } else if item.isAudio {
+                    SMSAudioAttachmentCard(message: message, mediaIndex: index, maxWidth: maxWidth)
                 } else {
                     SMSGenericAttachmentCard(item: item)
                         .frame(width: min(maxWidth, 240))
@@ -1184,5 +1292,501 @@ private extension String {
     var nilIfBlank: String? {
         let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+// Each row reads playback state only when its message is the active identity.
+private struct SMSAudioAttachmentCard: View {
+    let message: SMSMessageDTO
+    let mediaIndex: Int
+    let maxWidth: CGFloat
+    @EnvironmentObject private var auth: AuthStore
+    @AppStorage("chatforia_language") private var appLanguage = "en"
+    @StateObject private var playback = SMSAttachmentPlayback.shared
+    @State private var knownDuration: Double = 0
+
+    private var identity: String { "\(auth.currentUser?.id ?? 0):\(message.id):\(mediaIndex)" }
+    private var active: Bool { playback.identity == identity }
+    private var total: Double {
+        let value = active && playback.duration > 0
+            ? playback.duration
+            : (playback.cachedDuration(for: identity) ?? knownDuration)
+        return value.isFinite && value > 0 ? value : 0
+    }
+    private var elapsed: Double {
+        let value = active ? playback.currentTime : 0
+        return value.isFinite ? max(0, total > 0 ? min(value, total) : value) : 0
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 12) {
+                Button {
+                    playback.toggle(identity: identity, messageID: message.id,
+                        mediaIndex: mediaIndex, token: TokenStore.shared.read())
+                } label: {
+                    ZStack {
+                        Circle()
+                            .fill(Color.accentColor)
+                            .frame(width: 44, height: 44)
+                        if active && playback.isLoading {
+                            ProgressView().tint(.white)
+                        } else {
+                            Image(systemName: active && playback.isPlaying ? "pause.fill" : "play.fill")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .offset(x: active && playback.isPlaying ? 0 : 1)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(active && playback.isLoading)
+                .accessibilityLabel(active && playback.isPlaying
+                    ? String(localized: "audio.pause", defaultValue: "Pause voice note")
+                    : String(localized: "audio.play", defaultValue: "Play voice note"))
+                VStack(alignment: .leading, spacing: 7) {
+                    Text(appText("composer.voiceNote", languageCode: appLanguage, fallback: "Voice note"))
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                    ProgressView(value: elapsed, total: max(total, 1))
+                        .progressViewStyle(.linear)
+                        .tint(Color.accentColor)
+                    HStack {
+                        Text(AudioAttachmentCardView.formatTime(elapsed))
+                        Spacer(minLength: 8)
+                        Text(total > 0 ? AudioAttachmentCardView.formatTime(total) : "—:—")
+                    }
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+                }
+            }
+            if active, let error = playback.errorText {
+                Text(error).font(.caption).foregroundStyle(.red)
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: min(maxWidth, 280), alignment: .leading)
+        .background(Color(uiColor: .secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .onChange(of: playback.duration) { _, value in
+            if active, value.isFinite, value > 0 { knownDuration = value }
+        }
+        .onAppear {
+            playback.prefetchDuration(identity: identity, messageID: message.id,
+                mediaIndex: mediaIndex, token: TokenStore.shared.read())
+        }
+        .onChange(of: identity) { oldValue, newValue in
+            playback.stop(ifIdentity: oldValue)
+            playback.cancelDurationPrefetch(identity: oldValue)
+            playback.prefetchDuration(identity: newValue, messageID: message.id,
+                mediaIndex: mediaIndex, token: TokenStore.shared.read())
+        }
+        .onDisappear {
+            playback.stop(ifIdentity: identity)
+            playback.cancelDurationPrefetch(identity: identity)
+        }
+    }
+}
+
+// SMS media endpoints are authenticated byte downloads, not seekable streams.
+// Decode their actual bytes using the same AVAudioPlayer approach as local previews.
+@MainActor
+private final class SMSAttachmentPlayback: ObservableObject {
+    static let shared = SMSAttachmentPlayback()
+    @Published private(set) var identity: String?
+    @Published private(set) var isLoading = false
+    @Published private(set) var isPlaying = false
+    @Published private(set) var currentTime: Double = 0
+    @Published private(set) var duration: Double = 0
+    @Published private(set) var errorText: String?
+    private var player: AVAudioPlayer?
+    private var downloadTask: Task<Void, Never>?
+    private var timerTask: Task<Void, Never>?
+    private var generation = 0
+
+    // Duration lookups never own or activate an audio session. Keep only a
+    // bounded in-memory cache scoped to the current signed-in session.
+    @Published private var knownDurations: [String: Double] = [:]
+    private var mediaBytes: [String: Data] = [:]
+    private var mediaOrder: [String] = []
+    private var durationOrder: [String] = []
+    private var mediaTasks: [String: Task<Data, Error>] = [:]
+    private var mediaRequestIDs: [String: UUID] = [:]
+    private var durationInterests: Set<String> = []
+    private var durationQueue: [(identity: String, messageID: Int, mediaIndex: Int, token: String)] = []
+    private var durationRequests: [String: (identity: String, messageID: Int, mediaIndex: Int, token: String)] = [:]
+    private var mediaAccountToken: String?
+    private var mediaEpoch = 0
+
+    func cachedDuration(for identity: String) -> Double? {
+        guard mediaAccountToken == TokenStore.shared.read() else { return nil }
+        return knownDurations[identity]
+    }
+
+    private func useMediaAccount(_ token: String?) {
+        guard token != mediaAccountToken else { return }
+        mediaEpoch += 1
+        mediaTasks.values.forEach { $0.cancel() }
+        mediaTasks.removeAll(); mediaRequestIDs.removeAll()
+        durationQueue.removeAll(); durationInterests.removeAll(); durationRequests.removeAll()
+        mediaBytes.removeAll(); mediaOrder.removeAll()
+        knownDurations.removeAll(); durationOrder.removeAll()
+        mediaAccountToken = token
+    }
+
+    func prefetchDuration(identity: String, messageID: Int, mediaIndex: Int, token: String?) {
+        useMediaAccount(token)
+        guard let token, !token.isEmpty, token == TokenStore.shared.read(),
+              messageID > 0, mediaIndex >= 0 else { return }
+        durationInterests.insert(identity)
+        durationRequests[identity] = (identity, messageID, mediaIndex, token)
+        guard knownDurations[identity] == nil, mediaTasks[identity] == nil,
+              !durationQueue.contains(where: { $0.identity == identity }),
+              durationQueue.count < 32 else { return }
+        durationQueue.append((identity, messageID, mediaIndex, token))
+        drainDurationQueue()
+    }
+
+    func cancelDurationPrefetch(identity: String) {
+        durationInterests.remove(identity)
+        durationRequests.removeValue(forKey: identity)
+        durationQueue.removeAll { $0.identity == identity }
+        if self.identity != identity { cancelMediaTask(identity) }
+        drainDurationQueue()
+    }
+
+    private func cancelMediaTask(_ identity: String) {
+        mediaRequestIDs.removeValue(forKey: identity)
+        mediaTasks.removeValue(forKey: identity)?.cancel()
+    }
+
+    private func drainDurationQueue() {
+        // At most two media fetches; explicit Play takes priority.
+        while mediaTasks.count < 2, !durationQueue.isEmpty {
+            let item = durationQueue.removeFirst()
+            guard durationInterests.contains(item.identity),
+                  item.token == TokenStore.shared.read(), knownDurations[item.identity] == nil else { continue }
+            _ = mediaTask(identity: item.identity, messageID: item.messageID,
+                mediaIndex: item.mediaIndex, token: item.token)
+        }
+    }
+
+    private func mediaTask(identity: String, messageID: Int, mediaIndex: Int, token: String) -> Task<Data, Error> {
+        if let task = mediaTasks[identity] { return task }
+        let epoch = mediaEpoch
+        let requestID = UUID()
+        let task = Task<Data, Error> { @MainActor [weak self] in
+            guard let self else { throw CancellationError() }
+            defer {
+                if self.mediaEpoch == epoch, self.mediaRequestIDs[identity] == requestID {
+                    self.mediaTasks.removeValue(forKey: identity)
+                    self.mediaRequestIDs.removeValue(forKey: identity)
+                    self.drainDurationQueue()
+                }
+            }
+            try Task.checkCancellation()
+            guard self.mediaEpoch == epoch, TokenStore.shared.read() == token else { throw CancellationError() }
+            let request = APIRequest(path: "sms/media/\(messageID)/\(mediaIndex)",
+                method: .GET, requiresAuth: true)
+            let (data, response) = try await APIClient.shared.sendRaw(request, token: token)
+            try Task.checkCancellation()
+            guard self.mediaEpoch == epoch, TokenStore.shared.read() == token else { throw CancellationError() }
+            guard (200...299).contains(response.statusCode), !data.isEmpty else {
+                throw URLError(.badServerResponse)
+            }
+            // Inspect bytes off the main thread. No prepareToPlay(), play(),
+            // AVAudioSession activation, or shared-player replacement here.
+            let measured = try await Task.detached(priority: .utility) {
+                try AVAudioPlayer(data: data).duration
+            }.value
+            try Task.checkCancellation()
+            guard self.mediaEpoch == epoch, TokenStore.shared.read() == token else { throw CancellationError() }
+            guard measured.isFinite, measured > 0 else { throw URLError(.cannotDecodeContentData) }
+            self.knownDurations[identity] = measured
+            self.durationOrder.removeAll { $0 == identity }; self.durationOrder.append(identity)
+            while self.durationOrder.count > 128 {
+                self.knownDurations.removeValue(forKey: self.durationOrder.removeFirst())
+            }
+            // Reuse inspected bytes on Play, without unbounded media retention.
+            if data.count <= 8 * 1_024 * 1_024 {
+                self.mediaBytes[identity] = data
+                self.mediaOrder.removeAll { $0 == identity }; self.mediaOrder.append(identity)
+                while self.mediaOrder.count > 32 || self.mediaBytes.values.reduce(0, { $0 + $1.count }) > 8 * 1_024 * 1_024 {
+                    self.mediaBytes.removeValue(forKey: self.mediaOrder.removeFirst())
+                }
+            }
+            return data
+        }
+        mediaTasks[identity] = task; mediaRequestIDs[identity] = requestID
+        return task
+    }
+
+    private func playbackBytes(identity: String, messageID: Int, mediaIndex: Int, token: String) async throws -> Data {
+        useMediaAccount(token)
+        guard TokenStore.shared.read() == token else { throw CancellationError() }
+        if let data = mediaBytes[identity] { return data }
+        durationQueue.removeAll { $0.identity == identity }
+        // Prioritize an explicit Play without exceeding two media fetches.
+        if mediaTasks[identity] == nil, mediaTasks.count >= 2,
+           let quietIdentity = mediaTasks.keys.first(where: { $0 != identity }) {
+            cancelMediaTask(quietIdentity)
+            if let request = durationRequests[quietIdentity], durationQueue.count < 32,
+               !durationQueue.contains(where: { $0.identity == quietIdentity }) {
+                durationQueue.append(request)
+            }
+        }
+        return try await mediaTask(identity: identity, messageID: messageID,
+            mediaIndex: mediaIndex, token: token).value
+    }
+
+    func toggle(identity requested: String, messageID: Int, mediaIndex: Int, token: String?) {
+        useMediaAccount(token)
+        guard let token, !token.isEmpty else {
+            stop(); identity = requested
+            errorText = "Sign in to play this voice note."
+            return
+        }
+        if identity == requested, isLoading { return }
+        if identity == requested, let player, !isLoading {
+            if player.isPlaying {
+                player.pause(); timerTask?.cancel(); timerTask = nil
+                currentTime = player.currentTime; isPlaying = false
+            } else { play(player) }
+            return
+        }
+        stop()
+        identity = requested; isLoading = true
+        let revision = generation
+        downloadTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                let data = try await self.playbackBytes(identity: requested,
+                    messageID: messageID, mediaIndex: mediaIndex, token: token)
+                guard !Task.isCancelled, revision == self.generation else { return }
+                guard TokenStore.shared.read() == token else { self.stop(); return }
+                let player = try AVAudioPlayer(data: data)
+                guard player.duration.isFinite, player.duration > 0, player.prepareToPlay() else {
+                    throw URLError(.cannotDecodeContentData)
+                }
+                self.player = player; self.duration = player.duration
+                self.isLoading = false
+                self.play(player)
+            } catch {
+                guard !Task.isCancelled, revision == self.generation else { return }
+                guard TokenStore.shared.read() == token else {
+                    self.stop(); self.useMediaAccount(TokenStore.shared.read()); return
+                }
+                self.isLoading = false; self.isPlaying = false
+                self.errorText = "Could not play this voice note. Tap Play to retry."
+            }
+        }
+    }
+
+    private func play(_ player: AVAudioPlayer) {
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playback, mode: .default)
+            try session.setActive(true)
+            if player.currentTime >= player.duration { player.currentTime = 0 }
+            guard player.play() else { throw URLError(.cannotDecodeContentData) }
+            errorText = nil; isPlaying = true
+            timerTask?.cancel()
+            let revision = generation
+            timerTask = Task { @MainActor [weak self, weak player] in
+                while !Task.isCancelled {
+                    guard let self, let player, revision == self.generation else { return }
+                    self.currentTime = player.currentTime
+                    if !player.isPlaying { self.isPlaying = false; return }
+                    try? await Task.sleep(nanoseconds: 100_000_000)
+                }
+            }
+        } catch {
+            isPlaying = false; errorText = "Could not play this voice note. Tap Play to retry."
+        }
+    }
+
+    func stop(ifIdentity expected: String? = nil) {
+        if let expected, identity != expected { return }
+        generation += 1
+        if let identity, !durationInterests.contains(identity) { cancelMediaTask(identity) }
+        downloadTask?.cancel(); downloadTask = nil
+        timerTask?.cancel(); timerTask = nil
+        let hadPlayer = player != nil
+        player?.stop(); player = nil
+        identity = nil; isLoading = false; isPlaying = false
+        currentTime = 0; duration = 0; errorText = nil
+        if hadPlayer {
+            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        }
+    }
+}
+
+// Isolated from the Chatforia recorder/composer path.
+@MainActor
+final class SMSVoiceNoteController: ObservableObject {
+    @Published private(set) var draft: VoiceNoteDraft?
+    @Published private(set) var isRecording = false
+    @Published private(set) var isStarting = false
+    @Published private(set) var isSending = false
+    @Published private(set) var elapsed: TimeInterval = 0
+    @Published private(set) var isPlaying = false
+    @Published var errorText: String?
+    private let recorder = AudioRecorderService()
+    private var ticker: Task<Void, Never>?
+    private var previewTask: Task<Void, Never>?
+    private var player: AVAudioPlayer?
+    private var ownerToken: String?
+    private var uploadedURL: String?
+    private var isFinalizing = false
+    private var recorderCleanup: Task<Void, Never>?
+    private var generation = 0
+
+    func start(token: String?) async {
+        guard !isStarting, !isRecording, !isSending, !isFinalizing, draft == nil else { return }
+        guard let token, !token.isEmpty else {
+            errorText = "Your session has expired. Please sign in again."
+            return
+        }
+        let revision = generation
+        isStarting = true
+        errorText = nil
+        ownerToken = token
+        defer { isStarting = false }
+        do {
+            await recorderCleanup?.value
+            guard revision == generation else { return }
+            try await recorder.start()
+            guard revision == generation, TokenStore.shared.read() == token else {
+                await recorder.cancel()
+                return
+            }
+            isRecording = true
+            elapsed = 0
+            let began = Date()
+            ticker = Task { @MainActor [weak self] in
+                while !Task.isCancelled {
+                    guard let self else { return }
+                    self.elapsed = Date().timeIntervalSince(began)
+                    if self.elapsed >= 60 { await self.stop(); return }
+                    try? await Task.sleep(nanoseconds: 200_000_000)
+                }
+            }
+        } catch {
+            guard revision == generation else { return }
+            errorText = error.localizedDescription
+        }
+    }
+
+    func stop() async {
+        guard isRecording, !isFinalizing else { return }
+        isFinalizing = true
+        defer { isFinalizing = false }
+        let revision = generation
+        ticker?.cancel(); ticker = nil
+        let completed = await recorder.stop()
+        guard revision == generation else {
+            if let completed { try? FileManager.default.removeItem(at: completed.fileURL) }
+            return
+        }
+        draft = completed
+        isRecording = false
+        if draft == nil { errorText = "The voice recording could not be saved." }
+    }
+
+    func discard() {
+        generation += 1
+        ticker?.cancel(); ticker = nil
+        stopPreview()
+        // An in-flight permission request must finish before another start.
+        if isRecording || isStarting || isFinalizing {
+            let previousCleanup = recorderCleanup
+            let recorder = self.recorder
+            recorderCleanup = Task {
+                await previousCleanup?.value
+                await recorder.cancel()
+            }
+        }
+        if let draft { try? FileManager.default.removeItem(at: draft.fileURL) }
+        draft = nil; uploadedURL = nil; ownerToken = nil
+        isRecording = false; elapsed = 0; errorText = nil
+    }
+
+    func togglePreview() {
+        guard let draft, !isSending else { return }
+        if let player, player.isPlaying {
+            player.pause(); isPlaying = false
+            previewTask?.cancel(); previewTask = nil
+            return
+        }
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playback, mode: .default)
+            try session.setActive(true)
+            if player == nil { player = try AVAudioPlayer(contentsOf: draft.fileURL) }
+            guard let player else { return }
+            if player.currentTime >= player.duration { player.currentTime = 0 }
+            guard player.play() else { throw URLError(.cannotDecodeContentData) }
+            isPlaying = true
+            previewTask = Task { @MainActor [weak self, weak player] in
+                while !Task.isCancelled, player?.isPlaying == true {
+                    try? await Task.sleep(nanoseconds: 100_000_000)
+                }
+                guard !Task.isCancelled else { return }
+                self?.isPlaying = false
+            }
+        } catch { errorText = "The voice-note preview could not be played." }
+    }
+
+    private func stopPreview() {
+        previewTask?.cancel(); previewTask = nil
+        let hadPlayer = player != nil
+        player?.stop(); player = nil; isPlaying = false
+        if hadPlayer {
+            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        }
+    }
+
+    func send(token: String, deliver: (String) async -> Bool) async -> Bool {
+        guard !isSending, let draft, ownerToken == token,
+              TokenStore.shared.read() == token else { return false }
+        let revision = generation
+        isSending = true; errorText = nil
+        stopPreview()
+        defer { isSending = false }
+        do {
+            let size = try draft.fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
+            guard size > 0, size <= 500_000 else {
+                errorText = "This recording is too large for MMS. Record a shorter voice note."
+                return false
+            }
+            if uploadedURL == nil {
+                let data = try Data(contentsOf: draft.fileURL)
+                let file = try await UploadService.shared.uploadFile(data: data, token: token,
+                    fileName: "voice-" + String(draft.id.uuidString.prefix(8)) + ".m4a",
+                    mimeType: "audio/mp4")
+                guard revision == generation, TokenStore.shared.read() == token else { return false }
+                guard file.ok != false, let url = URL(string: file.url),
+                      url.scheme == "https", url.host != nil,
+                      url.user == nil, url.password == nil else {
+                    throw URLError(.badServerResponse)
+                }
+                uploadedURL = file.url
+            }
+            guard revision == generation, TokenStore.shared.read() == token,
+                  let uploadedURL else { return false }
+            let sent = await deliver(uploadedURL)
+            guard revision == generation else { return sent }
+            guard sent else {
+                errorText = "The voice note could not be confirmed as sent. Your recording is kept; check the conversation before retrying."
+                return false
+            }
+            discard()
+            return true
+        } catch {
+            if revision == generation { errorText = error.localizedDescription }
+            return false
+        }
     }
 }

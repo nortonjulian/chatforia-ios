@@ -2,6 +2,7 @@ import SwiftUI
 
 struct VoicemailInboxView: View {
     @Binding var isEditingVoicemails: Bool
+    var voicemailLink: VoicemailLinkRequest? = nil
 
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
@@ -143,13 +144,26 @@ struct VoicemailInboxView: View {
                 "This will remove all voicemails from your voicemail inbox."
             )
         }
-        .task {
+        .task(id: "\(auth.currentUser?.id ?? 0)-\(voicemailLink?.id.uuidString ?? "inbox")") {
+            if voicemailLink != nil { viewModel.selectedVoicemail = nil }
+            let accountID = auth.currentUser?.id
             guard let token = auth.currentToken, !token.isEmpty else {
                 viewModel.errorMessage =
                 appText("auth.youNeedToBeSignedIn", languageCode: appLanguage)
                 return
             }
-            await viewModel.load(token: token)
+            let loaded = await viewModel.load(token: token)
+            guard loaded, !Task.isCancelled,
+                  auth.currentUser?.id == accountID,
+                  auth.currentToken == token,
+                  let requestedID = voicemailLink?.target.voicemailID else { return }
+            if let voicemail = viewModel.voicemails.first(where: {
+                $0.id == requestedID && $0.userId == accountID
+            }) {
+                viewModel.select(voicemail)
+            } else {
+                viewModel.errorMessage = "This voicemail is unavailable. Sign in to the account that received it."
+            }
         }
         .refreshable {
             guard let token = auth.currentToken, !token.isEmpty else { return }
