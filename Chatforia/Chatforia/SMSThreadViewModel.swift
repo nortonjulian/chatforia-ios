@@ -85,6 +85,7 @@ final class SMSThreadViewModel: ObservableObject {
     func loadThread(threadId: Int, token: String?) async {
         refreshVersion += 1
         let requestVersion = refreshVersion
+        let accountId = UserDefaults.standard.integer(forKey: "chatforia.currentUserId")
         guard let token else {
             isLoading = false
             errorText = appText(
@@ -114,6 +115,16 @@ final class SMSThreadViewModel: ObservableObject {
             thread = fetched
             messages = fetched.sortedMessages
             errorText = nil
+
+            // Only acknowledge a successful, current-account server read.
+            if fetched.id == threadId, accountId > 0,
+               UserDefaults.standard.integer(forKey: "chatforia.currentUserId") == accountId {
+                NotificationCenter.default.post(
+                    name: Notification.Name("smsThreadWasRead"),
+                    object: nil,
+                    userInfo: ["threadId": threadId, "accountId": accountId]
+                )
+            }
 
             // GET /sms/threads/:id marks this thread read on the server.
             // Reconcile the app-icon badge from authoritative server state.

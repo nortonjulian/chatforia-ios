@@ -8,7 +8,7 @@ struct ChatListRowView: View {
     let avatarUsers: [ConversationAvatarUserDTO]
 
     var isPinned: Bool = false
-    var isSMS: Bool = false   // 👈 ADD THIS
+    var isSMS: Bool = false
 
     @EnvironmentObject private var themeManager: ThemeManager
     
@@ -29,15 +29,14 @@ struct ChatListRowView: View {
                             .foregroundStyle(themeManager.palette.secondaryText)
                     }
 
-                    if isSMS {
-                        Text("SMS")
-                            .font(.caption2)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(themeManager.palette.accent.opacity(0.15))
-                            .foregroundStyle(themeManager.palette.accent)
-                            .clipShape(Capsule())
-                    }
+                    Text(verbatim: isSMS ? "SMS" : "Chatforia")
+                        .font(.caption2)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(themeManager.palette.accent.opacity(0.15))
+                        .foregroundStyle(themeManager.palette.accent)
+                        .clipShape(Capsule())
+                        .fixedSize()
 
                     Spacer(minLength: 8)
 
@@ -112,5 +111,24 @@ struct ChatListRowView: View {
         }
 
         return String(cleaned.prefix(1)).uppercased()
+    }
+}
+
+// Kept in an existing compiled file so no Xcode project membership changes
+// are required. Transport names are explicit and do not rely on theme color.
+struct ConversationTransportTitle: View {
+    let title: String
+    let isSMS: Bool
+
+    var body: some View {
+        VStack(spacing: 1) {
+            Text(verbatim: title)
+                .font(.headline)
+                .lineLimit(1)
+            Text(verbatim: isSMS ? "SMS" : "Chatforia")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .accessibilityElement(children: .combine)
     }
 }

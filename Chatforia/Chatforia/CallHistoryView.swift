@@ -13,6 +13,7 @@ private enum PendingCallChoice: Identifiable {
 }
 
 struct CallHistoryView: View {
+    var voicemailLink: VoicemailLinkRequest? = nil
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
     @AppStorage("chatforia_language") private var appLanguage = "en"
@@ -64,7 +65,8 @@ struct CallHistoryView: View {
                     
                 case .voicemail:
                     VoicemailInboxView(
-                        isEditingVoicemails: $isEditingVoicemails
+                        isEditingVoicemails: $isEditingVoicemails,
+                        voicemailLink: voicemailLink
                     )
                 }
             }
@@ -116,6 +118,16 @@ struct CallHistoryView: View {
                 .padding(.vertical, 12)
                 .background(themeManager.palette.cardBackground)
             }
+        }
+        .task(id: voicemailLink?.id) {
+            guard voicemailLink != nil else { return }
+            isEditingRecents = false
+            isEditingVoicemails = false
+            selectedCallIds.removeAll()
+            showDialer = false
+            showSelectedRoom = false
+            showSelectedSMS = false
+            selectedSegment = .voicemail
         }
         .navigationTitle(
             appText("tab_calls", languageCode: appLanguage)

@@ -760,7 +760,11 @@ extension ChatThreadView {
 }
 
 extension ChatThreadView {
+    @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .principal) {
+            ConversationTransportTitle(title: roomDisplayTitle, isSMS: false)
+        }
         ToolbarItemGroup(placement: .navigationBarTrailing) {
             Button {
                 showSearchSheet = true

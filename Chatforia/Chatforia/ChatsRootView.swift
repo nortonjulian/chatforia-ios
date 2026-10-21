@@ -150,7 +150,8 @@ struct ChatsRootView: View {
                                                 timestamp: conversationTimestamp(conversation),
                                                 unreadCount: conversation.unreadCount ?? 0,
                                                 avatarUsers: conversation.avatarUsers ?? [],
-                                                isPinned: false
+                                                isPinned: false,
+                                                isSMS: conversation.kind.lowercased() == "sms"
                                             )
                                         }
                                         .contentShape(Rectangle())

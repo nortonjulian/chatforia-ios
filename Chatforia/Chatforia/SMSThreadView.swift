@@ -48,6 +48,7 @@ struct SMSThreadView: View {
     @StateObject private var numberVM = PhoneNumberViewModel()
     @State private var showNumberPicker = false
     @EnvironmentObject private var auth: AuthStore
+    @EnvironmentObject private var callManager: CallManager
     @AppStorage("chatforia_language") private var appLanguage = "en"
     
     init(conversation: ConversationDTO) {
@@ -73,12 +74,30 @@ struct SMSThreadView: View {
         )
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                ConversationTransportTitle(
+                    title: vm.resolvedTitle(
+                        fallback: activeConversation.title,
+                        fallbackPhone: activeConversation.phone
+                    ),
+                    isSMS: true
+                )
+            }
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button {
                     showSearchSheet = true
                 } label: {
                     Image(systemName: "magnifyingglass")
                 }
+
+                Button {
+                    startPhoneCall()
+                } label: {
+                    Image(systemName: "phone.fill")
+                }
+                .accessibilityLabel(
+                    appText("common.call", languageCode: appLanguage)
+                )
 
                 Button {
                     showingAddContact = true
@@ -245,6 +264,26 @@ struct SMSThreadView: View {
         }
 
         return ""
+    }
+
+    private func startPhoneCall() {
+        guard let phone = vm.resolvedPhone(
+            fallback: activeConversation.phone
+        )?.trimmingCharacters(in: .whitespacesAndNewlines),
+        !phone.isEmpty else {
+            vm.errorText = "Could not find a phone number to call."
+            return
+        }
+
+        let displayName = vm.resolvedTitle(
+            fallback: activeConversation.title,
+            fallbackPhone: activeConversation.phone
+        )
+
+        callManager.startCall(
+            to: .phoneNumber(phone, displayName: displayName),
+            auth: auth
+        )
     }
 
     private var errorBanner: some View {

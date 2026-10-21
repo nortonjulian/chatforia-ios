@@ -9,6 +9,7 @@ final class VoicemailInboxViewModel: ObservableObject {
     @Published var selectedVoicemail: VoicemailDTO?
 
     private var observers: [NSObjectProtocol] = []
+    private var loadGeneration = UUID()
 
     init() {
         bindSocketEvents()
@@ -20,19 +21,25 @@ final class VoicemailInboxViewModel: ObservableObject {
         }
     }
 
-    func load(token: String) async {
-        guard !isLoading else { return }
-
+    @discardableResult
+    func load(token: String) async -> Bool {
+        let generation = UUID()
+        loadGeneration = generation
         isLoading = true
         errorMessage = nil
-
-        do {
-            voicemails = try await VoicemailService.shared.fetchVoicemails(token: token)
-        } catch {
-            errorMessage = error.localizedDescription
+        defer {
+            if loadGeneration == generation { isLoading = false }
         }
-
-        isLoading = false
+        do {
+            let items = try await VoicemailService.shared.fetchVoicemails(token: token)
+            guard !Task.isCancelled, loadGeneration == generation else { return false }
+            voicemails = items
+            return true
+        } catch {
+            guard !Task.isCancelled, loadGeneration == generation else { return false }
+            errorMessage = error.localizedDescription
+            return false
+        }
     }
 
     func refresh(token: String) async {

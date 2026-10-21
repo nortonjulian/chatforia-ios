@@ -5,6 +5,8 @@ struct AppShellView: View {
 
     @EnvironmentObject private var themeManager: ThemeManager
     @EnvironmentObject private var checkoutReturn: CheckoutReturnCoordinator
+    @EnvironmentObject private var voicemailLinks: VoicemailLinkCoordinator
+    @State private var voicemailLink: VoicemailLinkRequest?
 
     @AppStorage("chatforia_language")
     private var appLanguage = "en"
@@ -32,7 +34,7 @@ struct AppShellView: View {
                     .tag(0)
 
                 NavigationStack {
-                    CallHistoryView()
+                    CallHistoryView(voicemailLink: voicemailLink)
                 }
                 .tabItem {
                     Label(
@@ -76,8 +78,14 @@ struct AppShellView: View {
             CallOverlayHostView()
                 .environmentObject(themeManager)
         }
+        .onChange(of: voicemailLinks.pending, initial: true) { _, request in
+            guard let request else { return }
+            selectedTab = 1
+            voicemailLink = request
+            voicemailLinks.pending = nil
+        }
         .onAppear {
-            if checkoutReturn.pendingEvent != nil {
+            if voicemailLink == nil && checkoutReturn.pendingEvent != nil {
                 selectedTab = 3
             }
         }
