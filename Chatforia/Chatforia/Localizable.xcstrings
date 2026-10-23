@@ -59205,6 +59205,12 @@
         }
       }
     },
+    "Account blocking" : {
+
+    },
+    "Accounts you block will appear here. Message history is preserved." : {
+
+    },
     "Add Friend" : {
 
     },
@@ -292499,7 +292505,13 @@
         }
       }
     },
+    "Block account" : {
+
+    },
     "Block number" : {
+
+    },
+    "Block this Chatforia account?" : {
 
     },
     "Block this number after reporting" : {
@@ -292508,10 +292520,13 @@
     "Block this phone number?" : {
 
     },
-    "Blocked contacts and numbers" : {
+    "Blocked Chatforia accounts" : {
 
     },
     "Blocked on %@" : {
+
+    },
+    "Blocked phone numbers" : {
 
     },
     "blog.chatSafely.conclusion" : {
@@ -1400417,6 +1400432,9 @@
         }
       }
     },
+    "Loading blocked accounts…" : {
+
+    },
     "Loading blocked numbers…" : {
 
     },
@@ -1550012,6 +1550030,9 @@
     "No additional identity fields are required." : {
 
     },
+    "No blocked Chatforia accounts" : {
+
+    },
     "No blocked phone numbers" : {
 
     },
@@ -1550949,6 +1550970,9 @@
           }
         }
       }
+    },
+    "OK" : {
+
     },
     "onboarding.chooseUsernameError" : {
       "extractionState" : "manual",
@@ -1928708,6 +1928732,9 @@
       }
     },
     "Ready after your current pack" : {
+
+    },
+    "Refresh" : {
 
     },
     "refund.contact.body" : {
@@ -2336067,6 +2336094,9 @@
         }
       }
     },
+    "The account will be allowed to contact you again unless it blocked you." : {
+
+    },
     "The previous verification was rejected. Review and correct the information below, then submit it again." : {
 
     },
@@ -2343458,6 +2343488,12 @@
 
     },
     "These voicemails will be removed from your voicemail inbox." : {
+
+    },
+    "This account will be able to contact you again unless they blocked you." : {
+
+    },
+    "This account will no longer be able to directly message or call you. Your message history will remain." : {
 
     },
     "This creates a new secure message key for your account. Older app-to-app secure messages may no longer be readable on any device. SMS/text message conversations are not affected." : {
@@ -2360120,6 +2360156,12 @@
 
     },
     "Unblock" : {
+
+    },
+    "Unblock account" : {
+
+    },
+    "Unblock this Chatforia account?" : {
 
     },
     "Unblock this phone number?" : {
@@ -2675743,6 +2675785,9 @@
           }
         }
       }
+    },
+    "View and unblock Chatforia users you've blocked." : {
+
     },
     "voicemail.audioAria" : {
       "extractionState" : "stale",
