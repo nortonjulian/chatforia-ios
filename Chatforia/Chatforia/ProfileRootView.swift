@@ -91,31 +91,6 @@ struct ProfileRootView: View {
 
                     headerSection
                     
-                    #if DEBUG
-                    SectionCardView(title: "Developer") {
-                        Button {
-                            AdInspectorLauncher.open()
-                        } label: {
-                            HStack(spacing: 12) {
-                                Image(systemName: "magnifyingglass.circle")
-                                    .font(.body.weight(.semibold))
-                                    .foregroundStyle(themeManager.palette.accent)
-                                    .frame(width: 22)
-
-                                Text("Open Ad Inspector")
-                                    .font(.body)
-                                    .foregroundStyle(themeManager.palette.primaryText)
-
-                                Spacer()
-
-                                Image(systemName: "chevron.right")
-                                    .foregroundStyle(.tertiary)
-                            }
-                            .padding(.vertical, 10)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    #endif
                     
                     if !auth.isPaid {
                         Button {
@@ -1018,6 +993,32 @@ struct ProfileRootView: View {
                 Divider()
 
                 NavigationLink {
+                    BlockedChatforiaAccountsView()
+                        .environmentObject(themeManager)
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "person.crop.circle.badge.xmark")
+                            .foregroundStyle(themeManager.palette.accent)
+                            .frame(width: 24)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Blocked Chatforia accounts")
+                                .font(.body.weight(.semibold))
+                                .foregroundStyle(themeManager.palette.primaryText)
+                            Text("View and unblock Chatforia users you've blocked.")
+                                .font(.footnote)
+                                .foregroundStyle(themeManager.palette.secondaryText)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .foregroundStyle(.tertiary)
+                    }
+                    .padding(.vertical, 4)
+                }
+                .buttonStyle(.plain)
+
+                Divider()
+
+                NavigationLink {
                     BlockedPSTNNumbersView()
                         .environmentObject(themeManager)
                 } label: {
@@ -1027,7 +1028,7 @@ struct ProfileRootView: View {
                             .frame(width: 24)
 
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Blocked contacts and numbers")
+                            Text("Blocked phone numbers")
                                 .font(.body.weight(.semibold))
                                 .foregroundStyle(themeManager.palette.primaryText)
 
@@ -2187,7 +2188,7 @@ private struct BlockedPSTNNumbersView: View {
             themeManager.palette.screenBackground
                 .ignoresSafeArea()
         )
-        .navigationTitle("Blocked contacts and numbers")
+        .navigationTitle("Blocked phone numbers")
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await viewModel.load()
@@ -2251,3 +2252,181 @@ private struct BlockedPSTNNumbersView: View {
     }
 }
 
+
+// Chatforia account blocks use /blocks and are independent of SMS number blocks.
+private struct BlockedChatforiaAccountRow: Decodable, Identifiable {
+    let id: Int
+    let userId: Int
+    let username: String?
+    let displayName: String?
+    let avatarUrl: String?
+    let createdAt: String?
+
+    var title: String {
+        if let name = displayName?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !name.isEmpty { return name }
+        if let username, !username.isEmpty { return "@\(username)" }
+        return "Chatforia account"
+    }
+}
+
+private struct BlockedChatforiaAccountsResponse: Decodable {
+    let items: [BlockedChatforiaAccountRow]
+}
+
+private struct UnblockChatforiaAccountResponse: Decodable {
+    let success: Bool
+}
+
+@MainActor
+private final class BlockedChatforiaAccountsViewModel: ObservableObject {
+    @Published var items: [BlockedChatforiaAccountRow] = []
+    @Published var isLoading = false
+    @Published var unblockingID: Int?
+    @Published var errorText: String?
+
+    func load() async {
+        guard let token = TokenStore.shared.read() else {
+            errorText = "Sign in to manage blocked accounts."
+            return
+        }
+        isLoading = true
+        errorText = nil
+        defer { isLoading = false }
+        do {
+            let response: BlockedChatforiaAccountsResponse = try await APIClient.shared.send(
+                APIRequest(path: "blocks", method: .GET, requiresAuth: true),
+                token: token
+            )
+            items = response.items
+        } catch {
+            errorText = "Could not load blocked Chatforia accounts."
+        }
+    }
+
+    func unblock(_ item: BlockedChatforiaAccountRow) async -> Bool {
+        guard let token = TokenStore.shared.read() else {
+            errorText = "Sign in to unblock accounts."
+            return false
+        }
+        unblockingID = item.userId
+        errorText = nil
+        defer { unblockingID = nil }
+        do {
+            let response: UnblockChatforiaAccountResponse = try await APIClient.shared.send(
+                APIRequest(path: "blocks/\(item.userId)", method: .DELETE, requiresAuth: true),
+                token: token
+            )
+            guard response.success else {
+                errorText = "Unblocking was unsuccessful."
+                return false
+            }
+            items.removeAll { $0.userId == item.userId }
+            return true
+        } catch {
+            errorText = "Could not unblock this account."
+            return false
+        }
+    }
+}
+
+private struct BlockedChatforiaAccountsView: View {
+    @EnvironmentObject private var themeManager: ThemeManager
+    @StateObject private var viewModel = BlockedChatforiaAccountsViewModel()
+    @State private var pendingUnblock: BlockedChatforiaAccountRow?
+
+    var body: some View {
+        Group {
+            if viewModel.isLoading && viewModel.items.isEmpty {
+                ProgressView("Loading blocked accounts…")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if viewModel.items.isEmpty && viewModel.errorText == nil {
+                VStack(spacing: 12) {
+                    Image(systemName: "hand.raised")
+                        .font(.system(size: 36))
+                        .foregroundStyle(themeManager.palette.secondaryText)
+                    Text("No blocked Chatforia accounts")
+                        .font(.headline)
+                        .foregroundStyle(themeManager.palette.primaryText)
+                    Text("Accounts you block will appear here. Message history is preserved.")
+                        .font(.subheadline)
+                        .foregroundStyle(themeManager.palette.secondaryText)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(24)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        ForEach(viewModel.items) { item in
+                            HStack(spacing: 12) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(item.title)
+                                        .font(.body.weight(.semibold))
+                                        .foregroundStyle(themeManager.palette.primaryText)
+                                    if let username = item.username, !username.isEmpty,
+                                       item.title != "@\(username)" {
+                                        Text("@\(username)")
+                                            .font(.footnote)
+                                            .foregroundStyle(themeManager.palette.secondaryText)
+                                    }
+                                }
+                                Spacer()
+                                if viewModel.unblockingID == item.userId {
+                                    ProgressView()
+                                } else {
+                                    Button("Unblock") { pendingUnblock = item }
+                                        .foregroundStyle(themeManager.palette.accent)
+                                }
+                            }
+                            .padding(16)
+                            .background(themeManager.palette.cardBackground)
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                        }
+                    }
+                    .padding(16)
+                }
+                .refreshable { await viewModel.load() }
+            }
+        }
+        .background(themeManager.palette.screenBackground.ignoresSafeArea())
+        .navigationTitle("Blocked Chatforia accounts")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Refresh") { Task { await viewModel.load() } }
+                    .foregroundStyle(themeManager.palette.accent)
+            }
+        }
+        .task { await viewModel.load() }
+        .overlay(alignment: .bottom) {
+            if let errorText = viewModel.errorText {
+                Text(errorText)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.red.opacity(0.08))
+            }
+        }
+        .confirmationDialog(
+            "Unblock this Chatforia account?",
+            isPresented: Binding(
+                get: { pendingUnblock != nil },
+                set: { if !$0 { pendingUnblock = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Unblock") {
+                guard let item = pendingUnblock else { return }
+                Task {
+                    _ = await viewModel.unblock(item)
+                    pendingUnblock = nil
+                }
+            }
+            Button("Cancel", role: .cancel) { pendingUnblock = nil }
+        } message: {
+            Text("The account will be allowed to contact you again unless it blocked you.")
+        }
+    }
+}
