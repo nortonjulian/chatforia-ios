@@ -248,6 +248,7 @@ struct ChatsRootView: View {
                         room: room,
                         randomSession: selectedRandomSession
                     )
+                    .id(room.id)
                 }
             }
             .navigationDestination(isPresented: $showSelectedSMS) {

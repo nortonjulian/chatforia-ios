@@ -130,6 +130,8 @@ struct ChatforiaApp: App {
         DeviceReplacementCoordinator.shared
     @StateObject private var callManager = CallManager.shared
     @StateObject private var inviteFlow = InviteFlowManager.shared
+    @State private var pendingGroupInvitation: GroupInvitationLink?
+    @State private var acceptedInvitationRoomToOpen: Int?
     @StateObject private var checkoutReturn = CheckoutReturnCoordinator()
     @StateObject private var settingsVM = SettingsViewModel()
     @StateObject private var chatsVM = ChatsViewModel()
@@ -311,7 +313,36 @@ struct ChatforiaApp: App {
                     InterstitialAdManager.shared.preloadIfNeeded()
                 }
             }
+            .sheet(
+                item: $pendingGroupInvitation,
+                onDismiss: {
+                    guard let roomId = acceptedInvitationRoomToOpen else {
+                        return
+                    }
+                    acceptedInvitationRoomToOpen = nil
+                    NotificationCoordinator.shared.pendingChatRoomId = roomId
+                }
+            ) { invitation in
+                GroupInvitationSheet(
+                    invitation: invitation,
+                    token: auth.currentToken,
+                    onJoined: { roomId in
+                        acceptedInvitationRoomToOpen = roomId
+                        pendingGroupInvitation = nil
+                        Task { @MainActor in
+                            await chatsVM.loadConversations(
+                                token: auth.currentToken,
+                                showLoading: false
+                            )
+                        }
+                    }
+                )
+            }
             .onOpenURL { url in
+                if let group = GroupInvitationLink.extract(from: url) {
+                    pendingGroupInvitation = group
+                    return
+                }
                 if voicemailLinks.handle(url) { return }
 
                 if checkoutReturn.handleIncomingURL(url) {
@@ -341,6 +372,11 @@ struct ChatforiaApp: App {
                     return
                 }
 
+                if let group = GroupInvitationLink.extract(from: url) {
+                    pendingGroupInvitation = group
+                    return
+                }
+
                 if voicemailLinks.handle(url) { return }
 
                 if checkoutReturn.handleIncomingURL(url) {
@@ -363,6 +399,15 @@ struct ChatforiaApp: App {
                     )
                 }
             }
+            // Intercept links tapped INSIDE Chatforia, not only external Universal Links.
+            // Unrelated URLs still open through their existing system handlers.
+            .environment(\.openURL, OpenURLAction { url in
+                guard let invitation = GroupInvitationLink.extract(from: url) else {
+                    return .systemAction
+                }
+                pendingGroupInvitation = invitation
+                return .handled
+            })
             .onChange(of: auth.currentUser?.theme) { _, newTheme in
                 guard let newTheme else { return }
                 themeManager.apply(code: newTheme)
