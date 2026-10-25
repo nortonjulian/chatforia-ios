@@ -1539,7 +1539,7 @@ private struct GroupRiaConsentSheet: View {
                 Section {
                     if let consent {
                         Toggle(
-                            "Allow Ria to respond to my requests in this group",
+                            "Allow Ria to use my messages in this room",
                             isOn: Binding(
                                 get: { consent },
                                 set: { newValue in
