@@ -4,6 +4,25 @@ import XCTest
 @MainActor
 final class ChatThreadViewModelTests: XCTestCase {
 
+    func testGroupRiaConsentWireContract() throws {
+        let on = try JSONDecoder().decode(
+            GroupRiaRoomConsent.self,
+            from: Data(#"{"me":{"allowAIBot":true},"allowForiaBot":false}"#.utf8)
+        )
+        XCTAssertTrue(on.me.allowAIBot)
+
+        let off = try JSONDecoder().decode(
+            GroupRiaRoomConsent.self,
+            from: Data(#"{"me":{"allowAIBot":false}}"#.utf8)
+        )
+        XCTAssertFalse(off.me.allowAIBot)
+        XCTAssertEqual(
+            String(data: try JSONEncoder().encode(GroupRiaConsentUpdate(allow: false)), encoding: .utf8),
+            #"{"allow":false}"#
+        )
+    }
+
+
     func testConfigureRandomSessionCreatesSession() {
         let vm = ChatThreadViewModel()
 

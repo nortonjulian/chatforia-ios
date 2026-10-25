@@ -50,6 +50,7 @@ struct ChatThreadView: View {
     @State private var pendingImageData: Data? = nil
     @State private var pendingVideoURL: URL? = nil
 
+    @State private var showGroupRiaConsent = false
     @State private var showSearchSheet = false
     @State private var searchText = ""
     @State private var highlightedMessageID: Int? = nil
@@ -171,6 +172,12 @@ struct ChatThreadView: View {
                 vm.errorText = nil
                 pendingGIFURL = url
             }
+        }
+        .sheet(isPresented: $showGroupRiaConsent) {
+            GroupRiaConsentSheet(
+                roomId: room.id,
+                token: auth.currentToken
+            )
         }
         .sheet(isPresented: $showSearchSheet) {
             ChatThreadSearchSheet(
@@ -770,6 +777,16 @@ extension ChatThreadView {
                 showSearchSheet = true
             } label: {
                 Image(systemName: "magnifyingglass")
+            }
+
+            // Personal consent only; never enables room-wide or production Group Ria.
+            if room.isGroup == true && randomSession == nil && vm.randomSession == nil {
+                Button {
+                    showGroupRiaConsent = true
+                } label: {
+                    Image(systemName: "hand.raised")
+                }
+                .accessibilityLabel("Group Ria privacy")
             }
 
             if randomSession == nil && vm.randomSession == nil {
@@ -1483,5 +1500,149 @@ extension ChatThreadView {
             minutes,
             remainingSeconds
         )
+    }
+}
+
+
+// MARK: - Group Ria personal consent (launch-safe: feature remains OFF)
+struct GroupRiaRoomConsent: Decodable {
+    struct Me: Decodable {
+        let allowAIBot: Bool
+    }
+
+    let me: Me
+}
+
+struct GroupRiaConsentUpdate: Encodable {
+    let allow: Bool
+}
+
+struct GroupRiaConsentUpdateResult: Decodable {
+    let allowAIBot: Bool
+}
+
+@MainActor
+private struct GroupRiaConsentSheet: View {
+    let roomId: Int
+    let token: String?
+
+    @Environment(\.dismiss) private var dismiss
+    // nil means unknown, never infer consent from an old value or HTTP failure.
+    @State private var consent: Bool?
+    @State private var isLoading = false
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    if let consent {
+                        Toggle(
+                            "Allow Ria to use my messages in this room",
+                            isOn: Binding(
+                                get: { consent },
+                                set: { newValue in
+                                    Task { await saveConsent(newValue) }
+                                }
+                            )
+                        )
+                        .disabled(isLoading || isSaving)
+                        .accessibilityIdentifier("groupRiaPersonalConsent")
+                    } else {
+                        HStack {
+                            Text("Consent status unavailable")
+                            Spacer()
+                            if isLoading { ProgressView() }
+                        }
+                    }
+                } footer: {
+                    Text("Only an explicit @Ria or /ask request can invoke Group Ria when the room feature is enabled and consent requirements are met. Existing group history is not sent to Ria.")
+                }
+
+                if let errorMessage {
+                    Section {
+                        Text(errorMessage)
+                            .foregroundStyle(.red)
+                        Button("Retry") {
+                            Task { await loadConsent() }
+                        }
+                        .disabled(isLoading || isSaving)
+                    }
+                }
+            }
+            .navigationTitle("Group Ria privacy")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .task { await loadConsent() }
+        }
+    }
+
+    private func loadConsent() async {
+        guard !isSaving else { return }
+        isLoading = true
+        errorMessage = nil
+        consent = nil
+        defer { isLoading = false }
+
+        do {
+            let response: GroupRiaRoomConsent = try await APIClient.shared.send(
+                APIRequest(path: "chatrooms/\(roomId)", method: .GET, requiresAuth: true),
+                token: token
+            )
+            consent = response.me.allowAIBot
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func saveConsent(_ allowed: Bool) async {
+        guard consent != nil && !isSaving && !isLoading else { return }
+        isSaving = true
+        errorMessage = nil
+        defer { isSaving = false }
+
+        do {
+            let body = try JSONEncoder().encode(GroupRiaConsentUpdate(allow: allowed))
+            let saved: GroupRiaConsentUpdateResult = try await APIClient.shared.send(
+                APIRequest(
+                    path: "chatrooms/\(roomId)/ai-opt",
+                    method: .PATCH,
+                    body: body,
+                    requiresAuth: true
+                ),
+                token: token
+            )
+            guard saved.allowAIBot == allowed else {
+                throw GroupRiaConsentError.unverified
+            }
+
+            // Reload canonical per-member consent, not a prop or local cache.
+            let confirmed: GroupRiaRoomConsent = try await APIClient.shared.send(
+                APIRequest(path: "chatrooms/\(roomId)", method: .GET, requiresAuth: true),
+                token: token
+            )
+            guard confirmed.me.allowAIBot == allowed else {
+                throw GroupRiaConsentError.unverified
+            }
+            consent = confirmed.me.allowAIBot
+        } catch {
+            // PATCH might have succeeded even if the follow-up GET failed.
+            // Mark state unknown instead of claiming the previous value persisted.
+            consent = nil
+            errorMessage = error.localizedDescription
+        }
+    }
+}
+
+private enum GroupRiaConsentError: LocalizedError {
+    case unverified
+
+    var errorDescription: String? {
+        "Could not verify your Ria consent setting. Retry to load its current value."
     }
 }
