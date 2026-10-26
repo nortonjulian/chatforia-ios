@@ -1080,13 +1080,6 @@ struct ProfileRootView: View {
                     isOn: $vm.privacyHoldToReveal
                 )
 
-                ThemedToggleRow(
-                    title: appText(
-                        "setting_notify_on_copy",
-                        languageCode: appLanguage
-                    ),
-                    isOn: $vm.notifyOnCopy
-                )
             }
         }
     }
