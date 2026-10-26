@@ -246,7 +246,16 @@ struct ChatsRootView: View {
                 if let room = selectedRoom {
                     ChatThreadView(
                         room: room,
-                        randomSession: selectedRandomSession
+                        randomSession: selectedRandomSession,
+                        onRandomLeave: selectedRandomSession == nil ? nil : {
+                            guard let session = selectedRandomSession else { return }
+                            SocketManager.shared.skipRandomChat(roomId: session.roomId)
+                            SocketManager.shared.markRandomMatchCompleted()
+                            activeRandomRoomIds.remove(session.roomId)
+                            selectedRandomSession = nil
+                            showSelectedRoom = false
+                            Task { await reload() }
+                        }
                     )
                     .id(room.id)
                 }
