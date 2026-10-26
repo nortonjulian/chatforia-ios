@@ -24,6 +24,7 @@ struct ChatsRootView: View {
     @State private var pendingConversation: ConversationDTO?
 
     @State private var isMatching = false
+    @State private var randomMatchSucceeded = false
     @State private var matchedRoom: ChatRoomDTO?
     @State private var selectedRandomSession: RandomSession? = nil
     @State private var didSetupRandomMatchListener = false
@@ -426,7 +427,11 @@ struct ChatsRootView: View {
             .sheet(
                 isPresented: $isMatching,
                 onDismiss: {
-                    SocketManager.shared.leaveRandomQueue()
+                    // Dismissing the matching sheet after a successful match must
+                    // not send random:leave: the server treats it as ending the room.
+                    if !randomMatchSucceeded {
+                        SocketManager.shared.leaveRandomQueue()
+                    }
                 }
             ) {
                 RandomMatchingView(
@@ -623,6 +628,7 @@ struct ChatsRootView: View {
     }
 
     private func startRandomChat() {
+        randomMatchSucceeded = false
         guard let token = TokenStore.shared.read(), !token.isEmpty else {
             isMatching = false
             return
@@ -704,6 +710,7 @@ struct ChatsRootView: View {
     }
 
     private func handleMatchFound(roomId: Int, myAlias: String, partnerAlias: String) async {
+        randomMatchSucceeded = true
         isMatching = false
         SocketManager.shared.markRandomMatchCompleted()
         activeRandomRoomIds.insert(roomId)
