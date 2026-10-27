@@ -139,9 +139,14 @@ struct PremiumPickerSheet: View {
 
                                 Text(
                                     locked
-                                        ? String(
-                                            format: appText("premium.requiresPlan", languageCode: appLanguage),
-                                            item.requiredPlan.displayName
+                                        ? appText(
+                                            "premium.requiresPlan",
+                                            languageCode: appLanguage,
+                                            fallback: "Requires {plan}"
+                                        )
+                                        .replacingOccurrences(
+                                            of: "{plan}",
+                                            with: item.requiredPlan.displayName
                                         )
                                         : appText("common.availableNow", languageCode: appLanguage)
                                 )

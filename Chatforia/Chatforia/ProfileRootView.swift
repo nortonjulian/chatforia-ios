@@ -235,22 +235,11 @@ struct ProfileRootView: View {
                     onSelect: { code in
                         attemptApplyTheme(code)
                     },
-                    onLockedTap: { option in
-                        presentUpgrade(
-                            title: appText(
-                                "premium_theme_title",
-                                languageCode: appLanguage
-                            ),
-                            message: String(
-                                format: appText(
-                                    "premium_feature_available_on_format",
-                                    languageCode: appLanguage
-                                ),
-                                option.name,
-                                option.requiredPlan.displayName
-                            ),
-                            requiredPlan: option.requiredPlan
-                        )
+                    onLockedTap: { _ in
+                        // The theme picker should go directly to the same
+                        // Upgrade page available from Profile, without an
+                        // extra generic "Upgrade Required" sheet.
+                        openUpgradeFromThemePicker()
                     }
                 )
                 .environmentObject(themeManager)
@@ -278,13 +267,9 @@ struct ProfileRootView: View {
                                 "premium_message_tone_title",
                                 languageCode: appLanguage
                             ),
-                            message: String(
-                                format: appText(
-                                    "premium_feature_available_on_format",
-                                    languageCode: appLanguage
-                                ),
-                                option.name,
-                                option.requiredPlan.displayName
+                            message: premiumFeatureMessage(
+                                name: option.name,
+                                requiredPlan: option.requiredPlan
                             ),
                             requiredPlan: option.requiredPlan
                         )
@@ -315,13 +300,9 @@ struct ProfileRootView: View {
                                 "premium_ringtone_title",
                                 languageCode: appLanguage
                             ),
-                            message: String(
-                                format: appText(
-                                    "premium_feature_available_on_format",
-                                    languageCode: appLanguage
-                                ),
-                                option.name,
-                                option.requiredPlan.displayName
+                            message: premiumFeatureMessage(
+                                name: option.name,
+                                requiredPlan: option.requiredPlan
                             ),
                             requiredPlan: option.requiredPlan
                         )
@@ -1657,23 +1638,41 @@ struct ProfileRootView: View {
         showingUpgradeSheet = true
     }
 
-    private func attemptApplyTheme(_ code: String) {
-        let requiredPlan = AppThemes.requiredPlan(for: code)
-        let themeName = AppThemes.name(for: code, languageCode: appLanguage)
+    private func openUpgradeFromThemePicker() {
+        showingThemeSheet = false
 
+        // Push after the picker dismisses; otherwise SwiftUI may attempt
+        // navigation while another presentation is still active.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            showUpgradeView = true
+        }
+    }
+
+    private func premiumFeatureMessage(name: String, requiredPlan: AppPlan) -> String {
+        let template = appText(
+            "premium_feature_available_on_format",
+            languageCode: appLanguage,
+            fallback: "%@ is available with %@."
+        )
+
+        // Older translations may use named placeholders rather than
+        // String(format:) specifiers. Never display the raw key or braces.
+        if template.contains("{feature}") || template.contains("{plan}") {
+            return template
+                .replacingOccurrences(of: "{feature}", with: name)
+                .replacingOccurrences(of: "{plan}", with: requiredPlan.displayName)
+        }
+
+        if template.contains("%@") || template.contains("%1$@") {
+            return String(format: template, name, requiredPlan.displayName)
+        }
+
+        return "\(name) is available with \(requiredPlan.displayName)."
+    }
+
+    private func attemptApplyTheme(_ code: String) {
         guard AppThemes.isAvailable(code, for: currentPlan) else {
-            presentUpgrade(
-                title: appText("premium_theme_title", languageCode: appLanguage),
-                message: String(
-                    format: appText(
-                        "premium_feature_available_on_format",
-                        languageCode: appLanguage
-                    ),
-                    themeName,
-                    requiredPlan.displayName
-                ),
-                requiredPlan: requiredPlan
-            )
+            openUpgradeFromThemePicker()
             return
         }
 
@@ -1710,14 +1709,7 @@ struct ProfileRootView: View {
         guard AppMessageTones.isAvailable(code, for: currentPlan) else {
             presentUpgrade(
                 title: appText("premium_message_tone_title", languageCode: appLanguage),
-                message: String(
-                    format: appText(
-                        "premium_feature_available_on_format",
-                        languageCode: appLanguage
-                    ),
-                    toneName,
-                    requiredPlan.displayName
-                ),
+                message: premiumFeatureMessage(name: toneName, requiredPlan: requiredPlan),
                 requiredPlan: requiredPlan
             )
             return
@@ -1744,14 +1736,7 @@ struct ProfileRootView: View {
         guard AppRingtones.isAvailable(code, for: currentPlan) else {
             presentUpgrade(
                 title: appText("premium_ringtone_title", languageCode: appLanguage),
-                message: String(
-                    format: appText(
-                        "premium_feature_available_on_format",
-                        languageCode: appLanguage
-                    ),
-                    ringtoneName,
-                    requiredPlan.displayName
-                ),
+                message: premiumFeatureMessage(name: ringtoneName, requiredPlan: requiredPlan),
                 requiredPlan: requiredPlan
             )
             return
