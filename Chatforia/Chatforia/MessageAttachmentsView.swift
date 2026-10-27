@@ -32,6 +32,20 @@ struct MessageAttachmentsView: View {
     private func isLocalPrivateMedia(_ value: String?) -> Bool {
         guard let value else { return false }
         let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        // User-scoped R2 keys are persisted without an absolute URL. They
+        // still require a viewer-authorized capability before native playback.
+        let canonicalParts = normalized.split(separator: "/", omittingEmptySubsequences: false)
+        if canonicalParts.count >= 3,
+           canonicalParts[0] == "uploads",
+           canonicalParts[1].hasPrefix("u"),
+           let owner = Int(canonicalParts[1].dropFirst()), owner > 0,
+           canonicalParts.dropFirst(2).allSatisfy({
+               !$0.isEmpty && $0 != "." && $0 != ".." &&
+               $0.count <= 200 &&
+               $0.range(of: #"^[A-Za-z0-9._-]+$"#, options: .regularExpression) != nil
+           }) {
+            return true
+        }
         if let url = URLComponents(string: normalized),
            url.scheme?.lowercased() == "https",
            url.host?.lowercased() == "cdn.chatforia.com",
