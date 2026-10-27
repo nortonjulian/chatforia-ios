@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct ImportPhoneContactsView: View {
     @Environment(\.dismiss) private var dismiss
@@ -38,12 +39,24 @@ struct ImportPhoneContactsView: View {
                                 languageCode: appLanguage
                             ),
                             subtitle: errorText,
-                            buttonTitle: appText(
-                                "common.tryAgain",
-                                languageCode: appLanguage
-                            ),
+                            buttonTitle: vm.needsSettingsPermission
+                                ? appText(
+                                    "contacts.openSettings",
+                                    languageCode: appLanguage,
+                                    fallback: "Open Settings"
+                                )
+                                : appText(
+                                    "common.tryAgain",
+                                    languageCode: appLanguage
+                                ),
                             buttonAction: {
-                                Task { await vm.loadContacts() }
+                                if vm.needsSettingsPermission {
+                                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                                        UIApplication.shared.open(url)
+                                    }
+                                } else {
+                                    Task { await vm.loadContacts() }
+                                }
                             }
                         )
                     } else if vm.contacts.isEmpty {
