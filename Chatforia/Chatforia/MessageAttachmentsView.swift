@@ -8,19 +8,138 @@ struct MessageAttachmentsView: View {
     let onVideoTap: ((URL) -> Void)?
 
     @AppStorage("chatforia_language") private var appLanguage = "en"
+    @EnvironmentObject private var auth: AuthStore
     @State private var selectedImageURL: IdentifiableURL?
+    // Scoped by account, session, attachment and media variant. A URL from
+    // the previous account is never returned when identity changes.
+    @State private var grantedMediaURLs: [String: String] = [:]
 
     @ObservedObject private var audioPlayback = AudioPlaybackViewModel.shared
+
+    private struct MediaGrant: Decodable {
+        let url: String
+    }
+
+    private var mediaScope: String {
+        let identity = String(auth.currentUser?.id ?? 0)
+        let session = String(auth.currentToken?.hashValue ?? 0)
+        let attachmentsKey = attachments.map {
+            String($0.id ?? -1) + ":" + ($0.url ?? "") + ":" + ($0.thumbUrl ?? "")
+        }.joined(separator: "|")
+        return identity + "/" + session + "/" + attachmentsKey
+    }
+
+    private func isLocalPrivateMedia(_ value: String?) -> Bool {
+        guard let value else { return false }
+        let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        let parts = normalized.split(separator: "/", omittingEmptySubsequences: true)
+        return parts.count >= 2 && (
+            parts.first == "media" || parts.first == "thumbs" ||
+            (parts.count >= 3 && parts.first == "uploads" &&
+             (parts[1] == "media" || parts[1] == "thumbs"))
+        )
+    }
+
+    private func grantKey(for id: Int, variant: String) -> String {
+        mediaScope + "/" + String(id) + "/" + variant
+    }
+
+    private func authorizedAttachment(_ attachment: AttachmentDTO) -> AttachmentDTO {
+        let id = attachment.id
+        let full = isLocalPrivateMedia(attachment.url)
+            ? id.flatMap { grantedMediaURLs[grantKey(for: $0, variant: "file")] }
+            : attachment.url
+        let preview = isLocalPrivateMedia(attachment.thumbUrl)
+            ? id.flatMap { grantedMediaURLs[grantKey(for: $0, variant: "thumb")] }
+            : attachment.thumbUrl
+
+        return AttachmentDTO(
+            id: attachment.id,
+            kind: attachment.kind,
+            url: full,
+            mimeType: attachment.mimeType,
+            width: attachment.width,
+            height: attachment.height,
+            durationSec: attachment.durationSec,
+            caption: attachment.caption,
+            thumbUrl: preview
+        )
+    }
+
+    private func requestMediaGrant(
+        for id: Int, variant: String, token: String
+    ) async -> String? {
+        do {
+            let response: MediaGrant = try await APIClient.shared.send(
+                APIRequest(
+                    path: "private-media/message/\(id)?variant=\(variant)",
+                    method: .GET,
+                    requiresAuth: true
+                ),
+                token: token
+            )
+            // Only allow capability URLs from our own API origin and endpoint.
+            guard let resolved = URL(
+                string: response.url, relativeTo: AppEnvironment.apiBaseURL
+            )?.absoluteURL,
+                  resolved.scheme == "https",
+                  resolved.host == AppEnvironment.apiBaseURL.host,
+                  resolved.path == "/private-media/file",
+                  URLComponents(url: resolved, resolvingAgainstBaseURL: false)?
+                    .queryItems?.contains(where: { $0.name == "token" }) == true
+            else { return nil }
+            return resolved.absoluteString
+        } catch {
+            return nil // Fail closed; never reuse an unprotected local path.
+        }
+    }
+
+    private func refreshGrantedMedia(for scope: String, token: String) async {
+        for attachment in attachments {
+            guard !Task.isCancelled, mediaScope == scope, let id = attachment.id else {
+                continue
+            }
+            for (variant, original) in [
+                ("file", attachment.url),
+                ("thumb", attachment.thumbUrl)
+            ] where isLocalPrivateMedia(original) {
+                let url = await requestMediaGrant(for: id, variant: variant, token: token)
+                guard !Task.isCancelled, mediaScope == scope else { return }
+                grantedMediaURLs[grantKey(for: id, variant: variant)] = url
+            }
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             ForEach(Array(attachments.enumerated()), id: \.offset) { _, attachment in
-                attachmentCard(attachment)
+                attachmentCard(authorizedAttachment(attachment))
             }
         }
         .frame(maxWidth: maxWidth, alignment: isMe ? .trailing : .leading)
         .sheet(item: $selectedImageURL) { item in
             AttachmentImageViewer(imageURL: item.url)
+        }
+        .task(id: mediaScope) {
+            let scope = mediaScope
+            grantedMediaURLs.removeAll()
+            guard auth.currentUser != nil,
+                  let token = auth.currentToken, !token.isEmpty else {
+                return
+            }
+            while !Task.isCancelled, mediaScope == scope {
+                await refreshGrantedMedia(for: scope, token: token)
+                do {
+                    try await Task.sleep(nanoseconds: 40_000_000_000)
+                } catch {
+                    return
+                }
+            }
+        }
+        .onChange(of: auth.currentUser?.id) { _, _ in
+            // Playback is shared globally; do not retain a prior user's audio.
+            audioPlayback.stop()
+            selectedImageURL = nil
         }
     }
 
