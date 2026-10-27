@@ -8,6 +8,7 @@ final class ImportPhoneContactsViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var isImporting = false
     @Published var errorText: String?
+    @Published var needsSettingsPermission = false
     @Published var successText: String?
     
     private var appLanguage: String {
@@ -23,11 +24,13 @@ final class ImportPhoneContactsViewModel: ObservableObject {
 
         isLoading = true
         errorText = nil
+        needsSettingsPermission = false
         successText = nil
         defer { isLoading = false }
 
         let granted = await PhoneContactsService.shared.requestAccess()
         guard granted else {
+            needsSettingsPermission = PhoneContactsService.shared.authorizationDeniedOrRestricted()
             contacts = []
             selectedIDs.removeAll()
             errorText = appText(
