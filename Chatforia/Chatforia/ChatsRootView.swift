@@ -30,6 +30,7 @@ struct ChatsRootView: View {
     @State private var didSetupRandomMatchListener = false
     @State private var showRiaChat = false
     @State private var activeRandomRoomIds = Set<Int>()
+    @State private var activeRandomSessions: [Int: RandomSession] = [:]
 
     @StateObject private var settingsVM = SettingsViewModel()
 
@@ -556,9 +557,10 @@ struct ChatsRootView: View {
     }
     
     private func openConversationFromList(_ conversation: ConversationDTO) {
-        selectedRandomSession = nil
+        selectedRandomSession = conversation.id.flatMap { activeRandomSessions[$0] }
 
-        if conversation.isRandomChat == true || conversation.randomChat != nil,
+        if selectedRandomSession == nil,
+            (conversation.isRandomChat == true || conversation.randomChat != nil),
             let randomChat = conversation.randomChat {
             selectedRandomSession = RandomSession(
                 roomId: randomChat.chatRoomId,
@@ -599,6 +601,7 @@ struct ChatsRootView: View {
 
         if let roomId {
             activeRandomRoomIds.remove(roomId)
+            activeRandomSessions.removeValue(forKey: roomId)
         }
 
         selectedRandomSession = nil
@@ -702,6 +705,7 @@ struct ChatsRootView: View {
 
                 if let roomId {
                     activeRandomRoomIds.remove(roomId)
+                    activeRandomSessions.removeValue(forKey: roomId)
                 }
 
                 await reload()
@@ -730,6 +734,7 @@ struct ChatsRootView: View {
             )
 
             activeRandomRoomIds.insert(roomId)
+            activeRandomSessions[roomId] = session
 
             selectedRoom = room
             matchedRoom = room
