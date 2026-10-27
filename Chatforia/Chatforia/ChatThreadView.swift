@@ -7,6 +7,17 @@ import AVFoundation
 struct ChatThreadView: View {
     let room: ChatRoomDTO
     let randomSession: RandomSession?
+    let onRandomLeave: (() -> Void)?
+
+    init(
+        room: ChatRoomDTO,
+        randomSession: RandomSession?,
+        onRandomLeave: (() -> Void)? = nil
+    ) {
+        self.room = room
+        self.randomSession = randomSession
+        self.onRandomLeave = onRandomLeave
+    }
 
     @EnvironmentObject var auth: AuthStore
     @EnvironmentObject var themeManager: ThemeManager
@@ -329,7 +340,22 @@ extension ChatThreadView {
                     }
                     .buttonStyle(.plain)
 
-                    Spacer()
+                    if let onRandomLeave {
+                        Button(action: onRandomLeave) {
+                            HStack(spacing: 5) {
+                                Image(systemName: "xmark.circle")
+                                Text("Leave")
+                            }
+                            .font(.subheadline.weight(.semibold))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 8)
+                            .foregroundStyle(themeManager.palette.secondaryText)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Leave Random Chat")
+                    }
+
+                    Spacer(minLength: 0)
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
