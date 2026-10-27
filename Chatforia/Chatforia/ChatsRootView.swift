@@ -254,6 +254,7 @@ struct ChatsRootView: View {
                             SocketManager.shared.skipRandomChat(roomId: session.roomId)
                             SocketManager.shared.markRandomMatchCompleted()
                             activeRandomRoomIds.remove(session.roomId)
+                            activeRandomSessions.removeValue(forKey: session.roomId)
                             selectedRandomSession = nil
                             showSelectedRoom = false
                             Task { await reload() }
@@ -561,7 +562,9 @@ struct ChatsRootView: View {
 
         if selectedRandomSession == nil,
             (conversation.isRandomChat == true || conversation.randomChat != nil),
-            let randomChat = conversation.randomChat {
+            let randomChat = conversation.randomChat,
+            randomChat.endedAt == nil,
+            randomChat.isUnlocked != true {
             selectedRandomSession = RandomSession(
                 roomId: randomChat.chatRoomId,
                 myAlias: randomChat.myAlias ?? appText("common.you", languageCode: appLanguage),
