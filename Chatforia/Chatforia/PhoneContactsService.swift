@@ -5,11 +5,35 @@ final class PhoneContactsService {
     static let shared = PhoneContactsService()
     private init() {}
 
+    func authorizationDeniedOrRestricted() -> Bool {
+        switch CNContactStore.authorizationStatus(for: .contacts) {
+        case .denied, .restricted:
+            return true
+        default:
+            return false
+        }
+    }
+
     func requestAccess() async -> Bool {
-        await withCheckedContinuation { continuation in
-            CNContactStore().requestAccess(for: .contacts) { granted, _ in
-                continuation.resume(returning: granted)
+        let status = CNContactStore.authorizationStatus(for: .contacts)
+        switch status {
+        case .authorized:
+            return true
+        case .denied, .restricted:
+            return false
+        case .notDetermined:
+            return await withCheckedContinuation { continuation in
+                CNContactStore().requestAccess(for: .contacts) { granted, _ in
+                    continuation.resume(returning: granted)
+                }
             }
+        default:
+            // iOS 18 supports limited Contacts authorization. Avoid
+            // falsely rejecting permission granted for selected contacts.
+            if #available(iOS 18.0, *), status == .limited {
+                return true
+            }
+            return false
         }
     }
 
