@@ -77,6 +77,22 @@ struct ImportPhoneContactsView: View {
                     } else {
                         List {
                             Section {
+                                TextField(
+                                    appText(
+                                        "contacts.search",
+                                        languageCode: appLanguage,
+                                        fallback: "Search contacts"
+                                    ),
+                                    text: $vm.searchText
+                                )
+                                .textInputAutocapitalization(.words)
+                                .autocorrectionDisabled()
+                                .submitLabel(.search)
+                                .accessibilityLabel("Search contacts")
+                            }
+                            .listRowBackground(themeManager.palette.cardBackground)
+
+                            Section {
                                 HStack {
                                     Button(
                                         appText(
@@ -101,7 +117,20 @@ struct ImportPhoneContactsView: View {
                             }
                             .listRowBackground(themeManager.palette.cardBackground)
 
-                            ForEach(vm.contacts) { contact in
+                            if vm.filteredContacts.isEmpty {
+                                Text(
+                                    appText(
+                                        "contacts.noSearchResults",
+                                        languageCode: appLanguage,
+                                        fallback: "No matching contacts"
+                                    )
+                                )
+                                .foregroundStyle(themeManager.palette.secondaryText)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .listRowBackground(themeManager.palette.cardBackground)
+                            }
+
+                            ForEach(vm.filteredContacts) { contact in
                                 Button {
                                     vm.toggle(contact)
                                 } label: {
