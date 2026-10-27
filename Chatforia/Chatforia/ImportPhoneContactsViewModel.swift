@@ -5,6 +5,7 @@ import Combine
 final class ImportPhoneContactsViewModel: ObservableObject {
     @Published var contacts: [PhoneContactDTO] = []
     @Published var selectedIDs: Set<String> = []
+    @Published var searchText = ""
     @Published var isLoading = false
     @Published var isImporting = false
     @Published var errorText: String?
@@ -17,6 +18,21 @@ final class ImportPhoneContactsViewModel: ObservableObject {
 
     var selectedContacts: [PhoneContactDTO] {
         contacts.filter { selectedIDs.contains($0.id) }
+    }
+
+    /// Filter locally; searching must never discard selections made before
+    /// changing the query or send any contact names to the server.
+    var filteredContacts: [PhoneContactDTO] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return contacts }
+
+        let digits = query.filter(\.isNumber)
+        return contacts.filter { contact in
+            contact.displayName.localizedStandardContains(query)
+                || contact.phoneNumber.localizedStandardContains(query)
+                || (!digits.isEmpty &&
+                    contact.phoneNumber.filter(\.isNumber).contains(digits))
+        }
     }
 
     func loadContacts() async {
@@ -67,7 +83,9 @@ final class ImportPhoneContactsViewModel: ObservableObject {
     func selectAll() {
         errorText = nil
         successText = nil
-        selectedIDs = Set(contacts.map(\.id))
+        // Select just the visible search results. Preserve any previously
+        // selected contacts currently hidden by the search filter.
+        selectedIDs.formUnion(filteredContacts.map(\.id))
     }
 
     func clearSelection() {
