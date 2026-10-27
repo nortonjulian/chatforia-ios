@@ -31,6 +31,7 @@ struct ChatsRootView: View {
     @State private var showRiaChat = false
     @State private var activeRandomRoomIds = Set<Int>()
     @State private var activeRandomSessions: [Int: RandomSession] = [:]
+    @State private var showPeerEndedAlert = false
 
     @StateObject private var settingsVM = SettingsViewModel()
 
@@ -426,6 +427,11 @@ struct ChatsRootView: View {
                 .environmentObject(auth)
                 .environmentObject(themeManager)
             }
+            .alert("Random Chat ended", isPresented: $showPeerEndedAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Your partner left the Random Chat.")
+            }
             .sheet(
                 isPresented: $isMatching,
                 onDismiss: {
@@ -699,16 +705,19 @@ struct ChatsRootView: View {
         }
 
         SocketManager.shared.on("random:ended") { data, _ in
-            let roomId = (data.first as? [String: Any])?["roomId"] as? Int
+            guard let roomId = (data.first as? [String: Any])?["roomId"] as? Int else { return }
 
             Task { @MainActor in
-                isMatching = false
-                selectedRandomSession = nil
-                SocketManager.shared.markRandomMatchCompleted()
+                let wasCurrentSession = selectedRandomSession?.roomId == roomId
+                activeRandomRoomIds.remove(roomId)
+                activeRandomSessions.removeValue(forKey: roomId)
 
-                if let roomId {
-                    activeRandomRoomIds.remove(roomId)
-                    activeRandomSessions.removeValue(forKey: roomId)
+                if wasCurrentSession {
+                    selectedRandomSession = nil
+                    showSelectedRoom = false
+                    // Peer termination is navigation, not permission to
+                    // expose the ordinary conversation's call/video controls.
+                    showPeerEndedAlert = true
                 }
 
                 await reload()
