@@ -32,6 +32,28 @@ struct MessageAttachmentsView: View {
     private func isLocalPrivateMedia(_ value: String?) -> Bool {
         guard let value else { return false }
         let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let url = URLComponents(string: normalized),
+           url.scheme?.lowercased() == "https",
+           url.host?.lowercased() == "cdn.chatforia.com",
+           url.port == nil,
+           url.user == nil,
+           url.password == nil,
+           url.query == nil,
+           url.fragment == nil,
+           url.percentEncodedPath.range(of: "%") == nil {
+            let pieces = url.path.split(separator: "/")
+            return pieces.count >= 4 && pieces[0] == "uploads" &&
+                pieces[1].hasPrefix("u") &&
+                Int(pieces[1].dropFirst()) != nil &&
+                pieces.dropFirst(2).allSatisfy {
+                    !$0.isEmpty && $0 != "." && $0 != ".." &&
+                    $0.range(of: #"^[A-Za-z0-9._-]+$"#, options: .regularExpression) != nil
+                }
+        }
+        if normalized.lowercased().hasPrefix("http://") ||
+           normalized.lowercased().hasPrefix("https://") {
+            return false
+        }
         let parts = normalized.split(separator: "/", omittingEmptySubsequences: true)
         return parts.count >= 2 && (
             parts.first == "media" || parts.first == "thumbs" ||
