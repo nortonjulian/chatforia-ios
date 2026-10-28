@@ -12,6 +12,7 @@ final class AudioPlaybackViewModel: NSObject, ObservableObject {
     @Published private(set) var currentTime: Double = 0
     @Published private(set) var duration: Double = 0
     @Published private(set) var currentURLString: String?
+    @Published private(set) var currentPlaybackID: String?
     @Published private(set) var isSpeakerEnabled = false
 
     private var streamingPlayer: AVPlayer?
@@ -40,16 +41,43 @@ final class AudioPlaybackViewModel: NSObject, ObservableObject {
         )
     }
 
-    func isCurrent(urlString: String) -> Bool {
-        currentURLString == urlString
+    static func matchesPlaybackIdentity(
+        currentURL: String?,
+        currentID: String?,
+        requestedURL: String,
+        requestedID: String?
+    ) -> Bool {
+        guard currentURL != nil else { return false }
+
+        if let requestedID {
+            return currentID == requestedID
+        }
+
+        return currentID == nil && currentURL == requestedURL
+    }
+
+    func isCurrent(
+        urlString: String,
+        playbackID: String? = nil
+    ) -> Bool {
+        Self.matchesPlaybackIdentity(
+            currentURL: currentURLString,
+            currentID: currentPlaybackID,
+            requestedURL: urlString,
+            requestedID: playbackID
+        )
     }
 
     func togglePlayback(
         urlString: String,
         authToken: String? = nil,
-        usesVoicemailRouting: Bool = false
+        usesVoicemailRouting: Bool = false,
+        playbackID: String? = nil
     ) {
-        if currentURLString == urlString {
+        if isCurrent(
+            urlString: urlString,
+            playbackID: playbackID
+        ) {
             guard !isLoading else {
                 return
             }
@@ -71,7 +99,8 @@ final class AudioPlaybackViewModel: NSObject, ObservableObject {
         } else {
             loadStreamingAndPlay(
                 urlString: urlString,
-                authToken: authToken
+                authToken: authToken,
+                playbackID: playbackID
             )
         }
     }
@@ -275,7 +304,8 @@ final class AudioPlaybackViewModel: NSObject, ObservableObject {
 
     private func loadStreamingAndPlay(
         urlString: String,
-        authToken: String?
+        authToken: String?,
+        playbackID: String?
     ) {
         guard let url = URL(string: urlString) else {
             return
@@ -286,6 +316,7 @@ final class AudioPlaybackViewModel: NSObject, ObservableObject {
 
         currentUsesVoicemailRouting = false
         currentURLString = urlString
+        currentPlaybackID = playbackID
         isLoading = true
 
         let trimmedToken = authToken?
@@ -448,6 +479,7 @@ final class AudioPlaybackViewModel: NSObject, ObservableObject {
         streamingPlayer = nil
 
         currentURLString = nil
+        currentPlaybackID = nil
         currentUsesVoicemailRouting = false
         isPlaying = false
         isLoading = false

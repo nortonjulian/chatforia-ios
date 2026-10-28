@@ -112,6 +112,10 @@ struct ChatThreadView: View {
 
             randomChatActionsBar
             messagesSection
+                .environment(
+                    \.suspendInlineVideoPlayback,
+                    selectedVideoURL != nil
+                )
             pendingMediaBar
             composer
         }
@@ -131,6 +135,15 @@ struct ChatThreadView: View {
 
             cancelVoiceRecording()
             discardVoiceDraft()
+        }
+        .fullScreenCover(item: $selectedVideoURL) { item in
+            FullscreenVideoView(url: item.url)
+        }
+        .onChange(of: auth.currentUser?.id) { _, _ in
+            selectedVideoURL = nil
+        }
+        .onChange(of: auth.currentToken) { _, _ in
+            selectedVideoURL = nil
         }
         .sheet(item: $editingMessage) { _ in
             editMessageSheet
