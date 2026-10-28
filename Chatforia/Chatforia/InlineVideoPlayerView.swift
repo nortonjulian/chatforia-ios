@@ -4,6 +4,7 @@ import AVFoundation
 
 struct InlineVideoPlayerView: View {
     let url: URL
+    var suspendPlayback: Bool = false
 
     @State private var player: AVPlayer?
 
@@ -11,14 +12,40 @@ struct InlineVideoPlayerView: View {
         VideoPlayer(player: player)
             .onAppear {
                 configureAudioSessionForPlayback()
-                let p = AVPlayer(url: url)
-                p.isMuted = false
-                player = p
+                configurePlayer(for: url)
+            }
+            .onChange(of: url) { _, newURL in
+                // A routine grant refresh should not restart active playback.
+                // The backend still authorizes every subsequent media request.
+                if player?.rate != 0 {
+                    return
+                }
+                configurePlayer(for: newURL)
+            }
+            .onChange(of: suspendPlayback) { _, suspended in
+                if suspended {
+                    player?.pause()
+                    configurePlayer(for: url)
+                }
             }
             .onDisappear {
                 player?.pause()
                 player = nil
             }
+    }
+
+    private func configurePlayer(for url: URL) {
+        player?.pause()
+        player?.replaceCurrentItem(with: nil)
+
+        let next = AVPlayer(url: url)
+        next.isMuted = false
+
+        if suspendPlayback {
+            next.pause()
+        }
+
+        player = next
     }
 
     private func configureAudioSessionForPlayback() {
