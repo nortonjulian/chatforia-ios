@@ -60,12 +60,10 @@ struct MessagesListView: View {
     }
 
     private var visibleMessages: [MessageDTO] {
-        guard isRandomChat else {
-            return messages
-        }
-
-        return messages.filter {
-            randomNoticeText(for: $0) != randomDisclaimerText
+        messages.filter { message in
+            message.deletedForAll != true &&
+                (!isRandomChat ||
+                    randomNoticeText(for: message) != randomDisclaimerText)
         }
     }
 
