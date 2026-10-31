@@ -571,9 +571,10 @@ struct SMSThreadView: View {
             return []
         }
 
+        // Validate all selections before uploading any, preventing a large
+        // second photo from leaving an unused first photo in cloud storage.
         let maxMMSBytes = 5 * 1024 * 1024
-        var keys: [String] = []
-
+        var preparedPhotos: [Data] = []
         for item in items {
             do {
                 guard let data = try await item.loadTransferable(type: Data.self),
@@ -586,7 +587,16 @@ struct SMSThreadView: View {
                     vm.errorText = "This photo is too large for MMS (5 MiB maximum). Choose a smaller photo."
                     return []
                 }
+                preparedPhotos.append(jpeg)
+            } catch {
+                vm.errorText = "Couldn't read the selected photo. Please try again."
+                return []
+            }
+        }
 
+        var keys: [String] = []
+        for jpeg in preparedPhotos {
+            do {
                 // The carrier endpoint authorizes this private storage key.
                 // Public preview URLs are not valid outbound MMS references.
                 let uploaded = try await UploadService.shared.uploadImage(data: jpeg, token: token)
