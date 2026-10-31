@@ -136,7 +136,7 @@ final class SMSThreadViewModel: ObservableObject {
                         APIRequest(
                             path: "sms/threads/\(threadId)/read",
                             method: .POST,
-                            body: ReadAck(messageId: lastInbound.id),
+                            body: try JSONEncoder().encode(ReadAck(messageId: lastInbound.id)),
                             requiresAuth: true
                         ),
                         token: token
