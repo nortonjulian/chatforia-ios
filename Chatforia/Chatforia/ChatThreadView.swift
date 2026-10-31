@@ -50,6 +50,8 @@ struct ChatThreadView: View {
     @State private var showGIFPicker = false
     @State private var showPhotoPicker = false
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
+    @State private var showVideoPicker = false
+    @State private var selectedVideoItem: PhotosPickerItem? = nil
 
     @State private var isProcessingVideo = false
     @State private var videoProcessingStatus: String? = nil
@@ -165,6 +167,10 @@ struct ChatThreadView: View {
                         try? await Task.sleep(nanoseconds: 200_000_000)
                         presentGIFPicker()
                     }
+                },
+                onVideo: {
+                    showAttachmentSheet = false
+                    presentVideoPicker()
                 }
             )
         }
@@ -223,8 +229,33 @@ struct ChatThreadView: View {
         .photosPicker(
             isPresented: $showPhotoPicker,
             selection: $selectedPhotoItem,
-            matching: .any(of: [.images, .videos])
+            matching: .images
         )
+        .photosPicker(
+            isPresented: $showVideoPicker,
+            selection: $selectedVideoItem,
+            matching: .videos
+        )
+        .onChange(of: selectedVideoItem) { _, newItem in
+            guard let newItem else { return }
+            Task {
+                defer { selectedVideoItem = nil }
+                guard let data = try? await newItem.loadTransferable(type: Data.self),
+                      !data.isEmpty else {
+                    vm.errorText = "Couldn't read the selected video."
+                    return
+                }
+                let url = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("pending-video-\(UUID().uuidString).mov")
+                do {
+                    try data.write(to: url, options: .atomic)
+                    pendingVideoURL = url
+                    pendingImageData = nil
+                } catch {
+                    vm.errorText = "Couldn't prepare the selected video."
+                }
+            }
+        }
         .onChange(of: selectedPhotoItem) { _, newItem in
             guard let newItem else { return }
 
@@ -1067,6 +1098,14 @@ extension ChatThreadView {
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 200_000_000)
             showPhotoPicker = true
+        }
+    }
+
+    private func presentVideoPicker() {
+        showAttachmentSheet = false
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 200_000_000)
+            showVideoPicker = true
         }
     }
 
