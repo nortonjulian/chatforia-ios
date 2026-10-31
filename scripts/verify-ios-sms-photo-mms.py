@@ -21,8 +21,9 @@ send = view[begin:end]
 
 assert "matching: .images" in view
 assert "maxSelectionCount: 5" in view
-assert "image.jpegData(compressionQuality:" in photo
-assert "jpeg.count <= maxMMSBytes" in photo
+assert "resized.jpegData(compressionQuality:" in photo
+assert "aggregateBytes <= maxMessageBytes" in photo
+assert "targetJPEGBytes = 1_000_000" in photo
 assert "var preparedPhotos: [Data] = []" in photo
 assert photo.index("preparedPhotos.append(jpeg)") < photo.index("for jpeg in preparedPhotos")
 assert "UploadService.shared.uploadImage(data: jpeg, token: token)" in photo
@@ -37,5 +38,5 @@ assert 'APIRequest(path: "sms/send"' in vm
 assert 'path: "uploads/complete"' in upload
 assert "key: file.key ?? intent.key" in upload
 
-print("PASS: iOS SMS photo JPEG conversion, 5 MiB cap, private key, retry, send route wiring")
+print("PASS: iOS SMS photo JPEG conversion, 1 MB target, 5 MB aggregate cap, private key, retry, send route wiring")
 print("NOTE: Photo-only scope; video selection and live carrier delivery are not tested.")
