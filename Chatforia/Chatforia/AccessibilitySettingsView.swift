@@ -13,14 +13,24 @@ struct AccessibilitySettingsView: View {
             VStack(spacing: 16) {
                 SectionCardView(title: appText("accessibility_title", languageCode: appLanguage)) {
                     VStack(alignment: .leading, spacing: 14) {
-                        Picker(
-                            appText("accessibility_interface_font_size", languageCode: appLanguage),
-                            selection: $vm.a11yUiFont
-                        ) {
-                            ForEach(A11yFontSize.allCases) { size in
-                                Text(appText(size.labelKey, languageCode: appLanguage))
-                                    .tag(size.rawValue)
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(appText("accessibility_interface_font_size", languageCode: appLanguage))
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(themeManager.palette.primaryText)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            Picker(
+                                appText("accessibility_interface_font_size", languageCode: appLanguage),
+                                selection: $vm.a11yUiFont
+                            ) {
+                                ForEach(A11yFontSize.allCases) { size in
+                                    Text(appText(size.labelKey, languageCode: appLanguage))
+                                        .tag(size.rawValue)
+                                }
                             }
+                            .pickerStyle(.menu)
+                            .labelsHidden()
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
 
                         Text(appText("accessibility_interface_font_size_help", languageCode: appLanguage))
@@ -61,24 +71,44 @@ struct AccessibilitySettingsView: View {
                                 .foregroundStyle(themeManager.palette.secondaryText)
                         }
 
-                        Picker(
-                            appText("accessibility_caption_font_size", languageCode: appLanguage),
-                            selection: $vm.a11yCaptionFont
-                        ) {
-                            ForEach(A11yFontSize.allCases) { size in
-                                Text(appText(size.labelKey, languageCode: appLanguage))
-                                    .tag(size.rawValue)
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(appText("accessibility_caption_font_size", languageCode: appLanguage))
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(themeManager.palette.primaryText)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            Picker(
+                                appText("accessibility_caption_font_size", languageCode: appLanguage),
+                                selection: $vm.a11yCaptionFont
+                            ) {
+                                ForEach(A11yFontSize.allCases) { size in
+                                    Text(appText(size.labelKey, languageCode: appLanguage))
+                                        .tag(size.rawValue)
+                                }
                             }
+                            .pickerStyle(.menu)
+                            .labelsHidden()
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
 
-                        Picker(
-                            appText("accessibility_caption_background", languageCode: appLanguage),
-                            selection: $vm.a11yCaptionBg
-                        ) {
-                            ForEach(A11yCaptionBackground.allCases) { bg in
-                                Text(appText(bg.labelKey, languageCode: appLanguage))
-                                    .tag(bg.rawValue)
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(appText("accessibility_caption_background", languageCode: appLanguage))
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(themeManager.palette.primaryText)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            Picker(
+                                appText("accessibility_caption_background", languageCode: appLanguage),
+                                selection: $vm.a11yCaptionBg
+                            ) {
+                                ForEach(A11yCaptionBackground.allCases) { bg in
+                                    Text(appText(bg.labelKey, languageCode: appLanguage))
+                                        .tag(bg.rawValue)
+                                }
                             }
+                            .pickerStyle(.menu)
+                            .labelsHidden()
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
                 }
@@ -111,6 +141,7 @@ struct AccessibilitySettingsView: View {
                 }
             }
             .padding()
+            .padding(.bottom, 24)
         }
         .background(themeManager.palette.screenBackground)
         .navigationTitle(appText("accessibility_title", languageCode: appLanguage))
