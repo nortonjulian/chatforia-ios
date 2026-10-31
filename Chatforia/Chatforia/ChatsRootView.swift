@@ -5,6 +5,7 @@ struct ChatsRootView: View {
     @EnvironmentObject private var themeManager: ThemeManager
     @AppStorage("chatforia_language") private var appLanguage = "en"
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @EnvironmentObject private var vm: ChatsViewModel
     @ObservedObject private var subscriptionManager = SubscriptionManager.shared
 
@@ -282,6 +283,7 @@ struct ChatsRootView: View {
             ))
             .searchable(
                 text: $vm.searchText,
+                placement: .navigationBarDrawer(displayMode: .always),
                 prompt: Text(
                     appText(
                         "ios.search_chats",
@@ -321,6 +323,27 @@ struct ChatsRootView: View {
                         .disabled(isDeletingConversations || vm.filteredConversations.isEmpty)
                     }
 
+                } else if dynamicTypeSize.isAccessibilitySize {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Menu {
+                            Button("New chat", systemImage: "plus") {
+                                showingStartChat = true
+                            }
+                            Button("Refresh", systemImage: "arrow.clockwise") {
+                                Task { await reload() }
+                            }
+                            Button("Ria", systemImage: "sparkles") {
+                                showRiaChat = true
+                            }
+                            Button("Random Chat", systemImage: "shuffle") {
+                                startRandomChat()
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                                .foregroundStyle(themeManager.palette.accent)
+                        }
+                        .accessibilityLabel("Chat actions")
+                    }
                 } else {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button {
