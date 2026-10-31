@@ -393,7 +393,7 @@ struct SMSThreadView: View {
         .photosPicker(
             isPresented: $showPhotoPicker,
             selection: $selectedPhotos,
-            maxSelectionCount: 6,
+            maxSelectionCount: 5,
             matching: .images
         )
     }
@@ -492,14 +492,14 @@ struct SMSThreadView: View {
             isUploadingMedia = true
             let urls = await uploadImages(selectedPhotos)
             isUploadingMedia = false
-            selectedPhotos.removeAll()
 
             guard !urls.isEmpty else {
-                vm.errorText =
-                appText(
-                    "media.uploadFailed",
-                    languageCode: appLanguage
-                )
+                if vm.errorText == nil {
+                    vm.errorText = appText(
+                        "media.uploadFailed",
+                        languageCode: appLanguage
+                    )
+                }
                 return
             }
 
@@ -527,6 +527,7 @@ struct SMSThreadView: View {
                     startPolling()
                 }
 
+                selectedPhotos.removeAll()
                 draft = ""
             }
 
@@ -565,26 +566,86 @@ struct SMSThreadView: View {
     }
 
     private func uploadImages(_ items: [PhotosPickerItem]) async -> [String] {
-        guard let token = TokenStore.shared.read() else { return [] }
+        guard let token = TokenStore.shared.read(), !token.isEmpty else {
+            vm.errorText = "Your session has expired. Please sign in again."
+            return []
+        }
 
-        var urls: [String] = []
+        // Twilio limits the entire MMS (all media plus body) to 5 MB.
+        // Carrier photo target ~1 MB leaves room for multiple attachments.
+        let maxMessageBytes = 5_000_000
+        let targetJPEGBytes = 1_000_000
+        var preparedPhotos: [Data] = []
+        var aggregateBytes = 0
 
         for item in items {
             do {
-                guard let data = try await item.loadTransferable(type: Data.self) else {
-                    continue
+                guard let data = try await item.loadTransferable(type: Data.self),
+                      let image = UIImage(data: data) else {
+                    vm.errorText = "This photo couldn't be prepared for MMS. Choose another photo."
+                    return []
                 }
 
-                let uploaded = try await UploadService.shared.uploadImage(data: data, token: token)
-                urls.append(uploaded.url)
+                let longestSide = max(image.size.width, image.size.height)
+                guard longestSide > 0 else {
+                    vm.errorText = "This photo has invalid dimensions."
+                    return []
+                }
+
+                var scale = min(CGFloat(1), 1600 / longestSide)
+                var jpeg: Data?
+                for attempt in 0..<7 {
+                    let size = CGSize(
+                        width: max(1, floor(image.size.width * scale)),
+                        height: max(1, floor(image.size.height * scale))
+                    )
+                    let renderer = UIGraphicsImageRenderer(size: size)
+                    let resized = renderer.image { context in
+                        UIColor.white.setFill()
+                        context.fill(CGRect(origin: .zero, size: size))
+                        image.draw(in: CGRect(origin: .zero, size: size))
+                    }
+                    jpeg = resized.jpegData(compressionQuality: max(0.45, 0.86 - Double(attempt) * 0.065))
+                    if let jpeg, jpeg.count <= targetJPEGBytes { break }
+                    scale *= 0.8
+                }
+
+                guard let jpeg, jpeg.count <= maxMessageBytes else {
+                    vm.errorText = "This photo couldn't be reduced below the 5 MB MMS limit."
+                    return []
+                }
+                aggregateBytes += jpeg.count
+                guard aggregateBytes <= maxMessageBytes else {
+                    vm.errorText = "Your selected photos together exceed 5 MB. Select fewer photos."
+                    return []
+                }
+                preparedPhotos.append(jpeg)
             } catch {
-                #if DEBUG
-                debugLog("❌ SMS image upload failed:", error)
-                #endif
+                vm.errorText = "Couldn't read the selected photo. Please try again."
+                return []
             }
         }
 
-        return urls
+        var keys: [String] = []
+        for jpeg in preparedPhotos {
+            do {
+                let uploaded = try await UploadService.shared.uploadImage(data: jpeg, token: token)
+                guard uploaded.ok == true,
+                      let key = uploaded.key,
+                      key.hasPrefix("uploads/u") else {
+                    vm.errorText = "Couldn't confirm the photo upload. Please try again."
+                    return []
+                }
+                keys.append(key)
+            } catch {
+                vm.errorText = "Couldn't upload the photo. Please try again."
+                #if DEBUG
+                debugLog("❌ SMS image upload failed:", error)
+                #endif
+                return []
+            }
+        }
+        return keys
     }
 }
 
