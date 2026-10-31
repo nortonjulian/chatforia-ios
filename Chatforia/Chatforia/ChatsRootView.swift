@@ -282,6 +282,7 @@ struct ChatsRootView: View {
             ))
             .searchable(
                 text: $vm.searchText,
+                placement: .navigationBarDrawer(displayMode: .always),
                 prompt: Text(
                     appText(
                         "ios.search_chats",
