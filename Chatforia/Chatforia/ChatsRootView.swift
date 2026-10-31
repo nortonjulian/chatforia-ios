@@ -881,9 +881,16 @@ struct ChatsRootView: View {
         // or participant names. Keep the stored message and preview unchanged.
         let voiceNoteLabel = appText("sms.voiceNote", languageCode: appLanguage)
             .trimmingCharacters(in: .whitespacesAndNewlines)
+        let mediaMarkers: Set<String> = ["[image]", "[video]", "[audio]", "[file]", "[gif]"]
+        // Older Chatforia messages may have a literal attachment marker
+        // without preview media metadata. Keep ordinary text intact.
+        let isLegacyChatforiaMarker = conversation.kind.lowercased() != "sms"
+            && mediaMarkers.contains(rawText.lowercased())
+        let mediaPlaceholder = mediaMarkers.contains(rawText.lowercased())
+            && (last.hasMedia == true || isLegacyChatforiaMarker)
         let text = rawText.caseInsensitiveCompare("[voice note]") == .orderedSame
             ? (voiceNoteLabel.isEmpty || voiceNoteLabel == "sms.voiceNote" ? "Voice note" : voiceNoteLabel)
-            : rawText
+            : (mediaPlaceholder ? "" : rawText)
 
         if !text.isEmpty {
             if (conversation.isGroup ?? false),
@@ -894,8 +901,17 @@ struct ChatsRootView: View {
             return text
         }
 
-        if last.hasMedia == true {
-            let kinds = (last.mediaKinds ?? []).map { $0.uppercased() }
+        if last.hasMedia == true || isLegacyChatforiaMarker {
+            var kinds = (last.mediaKinds ?? []).map { $0.uppercased() }
+            if kinds.isEmpty && isLegacyChatforiaMarker {
+                switch rawText.lowercased() {
+                case "[image]": kinds = ["IMAGE"]
+                case "[video]": kinds = ["VIDEO"]
+                case "[audio]": kinds = ["AUDIO"]
+                case "[gif]": kinds = ["GIF"]
+                default: kinds = ["FILE"]
+                }
+            }
             let base: String
 
             if kinds.contains("GIF") {
