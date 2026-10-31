@@ -9,14 +9,23 @@ sms = (root / "SMSThreadView.swift").read_text()
 chats = (root / "ChatsRootView.swift").read_text()
 
 assert 'showAttachmentChoices = true' in sms
-assert 'Button("Photo") { showPhotoPicker = true }' in sms
-assert 'Button("Video") { showVideoPicker = true }' in sms
+assert '.sheet(isPresented: $showAttachmentChoices)' in sms
+assert 'AttachmentPickerSheet(' in sms
+assert 'showPhotoPicker = true' in sms
+assert 'showVideoPicker = true' in sms
+assert 'showGIFPicker = true' in sms
+assert 'onVideo:' in sms
+assert 'onGIF:' in sms
+assert 'guard let key = await uploadGIF(gif)' in sms
+assert 'mimeType: "image/gif"' in sms
+assert 'data.starts(with: Data("GIF89a".utf8))' in sms
+assert 'selectedGIF = nil' in sms
 assert 'matching: .images' in sms
 assert 'matching: .videos' in sms
 assert 'selectedPhotoPreview' in sms
 assert 'Selected SMS photo preview' in sms
 assert 'Remove selected SMS attachment' in sms
-assert 'hasPendingAttachment: !selectedPhotos.isEmpty || selectedVideo != nil' in sms
+assert 'hasPendingAttachment: !selectedPhotos.isEmpty || selectedVideo != nil || selectedGIF != nil' in sms
 assert 'guard let key = await uploadVideo(video)' in sms
 assert 'let mp4 = try await prepareCarrierMP4(data)' in sms
 assert 'AVAssetExportSession(' in sms
@@ -54,5 +63,5 @@ assert 'try bytes.write(to: url, options: .atomic)' in sms
 assert 'try? FileManager.default.removeItem(at: playbackURL)' in sms
 assert 'TokenStore.shared.read() == token' in sms
 
-print("PASS: iOS SMS Photo/Video picker, MOV to MP4 export wiring, 500 KB check, private-key send, and chat preview, private video playback, thumbnail and duration")
+print("PASS: SMS Photo/Video/GIF picker wiring, GIF payload checks, MOV to MP4, media previews, private video playback")
 print("NOTE: Xcode compilation, Photos video representation, and real MMS delivery require device QA")
