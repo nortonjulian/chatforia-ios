@@ -24,6 +24,10 @@ private struct BlockPSTNNumberResponse: Decodable {
     let success: Bool
 }
 
+private struct SMSReadAckResponse: Decodable {
+    let ok: Bool
+}
+
 @MainActor
 final class SMSThreadViewModel: ObservableObject {
     @Published var thread: SMSThreadDTO?
@@ -82,7 +86,7 @@ final class SMSThreadViewModel: ObservableObject {
         }
     }
     
-    func loadThread(threadId: Int, token: String?) async {
+    func loadThread(threadId: Int, token: String?, acknowledgeVisibleRead: Bool = false) async {
         refreshVersion += 1
         let requestVersion = refreshVersion
         let accountId = UserDefaults.standard.integer(forKey: "chatforia.currentUserId")
@@ -116,19 +120,43 @@ final class SMSThreadViewModel: ObservableObject {
             messages = fetched.sortedMessages
             errorText = nil
 
-            // Only acknowledge a successful, current-account server read.
-            if fetched.id == threadId, accountId > 0,
-               UserDefaults.standard.integer(forKey: "chatforia.currentUserId") == accountId {
-                NotificationCenter.default.post(
-                    name: Notification.Name("smsThreadWasRead"),
-                    object: nil,
-                    userInfo: ["threadId": threadId, "accountId": accountId]
-                )
+            // A thread fetch by itself is not evidence that the user read it.
+            // Only the foreground, visible SMS conversation may acknowledge
+            // the last inbound message actually rendered by this response.
+            if acknowledgeVisibleRead,
+               fetched.id == threadId,
+               accountId > 0,
+               UserDefaults.standard.integer(forKey: "chatforia.currentUserId") == accountId,
+               let lastInbound = fetched.sortedMessages
+                   .filter({ !$0.isOutgoing })
+                   .max(by: { $0.createdAt < $1.createdAt }) {
+                do {
+                    struct ReadAck: Encodable { let messageId: Int }
+                    let _: SMSReadAckResponse = try await APIClient.shared.send(
+                        APIRequest(
+                            path: "sms/threads/\(threadId)/read",
+                            method: .POST,
+                            body: try JSONEncoder().encode(ReadAck(messageId: lastInbound.id)),
+                            requiresAuth: true
+                        ),
+                        token: token
+                    )
+                    guard TokenStore.shared.read() == token,
+                          UserDefaults.standard.integer(forKey: "chatforia.currentUserId") == accountId
+                    else { return }
+                    NotificationCenter.default.post(
+                        name: Notification.Name("smsThreadWasRead"),
+                        object: nil,
+                        userInfo: ["threadId": threadId, "accountId": accountId]
+                    )
+                    await NotificationCoordinator.shared.refreshBadgeState()
+                } catch {
+                    // Keep messages visible; failed acknowledgment is retried
+                    // when the foreground thread refreshes.
+                    debugLog("SMS explicit read acknowledgement failed:", String(describing: type(of: error)))
+                }
             }
 
-            // GET /sms/threads/:id marks this thread read on the server.
-            // Reconcile the app-icon badge from authoritative server state.
-            await NotificationCoordinator.shared.refreshBadgeState()
         } catch {
             guard requestVersion == refreshVersion, !Task.isCancelled,
                   TokenStore.shared.read() == token,
