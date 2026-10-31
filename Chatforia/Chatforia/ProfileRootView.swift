@@ -2,6 +2,13 @@ import SwiftUI
 import Combine
 import PhotosUI
 
+private struct UpgradePromptRequest: Identifiable {
+    let id = UUID()
+    let title: String
+    let message: String
+    let requiredPlan: AppPlan
+}
+
 struct ProfileRootView: View {
     let user: UserDTO
 
@@ -18,10 +25,7 @@ struct ProfileRootView: View {
     @State private var isUploadingAvatar = false
     @State private var avatarUploadError: String?
 
-    @State private var showingUpgradeSheet = false
-    @State private var lockedFeatureTitle = ""
-    @State private var lockedFeatureMessage = ""
-    @State private var lockedRequiredPlan: AppPlan = .premium
+    @State private var activeUpgradePrompt: UpgradePromptRequest?
 
     @State private var showingThemeSheet = false
     @State private var showingMessageToneSheet = false
@@ -203,13 +207,13 @@ struct ProfileRootView: View {
                 guard let newValue else { return }
                 vm.enableSmartReplies = newValue
             }
-            .sheet(isPresented: $showingUpgradeSheet) {
+            .sheet(item: $activeUpgradePrompt) { request in
                 UpgradePromptSheet(
-                    title: lockedFeatureTitle,
-                    message: lockedFeatureMessage,
-                    requiredPlan: lockedRequiredPlan,
+                    title: request.title,
+                    message: request.message,
+                    requiredPlan: request.requiredPlan,
                     onUpgradeTapped: {
-                        showingUpgradeSheet = false
+                        activeUpgradePrompt = nil
 
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
                             showUpgradeView = true
@@ -1651,10 +1655,14 @@ struct ProfileRootView: View {
     }
 
     private func presentUpgrade(title: String, message: String, requiredPlan: AppPlan) {
-        lockedFeatureTitle = title
-        lockedFeatureMessage = message
-        lockedRequiredPlan = requiredPlan
-        showingUpgradeSheet = true
+        // Present the sheet using one fully populated value. SwiftUI may
+        // snapshot the old individual @State properties on first presentation,
+        // briefly showing an empty title and description.
+        activeUpgradePrompt = UpgradePromptRequest(
+            title: title,
+            message: message,
+            requiredPlan: requiredPlan
+        )
     }
 
     private func attemptApplyTheme(_ code: String) {
