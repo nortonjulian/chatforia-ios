@@ -16,16 +16,21 @@ assert 'showVideoPicker = true' in sms
 assert 'showGIFPicker = true' in sms
 assert 'onVideo:' in sms
 assert 'onGIF:' in sms
-assert 'guard let key = await uploadGIF(gif)' in sms
+assert '.sheet(isPresented: $showGIFPicker)' in sms
+assert 'GIFPickerView { url in' in sms
+assert 'pendingGIFURL = url' in sms
+assert 'guard let key = await uploadGIF(from: gifURL)' in sms
+assert 'URLSession.shared.data(from: url)' in sms
+assert 'data.count <= 5_000_000' in sms
 assert 'mimeType: "image/gif"' in sms
 assert 'data.starts(with: Data("GIF89a".utf8))' in sms
-assert 'selectedGIF = nil' in sms
+assert 'pendingGIFURL = nil' in sms
 assert 'matching: .images' in sms
 assert 'matching: .videos' in sms
 assert 'selectedPhotoPreview' in sms
 assert 'Selected SMS photo preview' in sms
 assert 'Remove selected SMS attachment' in sms
-assert 'hasPendingAttachment: !selectedPhotos.isEmpty || selectedVideo != nil || selectedGIF != nil' in sms
+assert 'hasPendingAttachment: !selectedPhotos.isEmpty || selectedVideo != nil || pendingGIFURL != nil' in sms
 assert 'guard let key = await uploadVideo(video)' in sms
 assert 'let mp4 = try await prepareCarrierMP4(data)' in sms
 assert 'AVAssetExportSession(' in sms
@@ -63,5 +68,5 @@ assert 'try bytes.write(to: url, options: .atomic)' in sms
 assert 'try? FileManager.default.removeItem(at: playbackURL)' in sms
 assert 'TokenStore.shared.read() == token' in sms
 
-print("PASS: SMS Photo/Video/GIF picker wiring, GIF payload checks, MOV to MP4, media previews, private video playback")
+print("PASS: SMS shared Photo/Video/GIF gallery, private GIF upload wiring, MOV to MP4, previews, private video playback")
 print("NOTE: Xcode compilation, Photos video representation, and real MMS delivery require device QA")
