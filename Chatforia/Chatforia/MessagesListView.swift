@@ -148,6 +148,11 @@ struct MessagesListView: View {
                     )
 
                 }
+                // Anchor initial presentation at the newest message while
+                // late-loading private media determines its final height.
+                // Explicit scroll logic below still handles new messages and
+                // preserves manual position during history pagination.
+                .defaultScrollAnchor(.bottom)
                 .simultaneousGesture(
                     DragGesture(minimumDistance: 8).onChanged { _ in
                         hasUserScrolledSinceOpening = true
