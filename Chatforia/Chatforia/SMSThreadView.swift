@@ -393,7 +393,7 @@ struct SMSThreadView: View {
         .photosPicker(
             isPresented: $showPhotoPicker,
             selection: $selectedPhotos,
-            maxSelectionCount: 6,
+            maxSelectionCount: 5,
             matching: .images
         )
     }
@@ -492,14 +492,14 @@ struct SMSThreadView: View {
             isUploadingMedia = true
             let urls = await uploadImages(selectedPhotos)
             isUploadingMedia = false
-            selectedPhotos.removeAll()
 
             guard !urls.isEmpty else {
-                vm.errorText =
-                appText(
-                    "media.uploadFailed",
-                    languageCode: appLanguage
-                )
+                if vm.errorText == nil {
+                    vm.errorText = appText(
+                        "media.uploadFailed",
+                        languageCode: appLanguage
+                    )
+                }
                 return
             }
 
@@ -527,6 +527,7 @@ struct SMSThreadView: View {
                     startPolling()
                 }
 
+                selectedPhotos.removeAll()
                 draft = ""
             }
 
@@ -565,26 +566,46 @@ struct SMSThreadView: View {
     }
 
     private func uploadImages(_ items: [PhotosPickerItem]) async -> [String] {
-        guard let token = TokenStore.shared.read() else { return [] }
+        guard let token = TokenStore.shared.read(), !token.isEmpty else {
+            vm.errorText = "Your session has expired. Please sign in again."
+            return []
+        }
 
-        var urls: [String] = []
+        let maxMMSBytes = 5 * 1024 * 1024
+        var keys: [String] = []
 
         for item in items {
             do {
-                guard let data = try await item.loadTransferable(type: Data.self) else {
-                    continue
+                guard let data = try await item.loadTransferable(type: Data.self),
+                      let image = UIImage(data: data),
+                      let jpeg = image.jpegData(compressionQuality: 0.75) else {
+                    vm.errorText = "This photo couldn't be prepared for MMS. Choose another photo."
+                    return []
+                }
+                guard jpeg.count <= maxMMSBytes else {
+                    vm.errorText = "This photo is too large for MMS (5 MiB maximum). Choose a smaller photo."
+                    return []
                 }
 
-                let uploaded = try await UploadService.shared.uploadImage(data: data, token: token)
-                urls.append(uploaded.url)
+                // The carrier endpoint authorizes this private storage key.
+                // Public preview URLs are not valid outbound MMS references.
+                let uploaded = try await UploadService.shared.uploadImage(data: jpeg, token: token)
+                guard uploaded.ok == true,
+                      let key = uploaded.key,
+                      key.hasPrefix("uploads/u") else {
+                    vm.errorText = "Couldn't confirm the photo upload. Please try again."
+                    return []
+                }
+                keys.append(key)
             } catch {
+                vm.errorText = "Couldn't upload the photo. Please try again."
                 #if DEBUG
                 debugLog("❌ SMS image upload failed:", error)
                 #endif
+                return []
             }
         }
-
-        return urls
+        return keys
     }
 }
 
