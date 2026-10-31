@@ -32,6 +32,14 @@ assert sms.index('selectedVideo = nil\n                draft = ""') > sms.index(
 assert 'mediaMarkers.contains(rawText.lowercased()) && last.hasMedia == true' in chats
 assert 'mediaPlaceholder ? "" : rawText' in chats
 assert 'kinds.contains("IMAGE")' in chats
+assert 'else if item.isVideo {' in sms
+assert 'SMSAuthenticatedVideoCard(' in sms
+assert 'VideoPlayer(player: player)' in sms
+assert 'path: "sms/media/\\(messageId)/\\(mediaIndex)"' in sms
+assert 'APIClient.shared.sendRaw(request, token: token)' in sms
+assert 'try bytes.write(to: url, options: .atomic)' in sms
+assert 'try? FileManager.default.removeItem(at: playbackURL)' in sms
+assert 'TokenStore.shared.read() == token' in sms
 
-print("PASS: iOS SMS Photo/Video picker, MOV to MP4 export wiring, 500 KB check, private-key send, and chat preview")
+print("PASS: iOS SMS Photo/Video picker, MOV to MP4 export wiring, 500 KB check, private-key send, and chat preview, and private video playback")
 print("NOTE: Xcode compilation, Photos video representation, and real MMS delivery require device QA")
