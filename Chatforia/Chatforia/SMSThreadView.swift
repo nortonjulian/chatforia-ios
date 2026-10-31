@@ -1496,40 +1496,80 @@ private struct SMSAuthenticatedVideoCard: View {
     let mediaIndex: Int
     let maxWidth: CGFloat
 
+    @EnvironmentObject private var auth: AuthStore
     @State private var isLoading = false
+    @State private var isPreviewLoading = false
     @State private var errorText: String?
     @State private var isShowingPlayer = false
     @State private var playbackURL: URL?
     @State private var player: AVPlayer?
+    @State private var thumbnail: UIImage?
+    @State private var durationSeconds: Double?
+    // MMS MP4s are capped at 500 KB. Cache only while this view is active;
+    // clear on disappearance/account change and do not persist media to disk.
+    @State private var previewBytes: Data?
+
+    private var mediaIdentity: String {
+        "\(auth.currentUser?.id ?? 0):\(messageId):\(mediaIndex)"
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Button {
                 Task { await openVideo() }
             } label: {
-                HStack(spacing: 12) {
-                    if isLoading {
-                        ProgressView()
+                ZStack {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(Color(uiColor: .secondarySystemBackground))
+
+                    if let thumbnail {
+                        Image(uiImage: thumbnail)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: maxWidth, height: 148)
+                            .clipped()
                     } else {
-                        Image(systemName: "play.rectangle.fill")
-                            .font(.title2)
-                    }
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("Video")
-                            .font(.subheadline.weight(.semibold))
-                        Text("Tap to play")
-                            .font(.caption)
+                        Image(systemName: "film")
+                            .font(.system(size: 38, weight: .light))
                             .foregroundStyle(.secondary)
                     }
-                    Spacer(minLength: 0)
+
+                    Circle()
+                        .fill(.black.opacity(0.55))
+                        .frame(width: 50, height: 50)
+                        .overlay {
+                            if isLoading || isPreviewLoading {
+                                ProgressView().tint(.white)
+                            } else {
+                                Image(systemName: "play.fill")
+                                    .font(.system(size: 19, weight: .semibold))
+                                    .foregroundStyle(.white)
+                                    .offset(x: 2)
+                            }
+                        }
+
+                    VStack {
+                        Spacer()
+                        HStack {
+                            Text("Video")
+                                .font(.caption.weight(.semibold))
+                            Spacer()
+                            if let durationSeconds, durationSeconds.isFinite {
+                                Text(AudioAttachmentCardView.formatTime(durationSeconds))
+                                    .font(.caption.monospacedDigit())
+                            }
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 7)
+                        .background(.black.opacity(0.55))
+                    }
                 }
-                .padding(12)
-                .frame(width: maxWidth, alignment: .leading)
-                .background(Color(uiColor: .secondarySystemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .frame(width: maxWidth, height: 148)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
             .buttonStyle(.plain)
-            .disabled(isLoading)
+            .disabled(isLoading || isPreviewLoading)
             .accessibilityLabel("Play SMS video")
 
             if let errorText {
@@ -1542,7 +1582,10 @@ private struct SMSAuthenticatedVideoCard: View {
                 .font(.caption)
             }
         }
-        .sheet(isPresented: $isShowingPlayer, onDismiss: cleanup) {
+        .task(id: mediaIdentity) {
+            await loadPreview()
+        }
+        .sheet(isPresented: $isShowingPlayer, onDismiss: cleanupPlayer) {
             NavigationStack {
                 Group {
                     if let player {
@@ -1554,9 +1597,7 @@ private struct SMSAuthenticatedVideoCard: View {
                 .background(.black)
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button("Done") {
-                            isShowingPlayer = false
-                        }
+                        Button("Done") { isShowingPlayer = false }
                     }
                 }
                 .onAppear { player?.play() }
@@ -1564,7 +1605,56 @@ private struct SMSAuthenticatedVideoCard: View {
             }
         }
         .onDisappear {
-            if !isShowingPlayer { cleanup() }
+            if !isShowingPlayer {
+                cleanupPlayer()
+                clearPreview()
+            }
+        }
+    }
+
+    @MainActor
+    private func loadPreview() async {
+        guard !isPreviewLoading else { return }
+        guard let token = TokenStore.shared.read(), !token.isEmpty else { return }
+        let accountId = auth.currentUser?.id
+        isPreviewLoading = true
+        defer { isPreviewLoading = false }
+
+        do {
+            let request = APIRequest(
+                path: "sms/media/\(messageId)/\(mediaIndex)",
+                method: .GET,
+                requiresAuth: true
+            )
+            let (bytes, _) = try await APIClient.shared.sendRaw(request, token: token)
+            guard !Task.isCancelled,
+                  TokenStore.shared.read() == token,
+                  auth.currentUser?.id == accountId,
+                  !bytes.isEmpty, bytes.count <= 500_000 else { return }
+
+            // A local temporary MP4 is only needed to extract the first frame.
+            // Always remove it immediately; the bounded bytes stay in memory.
+            let tempURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent("sms-thumb-\(UUID().uuidString).mp4")
+            try bytes.write(to: tempURL, options: .atomic)
+            defer { try? FileManager.default.removeItem(at: tempURL) }
+
+            let asset = AVURLAsset(url: tempURL)
+            let duration = try await asset.load(.duration)
+            let generator = AVAssetImageGenerator(asset: asset)
+            generator.appliesPreferredTrackTransform = true
+            let image = try? generator.copyCGImage(at: .zero, actualTime: nil)
+
+            guard !Task.isCancelled,
+                  TokenStore.shared.read() == token,
+                  auth.currentUser?.id == accountId else { return }
+
+            previewBytes = bytes
+            if let image { thumbnail = UIImage(cgImage: image) }
+            let seconds = CMTimeGetSeconds(duration)
+            if seconds.isFinite && seconds > 0 { durationSeconds = seconds }
+        } catch {
+            // Preview generation is best-effort: the play control still works.
         }
     }
 
@@ -1575,26 +1665,31 @@ private struct SMSAuthenticatedVideoCard: View {
             errorText = "Sign in to play this video."
             return
         }
+        let accountId = auth.currentUser?.id
 
-        cleanup()
+        cleanupPlayer()
         isLoading = true
         errorText = nil
         defer { isLoading = false }
 
         do {
-            let request = APIRequest(
-                path: "sms/media/\(messageId)/\(mediaIndex)",
-                method: .GET,
-                requiresAuth: true
-            )
-            let (bytes, _) = try await APIClient.shared.sendRaw(request, token: token)
-            guard !bytes.isEmpty else {
-                throw URLError(.zeroByteResource)
+            let bytes: Data
+            if let previewBytes {
+                bytes = previewBytes
+            } else {
+                let request = APIRequest(
+                    path: "sms/media/\(messageId)/\(mediaIndex)",
+                    method: .GET,
+                    requiresAuth: true
+                )
+                (bytes, _) = try await APIClient.shared.sendRaw(request, token: token)
             }
-
-            // Account may change while bytes are in flight. Never present a
-            // previous account's private media under another session.
-            guard TokenStore.shared.read() == token else { return }
+            guard !bytes.isEmpty, bytes.count <= 500_000 else {
+                throw URLError(.dataLengthExceedsMaximum)
+            }
+            // Never present another signed-in account's media.
+            guard TokenStore.shared.read() == token,
+                  auth.currentUser?.id == accountId else { return }
 
             let url = FileManager.default.temporaryDirectory
                 .appendingPathComponent("sms-video-\(UUID().uuidString).mp4")
@@ -1608,7 +1703,14 @@ private struct SMSAuthenticatedVideoCard: View {
     }
 
     @MainActor
-    private func cleanup() {
+    private func clearPreview() {
+        previewBytes = nil
+        thumbnail = nil
+        durationSeconds = nil
+    }
+
+    @MainActor
+    private func cleanupPlayer() {
         player?.pause()
         player?.replaceCurrentItem(with: nil)
         player = nil
