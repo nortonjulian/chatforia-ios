@@ -309,7 +309,9 @@ struct MessageAttachmentsView: View {
                 } label: {
                     StablePrivateMessageImage(
                         url: url,
-                        maxWidth: min(maxWidth, 240)
+                        maxWidth: min(maxWidth, 240),
+                        originalWidth: attachment.width,
+                        originalHeight: attachment.height
                     )
                     .id(mediaScope + "/" + String(attachment.id ?? -1))
 
@@ -730,6 +732,20 @@ private extension String {
 private struct StablePrivateMessageImage: View {
     let url: URL
     let maxWidth: CGFloat
+    let originalWidth: Int?
+    let originalHeight: Int?
+
+    // Reserve the *same* dimensions before and after private image loading.
+    // Without a stable footprint, a late photo download increases the last
+    // message's height and moves the initial bottom anchor after opening.
+    private var reservedHeight: CGFloat {
+        guard let originalWidth, let originalHeight,
+              originalWidth > 0, originalHeight > 0 else {
+            return min(maxWidth, 240)
+        }
+        return max(100, min(240,
+            maxWidth * CGFloat(originalHeight) / CGFloat(originalWidth)))
+    }
 
     // Retain decoded pixels during short-lived private capability rotation.
     // This view's .id includes the account/session/media scope, so switching
@@ -743,12 +759,12 @@ private struct StablePrivateMessageImage: View {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFit()
-                    .frame(maxWidth: maxWidth, maxHeight: 240)
+                    .frame(width: maxWidth, height: reservedHeight)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             } else if hasFailed {
                 Label("Photo", systemImage: "photo.fill")
                     .font(.subheadline)
-                    .frame(width: maxWidth, height: 180)
+                    .frame(width: maxWidth, height: reservedHeight)
                     .background(Color(uiColor: .secondarySystemBackground))
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             } else {
@@ -757,7 +773,7 @@ private struct StablePrivateMessageImage: View {
                         .fill(Color(uiColor: .secondarySystemBackground))
                     ProgressView()
                 }
-                .frame(width: maxWidth, height: 180)
+                .frame(width: maxWidth, height: reservedHeight)
             }
         }
         .task(id: url.absoluteString) {
