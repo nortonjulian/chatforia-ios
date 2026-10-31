@@ -18,7 +18,14 @@ assert 'Selected SMS photo preview' in sms
 assert 'Remove selected SMS attachment' in sms
 assert 'hasPendingAttachment: !selectedPhotos.isEmpty || selectedVideo != nil' in sms
 assert 'guard let key = await uploadVideo(video)' in sms
-assert 'data.count <= 500_000' in sms
+assert 'let mp4 = try await prepareCarrierMP4(data)' in sms
+assert 'AVAssetExportSession(' in sms
+assert 'presetName: AVAssetExportPresetLowQuality' in sms
+assert 'session.outputFileType = .mp4' in sms
+assert 'mp4.count <= 500_000' in sms
+assert 'data: mp4,' in sms
+assert 'try? FileManager.default.removeItem(at: source)' in sms
+assert 'try? FileManager.default.removeItem(at: destination)' in sms
 assert 'key.hasPrefix("uploads/u")' in sms
 assert 'mediaUrls: [key]' in sms
 assert sms.index('selectedVideo = nil\n                draft = ""') > sms.index('if let threadID {')
@@ -26,5 +33,5 @@ assert 'mediaMarkers.contains(rawText.lowercased()) && last.hasMedia == true' in
 assert 'mediaPlaceholder ? "" : rawText' in chats
 assert 'kinds.contains("IMAGE")' in chats
 
-print("PASS: iOS SMS Photo/Video picker, pending media preview, authenticated send, and chat-list marker wiring")
+print("PASS: iOS SMS Photo/Video picker, MOV to MP4 export wiring, 500 KB check, private-key send, and chat preview")
 print("NOTE: Xcode compilation, Photos video representation, and real MMS delivery require device QA")
