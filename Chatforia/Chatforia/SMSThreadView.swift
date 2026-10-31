@@ -1508,6 +1508,7 @@ private struct SMSAuthenticatedVideoCard: View {
     // MMS MP4s are capped at 500 KB. Cache only while this view is active;
     // clear on disappearance/account change and do not persist media to disk.
     @State private var previewBytes: Data?
+    @State private var previewIdentity: String?
 
     private var mediaIdentity: String {
         "\(auth.currentUser?.id ?? 0):\(messageId):\(mediaIndex)"
@@ -1583,7 +1584,16 @@ private struct SMSAuthenticatedVideoCard: View {
             }
         }
         .task(id: mediaIdentity) {
+            // New message/account: discard any previous private media bytes
+            // before trying to load a preview for the current identity.
+            cleanupPlayer()
+            clearPreview()
             await loadPreview()
+        }
+        .onChange(of: mediaIdentity) { _, _ in
+            isShowingPlayer = false
+            cleanupPlayer()
+            clearPreview()
         }
         .sheet(isPresented: $isShowingPlayer, onDismiss: cleanupPlayer) {
             NavigationStack {
@@ -1649,6 +1659,7 @@ private struct SMSAuthenticatedVideoCard: View {
                   TokenStore.shared.read() == token,
                   auth.currentUser?.id == accountId else { return }
 
+            previewIdentity = mediaIdentity
             previewBytes = bytes
             if let image { thumbnail = UIImage(cgImage: image) }
             let seconds = CMTimeGetSeconds(duration)
@@ -1674,7 +1685,7 @@ private struct SMSAuthenticatedVideoCard: View {
 
         do {
             let bytes: Data
-            if let previewBytes {
+            if previewIdentity == mediaIdentity, let previewBytes {
                 bytes = previewBytes
             } else {
                 let request = APIRequest(
@@ -1705,6 +1716,7 @@ private struct SMSAuthenticatedVideoCard: View {
 
     @MainActor
     private func clearPreview() {
+        previewIdentity = nil
         previewBytes = nil
         thumbnail = nil
         durationSeconds = nil
