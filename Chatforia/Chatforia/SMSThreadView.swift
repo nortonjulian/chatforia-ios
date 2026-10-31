@@ -1,8 +1,10 @@
 import SwiftUI
 import Combine
 import PhotosUI
+import UniformTypeIdentifiers
 import UIKit
 import AVFoundation
+import AVKit
 
 struct SendSMSResponseDTO: Decodable {
     let ok: Bool
@@ -18,6 +20,8 @@ struct SMSThreadView: View {
     @StateObject private var vm = SMSThreadViewModel()
     @State private var draft: String = ""
     @State private var selectedPhotos: [PhotosPickerItem] = []
+    @State private var selectedPhotoPreview: UIImage? = nil
+    @State private var selectedVideo: PhotosPickerItem? = nil
     @State private var isUploadingMedia = false
     @StateObject private var voice = SMSVoiceNoteController()
     @State private var isPreparingVoiceSend = false
@@ -26,6 +30,8 @@ struct SMSThreadView: View {
     @EnvironmentObject private var themeManager: ThemeManager
     @State private var pollingTask: Task<Void, Never>?
     @State private var showPhotoPicker = false
+    @State private var showVideoPicker = false
+    @State private var showAttachmentChoices = false
 
     @State private var showingAddContact = false
     
@@ -64,6 +70,15 @@ struct SMSThreadView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             composer
+        }
+        .confirmationDialog(
+            "Attach to SMS",
+            isPresented: $showAttachmentChoices,
+            titleVisibility: .visible
+        ) {
+            Button("Photo") { showPhotoPicker = true }
+            Button("Video") { showVideoPicker = true }
+            Button("Cancel", role: .cancel) {}
         }
         .background(themeManager.palette.screenBackground.ignoresSafeArea())
         .navigationTitle(
@@ -365,7 +380,7 @@ struct SMSThreadView: View {
             isSendingVoice: voice.isSending,
             onDraftChanged: {},
             onAttachmentTap: {
-                showPhotoPicker = true
+                showAttachmentChoices = true
             },
             onSend: {
                 Task {
@@ -376,7 +391,8 @@ struct SMSThreadView: View {
             recordingDurationText: AudioAttachmentCardView.formatTime(voice.elapsed),
             voiceDraftDurationText: voice.draft.map { AudioAttachmentCardView.formatTime($0.durationSec) },
             onMicTap: {
-                guard selectedPhotos.isEmpty, !isUploadingMedia, !vm.isSending,
+                guard selectedPhotos.isEmpty, selectedVideo == nil,
+                      !isUploadingMedia, !vm.isSending,
                       !isPreparingVoiceSend, !voice.isSending else { return }
                 vm.errorText = nil
                 Task { await voice.start(token: TokenStore.shared.read()) }
@@ -388,7 +404,7 @@ struct SMSThreadView: View {
             onPlayVoiceDraftTap: { voice.togglePreview() },
             isPlayingVoiceDraft: voice.isPlaying,
             hasVoiceDraft: voice.draft != nil,
-            hasPendingAttachment: !selectedPhotos.isEmpty
+            hasPendingAttachment: !selectedPhotos.isEmpty || selectedVideo != nil
         )
         .photosPicker(
             isPresented: $showPhotoPicker,
@@ -396,6 +412,68 @@ struct SMSThreadView: View {
             maxSelectionCount: 5,
             matching: .images
         )
+        .photosPicker(
+            isPresented: $showVideoPicker,
+            selection: $selectedVideo,
+            matching: .videos
+        )
+        .onChange(of: selectedPhotos) { _, items in
+            if !items.isEmpty {
+                selectedVideo = nil
+            }
+            selectedPhotoPreview = nil
+            guard let first = items.first else { return }
+            Task {
+                guard let data = try? await first.loadTransferable(type: Data.self),
+                      let photo = UIImage(data: data) else { return }
+                if selectedPhotos == items {
+                    selectedPhotoPreview = photo
+                }
+            }
+        }
+        .onChange(of: selectedVideo) { _, item in
+            if item != nil {
+                selectedPhotos.removeAll()
+                selectedPhotoPreview = nil
+            }
+        }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if !selectedPhotos.isEmpty || selectedVideo != nil {
+                HStack(spacing: 10) {
+                    if let selectedPhotoPreview {
+                        Image(uiImage: selectedPhotoPreview)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 54, height: 54)
+                            .clipShape(RoundedRectangle(cornerRadius: 9))
+                            .accessibilityLabel("Selected SMS photo preview")
+                    } else {
+                        Image(systemName: selectedVideo == nil ? "photo" : "video.fill")
+                            .font(.title2)
+                            .frame(width: 54, height: 54)
+                    }
+                    Text(selectedVideo == nil
+                         ? "Photo selected (\(selectedPhotos.count)) — tap Send"
+                         : "Video selected — carrier limit 500 KB")
+                        .font(.footnote)
+                        .lineLimit(2)
+                    Spacer()
+                    Button {
+                        selectedPhotos.removeAll()
+                        selectedVideo = nil
+                        selectedPhotoPreview = nil
+                        vm.errorText = nil
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title3)
+                    }
+                    .accessibilityLabel("Remove selected SMS attachment")
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(themeManager.palette.composerBackground)
+            }
+        }
     }
 
     private func startPolling() {
@@ -488,6 +566,38 @@ struct SMSThreadView: View {
             return
         }
 
+        if let video = selectedVideo {
+            isUploadingMedia = true
+            defer { isUploadingMedia = false }
+            guard let key = await uploadVideo(video) else { return }
+            let threadID = await vm.sendMediaMessage(
+                existingThreadId: activeConversation.id,
+                to: to,
+                mediaUrls: [key],
+                token: token
+            )
+            if let threadID {
+                if activeConversation.id == nil {
+                    activeConversation = ConversationDTO(
+                        kind: activeConversation.kind,
+                        id: threadID,
+                        title: activeConversation.title,
+                        displayName: activeConversation.displayName,
+                        updatedAt: activeConversation.updatedAt,
+                        isGroup: activeConversation.isGroup,
+                        phone: activeConversation.phone,
+                        unreadCount: activeConversation.unreadCount,
+                        avatarUsers: activeConversation.avatarUsers,
+                        last: activeConversation.last
+                    )
+                    startPolling()
+                }
+                selectedVideo = nil
+                draft = ""
+            }
+            return
+        }
+
         if !selectedPhotos.isEmpty {
             isUploadingMedia = true
             let urls = await uploadImages(selectedPhotos)
@@ -528,6 +638,7 @@ struct SMSThreadView: View {
                 }
 
                 selectedPhotos.removeAll()
+                selectedPhotoPreview = nil
                 draft = ""
             }
 
@@ -563,6 +674,84 @@ struct SMSThreadView: View {
 
             draft = ""
         }
+    }
+
+    private func uploadVideo(_ item: PhotosPickerItem) async -> String? {
+        guard let token = TokenStore.shared.read(), !token.isEmpty else {
+            vm.errorText = "Your session has expired. Please sign in again."
+            return nil
+        }
+
+        do {
+            guard let data = try await item.loadTransferable(type: Data.self),
+                  !data.isEmpty else {
+                vm.errorText = "Couldn't read this video from Photos. Try another clip."
+                return nil
+            }
+
+            // iPhone Photos usually supplies MOV, even for very short videos.
+            // Export a real MP4 rather than renaming MOV bytes.
+            let mp4 = try await prepareCarrierMP4(data)
+            guard mp4.count <= 500_000 else {
+                vm.errorText = "This video is still too large for carrier MMS after compression (500 KB limit). Try a shorter clip."
+                return nil
+            }
+
+            let uploaded = try await UploadService.shared.uploadFile(
+                data: mp4,
+                token: token,
+                fileName: "mms-video-\(Int(Date().timeIntervalSince1970)).mp4",
+                mimeType: "video/mp4"
+            )
+            guard uploaded.ok == true,
+                  let key = uploaded.key,
+                  key.hasPrefix("uploads/u") else {
+                vm.errorText = "Couldn't confirm the video upload. Please try again."
+                return nil
+            }
+            return key
+        } catch {
+            vm.errorText = "This video couldn't be converted to carrier-compatible MP4. Try a shorter clip."
+            #if DEBUG
+            debugLog("❌ SMS video export failed:", error)
+            #endif
+            return nil
+        }
+    }
+
+    private func prepareCarrierMP4(_ original: Data) async throws -> Data {
+        let directory = FileManager.default.temporaryDirectory
+        let source = directory.appendingPathComponent("sms-source-\(UUID().uuidString).mov")
+        let destination = directory.appendingPathComponent("sms-export-\(UUID().uuidString).mp4")
+
+        try original.write(to: source, options: .atomic)
+        defer {
+            try? FileManager.default.removeItem(at: source)
+            try? FileManager.default.removeItem(at: destination)
+        }
+
+        let asset = AVURLAsset(url: source)
+        guard let session = AVAssetExportSession(
+            asset: asset,
+            presetName: AVAssetExportPresetLowQuality
+        ), session.supportedFileTypes.contains(.mp4) else {
+            throw URLError(.cannotDecodeContentData)
+        }
+
+        session.outputURL = destination
+        session.outputFileType = .mp4
+        session.shouldOptimizeForNetworkUse = true
+
+        await withCheckedContinuation { continuation in
+            session.exportAsynchronously {
+                continuation.resume()
+            }
+        }
+
+        guard session.status == .completed else {
+            throw session.error ?? URLError(.cannotDecodeContentData)
+        }
+        return try Data(contentsOf: destination)
     }
 
     private func uploadImages(_ items: [PhotosPickerItem]) async -> [String] {
@@ -1130,6 +1319,12 @@ private struct SMSMediaStackView: View {
                     )
                 } else if item.isAudio {
                     SMSAudioAttachmentCard(message: message, mediaIndex: index, maxWidth: maxWidth)
+                } else if item.isVideo {
+                    SMSAuthenticatedVideoCard(
+                        messageId: message.id,
+                        mediaIndex: index,
+                        maxWidth: min(maxWidth, 240)
+                    )
                 } else {
                     SMSGenericAttachmentCard(item: item)
                         .frame(width: min(maxWidth, 240))
@@ -1288,6 +1483,242 @@ private struct SMSFullscreenImageView: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Authenticated carrier video (private media, no public URL)
+//
+// Playback needs a local file because the private SMS proxy requires an auth
+// token. Keep the file only while the playback sheet is open; never cache it
+// in Documents or expose the R2 key to AVPlayer.
+private struct SMSAuthenticatedVideoCard: View {
+    let messageId: Int
+    let mediaIndex: Int
+    let maxWidth: CGFloat
+
+    @EnvironmentObject private var auth: AuthStore
+    @State private var isLoading = false
+    @State private var isPreviewLoading = false
+    @State private var errorText: String?
+    @State private var isShowingPlayer = false
+    @State private var playbackURL: URL?
+    @State private var player: AVPlayer?
+    @State private var thumbnail: UIImage?
+    @State private var durationSeconds: Double?
+    // MMS MP4s are capped at 500 KB. Cache only while this view is active;
+    // clear on disappearance/account change and do not persist media to disk.
+    @State private var previewBytes: Data?
+
+    private var mediaIdentity: String {
+        "\(auth.currentUser?.id ?? 0):\(messageId):\(mediaIndex)"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Button {
+                Task { await openVideo() }
+            } label: {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(Color(uiColor: .secondarySystemBackground))
+
+                    if let thumbnail {
+                        Image(uiImage: thumbnail)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: maxWidth, height: 148)
+                            .clipped()
+                    } else {
+                        Image(systemName: "film")
+                            .font(.system(size: 38, weight: .light))
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Circle()
+                        .fill(.black.opacity(0.55))
+                        .frame(width: 50, height: 50)
+                        .overlay {
+                            if isLoading || isPreviewLoading {
+                                ProgressView().tint(.white)
+                            } else {
+                                Image(systemName: "play.fill")
+                                    .font(.system(size: 19, weight: .semibold))
+                                    .foregroundStyle(.white)
+                                    .offset(x: 2)
+                            }
+                        }
+
+                    VStack {
+                        Spacer()
+                        HStack {
+                            Text("Video")
+                                .font(.caption.weight(.semibold))
+                            Spacer()
+                            if let durationSeconds, durationSeconds.isFinite {
+                                Text(AudioAttachmentCardView.formatTime(durationSeconds))
+                                    .font(.caption.monospacedDigit())
+                            }
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 7)
+                        .background(.black.opacity(0.55))
+                    }
+                }
+                .frame(width: maxWidth, height: 148)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .disabled(isLoading || isPreviewLoading)
+            .accessibilityLabel("Play SMS video")
+
+            if let errorText {
+                Text(errorText)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                Button("Retry video") {
+                    Task { await openVideo() }
+                }
+                .font(.caption)
+            }
+        }
+        .task(id: mediaIdentity) {
+            await loadPreview()
+        }
+        .sheet(isPresented: $isShowingPlayer, onDismiss: cleanupPlayer) {
+            NavigationStack {
+                Group {
+                    if let player {
+                        VideoPlayer(player: player)
+                    } else {
+                        ProgressView()
+                    }
+                }
+                .background(.black)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Done") { isShowingPlayer = false }
+                    }
+                }
+                .onAppear { player?.play() }
+                .onDisappear { player?.pause() }
+            }
+        }
+        .onDisappear {
+            if !isShowingPlayer {
+                cleanupPlayer()
+                clearPreview()
+            }
+        }
+    }
+
+    @MainActor
+    private func loadPreview() async {
+        guard !isPreviewLoading else { return }
+        guard let token = TokenStore.shared.read(), !token.isEmpty else { return }
+        let accountId = auth.currentUser?.id
+        isPreviewLoading = true
+        defer { isPreviewLoading = false }
+
+        do {
+            let request = APIRequest(
+                path: "sms/media/\(messageId)/\(mediaIndex)",
+                method: .GET,
+                requiresAuth: true
+            )
+            let (bytes, _) = try await APIClient.shared.sendRaw(request, token: token)
+            guard !Task.isCancelled,
+                  TokenStore.shared.read() == token,
+                  auth.currentUser?.id == accountId,
+                  !bytes.isEmpty, bytes.count <= 500_000 else { return }
+
+            // A local temporary MP4 is only needed to extract the first frame.
+            // Always remove it immediately; the bounded bytes stay in memory.
+            let tempURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent("sms-thumb-\(UUID().uuidString).mp4")
+            try bytes.write(to: tempURL, options: .atomic)
+            defer { try? FileManager.default.removeItem(at: tempURL) }
+
+            let asset = AVURLAsset(url: tempURL)
+            let duration = try await asset.load(.duration)
+            let generator = AVAssetImageGenerator(asset: asset)
+            generator.appliesPreferredTrackTransform = true
+            let image = try? generator.copyCGImage(at: .zero, actualTime: nil)
+
+            guard !Task.isCancelled,
+                  TokenStore.shared.read() == token,
+                  auth.currentUser?.id == accountId else { return }
+
+            previewBytes = bytes
+            if let image { thumbnail = UIImage(cgImage: image) }
+            let seconds = CMTimeGetSeconds(duration)
+            if seconds.isFinite && seconds > 0 { durationSeconds = seconds }
+        } catch {
+            // Preview generation is best-effort: the play control still works.
+        }
+    }
+
+    @MainActor
+    private func openVideo() async {
+        guard !isLoading else { return }
+        guard let token = TokenStore.shared.read(), !token.isEmpty else {
+            errorText = "Sign in to play this video."
+            return
+        }
+        let accountId = auth.currentUser?.id
+
+        cleanupPlayer()
+        isLoading = true
+        errorText = nil
+        defer { isLoading = false }
+
+        do {
+            let bytes: Data
+            if let previewBytes {
+                bytes = previewBytes
+            } else {
+                let request = APIRequest(
+                    path: "sms/media/\(messageId)/\(mediaIndex)",
+                    method: .GET,
+                    requiresAuth: true
+                )
+                let result = try await APIClient.shared.sendRaw(request, token: token)
+                bytes = result.0
+            }
+            guard !bytes.isEmpty, bytes.count <= 500_000 else {
+                throw URLError(.dataLengthExceedsMaximum)
+            }
+            // Never present another signed-in account's media.
+            guard TokenStore.shared.read() == token,
+                  auth.currentUser?.id == accountId else { return }
+
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("sms-video-\(UUID().uuidString).mp4")
+            try bytes.write(to: url, options: .atomic)
+            playbackURL = url
+            player = AVPlayer(url: url)
+            isShowingPlayer = true
+        } catch {
+            errorText = "Could not load this video. Tap Retry."
+        }
+    }
+
+    @MainActor
+    private func clearPreview() {
+        previewBytes = nil
+        thumbnail = nil
+        durationSeconds = nil
+    }
+
+    @MainActor
+    private func cleanupPlayer() {
+        player?.pause()
+        player?.replaceCurrentItem(with: nil)
+        player = nil
+        if let playbackURL {
+            try? FileManager.default.removeItem(at: playbackURL)
+        }
+        playbackURL = nil
     }
 }
 
