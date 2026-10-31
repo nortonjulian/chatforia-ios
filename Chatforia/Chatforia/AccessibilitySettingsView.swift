@@ -36,6 +36,11 @@ struct AccessibilitySettingsView: View {
                         Text(appText("accessibility_interface_font_size_help", languageCode: appLanguage))
                             .font(.caption)
                             .foregroundStyle(themeManager.palette.secondaryText)
+
+                        Text("Your iPhone's Larger Text setting also applies. This selection may be smaller than the actual displayed text.")
+                            .font(.caption)
+                            .foregroundStyle(themeManager.palette.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
 
@@ -141,7 +146,7 @@ struct AccessibilitySettingsView: View {
                 }
             }
             .padding()
-            .padding(.bottom, 24)
+            .padding(.bottom, 120)
         }
         .background(themeManager.palette.screenBackground)
         .navigationTitle(appText("accessibility_title", languageCode: appLanguage))
