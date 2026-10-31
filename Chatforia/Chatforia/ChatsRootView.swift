@@ -831,9 +831,11 @@ struct ChatsRootView: View {
         // or participant names. Keep the stored message and preview unchanged.
         let voiceNoteLabel = appText("sms.voiceNote", languageCode: appLanguage)
             .trimmingCharacters(in: .whitespacesAndNewlines)
+        let mediaMarkers: Set<String> = ["[image]", "[video]", "[audio]", "[file]", "[gif]"]
+        let mediaPlaceholder = mediaMarkers.contains(rawText.lowercased()) && last.hasMedia == true
         let text = rawText.caseInsensitiveCompare("[voice note]") == .orderedSame
             ? (voiceNoteLabel.isEmpty || voiceNoteLabel == "sms.voiceNote" ? "Voice note" : voiceNoteLabel)
-            : rawText
+            : (mediaPlaceholder ? "" : rawText)
 
         if !text.isEmpty {
             if (conversation.isGroup ?? false),
