@@ -44,6 +44,42 @@ struct ChatsRootView: View {
         )
     }
 
+    // Unlike SwiftUI's navigation search drawer, this stays visible when
+    // the user switches tabs or scrolls the conversation list.
+    private var pinnedSearch: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+
+            TextField(
+                appText("ios.search_chats", languageCode: appLanguage),
+                text: $vm.searchText
+            )
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .submitLabel(.search)
+            .accessibilityLabel(appText("ios.search_chats", languageCode: appLanguage))
+
+            if !vm.searchText.isEmpty {
+                Button {
+                    vm.searchText = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilityLabel("Clear chat search")
+            }
+        }
+        .font(.body)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(themeManager.palette.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -51,6 +87,7 @@ struct ChatsRootView: View {
                     .ignoresSafeArea()
 
                 VStack(spacing: 0) {
+                    pinnedSearch
                     Group {
                         if vm.isLoading && vm.conversations.isEmpty {
                             LoadingStateView(
@@ -281,16 +318,6 @@ struct ChatsRootView: View {
                 "tab_chats",
                 languageCode: appLanguage
             ))
-            .searchable(
-                text: $vm.searchText,
-                placement: .navigationBarDrawer(displayMode: .always),
-                prompt: Text(
-                    appText(
-                        "ios.search_chats",
-                        languageCode: appLanguage
-                    )
-                )
-            )
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
