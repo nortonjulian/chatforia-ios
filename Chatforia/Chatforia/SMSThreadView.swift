@@ -1,6 +1,7 @@
 import SwiftUI
 import Combine
 import PhotosUI
+import UniformTypeIdentifiers
 import UIKit
 import AVFoundation
 
@@ -18,6 +19,8 @@ struct SMSThreadView: View {
     @StateObject private var vm = SMSThreadViewModel()
     @State private var draft: String = ""
     @State private var selectedPhotos: [PhotosPickerItem] = []
+    @State private var selectedPhotoPreview: UIImage? = nil
+    @State private var selectedVideo: PhotosPickerItem? = nil
     @State private var isUploadingMedia = false
     @StateObject private var voice = SMSVoiceNoteController()
     @State private var isPreparingVoiceSend = false
@@ -26,6 +29,8 @@ struct SMSThreadView: View {
     @EnvironmentObject private var themeManager: ThemeManager
     @State private var pollingTask: Task<Void, Never>?
     @State private var showPhotoPicker = false
+    @State private var showVideoPicker = false
+    @State private var showAttachmentChoices = false
 
     @State private var showingAddContact = false
     
@@ -64,6 +69,15 @@ struct SMSThreadView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             composer
+        }
+        .confirmationDialog(
+            "Attach to SMS",
+            isPresented: $showAttachmentChoices,
+            titleVisibility: .visible
+        ) {
+            Button("Photo") { showPhotoPicker = true }
+            Button("Video") { showVideoPicker = true }
+            Button("Cancel", role: .cancel) {}
         }
         .background(themeManager.palette.screenBackground.ignoresSafeArea())
         .navigationTitle(
@@ -365,7 +379,7 @@ struct SMSThreadView: View {
             isSendingVoice: voice.isSending,
             onDraftChanged: {},
             onAttachmentTap: {
-                showPhotoPicker = true
+                showAttachmentChoices = true
             },
             onSend: {
                 Task {
@@ -376,7 +390,8 @@ struct SMSThreadView: View {
             recordingDurationText: AudioAttachmentCardView.formatTime(voice.elapsed),
             voiceDraftDurationText: voice.draft.map { AudioAttachmentCardView.formatTime($0.durationSec) },
             onMicTap: {
-                guard selectedPhotos.isEmpty, !isUploadingMedia, !vm.isSending,
+                guard selectedPhotos.isEmpty, selectedVideo == nil,
+                      !isUploadingMedia, !vm.isSending,
                       !isPreparingVoiceSend, !voice.isSending else { return }
                 vm.errorText = nil
                 Task { await voice.start(token: TokenStore.shared.read()) }
@@ -388,7 +403,7 @@ struct SMSThreadView: View {
             onPlayVoiceDraftTap: { voice.togglePreview() },
             isPlayingVoiceDraft: voice.isPlaying,
             hasVoiceDraft: voice.draft != nil,
-            hasPendingAttachment: !selectedPhotos.isEmpty
+            hasPendingAttachment: !selectedPhotos.isEmpty || selectedVideo != nil
         )
         .photosPicker(
             isPresented: $showPhotoPicker,
@@ -396,6 +411,68 @@ struct SMSThreadView: View {
             maxSelectionCount: 5,
             matching: .images
         )
+        .photosPicker(
+            isPresented: $showVideoPicker,
+            selection: $selectedVideo,
+            matching: .videos
+        )
+        .onChange(of: selectedPhotos) { _, items in
+            if !items.isEmpty {
+                selectedVideo = nil
+            }
+            selectedPhotoPreview = nil
+            guard let first = items.first else { return }
+            Task {
+                guard let data = try? await first.loadTransferable(type: Data.self),
+                      let photo = UIImage(data: data) else { return }
+                if selectedPhotos == items {
+                    selectedPhotoPreview = photo
+                }
+            }
+        }
+        .onChange(of: selectedVideo) { _, item in
+            if item != nil {
+                selectedPhotos.removeAll()
+                selectedPhotoPreview = nil
+            }
+        }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if !selectedPhotos.isEmpty || selectedVideo != nil {
+                HStack(spacing: 10) {
+                    if let selectedPhotoPreview {
+                        Image(uiImage: selectedPhotoPreview)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 54, height: 54)
+                            .clipShape(RoundedRectangle(cornerRadius: 9))
+                            .accessibilityLabel("Selected SMS photo preview")
+                    } else {
+                        Image(systemName: selectedVideo == nil ? "photo" : "video.fill")
+                            .font(.title2)
+                            .frame(width: 54, height: 54)
+                    }
+                    Text(selectedVideo == nil
+                         ? "Photo selected (\(selectedPhotos.count)) — tap Send"
+                         : "Video selected — carrier limit 500 KB")
+                        .font(.footnote)
+                        .lineLimit(2)
+                    Spacer()
+                    Button {
+                        selectedPhotos.removeAll()
+                        selectedVideo = nil
+                        selectedPhotoPreview = nil
+                        vm.errorText = nil
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title3)
+                    }
+                    .accessibilityLabel("Remove selected SMS attachment")
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(themeManager.palette.composerBackground)
+            }
+        }
     }
 
     private func startPolling() {
@@ -488,6 +565,38 @@ struct SMSThreadView: View {
             return
         }
 
+        if let video = selectedVideo {
+            isUploadingMedia = true
+            defer { isUploadingMedia = false }
+            guard let key = await uploadVideo(video) else { return }
+            let threadID = await vm.sendMediaMessage(
+                existingThreadId: activeConversation.id,
+                to: to,
+                mediaUrls: [key],
+                token: token
+            )
+            if let threadID {
+                if activeConversation.id == nil {
+                    activeConversation = ConversationDTO(
+                        kind: activeConversation.kind,
+                        id: threadID,
+                        title: activeConversation.title,
+                        displayName: activeConversation.displayName,
+                        updatedAt: activeConversation.updatedAt,
+                        isGroup: activeConversation.isGroup,
+                        phone: activeConversation.phone,
+                        unreadCount: activeConversation.unreadCount,
+                        avatarUsers: activeConversation.avatarUsers,
+                        last: activeConversation.last
+                    )
+                    startPolling()
+                }
+                selectedVideo = nil
+                draft = ""
+            }
+            return
+        }
+
         if !selectedPhotos.isEmpty {
             isUploadingMedia = true
             let urls = await uploadImages(selectedPhotos)
@@ -528,6 +637,7 @@ struct SMSThreadView: View {
                 }
 
                 selectedPhotos.removeAll()
+                selectedPhotoPreview = nil
                 draft = ""
             }
 
@@ -562,6 +672,48 @@ struct SMSThreadView: View {
             }
 
             draft = ""
+        }
+    }
+
+    private func uploadVideo(_ item: PhotosPickerItem) async -> String? {
+        guard let token = TokenStore.shared.read(), !token.isEmpty else {
+            vm.errorText = "Your session has expired. Please sign in again."
+            return nil
+        }
+        // Preserve actual file encoding. A MOV is not an MP4 just because its
+        // filename or declared MIME type is changed.
+        guard item.supportedContentTypes.contains(where: {
+            $0.conforms(to: .mpeg4Movie)
+        }) else {
+            vm.errorText = "Carrier MMS needs an MP4 video under 500 KB. This video must be exported to MP4 first."
+            return nil
+        }
+        do {
+            guard let data = try await item.loadTransferable(type: Data.self),
+                  !data.isEmpty else {
+                vm.errorText = "Couldn't read this video. Choose a small MP4."
+                return nil
+            }
+            guard data.count <= 500_000 else {
+                vm.errorText = "Carrier MMS video must be 500 KB or smaller. Trim or compress the clip."
+                return nil
+            }
+            let uploaded = try await UploadService.shared.uploadFile(
+                data: data,
+                token: token,
+                fileName: "mms-video-\(Int(Date().timeIntervalSince1970)).mp4",
+                mimeType: "video/mp4"
+            )
+            guard uploaded.ok == true,
+                  let key = uploaded.key,
+                  key.hasPrefix("uploads/u") else {
+                vm.errorText = "Couldn't confirm the video upload. Please try again."
+                return nil
+            }
+            return key
+        } catch {
+            vm.errorText = "Couldn't prepare this MP4 video for MMS. Try a smaller clip."
+            return nil
         }
     }
 
