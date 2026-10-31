@@ -29,7 +29,11 @@ assert 'try? FileManager.default.removeItem(at: destination)' in sms
 assert 'key.hasPrefix("uploads/u")' in sms
 assert 'mediaUrls: [key]' in sms
 assert sms.index('selectedVideo = nil\n                draft = ""') > sms.index('if let threadID {')
-assert 'mediaMarkers.contains(rawText.lowercased()) && last.hasMedia == true' in chats
+assert 'isLegacyChatforiaMarker' in chats
+assert 'last.hasMedia == true || isLegacyChatforiaMarker' in chats
+assert 'case "[image]": kinds = ["IMAGE"]' in chats
+assert 'case "[video]": kinds = ["VIDEO"]' in chats
+assert 'case "[audio]": kinds = ["AUDIO"]' in chats
 assert 'mediaPlaceholder ? "" : rawText' in chats
 assert 'kinds.contains("IMAGE")' in chats
 assert 'else if item.isVideo {' in sms
