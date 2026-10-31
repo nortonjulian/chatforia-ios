@@ -680,26 +680,24 @@ struct SMSThreadView: View {
             vm.errorText = "Your session has expired. Please sign in again."
             return nil
         }
-        // Preserve actual file encoding. A MOV is not an MP4 just because its
-        // filename or declared MIME type is changed.
-        guard item.supportedContentTypes.contains(where: {
-            $0.conforms(to: .mpeg4Movie)
-        }) else {
-            vm.errorText = "Carrier MMS needs an MP4 video under 500 KB. This video must be exported to MP4 first."
-            return nil
-        }
+
         do {
             guard let data = try await item.loadTransferable(type: Data.self),
                   !data.isEmpty else {
-                vm.errorText = "Couldn't read this video. Choose a small MP4."
+                vm.errorText = "Couldn't read this video from Photos. Try another clip."
                 return nil
             }
-            guard data.count <= 500_000 else {
-                vm.errorText = "Carrier MMS video must be 500 KB or smaller. Trim or compress the clip."
+
+            // iPhone Photos usually supplies MOV, even for very short videos.
+            // Export a real MP4 rather than renaming MOV bytes.
+            let mp4 = try await prepareCarrierMP4(data)
+            guard mp4.count <= 500_000 else {
+                vm.errorText = "This video is still too large for carrier MMS after compression (500 KB limit). Try a shorter clip."
                 return nil
             }
+
             let uploaded = try await UploadService.shared.uploadFile(
-                data: data,
+                data: mp4,
                 token: token,
                 fileName: "mms-video-\(Int(Date().timeIntervalSince1970)).mp4",
                 mimeType: "video/mp4"
@@ -712,9 +710,47 @@ struct SMSThreadView: View {
             }
             return key
         } catch {
-            vm.errorText = "Couldn't prepare this MP4 video for MMS. Try a smaller clip."
+            vm.errorText = "This video couldn't be converted to carrier-compatible MP4. Try a shorter clip."
+            #if DEBUG
+            debugLog("❌ SMS video export failed:", error)
+            #endif
             return nil
         }
+    }
+
+    private func prepareCarrierMP4(_ original: Data) async throws -> Data {
+        let directory = FileManager.default.temporaryDirectory
+        let source = directory.appendingPathComponent("sms-source-\(UUID().uuidString).mov")
+        let destination = directory.appendingPathComponent("sms-export-\(UUID().uuidString).mp4")
+
+        try original.write(to: source, options: .atomic)
+        defer {
+            try? FileManager.default.removeItem(at: source)
+            try? FileManager.default.removeItem(at: destination)
+        }
+
+        let asset = AVURLAsset(url: source)
+        guard let session = AVAssetExportSession(
+            asset: asset,
+            presetName: AVAssetExportPresetLowQuality
+        ), session.supportedFileTypes.contains(.mp4) else {
+            throw URLError(.cannotDecodeContentData)
+        }
+
+        session.outputURL = destination
+        session.outputFileType = .mp4
+        session.shouldOptimizeForNetworkUse = true
+
+        await withCheckedContinuation { continuation in
+            session.exportAsynchronously {
+                continuation.resume()
+            }
+        }
+
+        guard session.status == .completed else {
+            throw session.error ?? URLError(.cannotDecodeContentData)
+        }
+        return try Data(contentsOf: destination)
     }
 
     private func uploadImages(_ items: [PhotosPickerItem]) async -> [String] {
