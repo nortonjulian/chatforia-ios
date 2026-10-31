@@ -39,12 +39,13 @@ struct UpgradePromptSheet: View {
                                 .multilineTextAlignment(.center)
 
                             Text(
-                                String(
-                                    format: appText(
-                                        "upgrade.requires_plan_format",
-                                        languageCode: appLanguage
-                                    ),
-                                    planDisplayName(requiredPlan)
+                                appText(
+                                    "upgrade.requires_plan_format",
+                                    languageCode: appLanguage
+                                )
+                                .replacingOccurrences(
+                                    of: "{plan}",
+                                    with: planDisplayName(requiredPlan)
                                 )
                             )
                             .font(.footnote.weight(.semibold))
