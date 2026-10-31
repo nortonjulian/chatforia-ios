@@ -1682,7 +1682,8 @@ private struct SMSAuthenticatedVideoCard: View {
                     method: .GET,
                     requiresAuth: true
                 )
-                (bytes, _) = try await APIClient.shared.sendRaw(request, token: token)
+                let result = try await APIClient.shared.sendRaw(request, token: token)
+                bytes = result.0
             }
             guard !bytes.isEmpty, bytes.count <= 500_000 else {
                 throw URLError(.dataLengthExceedsMaximum)
