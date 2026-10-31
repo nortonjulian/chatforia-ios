@@ -307,52 +307,12 @@ struct MessageAttachmentsView: View {
                         selectedImageURL = IdentifiableURL(url: url)
                     }
                 } label: {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .empty:
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .fill(Color(uiColor: .secondarySystemBackground))
-                                ProgressView()
-                            }
-                            .frame(width: min(maxWidth, 240), height: 180)
+                    StablePrivateMessageImage(
+                        url: url,
+                        maxWidth: min(maxWidth, 240)
+                    )
+                    .id(mediaScope + "/" + String(attachment.id ?? -1))
 
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .scaledToFit()
-                                .frame(maxWidth: min(maxWidth, 240), maxHeight: 240)
-                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-
-                        case .failure:
-                            fallbackMediaCard(
-                                title: attachment.caption?.nilIfBlank ?? appText(
-                                    "messages.mediaPhoto",
-                                    languageCode: appLanguage
-                                ),
-                                subtitle: attachment.mimeType?.nilIfBlank ?? appText(
-                                    "messages.imageAttachment",
-                                    languageCode: appLanguage
-                                ),
-                                systemImage: "photo.fill"
-                            )
-                            .frame(width: min(maxWidth, 240))
-
-                        @unknown default:
-                            fallbackMediaCard(
-                                title: attachment.caption?.nilIfBlank ?? appText(
-                                    "messages.mediaPhoto",
-                                    languageCode: appLanguage
-                                ),
-                                subtitle: attachment.mimeType?.nilIfBlank ?? appText(
-                                    "messages.imageAttachment",
-                                    languageCode: appLanguage
-                                ),
-                                systemImage: "photo.fill"
-                            )
-                            .frame(width: min(maxWidth, 240))
-                        }
-                    }
                 }
                 .buttonStyle(.plain)
             } else {
@@ -766,3 +726,56 @@ private extension String {
         return trimmed.isEmpty ? nil : trimmed
     }
 }
+
+private struct StablePrivateMessageImage: View {
+    let url: URL
+    let maxWidth: CGFloat
+
+    // Retain decoded pixels during short-lived private capability rotation.
+    // This view's .id includes the account/session/media scope, so switching
+    // accounts replaces the view and its cached pixels.
+    @State private var image: UIImage?
+    @State private var hasFailed = false
+
+    var body: some View {
+        Group {
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: maxWidth, maxHeight: 240)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            } else if hasFailed {
+                Label("Photo", systemImage: "photo.fill")
+                    .font(.subheadline)
+                    .frame(width: maxWidth, height: 180)
+                    .background(Color(uiColor: .secondarySystemBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            } else {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(Color(uiColor: .secondarySystemBackground))
+                    ProgressView()
+                }
+                .frame(width: maxWidth, height: 180)
+            }
+        }
+        .task(id: url.absoluteString) {
+            // A private grant has a new URL every ~40 seconds. Once pixels
+            // are decoded, retain them instead of resetting to a spinner.
+            guard image == nil else { return }
+            do {
+                let (data, response) = try await URLSession.shared.data(from: url)
+                guard let http = response as? HTTPURLResponse,
+                      (200...299).contains(http.statusCode),
+                      let decoded = UIImage(data: data),
+                      !Task.isCancelled else { return }
+                image = decoded
+                hasFailed = false
+            } catch {
+                if !Task.isCancelled { hasFailed = true }
+            }
+        }
+    }
+}
+
