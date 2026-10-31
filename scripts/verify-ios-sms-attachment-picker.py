@@ -75,6 +75,10 @@ assert 'selection: $selectedVideoItem' in thread
 assert 'matching: .videos' in thread
 assert 'matching: .images' in thread
 assert 'StablePrivateMessageImage(' in private_media
+assert 'originalWidth: attachment.width' in private_media
+assert 'originalHeight: attachment.height' in private_media
+assert 'private var reservedHeight: CGFloat' in private_media
+assert '.frame(width: maxWidth, height: reservedHeight)' in private_media
 assert '.id(mediaScope + "/" + String(attachment.id ?? -1))' in private_media
 assert 'guard image == nil else { return }' in private_media
 assert 'UIImage(data: data)' in private_media
