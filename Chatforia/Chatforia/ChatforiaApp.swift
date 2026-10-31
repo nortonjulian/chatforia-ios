@@ -119,6 +119,18 @@ final class VoicemailLinkCoordinator: ObservableObject {
     }
 }
 
+// iOS Accessibility > Larger Text is the minimum supported text size.
+// Chatforia's own font preference may enlarge it but must not override
+// a larger system Dynamic Type setting.
+private struct ChatforiaDynamicTypeModifier: ViewModifier {
+    @Environment(\.dynamicTypeSize) private var systemSize
+    let chatforiaSize: DynamicTypeSize
+
+    func body(content: Content) -> some View {
+        content.dynamicTypeSize(max(systemSize, chatforiaSize))
+    }
+}
+
 @main
 struct ChatforiaApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
@@ -252,7 +264,7 @@ struct ChatforiaApp: App {
                 notificationCoordinator.showAccessibilityVisualAlert()
             }
             .id(appLanguage)
-            .dynamicTypeSize(accessibilityDynamicTypeSize)
+            .modifier(ChatforiaDynamicTypeModifier(chatforiaSize: accessibilityDynamicTypeSize))
             .onAppear {
                     AnalyticsManager.shared.capture("app_opened")
             }
