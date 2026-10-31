@@ -22,6 +22,7 @@ struct SMSThreadView: View {
     @State private var selectedPhotos: [PhotosPickerItem] = []
     @State private var selectedPhotoPreview: UIImage? = nil
     @State private var selectedVideo: PhotosPickerItem? = nil
+    @State private var selectedGIF: PhotosPickerItem? = nil
     @State private var isUploadingMedia = false
     @StateObject private var voice = SMSVoiceNoteController()
     @State private var isPreparingVoiceSend = false
@@ -31,6 +32,7 @@ struct SMSThreadView: View {
     @State private var pollingTask: Task<Void, Never>?
     @State private var showPhotoPicker = false
     @State private var showVideoPicker = false
+    @State private var showGIFPicker = false
     @State private var showAttachmentChoices = false
 
     @State private var showingAddContact = false
@@ -71,14 +73,30 @@ struct SMSThreadView: View {
 
             composer
         }
-        .confirmationDialog(
-            "Attach to SMS",
-            isPresented: $showAttachmentChoices,
-            titleVisibility: .visible
-        ) {
-            Button("Photo") { showPhotoPicker = true }
-            Button("Video") { showVideoPicker = true }
-            Button("Cancel", role: .cancel) {}
+        .sheet(isPresented: $showAttachmentChoices) {
+            AttachmentPickerSheet(
+                onPhoto: {
+                    showAttachmentChoices = false
+                    Task { @MainActor in
+                        try? await Task.sleep(nanoseconds: 200_000_000)
+                        showPhotoPicker = true
+                    }
+                },
+                onGIF: {
+                    showAttachmentChoices = false
+                    Task { @MainActor in
+                        try? await Task.sleep(nanoseconds: 200_000_000)
+                        showGIFPicker = true
+                    }
+                },
+                onVideo: {
+                    showAttachmentChoices = false
+                    Task { @MainActor in
+                        try? await Task.sleep(nanoseconds: 200_000_000)
+                        showVideoPicker = true
+                    }
+                }
+            )
         }
         .background(themeManager.palette.screenBackground.ignoresSafeArea())
         .navigationTitle(
@@ -391,7 +409,7 @@ struct SMSThreadView: View {
             recordingDurationText: AudioAttachmentCardView.formatTime(voice.elapsed),
             voiceDraftDurationText: voice.draft.map { AudioAttachmentCardView.formatTime($0.durationSec) },
             onMicTap: {
-                guard selectedPhotos.isEmpty, selectedVideo == nil,
+                guard selectedPhotos.isEmpty, selectedVideo == nil, selectedGIF == nil,
                       !isUploadingMedia, !vm.isSending,
                       !isPreparingVoiceSend, !voice.isSending else { return }
                 vm.errorText = nil
@@ -404,7 +422,7 @@ struct SMSThreadView: View {
             onPlayVoiceDraftTap: { voice.togglePreview() },
             isPlayingVoiceDraft: voice.isPlaying,
             hasVoiceDraft: voice.draft != nil,
-            hasPendingAttachment: !selectedPhotos.isEmpty || selectedVideo != nil
+            hasPendingAttachment: !selectedPhotos.isEmpty || selectedVideo != nil || selectedGIF != nil
         )
         .photosPicker(
             isPresented: $showPhotoPicker,
@@ -417,9 +435,16 @@ struct SMSThreadView: View {
             selection: $selectedVideo,
             matching: .videos
         )
+        .photosPicker(
+            isPresented: $showGIFPicker,
+            selection: $selectedGIF,
+            matching: .images,
+            preferredItemEncoding: .current
+        )
         .onChange(of: selectedPhotos) { _, items in
             if !items.isEmpty {
                 selectedVideo = nil
+                selectedGIF = nil
             }
             selectedPhotoPreview = nil
             guard let first = items.first else { return }
@@ -434,11 +459,19 @@ struct SMSThreadView: View {
         .onChange(of: selectedVideo) { _, item in
             if item != nil {
                 selectedPhotos.removeAll()
+                selectedGIF = nil
+                selectedPhotoPreview = nil
+            }
+        }
+        .onChange(of: selectedGIF) { _, item in
+            if item != nil {
+                selectedPhotos.removeAll()
+                selectedVideo = nil
                 selectedPhotoPreview = nil
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
-            if !selectedPhotos.isEmpty || selectedVideo != nil {
+            if !selectedPhotos.isEmpty || selectedVideo != nil || selectedGIF != nil {
                 HStack(spacing: 10) {
                     if let selectedPhotoPreview {
                         Image(uiImage: selectedPhotoPreview)
@@ -448,19 +481,22 @@ struct SMSThreadView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 9))
                             .accessibilityLabel("Selected SMS photo preview")
                     } else {
-                        Image(systemName: selectedVideo == nil ? "photo" : "video.fill")
+                        Image(systemName: selectedGIF != nil ? "sparkles" : (selectedVideo == nil ? "photo" : "video.fill"))
                             .font(.title2)
                             .frame(width: 54, height: 54)
                     }
-                    Text(selectedVideo == nil
-                         ? "Photo selected (\(selectedPhotos.count)) — tap Send"
-                         : "Video selected — carrier limit 500 KB")
+                    Text(selectedGIF != nil
+                         ? "GIF selected — carrier limit 500 KB"
+                         : (selectedVideo == nil
+                             ? "Photo selected (\(selectedPhotos.count)) — tap Send"
+                             : "Video selected — carrier limit 500 KB"))
                         .font(.footnote)
                         .lineLimit(2)
                     Spacer()
                     Button {
                         selectedPhotos.removeAll()
                         selectedVideo = nil
+                        selectedGIF = nil
                         selectedPhotoPreview = nil
                         vm.errorText = nil
                     } label: {
@@ -563,6 +599,38 @@ struct SMSThreadView: View {
                 "sms.missingDestinationNumber",
                 languageCode: appLanguage
             )
+            return
+        }
+
+        if let gif = selectedGIF {
+            isUploadingMedia = true
+            defer { isUploadingMedia = false }
+            guard let key = await uploadGIF(gif) else { return }
+            let threadID = await vm.sendMediaMessage(
+                existingThreadId: activeConversation.id,
+                to: to,
+                mediaUrls: [key],
+                token: token
+            )
+            if let threadID {
+                if activeConversation.id == nil {
+                    activeConversation = ConversationDTO(
+                        kind: activeConversation.kind,
+                        id: threadID,
+                        title: activeConversation.title,
+                        displayName: activeConversation.displayName,
+                        updatedAt: activeConversation.updatedAt,
+                        isGroup: activeConversation.isGroup,
+                        phone: activeConversation.phone,
+                        unreadCount: activeConversation.unreadCount,
+                        avatarUsers: activeConversation.avatarUsers,
+                        last: activeConversation.last
+                    )
+                    startPolling()
+                }
+                selectedGIF = nil
+                draft = ""
+            }
             return
         }
 
@@ -673,6 +741,50 @@ struct SMSThreadView: View {
             }
 
             draft = ""
+        }
+    }
+
+    private func uploadGIF(_ item: PhotosPickerItem) async -> String? {
+        guard let token = TokenStore.shared.read(), !token.isEmpty else {
+            vm.errorText = "Your session has expired. Please sign in again."
+            return nil
+        }
+        guard item.supportedContentTypes.contains(where: { $0.conforms(to: .gif) }) else {
+            vm.errorText = "Choose an animated GIF from Photos, not a still image."
+            return nil
+        }
+
+        do {
+            guard let data = try await item.loadTransferable(type: Data.self),
+                  !data.isEmpty,
+                  data.starts(with: Data("GIF87a".utf8))
+                    || data.starts(with: Data("GIF89a".utf8)) else {
+                vm.errorText = "Photos did not provide an original GIF. Please select a different GIF."
+                return nil
+            }
+            // Provider and carrier compatibility: use the conservative limit
+            // already enforced for non-JPEG animated/video MMS.
+            guard data.count <= 500_000 else {
+                vm.errorText = "This GIF exceeds the 500 KB carrier limit. Choose a smaller animated GIF."
+                return nil
+            }
+
+            let uploaded = try await UploadService.shared.uploadFile(
+                data: data,
+                token: token,
+                fileName: "mms-gif-\(Int(Date().timeIntervalSince1970)).gif",
+                mimeType: "image/gif"
+            )
+            guard uploaded.ok == true,
+                  let key = uploaded.key,
+                  key.hasPrefix("uploads/u") else {
+                vm.errorText = "Couldn't confirm the GIF upload. Please try again."
+                return nil
+            }
+            return key
+        } catch {
+            vm.errorText = "Couldn't prepare this GIF for MMS. Please try another."
+            return nil
         }
     }
 
