@@ -4,6 +4,7 @@ import PhotosUI
 import UniformTypeIdentifiers
 import UIKit
 import AVFoundation
+import AVKit
 
 struct SendSMSResponseDTO: Decodable {
     let ok: Bool
@@ -1318,6 +1319,12 @@ private struct SMSMediaStackView: View {
                     )
                 } else if item.isAudio {
                     SMSAudioAttachmentCard(message: message, mediaIndex: index, maxWidth: maxWidth)
+                } else if item.isVideo {
+                    SMSAuthenticatedVideoCard(
+                        messageId: message.id,
+                        mediaIndex: index,
+                        maxWidth: min(maxWidth, 240)
+                    )
                 } else {
                     SMSGenericAttachmentCard(item: item)
                         .frame(width: min(maxWidth, 240))
@@ -1476,6 +1483,139 @@ private struct SMSFullscreenImageView: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Authenticated carrier video (private media, no public URL)
+//
+// Playback needs a local file because the private SMS proxy requires an auth
+// token. Keep the file only while the playback sheet is open; never cache it
+// in Documents or expose the R2 key to AVPlayer.
+private struct SMSAuthenticatedVideoCard: View {
+    let messageId: Int
+    let mediaIndex: Int
+    let maxWidth: CGFloat
+
+    @State private var isLoading = false
+    @State private var errorText: String?
+    @State private var isShowingPlayer = false
+    @State private var playbackURL: URL?
+    @State private var player: AVPlayer?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Button {
+                Task { await openVideo() }
+            } label: {
+                HStack(spacing: 12) {
+                    if isLoading {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "play.rectangle.fill")
+                            .font(.title2)
+                    }
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Video")
+                            .font(.subheadline.weight(.semibold))
+                        Text("Tap to play")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .padding(12)
+                .frame(width: maxWidth, alignment: .leading)
+                .background(Color(uiColor: .secondarySystemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+            }
+            .buttonStyle(.plain)
+            .disabled(isLoading)
+            .accessibilityLabel("Play SMS video")
+
+            if let errorText {
+                Text(errorText)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                Button("Retry video") {
+                    Task { await openVideo() }
+                }
+                .font(.caption)
+            }
+        }
+        .sheet(isPresented: $isShowingPlayer, onDismiss: cleanup) {
+            NavigationStack {
+                Group {
+                    if let player {
+                        VideoPlayer(player: player)
+                    } else {
+                        ProgressView()
+                    }
+                }
+                .background(.black)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Done") {
+                            isShowingPlayer = false
+                        }
+                    }
+                }
+                .onAppear { player?.play() }
+                .onDisappear { player?.pause() }
+            }
+        }
+        .onDisappear {
+            if !isShowingPlayer { cleanup() }
+        }
+    }
+
+    @MainActor
+    private func openVideo() async {
+        guard !isLoading else { return }
+        guard let token = TokenStore.shared.read(), !token.isEmpty else {
+            errorText = "Sign in to play this video."
+            return
+        }
+
+        cleanup()
+        isLoading = true
+        errorText = nil
+        defer { isLoading = false }
+
+        do {
+            let request = APIRequest(
+                path: "sms/media/\\(messageId)/\\(mediaIndex)",
+                method: .GET,
+                requiresAuth: true
+            )
+            let (bytes, _) = try await APIClient.shared.sendRaw(request, token: token)
+            guard !bytes.isEmpty else {
+                throw URLError(.zeroByteResource)
+            }
+
+            // Account may change while bytes are in flight. Never present a
+            // previous account's private media under another session.
+            guard TokenStore.shared.read() == token else { return }
+
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("sms-video-\\(UUID().uuidString).mp4")
+            try bytes.write(to: url, options: .atomic)
+            playbackURL = url
+            player = AVPlayer(url: url)
+            isShowingPlayer = true
+        } catch {
+            errorText = "Could not load this video. Tap Retry."
+        }
+    }
+
+    @MainActor
+    private func cleanup() {
+        player?.pause()
+        player?.replaceCurrentItem(with: nil)
+        player = nil
+        if let playbackURL {
+            try? FileManager.default.removeItem(at: playbackURL)
+        }
+        playbackURL = nil
     }
 }
 
