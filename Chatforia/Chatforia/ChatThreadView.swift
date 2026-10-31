@@ -238,8 +238,15 @@ struct ChatThreadView: View {
         )
         .onChange(of: selectedVideoItem) { _, newItem in
             guard let newItem else { return }
-            Task {
-                defer { selectedVideoItem = nil }
+            isProcessingVideo = true
+            videoProcessingStatus = "Preparing video from Photos…"
+            vm.errorText = nil
+            Task { @MainActor in
+                defer {
+                    selectedVideoItem = nil
+                    isProcessingVideo = false
+                    videoProcessingStatus = nil
+                }
                 guard let data = try? await newItem.loadTransferable(type: Data.self),
                       !data.isEmpty else {
                     vm.errorText = "Couldn't read the selected video."
