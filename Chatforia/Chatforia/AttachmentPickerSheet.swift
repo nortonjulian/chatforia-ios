@@ -3,6 +3,8 @@ import SwiftUI
 struct AttachmentPickerSheet: View {
     let onPhoto: () -> Void
     let onGIF: () -> Void
+    var onVideo: (() -> Void)? = nil
+    var showGIF: Bool = true
 
     @EnvironmentObject private var themeManager: ThemeManager
     @AppStorage("chatforia_language") private var appLanguage = "en"
@@ -30,17 +32,19 @@ struct AttachmentPickerSheet: View {
                         "messages.mediaVideo",
                         languageCode: appLanguage
                     ),
-                    action: onPhoto // reuse same picker
+                    action: onVideo ?? onPhoto // Chatforia shares its existing photo/video picker
                 )
 
-                attachmentButton(
-                    icon: "sparkles",
-                    label: appText(
-                        "media.gif",
-                        languageCode: appLanguage
-                    ),
-                    action: onGIF
-                )
+                if showGIF {
+                    attachmentButton(
+                        icon: "sparkles",
+                        label: appText(
+                            "media.gif",
+                            languageCode: appLanguage
+                        ),
+                        action: onGIF
+                    )
+                }
             }
 
             Spacer()
