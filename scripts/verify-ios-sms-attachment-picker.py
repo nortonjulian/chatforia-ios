@@ -35,11 +35,20 @@ assert 'kinds.contains("IMAGE")' in chats
 assert 'else if item.isVideo {' in sms
 assert 'SMSAuthenticatedVideoCard(' in sms
 assert 'VideoPlayer(player: player)' in sms
+assert 'AVAssetImageGenerator(asset: asset)' in sms
+assert 'generator.appliesPreferredTrackTransform = true' in sms
+assert 'asset.load(.duration)' in sms
+assert 'if let thumbnail {' in sms
+assert 'Image(systemName: "play.fill")' in sms
+assert 'AudioAttachmentCardView.formatTime(durationSeconds)' in sms
+assert 'bytes.count <= 500_000' in sms
+assert 'previewBytes = nil' in sms
+assert 'clearPreview()' in sms
 assert 'path: "sms/media/\\(messageId)/\\(mediaIndex)"' in sms
 assert 'APIClient.shared.sendRaw(request, token: token)' in sms
 assert 'try bytes.write(to: url, options: .atomic)' in sms
 assert 'try? FileManager.default.removeItem(at: playbackURL)' in sms
 assert 'TokenStore.shared.read() == token' in sms
 
-print("PASS: iOS SMS Photo/Video picker, MOV to MP4 export wiring, 500 KB check, private-key send, and chat preview, and private video playback")
+print("PASS: iOS SMS Photo/Video picker, MOV to MP4 export wiring, 500 KB check, private-key send, and chat preview, private video playback, thumbnail and duration")
 print("NOTE: Xcode compilation, Photos video representation, and real MMS delivery require device QA")
