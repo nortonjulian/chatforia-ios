@@ -1,6 +1,13 @@
 import SwiftUI
 import UIKit
 
+private struct MessagesContentHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
 private struct BottomSentinelMinYKey: PreferenceKey {
     static var defaultValue: CGFloat = .zero
 
@@ -41,6 +48,8 @@ struct MessagesListView: View {
     @State private var viewportHeight: CGFloat = 0
     
     @State private var hasCompletedInitialBottomScroll = false
+    @State private var isSettlingInitialMediaLayout = false
+    @State private var hasUserScrolledSinceOpening = false
     
     @State private var canTriggerPaging = false
 
@@ -129,7 +138,35 @@ struct MessagesListView: View {
                     }
                     .frame(minHeight: geo.size.height, alignment: .bottom)
                     .padding(.vertical, 14)
+                    .background(
+                        GeometryReader { contentGeometry in
+                            Color.clear.preference(
+                                key: MessagesContentHeightKey.self,
+                                value: contentGeometry.size.height
+                            )
+                        }
+                    )
 
+                }
+                // Anchor initial presentation at the newest message while
+                // late-loading private media determines its final height.
+                // Explicit scroll logic below still handles new messages and
+                // preserves manual position during history pagination.
+                .defaultScrollAnchor(.bottom)
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 8).onChanged { _ in
+                        hasUserScrolledSinceOpening = true
+                    }
+                )
+                .onPreferenceChange(MessagesContentHeightKey.self) { _ in
+                    // Late-arriving private photos alter row heights after the
+                    // initial bottom scroll. Follow that growth only during
+                    // first layout and only if the user has not started reading
+                    // or manually scrolling older messages.
+                    guard isSettlingInitialMediaLayout,
+                          !hasUserScrolledSinceOpening,
+                          !isRestoringAfterPrepend else { return }
+                    scrollToBottom(proxy, animated: false)
                 }
                 .background(themeManager.palette.screenBackground)
                 .coordinateSpace(name: "MessagesScroll")
@@ -202,13 +239,20 @@ struct MessagesListView: View {
                 }
                 .onAppear {
                     canTriggerPaging = false
+                    hasUserScrolledSinceOpening = false
+                    isSettlingInitialMediaLayout = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                        isSettlingInitialMediaLayout = false
+                    }
 
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                         scrollToBottom(proxy, animated: false)
                     }
 
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.20) {
-                        scrollToBottom(proxy, animated: false)
+                        if !hasUserScrolledSinceOpening {
+                            scrollToBottom(proxy, animated: false)
+                        }
                         hasCompletedInitialBottomScroll = true
                     }
 
