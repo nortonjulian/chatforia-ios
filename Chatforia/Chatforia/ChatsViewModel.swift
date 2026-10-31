@@ -711,7 +711,7 @@ final class ChatsViewModel: ObservableObject {
                 "total=\(fetched.count)",
                 "sms=\(smsRows.count)",
                 "smsUnread=\(smsRows.reduce(0) { $0 + max(0, $1.unreadCount ?? 0) })",
-                "smsThreadIds=\(smsRows.compactMap(\\.id))"
+                "smsThreadIds=\(smsRows.compactMap(\.id))"
             )
             #endif
 
