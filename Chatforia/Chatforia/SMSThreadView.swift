@@ -1583,7 +1583,7 @@ private struct SMSAuthenticatedVideoCard: View {
 
         do {
             let request = APIRequest(
-                path: "sms/media/\\(messageId)/\\(mediaIndex)",
+                path: "sms/media/\(messageId)/\(mediaIndex)",
                 method: .GET,
                 requiresAuth: true
             )
@@ -1597,7 +1597,7 @@ private struct SMSAuthenticatedVideoCard: View {
             guard TokenStore.shared.read() == token else { return }
 
             let url = FileManager.default.temporaryDirectory
-                .appendingPathComponent("sms-video-\\(UUID().uuidString).mp4")
+                .appendingPathComponent("sms-video-\(UUID().uuidString).mp4")
             try bytes.write(to: url, options: .atomic)
             playbackURL = url
             player = AVPlayer(url: url)
