@@ -7,6 +7,8 @@ from pathlib import Path
 root = Path(__file__).resolve().parents[1] / "Chatforia" / "Chatforia"
 sms = (root / "SMSThreadView.swift").read_text()
 chats = (root / "ChatsRootView.swift").read_text()
+thread = (root / "ChatThreadView.swift").read_text()
+private_media = (root / "MessageAttachmentsView.swift").read_text()
 
 assert 'showAttachmentChoices = true' in sms
 assert '.sheet(isPresented: $showAttachmentChoices)' in sms
@@ -67,6 +69,15 @@ assert 'APIClient.shared.sendRaw(request, token: token)' in sms
 assert 'try bytes.write(to: url, options: .atomic)' in sms
 assert 'try? FileManager.default.removeItem(at: playbackURL)' in sms
 assert 'TokenStore.shared.read() == token' in sms
+assert 'onVideo: {' in thread
+assert 'showVideoPicker = true' in thread
+assert 'selection: $selectedVideoItem' in thread
+assert 'matching: .videos' in thread
+assert 'matching: .images' in thread
+assert 'StablePrivateMessageImage(' in private_media
+assert '.id(mediaScope + "/" + String(attachment.id ?? -1))' in private_media
+assert 'guard image == nil else { return }' in private_media
+assert 'UIImage(data: data)' in private_media
 
-print("PASS: SMS shared Photo/Video/GIF gallery, private GIF upload wiring, MOV to MP4, previews, private video playback")
+print("PASS: SMS GIF gallery, app video picker, R2 private image stability, MOV/MP4, private video playback")
 print("NOTE: Xcode compilation, Photos video representation, and real MMS delivery require device QA")
