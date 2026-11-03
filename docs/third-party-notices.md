@@ -1,6 +1,6 @@
 # Offline third-party source notices
 
-Profile → Legal & Support → Open Source Licenses now opens bundled text in a scrollable, selectable sheet. It does not require a network request. The website remains a fallback if the resource fails to load.
+Profile → Legal & Support now offers Technology Across Chatforia (the shared website overview of web, backend, iOS and Android) and This App’s Licenses (the bundled offline source-notice sheet). The website remains a fallback if the bundled resource fails to load.
 
 The generator collects LICENSE, NOTICE, COPYING, and COPYRIGHT files from all 15 pinned SwiftPM source repositories. The resource deliberately says source notices: binary SDK terms and embedded third-party notices are not established by a wrapper repository's license. Ancillary source notices are retained conservatively, including test/example files; this is not a list of binary contents.
 
