@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct ImportPhoneContactsView: View {
     @Environment(\.dismiss) private var dismiss
@@ -38,12 +39,24 @@ struct ImportPhoneContactsView: View {
                                 languageCode: appLanguage
                             ),
                             subtitle: errorText,
-                            buttonTitle: appText(
-                                "common.tryAgain",
-                                languageCode: appLanguage
-                            ),
+                            buttonTitle: vm.needsSettingsPermission
+                                ? appText(
+                                    "contacts.openSettings",
+                                    languageCode: appLanguage,
+                                    fallback: "Open Settings"
+                                )
+                                : appText(
+                                    "common.tryAgain",
+                                    languageCode: appLanguage
+                                ),
                             buttonAction: {
-                                Task { await vm.loadContacts() }
+                                if vm.needsSettingsPermission {
+                                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                                        UIApplication.shared.open(url)
+                                    }
+                                } else {
+                                    Task { await vm.loadContacts() }
+                                }
                             }
                         )
                     } else if vm.contacts.isEmpty {
@@ -63,6 +76,22 @@ struct ImportPhoneContactsView: View {
                         )
                     } else {
                         List {
+                            Section {
+                                TextField(
+                                    appText(
+                                        "contacts.search",
+                                        languageCode: appLanguage,
+                                        fallback: "Search contacts"
+                                    ),
+                                    text: $vm.searchText
+                                )
+                                .textInputAutocapitalization(.words)
+                                .autocorrectionDisabled()
+                                .submitLabel(.search)
+                                .accessibilityLabel("Search contacts")
+                            }
+                            .listRowBackground(themeManager.palette.cardBackground)
+
                             Section {
                                 HStack {
                                     Button(
@@ -88,7 +117,20 @@ struct ImportPhoneContactsView: View {
                             }
                             .listRowBackground(themeManager.palette.cardBackground)
 
-                            ForEach(vm.contacts) { contact in
+                            if vm.filteredContacts.isEmpty {
+                                Text(
+                                    appText(
+                                        "contacts.noSearchResults",
+                                        languageCode: appLanguage,
+                                        fallback: "No matching contacts"
+                                    )
+                                )
+                                .foregroundStyle(themeManager.palette.secondaryText)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .listRowBackground(themeManager.palette.cardBackground)
+                            }
+
+                            ForEach(vm.filteredContacts) { contact in
                                 Button {
                                     vm.toggle(contact)
                                 } label: {
