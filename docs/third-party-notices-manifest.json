@@ -1,0 +1,261 @@
+{
+  "lockSha256": "9a9f4957e64051e3d77a5b86e0b1f603dc8c046a75d26920be17d6e4bab35256",
+  "noticesSha256": "2e41d6d7de39ff16a2249eb919aab20f0caafc34a9dddae4485712c89d08f22c",
+  "packages": [
+    {
+      "identity": "app-check",
+      "kind": "remoteSourceControl",
+      "location": "https://github.com/google/app-check.git",
+      "state": {
+        "revision": "61b85103a1aeed8218f17c794687781505fbbef5",
+        "version": "11.2.0"
+      },
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        }
+      ],
+      "binaryTargets": false
+    },
+    {
+      "identity": "appauth-ios",
+      "kind": "remoteSourceControl",
+      "location": "https://github.com/openid/AppAuth-iOS.git",
+      "state": {
+        "revision": "145104f5ea9d58ae21b60add007c33c1cc0c948e",
+        "version": "2.0.0"
+      },
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        }
+      ],
+      "binaryTargets": false
+    },
+    {
+      "identity": "googleads-mobile-ios-mediation-unity",
+      "kind": "remoteSourceControl",
+      "location": "https://github.com/googleads/googleads-mobile-ios-mediation-unity.git",
+      "state": {
+        "revision": "63742a7728ab02f8fc5c9a249ca3f0b60dfe8b8a",
+        "version": "4.18.100"
+      },
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "d5e744d44ca08fc4234d6e620527862cb761fe9974b8e32002b4d5980128fbd4"
+        }
+      ],
+      "binaryTargets": true
+    },
+    {
+      "identity": "googlesignin-ios",
+      "kind": "remoteSourceControl",
+      "location": "https://github.com/google/GoogleSignIn-iOS",
+      "state": {
+        "revision": "913b4005ea26aebe1c97d54e35ad82a515924c71",
+        "version": "9.1.0"
+      },
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        }
+      ],
+      "binaryTargets": false
+    },
+    {
+      "identity": "googleutilities",
+      "kind": "remoteSourceControl",
+      "location": "https://github.com/google/GoogleUtilities.git",
+      "state": {
+        "revision": "60da361632d0de02786f709bdc0c4df340f7613e",
+        "version": "8.1.0"
+      },
+      "notices": [
+        {
+          "path": "GoogleUtilities/Tests/Unit/Network/third_party/LICENSE",
+          "sha256": "41b499c2cfdff0957f608b5f7652fe98736c9837ad246707567073f5a29f6fb7"
+        },
+        {
+          "path": "LICENSE",
+          "sha256": "ad6d036b9a78f0e1700d68039c06058033fea063172ce2dc68e382a24b4d1928"
+        },
+        {
+          "path": "third_party/IsAppEncrypted/LICENSE",
+          "sha256": "aae45d67e80192eaa43dba3e3445ef1645c4daa761d4f0a433e8fa8bc0ef8ae1"
+        }
+      ],
+      "binaryTargets": false
+    },
+    {
+      "identity": "gtm-session-fetcher",
+      "kind": "remoteSourceControl",
+      "location": "https://github.com/google/gtm-session-fetcher.git",
+      "state": {
+        "revision": "a2ab612cb980066ee56d90d60d8462992c07f24b",
+        "version": "3.5.0"
+      },
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        }
+      ],
+      "binaryTargets": false
+    },
+    {
+      "identity": "gtmappauth",
+      "kind": "remoteSourceControl",
+      "location": "https://github.com/google/GTMAppAuth.git",
+      "state": {
+        "revision": "56e0ccf09a6dd29dc7e68bdf729598240ca8aa16",
+        "version": "5.0.0"
+      },
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        }
+      ],
+      "binaryTargets": false
+    },
+    {
+      "identity": "posthog-ios",
+      "kind": "remoteSourceControl",
+      "location": "https://github.com/PostHog/posthog-ios",
+      "state": {
+        "revision": "218fb6fe016a27baa3651613d53dae5c6e36af15",
+        "version": "3.57.3"
+      },
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "8daa60297be35df415ddc1fb66e9cf7adb2edbcfbc71c002ab3388ec11d00885"
+        },
+        {
+          "path": "PostHogExampleAutocapture/LICENSE/LICENSE.txt",
+          "sha256": "2b055a723d091a8ee22215183da571d76321db99bbe24e085dfc5a05f4087a26"
+        },
+        {
+          "path": "vendor/PHPLCrashReporter/LICENSE",
+          "sha256": "45f57308a5f95039a6478cf1e47449aa11e28427777d81497bd654c1f41ef5af"
+        },
+        {
+          "path": "vendor/libwebp/COPYING",
+          "sha256": "5aec868f669e384a22372a4e8a1a6cd7d44c64cd451f960ca69cc170d1e13acf"
+        }
+      ],
+      "binaryTargets": false
+    },
+    {
+      "identity": "promises",
+      "kind": "remoteSourceControl",
+      "location": "https://github.com/google/promises.git",
+      "state": {
+        "revision": "540318ecedd63d883069ae7f1ed811a2df00b6ac",
+        "version": "2.4.0"
+      },
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        }
+      ],
+      "binaryTargets": false
+    },
+    {
+      "identity": "socket.io-client-swift",
+      "kind": "remoteSourceControl",
+      "location": "https://github.com/socketio/socket.io-client-swift.git",
+      "state": {
+        "branch": "master",
+        "revision": "42da871d9369f290d6ec4930636c40672143905b"
+      },
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "97a00016e4ceff85ecd788e7f2ef38c56e9eab5dcba8278fc4437ec1c083bd8b"
+        }
+      ],
+      "binaryTargets": false
+    },
+    {
+      "identity": "starscream",
+      "kind": "remoteSourceControl",
+      "location": "https://github.com/daltoniam/Starscream",
+      "state": {
+        "revision": "c6bfd1af48efcc9a9ad203665db12375ba6b145a",
+        "version": "4.0.8"
+      },
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "638a31c6b649beefbf234ce78425c4f80142452ef514727b635dc2a9f873ef09"
+        }
+      ],
+      "binaryTargets": false
+    },
+    {
+      "identity": "swift-package-manager-google-mobile-ads",
+      "kind": "remoteSourceControl",
+      "location": "https://github.com/googleads/swift-package-manager-google-mobile-ads.git",
+      "state": {
+        "revision": "e2b1c31cdf11cb4b57b4e70ae4c313d4e48c444a",
+        "version": "13.3.0"
+      },
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "fd112c80352fc42a60f051012c6b9adef055123e395dece30fa8f44880f39e96"
+        }
+      ],
+      "binaryTargets": true
+    },
+    {
+      "identity": "swift-package-manager-google-user-messaging-platform",
+      "kind": "remoteSourceControl",
+      "location": "https://github.com/googleads/swift-package-manager-google-user-messaging-platform.git",
+      "state": {
+        "revision": "13b248eaa73b7826f0efb1bcf455e251d65ecb1b",
+        "version": "3.1.0"
+      },
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "fd112c80352fc42a60f051012c6b9adef055123e395dece30fa8f44880f39e96"
+        }
+      ],
+      "binaryTargets": true
+    },
+    {
+      "identity": "twilio-video-ios",
+      "kind": "remoteSourceControl",
+      "location": "https://github.com/twilio/twilio-video-ios",
+      "state": {
+        "revision": "9cd840e09cfa6a051974e422f139efae5087a536",
+        "version": "5.11.3"
+      },
+      "notices": [
+        {
+          "path": "LICENSE.md",
+          "sha256": "9f23bb7d3d90a7e3a20aa3c425e8ce7916d891634e6d0450da28c7c84e746c01"
+        }
+      ],
+      "binaryTargets": true
+    },
+    {
+      "identity": "twilio-voice-ios",
+      "kind": "remoteSourceControl",
+      "location": "https://github.com/twilio/twilio-voice-ios",
+      "state": {
+        "revision": "62912513388001394d093b85a6269bf3206cac13",
+        "version": "6.13.6"
+      },
+      "notices": [],
+      "binaryTargets": true
+    }
+  ]
+}
