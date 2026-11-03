@@ -1927,6 +1927,8 @@ struct ProfileRootView: View {
                 .foregroundStyle(.tertiary)
         }
         .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, minHeight: 44)
+        .contentShape(Rectangle())
     }
     
     private func deleteAccount() async {
