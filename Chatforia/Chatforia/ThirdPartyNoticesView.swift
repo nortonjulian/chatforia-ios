@@ -2,6 +2,7 @@ import SwiftUI
 
 /// Reads the notices shipped with this app; no connection is required.
 struct ThirdPartyNoticesView: View {
+    @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.dismiss) private var dismiss
     @State private var notices: String?
     @State private var loadFailed = false
@@ -23,10 +24,20 @@ struct ThirdPartyNoticesView: View {
                     }
                 }
                 .padding()
+                .foregroundStyle(themeManager.palette.primaryText)
             }
+            .background(themeManager.palette.screenBackground.ignoresSafeArea())
+            .toolbarBackground(themeManager.palette.screenBackground, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .navigationTitle("Open Source Licenses")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("Open Source Licenses")
+                        .font(.headline)
+                        .foregroundStyle(themeManager.palette.titleAccent)
+                        .accessibilityAddTraits(.isHeader)
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                 }
@@ -41,5 +52,6 @@ struct ThirdPartyNoticesView: View {
                 notices = text
             }
         }
+        .tint(themeManager.palette.accent)
     }
 }
