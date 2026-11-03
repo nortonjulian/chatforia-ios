@@ -27,6 +27,7 @@ struct ProfileRootView: View {
 
     @State private var activeUpgradePrompt: UpgradePromptRequest?
 
+    @State private var showingThirdPartyNotices = false
     @State private var showingThemeSheet = false
     @State private var showingMessageToneSheet = false
     @State private var showingRingtoneSheet = false
@@ -221,6 +222,9 @@ struct ProfileRootView: View {
                     }
                 )
                 .environmentObject(themeManager)
+            }
+            .sheet(isPresented: $showingThirdPartyNotices) {
+                ThirdPartyNoticesView()
             }
             .sheet(isPresented: $showingThemeSheet) {
                 PremiumPickerSheet(
@@ -508,7 +512,7 @@ struct ProfileRootView: View {
                 Divider()
                 
                 Button {
-                    openURL("https://chatforia.com/legal/open-source")
+                    showingThirdPartyNotices = true
                 } label: {
                     legalRow("Open Source Licenses")
                 }
