@@ -512,11 +512,22 @@ struct ProfileRootView: View {
                 Divider()
                 
                 Button {
-                    showingThirdPartyNotices = true
+                    openURL("https://chatforia.com/legal/open-source")
                 } label: {
-                    legalRow("Open Source Licenses")
+                    legalRow("Technology Across Chatforia")
                 }
                 .buttonStyle(.plain)
+
+                Divider()
+
+                Button {
+                    showingThirdPartyNotices = true
+                } label: {
+                    legalRow("This App’s Licenses")
+                }
+                .buttonStyle(.plain)
+
+                Divider()
 
                 Button {
                     openURL("mailto:support@chatforia.com")
