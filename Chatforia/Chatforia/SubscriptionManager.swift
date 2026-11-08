@@ -27,6 +27,7 @@ struct PlanEntitlementsResponse: Decodable, Equatable {
     let plan: String
     let entitlements: AppPlanEntitlementsSnapshot
     let monthKey: String
+    let resetAt: String?
     let usage: [String: PlanUsageSnapshot]
 
     var appPlan: AppPlan {
