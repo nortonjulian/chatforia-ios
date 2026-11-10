@@ -61,9 +61,12 @@ final class MessageStore {
             do {
                 let messageData = try Data(contentsOf: self.messagesFileURL)
                 self.messages = try JSONDecoder().decode([MessageDTO].self, from: messageData)
+                let beforeExpiry = self.messages.count
+                self.messages.removeAll { self.isExpired($0) }
                 self.sortMessagesLocked()
                 self.messages = self.dedupeMessages(self.messages)
                 self.capInMemoryMessagesLocked(limit: self.inMemoryMax)
+                if self.messages.count != beforeExpiry { self.persistLocked() }
             } catch {
                 self.messages = []
             }
@@ -389,6 +392,10 @@ final class MessageStore {
     }
 
     private func upsertMessageLocked(_ incoming: MessageDTO) {
+        if isExpired(incoming) {
+            self.messages.removeAll { $0.id == incoming.id }
+            return
+        }
         if let idx = self.messages.firstIndex(where: {
             ($0.id > 0 && incoming.id > 0 && $0.id == incoming.id) ||
             ($0.clientMessageId != nil &&
@@ -463,16 +470,21 @@ final class MessageStore {
 
     // MARK: - Read
 
-    func currentWindow() -> [MessageDTO] {
+    func currentWindow(now: Date = Date()) -> [MessageDTO] {
         lock.sync {
-            self.messages
+            self.messages.filter { !isExpired($0, now: now) }
         }
     }
 
-    func message(withId id: Int) -> MessageDTO? {
+    func message(withId id: Int, now: Date = Date()) -> MessageDTO? {
         lock.sync {
-            self.messages.first(where: { $0.id == id })
+            self.messages.first(where: { $0.id == id && !isExpired($0, now: now) })
         }
+    }
+
+    private func isExpired(_ message: MessageDTO, now: Date = Date()) -> Bool {
+        guard let deadline = message.expiresAt else { return false }
+        return deadline <= now
     }
 
     func serverBeforeIdForPaging() -> Int? {

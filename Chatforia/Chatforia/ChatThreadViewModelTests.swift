@@ -4,6 +4,32 @@ import XCTest
 @MainActor
 final class ChatThreadViewModelTests: XCTestCase {
 
+    func testVisibleExpiryAndRestartAfterBackground() {
+        let vm = ChatThreadViewModel()
+        let expired = MessageDTO(
+            id: 801, rawContent: "synthetic expired", createdAt: Date(),
+            expiresAt: Date().addingTimeInterval(-60),
+            sender: SenderDTO(id: 1, username: "sender", publicKey: nil, avatarUrl: nil),
+            chatRoomId: 10
+        )
+        let live = MessageDTO(
+            id: 802, rawContent: "synthetic live", createdAt: Date(),
+            expiresAt: Date().addingTimeInterval(60),
+            sender: SenderDTO(id: 1, username: "sender", publicKey: nil, avatarUrl: nil),
+            chatRoomId: 10
+        )
+
+        vm.messages = [expired, live]
+        vm.startExpiryLoop()
+        XCTAssertEqual(vm.messages.map(\.id), [802])
+        vm.stopExpiryLoop()
+
+        vm.messages = [expired]
+        vm.startExpiryLoop()
+        XCTAssertTrue(vm.messages.isEmpty)
+        vm.stopExpiryLoop()
+    }
+
     func testGroupRiaConsentWireContract() throws {
         let on = try JSONDecoder().decode(
             GroupRiaRoomConsent.self,
