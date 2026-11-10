@@ -3,7 +3,9 @@ import Foundation
 enum AppEnvironment {
 
     static let apiBaseURL: URL = {
-        #if DEBUG
+        #if DISAPPEARING_QA
+        return URL(string: "http://127.0.0.1:1")!
+        #elseif DEBUG
         return URL(string: "https://api.chatforia.com")!
         #elseif STAGING
         return URL(string: "https://staging-api.chatforia.com")!
