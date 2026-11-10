@@ -78,6 +78,26 @@ final class ForwardingSettingsViewModelTests: XCTestCase {
         XCTAssertFalse(vm.hasChanges)
     }
 
+    func testAccountChangeClearsPreviousAccountSettingsAndMessages() {
+        let vm = ForwardingSettingsViewModel()
+        vm.load(from: makeDTO())
+        vm.banner = "Saved"
+        vm.clearForAccountChange()
+        XCTAssertEqual(vm.makeRequest(), .empty)
+        XCTAssertNil(vm.banner)
+        XCTAssertFalse(vm.hasChanges)
+    }
+
+    func testQuietHoursRequireBothEndpoints() {
+        let vm = ForwardingSettingsViewModel()
+        vm.forwardQuietHoursStart = 22
+        XCTAssertEqual(vm.validationErrors["quiet"], "Set both quiet hours or clear both.")
+        vm.forwardQuietHoursEnd = 6
+        XCTAssertNil(vm.validationErrors["quiet"])
+        vm.forwardQuietHoursEnd = 22
+        XCTAssertEqual(vm.validationErrors["quiet"], "Quiet hours start and end must differ.")
+    }
+
     func testValidationErrorsRequireSmsDestinationWhenSmsEnabled() {
         let vm = ForwardingSettingsViewModel()
 

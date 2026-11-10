@@ -202,12 +202,14 @@ struct ForwardingSettingsView: View {
             )
         )
         .navigationBarTitleDisplayMode(.inline)
-        .task {
+        .task(id: auth.currentUser?.id) {
             await load()
         }
     }
 
     private func load() async {
+        vm.clearForAccountChange()
+        let accountID = auth.currentUser?.id
         guard let token = auth.currentToken, !token.isEmpty else {
             auth.handleInvalidSession()
             return
@@ -217,15 +219,18 @@ struct ForwardingSettingsView: View {
             vm.isLoading = true
             vm.errorMessage = nil
             let dto = try await ForwardingService.shared.fetchSettings(token: token)
+            guard auth.currentUser?.id == accountID, !Task.isCancelled else { return }
             vm.load(from: dto)
         } catch {
+            guard auth.currentUser?.id == accountID, !Task.isCancelled else { return }
             vm.errorMessage = error.localizedDescription
         }
 
-        vm.isLoading = false
+        if auth.currentUser?.id == accountID { vm.isLoading = false }
     }
 
     private func save() async {
+        let accountID = auth.currentUser?.id
         guard let token = auth.currentToken, !token.isEmpty else {
             auth.handleInvalidSession()
             return
@@ -240,15 +245,17 @@ struct ForwardingSettingsView: View {
                 vm.makeRequest(),
                 token: token
             )
+            guard auth.currentUser?.id == accountID, !Task.isCancelled else { return }
             vm.load(from: saved)
             vm.banner = appText(
                 "forwarding.saved",
                 languageCode: appLanguage
             )
         } catch {
+            guard auth.currentUser?.id == accountID, !Task.isCancelled else { return }
             vm.errorMessage = error.localizedDescription
         }
 
-        vm.isSaving = false
+        if auth.currentUser?.id == accountID { vm.isSaving = false }
     }
 }

@@ -35,6 +35,14 @@ final class ForwardingSettingsViewModel: ObservableObject {
         initialState = dto
     }
 
+    func clearForAccountChange() {
+        load(from: .empty)
+        isLoading = false
+        isSaving = false
+        banner = nil
+        errorMessage = nil
+    }
+
     func makeRequest() -> ForwardingSettingsDTO {
         ForwardingSettingsDTO(
             forwardingEnabledSms: forwardingEnabledSms,
@@ -96,6 +104,13 @@ final class ForwardingSettingsViewModel: ObservableObject {
                 out["quiet"] = "Quiet hours must be between 0 and 23."
                 break
             }
+        }
+
+        if out["quiet"] == nil && (forwardQuietHoursStart == nil) != (forwardQuietHoursEnd == nil) {
+            out["quiet"] = "Set both quiet hours or clear both."
+        }
+        if out["quiet"] == nil && forwardQuietHoursStart != nil && forwardQuietHoursStart == forwardQuietHoursEnd {
+            out["quiet"] = "Quiet hours start and end must differ."
         }
 
         return out
