@@ -17,7 +17,108 @@ struct DisappearingQAApp: App {
     init() { URLProtocol.registerClass(QADenyNetworkProtocol.self) }
 
     var body: some Scene {
-        WindowGroup { DisappearingQARoot() }
+        WindowGroup {
+            if ProcessInfo.processInfo.arguments.contains("--forwarding-qa") {
+                ForwardingQARoot()
+            } else {
+                DisappearingQARoot()
+            }
+        }
+    }
+}
+
+@MainActor
+private final class QAForwardingTokenStore: TokenStoring {
+    func read() -> String? { "synthetic-forwarding-token" }
+    func save(_ token: String) {}
+    func clear() {}
+}
+
+@MainActor
+private final class QAForwardingSocket: SocketManaging {
+    func connect(token: String) {}
+    func disconnect() {}
+}
+
+@MainActor
+private final class QAForwardingStore {
+    private var values: [Int: ForwardingSettingsDTO] = [
+        1: ForwardingSettingsDTO(
+            forwardingEnabledSms: true, forwardSmsToPhone: true,
+            forwardPhoneNumber: "+15551110000", forwardSmsToEmail: false,
+            forwardEmail: "", forwardingEnabledCalls: false,
+            forwardToPhoneE164: "", forwardQuietHoursStart: 22,
+            forwardQuietHoursEnd: 6),
+        2: ForwardingSettingsDTO(
+            forwardingEnabledSms: false, forwardSmsToPhone: false,
+            forwardPhoneNumber: "", forwardSmsToEmail: false,
+            forwardEmail: "", forwardingEnabledCalls: true,
+            forwardToPhoneE164: "+15552220000", forwardQuietHoursStart: nil,
+            forwardQuietHoursEnd: nil)
+    ]
+
+    func fetch(_ account: Int) -> ForwardingSettingsDTO {
+        if ProcessInfo.processInfo.arguments.contains("--forwarding-qa-invalid"), account == 1 {
+            return ForwardingSettingsDTO(
+                forwardingEnabledSms: true, forwardSmsToPhone: true,
+                forwardPhoneNumber: "bad", forwardSmsToEmail: false,
+                forwardEmail: "", forwardingEnabledCalls: false,
+                forwardToPhoneE164: "", forwardQuietHoursStart: 22,
+                forwardQuietHoursEnd: nil)
+        }
+        return values[account] ?? .empty
+    }
+
+    func save(_ dto: ForwardingSettingsDTO, for account: Int) -> ForwardingSettingsDTO {
+        values[account] = dto
+        return dto
+    }
+}
+
+@MainActor
+private struct ForwardingQARoot: View {
+    @StateObject private var auth = ForwardingQARoot.makeAuth()
+    @StateObject private var theme = ThemeManager()
+    @State private var store = QAForwardingStore()
+    @State private var account = ProcessInfo.processInfo.arguments.contains("--forwarding-qa-account-b") ? 2 : 1
+
+    private static func user(_ id: Int) -> UserDTO {
+        let data = Data("{\"id\":\(id),\"username\":\"synthetic\",\"plan\":\"PLUS\"}".utf8)
+        return try! JSONDecoder().decode(UserDTO.self, from: data)
+    }
+
+    private static func makeAuth() -> AuthStore {
+        let auth = AuthStore(tokenStore: QAForwardingTokenStore(),
+            socket: QAForwardingSocket(), refreshEntitlements: {},
+            ensureLocalKeys: { _, _ in false }, finishLoginNotifications: {})
+        auth.state = .loggedIn(user(
+            ProcessInfo.processInfo.arguments.contains("--forwarding-qa-account-b") ? 2 : 1))
+        return auth
+    }
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Text("Synthetic iOS forwarding QA · network blocked")
+                .font(.caption2)
+            Button("Switch synthetic account (now \(account))") {
+                account = account == 1 ? 2 : 1
+                auth.state = .loggedIn(Self.user(account))
+            }
+            NavigationStack {
+                ForwardingSettingsView(
+                    fetchSettings: { _ in store.fetch(account) },
+                    saveSettings: { dto, _ in store.save(dto, for: account) })
+            }
+        }
+        .environmentObject(auth)
+        .environmentObject(theme)
+        .task {
+            if ProcessInfo.processInfo.arguments.contains("--forwarding-qa-autoswitch") {
+                try? await Task.sleep(for: .seconds(5))
+                account = 2
+                auth.state = .loggedIn(Self.user(2))
+            }
+        }
     }
 }
 

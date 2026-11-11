@@ -4,6 +4,20 @@ struct ForwardingSettingsView: View {
     @EnvironmentObject var auth: AuthStore
     @AppStorage("chatforia_language") private var appLanguage = "en"
     @StateObject private var vm = ForwardingSettingsViewModel()
+    private let fetchSettings: (String) async throws -> ForwardingSettingsDTO
+    private let saveSettings: (ForwardingSettingsDTO, String) async throws -> ForwardingSettingsDTO
+
+    init(
+        fetchSettings: @escaping (String) async throws -> ForwardingSettingsDTO = {
+            try await ForwardingService.shared.fetchSettings(token: $0)
+        },
+        saveSettings: @escaping (ForwardingSettingsDTO, String) async throws -> ForwardingSettingsDTO = {
+            try await ForwardingService.shared.saveSettings($0, token: $1)
+        }
+    ) {
+        self.fetchSettings = fetchSettings
+        self.saveSettings = saveSettings
+    }
 
     var body: some View {
         ScrollView {
@@ -218,7 +232,7 @@ struct ForwardingSettingsView: View {
         do {
             vm.isLoading = true
             vm.errorMessage = nil
-            let dto = try await ForwardingService.shared.fetchSettings(token: token)
+            let dto = try await fetchSettings(token)
             guard auth.currentUser?.id == accountID, !Task.isCancelled else { return }
             vm.load(from: dto)
         } catch {
@@ -241,10 +255,7 @@ struct ForwardingSettingsView: View {
             vm.banner = nil
             vm.errorMessage = nil
 
-            let saved = try await ForwardingService.shared.saveSettings(
-                vm.makeRequest(),
-                token: token
-            )
+            let saved = try await saveSettings(vm.makeRequest(), token)
             guard auth.currentUser?.id == accountID, !Task.isCancelled else { return }
             vm.load(from: saved)
             vm.banner = appText(
