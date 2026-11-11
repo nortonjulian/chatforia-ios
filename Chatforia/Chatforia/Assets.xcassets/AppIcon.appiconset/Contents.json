@@ -1,14 +1,14 @@
 {
-  "images" : [
+  "images": [
     {
-      "filename" : "chatforia_logo_112.png",
-      "idiom" : "universal",
-      "platform" : "ios",
-      "size" : "1024x1024"
+      "filename": "Chatforia_iOS_AppIcon_No_Outline_1024.png",
+      "idiom": "universal",
+      "platform": "ios",
+      "size": "1024x1024"
     }
   ],
-  "info" : {
-    "author" : "xcode",
-    "version" : 1
+  "info": {
+    "author": "xcode",
+    "version": 1
   }
 }
