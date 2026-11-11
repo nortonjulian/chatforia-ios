@@ -42,7 +42,8 @@ private final class QAForwardingSocket: SocketManaging {
 
 @MainActor
 private final class QAForwardingStore {
-    private var values: [Int: ForwardingSettingsDTO] = [
+    private let defaults = UserDefaults.standard
+    private let seed: [Int: ForwardingSettingsDTO] = [
         1: ForwardingSettingsDTO(
             forwardingEnabledSms: true, forwardSmsToPhone: true,
             forwardPhoneNumber: "+15551110000", forwardSmsToEmail: false,
@@ -57,6 +58,14 @@ private final class QAForwardingStore {
             forwardQuietHoursEnd: nil)
     ]
 
+    init() {
+        if ProcessInfo.processInfo.arguments.contains("--forwarding-qa-reset-store") {
+            for account in [1, 2] { defaults.removeObject(forKey: key(account)) }
+        }
+    }
+
+    private func key(_ account: Int) -> String { "forwarding.qa.local.account.\(account)" }
+
     func fetch(_ account: Int) -> ForwardingSettingsDTO {
         if ProcessInfo.processInfo.arguments.contains("--forwarding-qa-invalid"), account == 1 {
             return ForwardingSettingsDTO(
@@ -66,11 +75,17 @@ private final class QAForwardingStore {
                 forwardToPhoneE164: "", forwardQuietHoursStart: 22,
                 forwardQuietHoursEnd: nil)
         }
-        return values[account] ?? .empty
+        if let data = defaults.data(forKey: key(account)),
+           let saved = try? JSONDecoder().decode(ForwardingSettingsDTO.self, from: data) {
+            return saved
+        }
+        return seed[account] ?? .empty
     }
 
     func save(_ dto: ForwardingSettingsDTO, for account: Int) -> ForwardingSettingsDTO {
-        values[account] = dto
+        if let data = try? JSONEncoder().encode(dto) {
+            defaults.set(data, forKey: key(account))
+        }
         return dto
     }
 }
@@ -81,6 +96,7 @@ private struct ForwardingQARoot: View {
     @StateObject private var theme = ThemeManager()
     @State private var store = QAForwardingStore()
     @State private var account = ProcessInfo.processInfo.arguments.contains("--forwarding-qa-account-b") ? 2 : 1
+    @State private var showScreen = true
 
     private static func user(_ id: Int) -> UserDTO {
         let data = Data("{\"id\":\(id),\"username\":\"synthetic\",\"plan\":\"PLUS\"}".utf8)
@@ -104,10 +120,14 @@ private struct ForwardingQARoot: View {
                 account = account == 1 ? 2 : 1
                 auth.state = .loggedIn(Self.user(account))
             }
-            NavigationStack {
-                ForwardingSettingsView(
-                    fetchSettings: { _ in store.fetch(account) },
-                    saveSettings: { dto, _ in store.save(dto, for: account) })
+            if showScreen {
+                NavigationStack {
+                    ForwardingSettingsView(
+                        fetchSettings: { _ in store.fetch(account) },
+                        saveSettings: { dto, _ in store.save(dto, for: account) })
+                }
+            } else {
+                Text("Forwarding screen closed for QA")
             }
         }
         .environmentObject(auth)
@@ -118,6 +138,10 @@ private struct ForwardingQARoot: View {
                 account = 2
                 auth.state = .loggedIn(Self.user(2))
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("ForwardingQASaved"))) { _ in
+            showScreen = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { showScreen = true }
         }
     }
 }

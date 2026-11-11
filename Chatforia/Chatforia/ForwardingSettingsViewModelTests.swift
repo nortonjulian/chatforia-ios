@@ -83,7 +83,8 @@ final class ForwardingSettingsViewModelTests: XCTestCase {
         vm.load(from: makeDTO())
         vm.banner = "Saved"
         vm.clearForAccountChange()
-        XCTAssertEqual(vm.makeRequest(), .empty)
+        XCTAssertEqual(vm.makeRequest().forwardPhoneNumber, "")
+        XCTAssertNil(vm.initialState)
         XCTAssertNil(vm.banner)
         XCTAssertFalse(vm.hasChanges)
     }
@@ -185,6 +186,28 @@ final class ForwardingSettingsViewModelTests: XCTestCase {
 
         XCTAssertTrue(vm.validationErrors.isEmpty)
     }
+
+    func testLegacyZoneDefaultsToDeviceAndSavedZoneSurvivesAnotherDevice() {
+        let first = ForwardingSettingsViewModel(deviceTimeZone: "America/Denver")
+        let legacy = ForwardingSettingsDTO.empty
+        first.load(from: legacy)
+        XCTAssertEqual(first.forwardQuietHoursTimeZone, "America/Denver")
+        XCTAssertTrue(first.hasChanges)
+        let saved = first.makeRequest()
+        let second = ForwardingSettingsViewModel(deviceTimeZone: "Europe/London")
+        second.load(from: saved)
+        XCTAssertEqual(second.forwardQuietHoursTimeZone, "America/Denver")
+        XCTAssertFalse(second.hasChanges)
+    }
+
+    func testInvalidZoneCannotBeSaved() {
+        let vm = ForwardingSettingsViewModel(deviceTimeZone: "UTC")
+        vm.load(from: makeDTO())
+        vm.forwardQuietHoursTimeZone = "MST"
+        XCTAssertNotNil(vm.validationErrors["timeZone"])
+        vm.forwardQuietHoursTimeZone = "America/Denver"
+        XCTAssertNil(vm.validationErrors["timeZone"])
+    }
 }
 
 // MARK: - Helpers
@@ -199,6 +222,7 @@ private func makeDTO() -> ForwardingSettingsDTO {
         forwardingEnabledCalls: true,
         forwardToPhoneE164: "+15559876543",
         forwardQuietHoursStart: 22,
-        forwardQuietHoursEnd: 7
+        forwardQuietHoursEnd: 7,
+        forwardQuietHoursTimeZone: "America/Denver"
     )
 }

@@ -177,6 +177,23 @@ struct ForwardingSettingsView: View {
                                 .foregroundStyle(.red)
                         }
 
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Quiet-hours time zone (IANA)")
+                                .font(.subheadline.weight(.semibold))
+                            TextField("America/Denver", text: $vm.forwardQuietHoursTimeZone)
+                                .textFieldStyle(.roundedBorder)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                            if let error = vm.validationErrors["timeZone"] {
+                                Text(error).font(.caption).foregroundStyle(.red)
+                            }
+                            Text(vm.initialState?.forwardQuietHoursTimeZone == nil
+                                ? "Device time zone suggested. Save to use it across devices; existing quiet hours use the server time zone until saved."
+                                : "Saved for this account across devices. Daylight-saving changes follow this zone.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
                         HStack {
                             Button(
                                 appText(
@@ -218,6 +235,15 @@ struct ForwardingSettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task(id: auth.currentUser?.id) {
             await load()
+#if DISAPPEARING_QA
+            if ProcessInfo.processInfo.arguments.contains("--forwarding-qa-save-reopen"),
+               auth.currentUser?.id == 1, vm.initialState?.forwardQuietHoursTimeZone == nil {
+                vm.forwardQuietHoursTimeZone = "America/Denver"
+                vm.forwardQuietHoursStart = 21
+                await save()
+                NotificationCenter.default.post(name: Notification.Name("ForwardingQASaved"), object: nil)
+            }
+#endif
         }
     }
 

@@ -14,6 +14,7 @@ final class ForwardingSettingsViewModel: ObservableObject {
 
     @Published var forwardQuietHoursStart: Int? = nil
     @Published var forwardQuietHoursEnd: Int? = nil
+    @Published var forwardQuietHoursTimeZone: String
 
     @Published var isLoading = false
     @Published var isSaving = false
@@ -21,6 +22,15 @@ final class ForwardingSettingsViewModel: ObservableObject {
     @Published var errorMessage: String?
 
     private(set) var initialState: ForwardingSettingsDTO?
+
+    private let deviceTimeZone: String
+
+    init(deviceTimeZone: String = TimeZone.current.identifier) {
+        let selected = deviceTimeZone == "UTC" || deviceTimeZone == "GMT" || deviceTimeZone.contains("/")
+            ? deviceTimeZone : "UTC"
+        self.deviceTimeZone = selected
+        self.forwardQuietHoursTimeZone = selected
+    }
 
     func load(from dto: ForwardingSettingsDTO) {
         forwardingEnabledSms = dto.forwardingEnabledSms
@@ -32,11 +42,13 @@ final class ForwardingSettingsViewModel: ObservableObject {
         forwardToPhoneE164 = dto.forwardToPhoneE164
         forwardQuietHoursStart = dto.forwardQuietHoursStart
         forwardQuietHoursEnd = dto.forwardQuietHoursEnd
+        forwardQuietHoursTimeZone = dto.forwardQuietHoursTimeZone ?? deviceTimeZone
         initialState = dto
     }
 
     func clearForAccountChange() {
         load(from: .empty)
+        initialState = nil
         isLoading = false
         isSaving = false
         banner = nil
@@ -53,7 +65,8 @@ final class ForwardingSettingsViewModel: ObservableObject {
             forwardingEnabledCalls: forwardingEnabledCalls,
             forwardToPhoneE164: normalizePhone(forwardToPhoneE164),
             forwardQuietHoursStart: forwardQuietHoursStart,
-            forwardQuietHoursEnd: forwardQuietHoursEnd
+            forwardQuietHoursEnd: forwardQuietHoursEnd,
+            forwardQuietHoursTimeZone: forwardQuietHoursTimeZone.trimmingCharacters(in: .whitespacesAndNewlines)
         )
     }
 
@@ -69,7 +82,8 @@ final class ForwardingSettingsViewModel: ObservableObject {
             initialState.forwardingEnabledCalls != current.forwardingEnabledCalls ||
             initialState.forwardToPhoneE164 != current.forwardToPhoneE164 ||
             initialState.forwardQuietHoursStart != current.forwardQuietHoursStart ||
-            initialState.forwardQuietHoursEnd != current.forwardQuietHoursEnd
+            initialState.forwardQuietHoursEnd != current.forwardQuietHoursEnd ||
+            initialState.forwardQuietHoursTimeZone != current.forwardQuietHoursTimeZone
     }
 
     func reset() {
@@ -111,6 +125,11 @@ final class ForwardingSettingsViewModel: ObservableObject {
         }
         if out["quiet"] == nil && forwardQuietHoursStart != nil && forwardQuietHoursStart == forwardQuietHoursEnd {
             out["quiet"] = "Quiet hours start and end must differ."
+        }
+        let zone = forwardQuietHoursTimeZone.trimmingCharacters(in: .whitespacesAndNewlines)
+        let pattern = #"^(UTC|GMT|[A-Za-z0-9._+-]+(/[A-Za-z0-9._+-]+)+)$"#
+        if zone.count > 64 || zone.range(of: pattern, options: .regularExpression) == nil || TimeZone(identifier: zone) == nil {
+            out["timeZone"] = "Enter a valid IANA time zone, such as America/Denver."
         }
 
         return out
