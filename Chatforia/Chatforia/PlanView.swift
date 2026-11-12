@@ -14,6 +14,7 @@ struct PlanView: View {
         ScrollView {
             VStack(spacing: 20) {
                 currentPlanSection
+                MonthlyUsageCard().id(auth.currentUser?.id)
                 billingSection
                 includedSection
             }
@@ -226,5 +227,83 @@ struct PlanView: View {
         PlanView()
             .environmentObject(AuthStore())
             .environmentObject(ThemeManager())
+    }
+}
+
+
+private struct MonthlyUsageCard: View {
+    @State private var snapshot: PlanEntitlementsResponse?
+    @State private var loading = true
+    @State private var failed = false
+    private let meters: [(String, String, Int)] = [
+        ("riaActions", "Shared AI actions", 1),
+        ("translationChars", "Translation characters", 1),
+        ("hostedParticipantSeconds", "App-call participant-minutes", 60),
+        ("smsMessages", "SMS and MMS messages", 1),
+        ("pstnSeconds", "Phone-call minutes", 60),
+        ("forwardingSeconds", "Forwarding minutes", 60),
+        ("voiceNoteTranscriptionSeconds", "Voice-note transcription minutes", 60),
+        ("voicemailTranscriptionSeconds", "Voicemail transcription minutes", 60)
+    ]
+
+    var body: some View {
+        SectionCardView(title: String(localized: "Monthly usage", table: "Usage")) {
+            VStack(alignment: .leading, spacing: 12) {
+                if loading { ProgressView() }
+                if failed { Text("Usage is unavailable. Please retry.", tableName: "Usage").foregroundStyle(.red) }
+                if let snapshot {
+                    ForEach(meters, id: \.0) { item in
+                        let (key, label, divisor) = item
+                        if let meter = snapshot.usage[key] {
+                            let remaining = max(0, min(meter.remaining, meter.limit - meter.used))
+                            VStack(alignment: .leading) {
+                                Text(LocalizedStringKey(label), tableName: "Usage").font(.subheadline.bold())
+                                Text("\(format(remaining, divisor)) of \(format(meter.limit, divisor)) remaining", tableName: "Usage")
+                                    .font(.footnote)
+                            }
+                        }
+                    }
+                    if let date = resetDate(snapshot) {
+                        Text("Resets \(date) at 00:00 UTC.", tableName: "Usage").font(.footnote)
+                    }
+                }
+                Text("AI tools share one action allowance. Translation counts processed characters. Voice-note transcription and live captions share recorded usage; voicemail is separate. A zero limit means no included allowance. Feature eligibility still depends on your plan.", tableName: "Usage").font(.footnote)
+                Text("App calls count each connected person's time against the caller's allowance. Two people calling for one minute use two participant-minutes.", tableName: "Usage").font(.footnote)
+                Text("Reaching a limit pauses that feature until reset. It does not stop ordinary in-app text chat. Usage updates after processing; refresh for the latest balance.", tableName: "Usage").font(.footnote)
+                Button { Task { await load() } } label: { Text("Refresh usage", tableName: "Usage") }.disabled(loading)
+            }
+        }.task { await load() }
+    }
+
+    private func format(_ value: Int, _ divisor: Int) -> String {
+        let amount = floor(Double(value) / Double(divisor) * 10) / 10
+        return amount.formatted(.number.precision(.fractionLength(0...1)))
+    }
+
+    private func resetDate(_ value: PlanEntitlementsResponse) -> String? {
+        guard let raw = value.resetAt else { return nil }
+        let parser = ISO8601DateFormatter()
+        parser.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        guard let date = parser.date(from: raw) else { return nil }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        return formatter.string(from: date)
+    }
+
+    @MainActor private func load() async {
+        loading = true; failed = false; snapshot = nil
+        defer { loading = false }
+        guard let token = TokenStore.shared.read(), !token.isEmpty else { failed = true; return }
+        do {
+            let response: PlanEntitlementsResponse = try await APIClient.shared.send(
+                APIRequest(path: "premium/usage", method: .GET, requiresAuth: true), token: token)
+            guard !Task.isCancelled else { return }
+            guard resetDate(response) != nil, meters.allSatisfy({ item in
+                guard let meter = response.usage[item.0] else { return false }
+                return meter.used >= 0 && meter.limit >= 0 && meter.remaining >= 0
+            }) else { failed = true; return }
+            snapshot = response
+        } catch { if !Task.isCancelled { failed = true } }
     }
 }
