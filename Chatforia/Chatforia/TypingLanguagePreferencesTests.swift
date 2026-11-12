@@ -2,6 +2,7 @@ import XCTest
 import SwiftUI
 @testable import Chatforia
 
+@MainActor
 final class TypingLanguagePreferencesTests: XCTestCase {
     func testConversationAndAccountIsolationAndManualSystemOverride() {
         let suite = "TypingLanguagePreferencesTests.\(UUID().uuidString)"
@@ -34,11 +35,18 @@ final class TypingLanguagePreferencesTests: XCTestCase {
         defer { defaults.removePersistentDomain(forName: suite) }
         defaults.set("fr", forKey: "chatforia_language")
         defaults.set(true, forKey: "autoTranslate")
+        let profile = SettingsViewModel()
+        profile.preferredLanguage = "fr"
+        profile.autoTranslate = true
+        profile.showOriginalWithTranslation = true
         let preferences = TypingLanguagePreferences(defaults: defaults)
         let chat = TypingConversationContext(userId: 7, kind: "chat", conversationId: 8)
         preferences.setLanguage("ja", for: chat)
         XCTAssertEqual(defaults.string(forKey: "chatforia_language"), "fr")
         XCTAssertTrue(defaults.bool(forKey: "autoTranslate"))
+        XCTAssertEqual(profile.preferredLanguage, "fr")
+        XCTAssertTrue(profile.autoTranslate)
+        XCTAssertTrue(profile.showOriginalWithTranslation)
         XCTAssertEqual(preferences.language(for: chat), "ja")
         XCTAssertNotEqual(chat.keyboardContextIdentifier(language: "ja"),
                           chat.keyboardContextIdentifier(language: nil))
@@ -79,5 +87,43 @@ final class TypingLanguagePreferencesTests: XCTestCase {
         XCTAssertEqual(state.draft, "Hola 日本語")
         delegate.textViewDidEndEditing(field)
         XCTAssertFalse(state.focused)
+    }
+
+    func testEverySupportedChoiceHasAStableDistinctKeyboardContext() {
+        let suite = "TypingLanguagePreferencesTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let preferences = TypingLanguagePreferences(defaults: defaults)
+        let conversation = TypingConversationContext(userId: 9, kind: "chat", conversationId: 10)
+        XCTAssertEqual(AppLanguages.all.count, 147)
+        var identifiers = Set<String>()
+        for option in AppLanguages.all {
+            preferences.setLanguage(option.code, for: conversation)
+            XCTAssertEqual(preferences.language(for: conversation), option.code)
+            identifiers.insert(conversation.keyboardContextIdentifier(language: option.code))
+        }
+        XCTAssertEqual(identifiers.count, AppLanguages.all.count)
+    }
+
+    func testScriptsRegionsAndUnsupportedLanguageFallback() {
+        let representative = [
+            "es", "pt-BR", "ru", "sr", "ar", "prs", "ur", "hi", "mr", "ne",
+            "zh-Hans", "zh-Hant", "ja", "ko", "yue", "mni-Mtei", "am", "he",
+            "th", "bo", "kmr", "nb"
+        ]
+        for code in representative {
+            XCTAssertEqual(TypingLanguagePreferences.canonicalCode(code), code)
+        }
+        XCTAssertEqual(TypingLanguagePreferences.canonicalCode("ZH_hant"), "zh-Hant")
+        XCTAssertEqual(TypingLanguagePreferences.canonicalCode("PT_br"), "pt-BR")
+        XCTAssertEqual(TypingLanguagePreferences.canonicalCode("MNI_mtei"), "mni-Mtei")
+        XCTAssertNil(TypingLanguagePreferences.canonicalCode("zz"))
+        XCTAssertNil(TypingLanguagePreferences.canonicalCode("pt"))
+
+        let chat = TypingConversationContext(userId: 1, kind: "chat", conversationId: 1)
+        XCTAssertTrue(chat.keyboardContextIdentifier(language: "ZH_hant").hasSuffix("zh-Hant"))
+        XCTAssertTrue(chat.keyboardContextIdentifier(language: "zz").hasSuffix("system"))
+        XCTAssertNotEqual(chat.keyboardContextIdentifier(language: "zh-Hans"),
+                          chat.keyboardContextIdentifier(language: "zh-Hant"))
     }
 }

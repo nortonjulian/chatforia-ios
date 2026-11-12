@@ -11,7 +11,7 @@ struct TypingConversationContext: Hashable {
     func keyboardContextIdentifier(language: String?) -> String {
         // UIKit remembers the user's manually selected input mode for this responder context.
         // A language selection creates a separate memory context; it does not set the keyboard.
-        "chatforia.typing.\(storageKey).\(language ?? "system")"
+        "chatforia.typing.\(storageKey).\(TypingLanguagePreferences.canonicalCode(language) ?? "system")"
     }
 }
 
@@ -23,19 +23,24 @@ struct TypingLanguagePreferences {
         self.defaults = defaults
     }
 
+    static func canonicalCode(_ raw: String?) -> String? {
+        guard let raw else { return nil }
+        let normalized = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "_", with: "-")
+        return AppLanguages.all.first { $0.code.lowercased() == normalized.lowercased() }?.code
+    }
+
     func language(for context: TypingConversationContext?) -> String? {
         guard let context else { return nil }
         let stored = defaults.dictionary(forKey: key)?[context.storageKey] as? String
-        return stored.flatMap { code in
-            AppLanguages.all.contains(where: { $0.code == code }) ? code : nil
-        }
+        return Self.canonicalCode(stored)
     }
 
     func setLanguage(_ language: String?, for context: TypingConversationContext?) {
         guard let context else { return }
-        guard language == nil || AppLanguages.all.contains(where: { $0.code == language }) else { return }
+        guard language == nil || Self.canonicalCode(language) != nil else { return }
         var stored = defaults.dictionary(forKey: key) as? [String: String] ?? [:]
-        stored[context.storageKey] = language
+        stored[context.storageKey] = Self.canonicalCode(language)
         defaults.set(stored, forKey: key)
     }
 }
