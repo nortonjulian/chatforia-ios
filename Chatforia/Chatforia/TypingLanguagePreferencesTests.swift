@@ -142,4 +142,20 @@ final class TypingLanguagePreferencesTests: XCTestCase {
         XCTAssertEqual(TypingLanguagePreferences.canonicalCode("pt-BR"), "pt-BR")
         XCTAssertNil(TypingLanguagePreferences.canonicalCode("pt"))
     }
+
+    func testKeyboardCopyIsLocalizedForEverySupportedAppLanguage() {
+        let sources = [
+            "keyboard.help": "Choose a language, then use the keyboard language key to switch. iOS may remember it for this conversation.",
+            "keyboard.system": "System keyboard",
+            "keyboard.typingLanguage": "Typing language"
+        ]
+        for option in AppLanguages.all where option.code != "en" {
+            for (key, english) in sources {
+                let localized = appText(key, languageCode: option.code)
+                XCTAssertNotEqual(localized.caseInsensitiveCompare(english), .orderedSame,
+                    "\(key) fell back to English for \(option.code)")
+                XCTAssertNotEqual(localized, key, "\(key) is missing for \(option.code)")
+            }
+        }
+    }
 }
