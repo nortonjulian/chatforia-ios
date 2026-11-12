@@ -1234394,7 +1234394,7 @@
         "ff" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Suɓo ɗemngal, caggal ɗuum huutoro jokkorgal ɗemngal keyboard ngam waylude. iOS ina waawi siftorde ɗum ngam ndee yeewtere."
+            "value" : "Suɓo ɗemngal, caggal ɗuum huutoro butoŋ ɗemngal e dow keyboard ngam waylude. iOS ina waawi siftorde keyboard ngam ndee yeewtere."
           }
         },
         "fi" : {
@@ -1234436,7 +1234436,7 @@
         "gom" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "भास निवडात, मागीर स्वीच करपाक कीबोर्ड भास कळ वापरात. ह्या संवादाक iOS याद आसूं येता."
+            "value" : "भास निवडात, मागीर स्वीच करपाक कीबोर्ड भास कळ वापरात. ह्या गप्पा खातीर कीबोर्ड iOSाक याद आसूं येता."
           }
         },
         "gu" : {
@@ -1234472,7 +1234472,7 @@
         "hmn" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Xaiv ib hom lus, tom qab ntawd siv cov lus keyboard keyboard hloov. iOS yuav nco ntsoov nws rau qhov kev sib tham no."
+            "value" : "Xaiv ib hom lus, tom qab ntawd nias lub keyboard lus yuam sij hloov cov keyboards. iOS tuaj yeem nco qab cov keyboard rau qhov kev sib tham no."
           }
         },
         "hr" : {
@@ -1234880,7 +1234880,7 @@
         "su" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Pilih basa, teras pake kenop basa kibor pikeun pindah. iOS tiasa émut kana paguneman ieu."
+            "value" : "Pilih basa, teras pake kenop basa kibor pikeun pindah. iOS tiasa émut kana keyboard pikeun obrolan ieu."
           }
         },
         "sv" : {
@@ -1235036,7 +1235036,7 @@
         "yo" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Yan ede kan, lẹhinna lo bọtini ede keyboard lati yipada. iOS le ranti rẹ fun ibaraẹnisọrọ yii."
+            "value" : "Yan ede kan, lẹhinna lo bọtini ede lori keyboard lati yi awọn bọtini itẹwe pada. iOS le ranti awọn keyboard fun yi iwiregbe."
           }
         },
         "yue" : {
@@ -1235903,7 +1235903,7 @@
         "yo" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Awọn bọtini itẹwe ọna ṣiṣe"
+            "value" : "Bọtini itẹwe eto"
           }
         },
         "yue" : {
@@ -1236326,7 +1236326,7 @@
         "la" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Typing linguarum"
+            "value" : "Lingua scribendi"
           }
         },
         "lb" : {
