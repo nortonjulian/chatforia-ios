@@ -4,7 +4,7 @@ import UIKit
 struct MessageComposerView: View {
     @Binding var draft: String
     @State private var isDraftFocused = false
-    @State private var typingLanguage: String?
+    @State private var typingSelectionRevision = 0
 
     @EnvironmentObject var settingsVM: SettingsViewModel
     @EnvironmentObject private var themeManager: ThemeManager
@@ -102,6 +102,11 @@ struct MessageComposerView: View {
         return isSending || isSendingVoice || (trimmedDraft.isEmpty && !hasPendingAttachment)
     }
 
+    private var typingLanguage: String? {
+        _ = typingSelectionRevision
+        return TypingLanguagePreferences().language(for: typingContext)
+    }
+
     var body: some View {
         
         VStack(spacing: 0) {
@@ -130,9 +135,6 @@ struct MessageComposerView: View {
             }
         }
         .background(themeManager.palette.composerBackground)
-        .task(id: typingContext?.storageKey) {
-            typingLanguage = TypingLanguagePreferences().language(for: typingContext)
-        }
     }
 
     private var normalComposer: some View {
@@ -245,7 +247,7 @@ struct MessageComposerView: View {
 
     private func selectTypingLanguage(_ code: String?) {
         TypingLanguagePreferences().setLanguage(code, for: typingContext)
-        typingLanguage = code
+        typingSelectionRevision += 1
     }
 
     @ViewBuilder

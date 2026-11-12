@@ -14,8 +14,9 @@ final class TypingLanguagePreferencesTests: XCTestCase {
         let sms = TypingConversationContext(userId: 1, kind: "sms", conversationId: 42)
 
         preferences.setLanguage("es", for: chat)
+        preferences.setLanguage("ja", for: otherChat)
         XCTAssertEqual(preferences.language(for: chat), "es")
-        XCTAssertNil(preferences.language(for: otherChat))
+        XCTAssertEqual(preferences.language(for: otherChat), "ja")
         XCTAssertNil(preferences.language(for: otherUser))
         XCTAssertNil(preferences.language(for: sms))
         XCTAssertNotEqual(chat.keyboardContextIdentifier(language: "es"),
@@ -23,6 +24,7 @@ final class TypingLanguagePreferencesTests: XCTestCase {
 
         preferences.setLanguage(nil, for: chat)
         XCTAssertNil(preferences.language(for: chat))
+        XCTAssertEqual(preferences.language(for: otherChat), "ja")
         XCTAssertNil(preferences.language(for: nil))
     }
 
