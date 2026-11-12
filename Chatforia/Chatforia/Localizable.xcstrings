@@ -1234204,6 +1234204,2607 @@
         }
       }
     },
+    "keyboard.help" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Choose a language, then use the keyboard language key to switch. iOS may remember it for this conversation." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Elige un idioma y luego usa la tecla de idioma del teclado para cambiarlo. iOS puede recordarlo para esta conversación." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Choisissez une langue, puis utilisez la touche de langue du clavier pour changer de clavier. iOS peut mémoriser ce choix pour cette conversation." } },
+        "pt" : { "stringUnit" : { "state" : "translated", "value" : "Escolha um idioma e depois use a tecla de idioma do teclado para mudar. O iOS poderá memorizar a sua escolha para esta conversa." } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Escolha um idioma e use a tecla de idioma do teclado para alternar. O iOS pode lembrar essa escolha para esta conversa." } },
+        "af" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kies 'n taal en gebruik dan die sleutelbordtaalsleutel om oor te skakel. iOS kan dit dalk vir hierdie gesprek onthou."
+          }
+        },
+        "ak" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Paw kasa bi, afei fa keyboard kasa safoa no sesa. Ebia iOS bɛkae no ama saa nkɔmmɔbɔ yi."
+          }
+        },
+        "am" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ቋንቋ ይምረጡ እና ለመቀየር የቁልፍ ሰሌዳ የቋንቋ ቁልፍን ይጠቀሙ። iOS ለዚህ ውይይት ሊያስታውሰው ይችላል።"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "اختر لغة، ثم استخدم مفتاح لغة لوحة المفاتيح للتبديل. قد يتذكره iOS لهذه المحادثة."
+          }
+        },
+        "as" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "এটা ভাষা নিৰ্ব্বাচন কৰক, তাৰ পিছত চুইচ কৰিবলৈ কিবৰ্ড ভাষা চাবি ব্যৱহাৰ কৰক। এই কথা-বতৰাৰ বাবে iOS য়ে হয়তো মনত ৰাখিব।"
+          }
+        },
+        "ay" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mä aru ajlliñamawa, ukatxa teclado arut teclampiw mayjt’ayañama. iOS ukax aka aruskipäwitak amtaspawa."
+          }
+        },
+        "az" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dil seçin, sonra keçid üçün klaviatura dil düyməsini istifadə edin. iOS bunu bu söhbət üçün yadda saxlaya bilər."
+          }
+        },
+        "be" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Выберыце мову, затым выкарыстоўвайце клавішу мовы на клавіятуры для пераключэння. iOS можа запомніць гэта для гэтай размовы."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Изберете език, след което използвайте клавиша за език на клавиатурата, за да превключите. iOS може да го запомни за този разговор."
+          }
+        },
+        "bho" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "कवनो भाषा चुनीं, ओकरा बाद स्विच करे खातिर कीबोर्ड भाषा कुंजी के इस्तेमाल करीं. हो सकेला कि iOS के एह बातचीत खातिर एकरा के याद राखल जाव."
+          }
+        },
+        "bm" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kan dɔ sugandi, o kɔ, baara kɛ ni klaviyeti kan butɔn ye walasa ka fɛn caman Changer. iOS bɛ se k’a hakili to a la nin baro in kama."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "একটি ভাষা চয়ন করুন, তারপরে স্যুইচ করতে কীবোর্ড ভাষা কী ব্যবহার করুন৷ iOS এই কথোপকথনের জন্য এটি মনে রাখতে পারে।"
+          }
+        },
+        "bo" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "སྐད་ཡིག་འདེམས་རྗེས་མཐེབ་གཞོང་སྐད་ཡིག་གི་ལྡེ་མིག་བེད་སྤྱད་ནས་བརྗེ་སྒྱུར་བྱེད། iOS ཡིས་ཁ་བརྡ་འདིའི་ཆེད་དུ་དྲན་སྲིད།"
+          }
+        },
+        "br" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dibabit ur yezh, ha goude-se implijit stokell yezh ar c'hlavier evit tremen. Marteze e vo soñjet gant iOS evit ar gaozeadenn-mañ."
+          }
+        },
+        "bs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odaberite jezik, a zatim koristite tipku za jezik na tastaturi za promjenu. iOS ga možda zapamti za ovaj razgovor."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Trieu un idioma i, a continuació, utilitzeu la tecla d'idioma del teclat per canviar. És possible que iOS ho recordi per a aquesta conversa."
+          }
+        },
+        "ceb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pagpili og lengguwahe, dayon gamita ang yawe sa pinulongan sa keyboard aron mobalhin. Mahimong mahinumduman kini sa iOS alang niini nga panag-istoryahanay."
+          }
+        },
+        "ckb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "زمانێک هەڵبژێرە، پاشان کلیلی زمانی کیبۆرد بەکاربهێنە بۆ گۆڕینی. ڕەنگە iOS بۆ ئەم گفتوگۆیە لەبیری بێت."
+          }
+        },
+        "co" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sceglite una lingua, dopu aduprà a chjave di a lingua di u teclatu per cambià. iOS pò ricurdà per sta conversazione."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vyberte jazyk a přepněte jej pomocí klávesy jazyka klávesnice. iOS si to může pamatovat pro tuto konverzaci."
+          }
+        },
+        "cy" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dewiswch iaith, yna defnyddiwch fysell iaith y bysellfwrdd i newid. efallai y bydd iOS yn ei gofio ar gyfer y sgwrs hon."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vælg et sprog, og brug derefter sprogtasten på tastaturet til at skifte. iOS husker det muligvis til denne samtale."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wähle eine Sprache aus und wechsle dann mit der Sprachwechseltaste der Tastatur. iOS merkt sich die Auswahl möglicherweise für diese Unterhaltung."
+          }
+        },
+        "dv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ބަހެއް ހޮވައި، ދެން ބަދަލު ކުރުމަށް ކީބޯޑް ލޭންގުއޭޖް ކީ ބޭނުން ކުރާށެވެ. މި ވާހަކައަށް iOS ހަނދާން ހުރެދާނެއެވެ."
+          }
+        },
+        "dz" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "སྐད་ཡིག་གདམ་ཁ་རྐྱབས་ཞིནམ་ལས་ དེ་ལས་ སོར་བསྒྱུར་འབད་ནི་ལུ་ ལྡེ་སྒྲོམ་གྱི་སྐད་ཡིག་ལྡེ་མིག་ལག་ལེན་འཐབ། iOS གིས་ ཁ་སླབ་འདི་གི་དོན་ལུ་ སེམས་ཁར་དྲན་འོང་།"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Επιλέξτε μια γλώσσα και, στη συνέχεια, χρησιμοποιήστε το πλήκτρο γλώσσας του πληκτρολογίου για εναλλαγή. Το iOS μπορεί να το θυμάται για αυτήν τη συνομιλία."
+          }
+        },
+        "eo" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Elektu lingvon, poste uzu la klavaran lingvoklavon por ŝanĝi. iOS eble memoras ĝin por ĉi tiu konversacio."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Valige keel ja kasutage vahetamiseks klaviatuuri keeleklahvi. iOS võib selle vestluse jaoks meelde jätta."
+          }
+        },
+        "eu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aukeratu hizkuntza bat, eta erabili teklatuko hizkuntza-tekla aldatzeko. Baliteke iOS-ek elkarrizketa honetarako gogoratzea."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "یک زبان را انتخاب کنید، سپس از کلید زبان صفحه کلید برای جابجایی استفاده کنید. iOS ممکن است آن را برای این مکالمه به خاطر بسپارد."
+          }
+        },
+        "ff" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Suɓo ɗemngal, caggal ɗuum huutoro butoŋ ɗemngal e dow keyboard ngam waylude. iOS ina waawi siftorde keyboard ngam ndee yeewtere."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Valitse kieli ja käytä sitten näppäimistön kielinäppäintä vaihtaaksesi. iOS saattaa muistaa sen tätä keskustelua varten."
+          }
+        },
+        "fy" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kies in taal, brûk dan de toetseboerdtaaltoets om te wikseljen. iOS kin it ûnthâlde foar dit petear."
+          }
+        },
+        "ga" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Roghnaigh teanga, ansin úsáid eochair teanga an mhéarchláir chun athrú. Seans go gcuimhneoidh iOS é don chomhrá seo."
+          }
+        },
+        "gd" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tagh cànan, agus an uairsin cleachd iuchair cànan a’ mheur-chlàr gus tionndadh. Is dòcha gu bheil cuimhne aig iOS air airson a’ chòmhraidh seo."
+          }
+        },
+        "gl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Escolla un idioma e, a continuación, use a tecla de idioma do teclado para cambiar. iOS pode lembralo para esta conversa."
+          }
+        },
+        "gn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Eiporavo peteĩ ñe’ẽ, upéi eipuru teclado ñe’ẽ tecla eñemoambue hag̃ua. iOS ikatu imandu’a hese ko ñomongetarã."
+          }
+        },
+        "gom" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "भास निवडात, मागीर स्वीच करपाक कीबोर्ड भास कळ वापरात. ह्या गप्पा खातीर कीबोर्ड iOSाक याद आसूं येता."
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ભાષા પસંદ કરો, પછી સ્વિચ કરવા માટે કીબોર્ડ ભાષા કીનો ઉપયોગ કરો. iOS તેને આ વાતચીત માટે યાદ રાખી શકે છે."
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zaɓi harshe, sannan yi amfani da maɓallin yaren madannai don canzawa. iOS na iya tunawa da shi don wannan tattaunawar."
+          }
+        },
+        "haw" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "E koho i kahi ʻōlelo, a laila e hoʻohana i ke kī ʻōlelo kīpē e hoʻololi. Hoʻomanaʻo paha ʻo iOS no kēia kamaʻilio ʻana."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "בחר שפה ולאחר מכן השתמש במקש שפת המקלדת כדי לעבור. ייתכן ש-iOS תזכור את זה לשיחה הזו."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "एक भाषा चुनें, फिर स्विच करने के लिए कीबोर्ड भाषा कुंजी का उपयोग करें। iOS इसे इस वार्तालाप के लिए याद रख सकता है."
+          }
+        },
+        "hmn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Xaiv ib hom lus, tom qab ntawd nias lub keyboard lus yuam sij hloov cov keyboards. iOS tuaj yeem nco qab cov keyboard rau qhov kev sib tham no."
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odaberite jezik, a zatim koristite tipku jezika tipkovnice za promjenu. iOS bi to mogao zapamtiti za ovaj razgovor."
+          }
+        },
+        "ht" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chwazi yon lang, epi sèvi ak kle lang klavye a pou chanje. iOS ka sonje li pou konvèsasyon sa a."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Válasszon nyelvet, majd váltson a billentyűzet nyelvi gombjával. Az iOS emlékezhet erre a beszélgetésre."
+          }
+        },
+        "hy" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ընտրեք լեզու, այնուհետև օգտագործեք ստեղնաշարի լեզվի ստեղնը՝ անցնելու համար: iOS-ը կարող է հիշել այն այս խոսակցության համար:"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pilih bahasa, lalu gunakan tombol bahasa keyboard untuk beralih. iOS mungkin mengingatnya untuk percakapan ini."
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Họrọ asụsụ, wee jiri igodo asụsụ ahụigodo ka ịgbanwee. iOS nwere ike icheta ya maka mkparịta ụka a."
+          }
+        },
+        "ilo" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pilien ti pagsasao, sa usarem ti keyboard language key tapno agsubli. Mabalin a malagip dayta ti iOS para iti daytoy a saritaan."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Veldu tungumál og notaðu síðan tungumálatakkann á lyklaborðinu til að skipta. iOS gæti munað það fyrir þetta samtal."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Scegli una lingua, poi usa il tasto per cambiare lingua sulla tastiera. iOS potrebbe ricordare la scelta per questa conversazione."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "言語を選択し、キーボードの言語切り替えキーを使って切り替えてください。iOS はこの会話での選択を記憶する場合があります。"
+          }
+        },
+        "jv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pilih basa, banjur gunakake tombol basa keyboard kanggo ngalih. iOS bisa uga ngelingi kanggo obrolan iki."
+          }
+        },
+        "ka" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "აირჩიეთ ენა, შემდეგ გამოიყენეთ კლავიატურის ენის ღილაკი გადასართავად. iOS-მა შეიძლება დაიმახსოვროს ის ამ საუბრისთვის."
+          }
+        },
+        "kk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Тілді таңдаңыз, содан кейін ауысу үшін пернетақта тіл пернесін пайдаланыңыз. iOS оны осы әңгіме үшін есте сақтауы мүмкін."
+          }
+        },
+        "km" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ជ្រើសរើសភាសា បន្ទាប់មកប្រើគ្រាប់ចុចភាសាក្តារចុចដើម្បីប្តូរ។ iOS ប្រហែលជាចងចាំវាសម្រាប់ការសន្ទនានេះ។"
+          }
+        },
+        "kmr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zimanek hilbijêre, paşê bişkojka zimanê klavyeyê bikar bînin ku veguherînin. Dibe ku iOS wê ji bo vê axaftinê bi bîr bîne."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ಭಾಷೆಯನ್ನು ಆರಿಸಿ, ನಂತರ ಬದಲಾಯಿಸಲು ಕೀಬೋರ್ಡ್ ಭಾಷೆ ಕೀ ಬಳಸಿ. ಈ ಸಂಭಾಷಣೆಗಾಗಿ iOS ಇದನ್ನು ನೆನಪಿಸಿಕೊಳ್ಳಬಹುದು."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "언어를 선택한 다음 키보드의 언어 전환 키를 사용하여 전환하세요. iOS가 이 대화에서 선택한 언어를 기억할 수 있습니다."
+          }
+        },
+        "kri" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pik wan langwej, dɔn yuz di kibɔd langwej ki fɔ chenj. iOS kin mɛmba am fɔ dis tɔk."
+          }
+        },
+        "ky" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Тилди тандап, андан кийин которуу үчүн баскычтоптун тил баскычын колдонуңуз. iOS аны бул сүйлөшүү үчүн эстеп калышы мүмкүн."
+          }
+        },
+        "la" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Linguam sume, tum clavis linguae clavium mutandae utere. iOS de hoc colloquio meminisse licet."
+          }
+        },
+        "lb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wielt eng Sprooch, benotzt dann d'Tastatur Sprooch Schlëssel fir ze wiesselen. iOS kann et fir dëst Gespréich erënneren."
+          }
+        },
+        "lg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Londa olulimi, olwo okozese ekisumuluzo ky’olulimi lwa kiiboodi okukyusa. iOS eyinza okugijjukira olw’emboozi eno."
+          }
+        },
+        "ln" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poná monɔkɔ moko, na nsima salelá fungola ya monɔkɔ ya klaviatware mpo na kobongola. iOS ekoki komikundola yango mpo na lisolo oyo."
+          }
+        },
+        "lo" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ເລືອກພາສາ, ຈາກນັ້ນໃຊ້ແປ້ນພິມພາສາເພື່ອສະຫຼັບ. iOS ອາດຈະຈື່ມັນສໍາລັບການສົນທະນານີ້."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pasirinkite kalbą, tada naudokite klaviatūros kalbos klavišą, kad perjungtumėte. „iOS“ gali prisiminti šį pokalbį."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Izvēlieties valodu un pēc tam izmantojiet tastatūras valodas taustiņu, lai pārslēgtos. iOS, iespējams, to atcerēsies šai sarunai."
+          }
+        },
+        "mai" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "कोनो भाषा चुनू, फेर स्विच करबाक लेल कीबोर्ड भाषा कुंजी क उपयोग करू। एहि गप्प-सप्प लेल iOS कए एकरा याद भ सकैत अछि।"
+          }
+        },
+        "mg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Misafidiana fiteny iray, dia ampiasao ny fanalahidin'ny fitenin'ny klavier raha hiova. Mety ho tadidin'ny iOS izany amin'ity resaka ity."
+          }
+        },
+        "mi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kōwhiria he reo, kātahi ka whakamahi i te kī reo papapātuhi hei whakawhiti. Ka maumahara pea a iOS mo tenei korero."
+          }
+        },
+        "mk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Изберете јазик, а потоа користете го копчето за јазик на тастатурата за да се префрлите. iOS може да го запомни за овој разговор."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ഒരു ഭാഷ തിരഞ്ഞെടുക്കുക, തുടർന്ന് മാറാൻ കീബോർഡ് ഭാഷാ കീ ഉപയോഗിക്കുക. ഈ സംഭാഷണത്തിനായി iOS അത് ഓർമ്മിച്ചേക്കാം."
+          }
+        },
+        "mn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Хэл сонгоод, сэлгэхийн тулд гарын хэлний товчийг ашиглана уу. iOS үүнийг энэ харилцан ярианд зориулж санаж магадгүй."
+          }
+        },
+        "mni-Mtei" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ꯂꯣꯜ ꯑꯃꯥ ꯈꯜꯂꯨ, ꯃꯗꯨꯒꯤ ꯃꯇꯨꯡꯗꯥ ꯍꯣꯡꯗꯣꯛꯅꯕꯥ ꯀꯤꯕꯣꯔꯗ ꯂꯦꯉ꯭ꯒꯨꯌꯦꯖ ꯀꯤ ꯁꯤꯖꯤꯟꯅꯧ꯫ ꯋꯥꯔꯤ ꯁꯥꯅꯕꯥ ꯑꯁꯤꯒꯤꯗꯃꯛ iOSꯅꯥ ꯃꯁꯤ ꯅꯤꯡꯁꯤꯡꯕꯥ ꯌꯥꯏ꯫"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "भाषा निवडा, त्यानंतर स्विच करण्यासाठी कीबोर्ड भाषा की वापरा. iOS ते या संभाषणासाठी लक्षात ठेवू शकते."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pilih bahasa, kemudian gunakan kekunci bahasa papan kekunci untuk bertukar. iOS mungkin mengingatinya untuk perbualan ini."
+          }
+        },
+        "mt" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Agħżel lingwa, imbagħad uża ċ-ċavetta tal-lingwa tat-tastiera biex taqleb. iOS jista 'jiftakarha għal din il-konversazzjoni."
+          }
+        },
+        "my" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ဘာသာစကားတစ်ခုကို ရွေးပါ၊ ထို့နောက် ပြောင်းရန် ကီးဘုတ်ဘာသာစကားခလုတ်ကို အသုံးပြုပါ။ ဤစကားဝိုင်းအတွက် iOS က ၎င်းကို မှတ်မိနိုင်သည်။"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Velg et språk, og bruk deretter tastaturets språktast for å bytte. iOS kan huske det for denne samtalen."
+          }
+        },
+        "ne" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "एउटा भाषा छान्नुहोस्, त्यसपछि स्विच गर्न किबोर्ड भाषा कुञ्जी प्रयोग गर्नुहोस्। iOS यो कुराकानीको लागि सम्झन सक्छ।"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kies een taal en gebruik vervolgens de toetsenbordtaaltoets om te schakelen. iOS onthoudt het misschien voor dit gesprek."
+          }
+        },
+        "nso" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kgetha leleme, ke moka o šomiše senotlelo sa polelo ya khiiboto go fetola. iOS e ka e gopola bakeng sa poledišano ye."
+          }
+        },
+        "oc" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Causissètz una lenga, puèi utilizatz la tòca de lenga del clavièr per cambiar. iOS se lo sovendrà benlèu per aquesta convèrsa."
+          }
+        },
+        "om" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Afaan filadhu, kana booda furtuu afaan furtuu fayyadamii jijjiiruuf. iOS haasawa kanaaf yaadachuu danda'a."
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ଏକ ଭାଷା ବାଛନ୍ତୁ, ତାପରେ ସୁଇଚ୍ କରିବାକୁ କୀବୋର୍ଡ୍ ଭାଷା କି ବ୍ୟବହାର କରନ୍ତୁ | ଏହି ବାର୍ତ୍ତାଳାପ ପାଇଁ iOS ଏହାକୁ ମନେ ରଖିପାରେ |"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ਇੱਕ ਭਾਸ਼ਾ ਚੁਣੋ, ਫਿਰ ਸਵਿੱਚ ਕਰਨ ਲਈ ਕੀਬੋਰਡ ਭਾਸ਼ਾ ਕੁੰਜੀ ਦੀ ਵਰਤੋਂ ਕਰੋ। iOS ਇਸਨੂੰ ਇਸ ਗੱਲਬਾਤ ਲਈ ਯਾਦ ਰੱਖ ਸਕਦਾ ਹੈ।"
+          }
+        },
+        "pam" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mamili kang amanu, kaybat gamitan me ing keyboard language key para mipalitan. malyari neng ganakan ning iOS para keng pamisabi-sabi ayni."
+          }
+        },
+        "pap" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skohe un idioma, despues usa e tecla di idioma di e klaviatura pa kambia. iOS por kòrd’é pa e kombersashon aki."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wybierz język, a następnie użyj klawisza języka na klawiaturze, aby go przełączyć. iOS może to zapamiętać na potrzeby tej rozmowy."
+          }
+        },
+        "prs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "یک زبان را انتخاب کنید، سپس از کلید زبان صفحه کلید برای جابجایی استفاده کنید. iOS ممکن است آن را برای این مکالمه به خاطر بسپارد."
+          }
+        },
+        "ps" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ژبه غوره کړئ، بیا د بدلولو لپاره د کیبورډ ژبې کیلي وکاروئ. iOS ممکن دا د دې خبرو اترو لپاره یاد وساتي."
+          }
+        },
+        "qu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Huk simita akllay, chaymanta teclado simi llavewan cambianaykipaq. iOS yuyarinman kay rimanakuypaq."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Alegeți o limbă, apoi utilizați tasta de limbă de la tastatură pentru a comuta. iOS poate să-l amintească pentru această conversație."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Выберите язык, затем переключите его с помощью клавиши смены языка на клавиатуре. iOS может запомнить выбор для этого разговора."
+          }
+        },
+        "rw" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hitamo ururimi, hanyuma ukoreshe urufunguzo rwururimi rwa clavier kugirango uhindure. iOS irashobora kubyibuka kubwiki kiganiro."
+          }
+        },
+        "sa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "भाषां चिनोतु, ततः स्विच् कर्तुं कीबोर्डभाषा कीलस्य उपयोगं कुर्वन्तु । अस्य वार्तालापस्य कृते iOS स्मर्तुं शक्नोति।"
+          }
+        },
+        "scn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Scegghi na lingua, poi usa lu tastu dâ lingua dâ tastiera pi canciari. iOS lu putissi ricurdari pi sta cunversazzioni."
+          }
+        },
+        "sd" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ٻولي چونڊيو، پوءِ سوئچ ڪرڻ لاءِ ڪيبورڊ ٻولي ڪيئي استعمال ڪريو. iOS هن گفتگو لاءِ ياد ڪري سگھي ٿو."
+          }
+        },
+        "si" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "භාෂාවක් තෝරන්න, පසුව මාරු කිරීමට යතුරුපුවරු භාෂා යතුර භාවිතා කරන්න. මෙම සංවාදය සඳහා iOS එය මතක තබා ගත හැක."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vyberte jazyk a potom ho prepnite pomocou klávesu jazyka klávesnice. iOS si to môže pamätať pre túto konverzáciu."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Izberite jezik in nato za preklop uporabite tipko za jezik na tipkovnici. iOS si ga bo morda zapomnil za ta pogovor."
+          }
+        },
+        "sm" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Filifili se gagana, ona faaaoga lea o le ki o le gagana keyboard e sui ai. Atonu e manatua e iOS mo lenei talanoaga."
+          }
+        },
+        "sn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sarudza mutauro, wobva washandisa kiyi yemutauro wekhibhodi kuchinja. iOS inogona kuzvirangarira pahurukuro iyi."
+          }
+        },
+        "so" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dooro luqad, ka dibna isticmaal furaha luqadda kiiboodhka si aad u bedesho. iOS waxa laga yaabaa inay u xasuusato wada hadalkan"
+          }
+        },
+        "sq" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zgjidhni një gjuhë, më pas përdorni tastin e gjuhës së tastierës për të kaluar. iOS mund ta mbajë mend atë për këtë bisedë."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Изаберите језик, а затим користите тастер за језик на тастатури за пребацивање. iOS ће га можда запамтити за овај разговор."
+          }
+        },
+        "ss" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Khetsa lulwimi, bese usebentisa inkinobho yelulwimi lwekhibhodi kute ushintje. iOS angase akhumbule ngale ngcoco."
+          }
+        },
+        "st" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Khetha puo, ebe u sebelisa konopo ea puo ea keyboard ho fetola. iOS e kanna ea e hopola bakeng sa moqoqo ona."
+          }
+        },
+        "su" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pilih basa, teras pake kenop basa kibor pikeun pindah. iOS tiasa émut kana keyboard pikeun obrolan ieu."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Välj ett språk och använd sedan tangentbordets språkknapp för att växla. iOS kanske kommer ihåg det för den här konversationen."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chagua lugha, kisha utumie kitufe cha lugha ya kibodi kubadili. iOS inaweza kuikumbuka kwa mazungumzo haya."
+          }
+        },
+        "szl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ôbiyraj jynzyk, a potym użyj klawisza jynzyka klawiatury do przełōnczynio. iOS może go pamiyntać do tyj godki."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ஒரு மொழியைத் தேர்வுசெய்து, மாறுவதற்கு விசைப்பலகை மொழி விசையைப் பயன்படுத்தவும். இந்த உரையாடலுக்கு iOS அதை நினைவில் வைத்திருக்கலாம்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "భాషను ఎంచుకుని, మారడానికి కీబోర్డ్ భాష కీని ఉపయోగించండి. ఈ సంభాషణ కోసం iOS దీన్ని గుర్తుంచుకోవచ్చు."
+          }
+        },
+        "tet" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hili lian ida, hafoin uza xave lian keyboard nian hodi troka. iOS bele hanoin-hetan ida-ne'e ba konversa ida-ne'e."
+          }
+        },
+        "tg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Забонеро интихоб кунед, пас барои гузаштан тугмаи забони клавиатураро истифода баред. iOS метавонад онро барои ин сӯҳбат дар хотир дошта бошад."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "เลือกภาษา จากนั้นใช้ปุ่มภาษาของแป้นพิมพ์เพื่อสลับ iOS อาจจะจำได้สำหรับการสนทนานี้"
+          }
+        },
+        "ti" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ቋንቋ ምረጽ፡ ድሕሪኡ ንምቕያር መፍትሕ ቋንቋ ሰሌዳ ቁልፊ ተጠቐም። iOS ነዚ ዕላል ክዝክሮ ይኽእል እዩ።"
+          }
+        },
+        "tk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dil saýlaň, soňra klawiatura dil düwmesini ulanyň. iOS bu söhbetdeşlik üçin ýadyna düşüp biler."
+          }
+        },
+        "tl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pumili ng wika, pagkatapos ay gamitin ang key ng wika ng keyboard upang lumipat. Maaaring matandaan ito ng iOS para sa pag-uusap na ito."
+          }
+        },
+        "tn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tlhopha puo, o bo o dirisa konopo ya puo ya khiiboto go fetola. iOS e ka nna ya e gakologelwa mo motlotlong ono."
+          }
+        },
+        "to" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Fili ha lea, pea fakaʻaongaʻi ʻa e kī lea ʻo e keyboard ke fetongi ʻa e keyboard. Mahalo 'e manatu'i 'e he iOS ʻa e keyboard ki he talanoa ko 'eni."
+          }
+        },
+        "tpi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Yu mas makim wanpela tokples, na bihain yusim 'keyboard language key' long senisim. iOS i ken tingim dispela long dispela toktok."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bir dil seçin, ardından geçiş yapmak için klavye dili tuşunu kullanın. iOS bunu bu konuşma için hatırlayabilir."
+          }
+        },
+        "ts" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hlawula ririmi, kutani u tirhisa xikhiya xa ririmi ra khibhodi ku cinca. iOS yi nga ha yi tsundzuka eka mbulavurisano lowu."
+          }
+        },
+        "tt" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Телне сайлагыз, аннары күчү өчен клавиатура тел ачкычын кулланыгыз. iOS бу сөйләшү өчен аны хәтерли ала."
+          }
+        },
+        "ug" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تىل تاللاڭ ، ئاندىن كۇنۇپكا تاختىسى تىل كۇنۇپكىسىنى ئىشلىتىپ ئالماشتۇرۇڭ. iOS بۇ سۆھبەت ئۈچۈن ئۇنى ئەستە ساقلىشى مۇمكىن."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Виберіть мову, а потім використовуйте клавішу мови на клавіатурі для перемикання. iOS може запам’ятати його для цієї розмови."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ایک زبان کا انتخاب کریں، پھر سوئچ کرنے کے لیے کی بورڈ لینگویج کلید کا استعمال کریں۔ iOS اسے اس گفتگو کے لیے یاد رکھ سکتا ہے۔"
+          }
+        },
+        "uz" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tilni tanlang, so‘ngra o‘tish uchun klaviatura til tugmasidan foydalaning. iOS buni ushbu suhbat uchun eslab qolishi mumkin."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chọn một ngôn ngữ, sau đó sử dụng phím ngôn ngữ bàn phím để chuyển đổi. iOS có thể ghi nhớ nó cho cuộc trò chuyện này."
+          }
+        },
+        "wo" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tannal làkk, nga jëfandikoo butoŋu làkku klaweer bi ngir soppi. iOS mën nako fàttaliku ci waxtaan wii."
+          }
+        },
+        "xh" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Khetha ulwimi, emva koko usebenzise iqhosha lolwimi lwebhodi yezitshixo ukutshintsha. I-iOS ingayikhumbula le ncoko."
+          }
+        },
+        "yi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "קלייַבן אַ שפּראַך, און נוצן די קלאַוויאַטור שפּראַך שליסל צו באַשטימען. iOS קען געדענקען עס פֿאַר דעם שמועס."
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Yan ede kan, lẹhinna lo bọtini ede lori keyboard lati yi awọn bọtini itẹwe pada. iOS le ranti awọn keyboard fun yi iwiregbe."
+          }
+        },
+        "yue" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "揀一種語言，然後用鍵盤語言鍵切換。 iOS 可能會記得呢個對話。"
+          }
+        },
+        "zgh" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ⴼⵔⴻⵏ ⵜⵓⵜⵍⴰⵢⵜ, ⵙⵢⴻⵏ ⵙⵙⴻⵇⴷⴻⵛ ⵜⴰⵙⴰⵔⵓⵜ ⵏ ⵜⵓⵜⵍⴰⵢⵜ ⵏ ⵜⴻⵙⴼⵉⴼⵜ ⴰⴽⴽⴻⵏ ⴰⴷ ⵜⴱⴻⴷⴷⴻⵍⴻⴹ. iOS ⵢⴻⵣⵎⴻⵔ ⴰⴷ ⵜⵉⴷⵢⴻⵎⵎⴻⴽⵜⵉ ⵉ ⵜⵎⴻⵙⵍⵉⵡⵜⴰ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "选择语言，然后使用键盘上的语言切换键切换输入法。iOS 可能会记住此对话所用的键盘。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "選擇語言，然後使用鍵盤上的語言切換鍵切換輸入法。iOS 可能會記住此對話所用的鍵盤。"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Khetha ulimi, bese usebenzisa ukhiye wolimi lwekhibhodi ukuze ushintshe. I-iOS ingase iyikhumbule kule ngxoxo."
+          }
+        }
+      }
+    },
+    "keyboard.system" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "System keyboard" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Teclado del sistema" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Clavier du système" } },
+        "pt" : { "stringUnit" : { "state" : "translated", "value" : "Teclado do sistema" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Teclado do sistema" } },
+        "af" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Stelsel sleutelbord"
+          }
+        },
+        "ak" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "System keyboard a wɔde yɛ adwuma"
+          }
+        },
+        "am" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "የስርዓት ቁልፍ ሰሌዳ"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "لوحة مفاتيح النظام"
+          }
+        },
+        "as" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "চিস্টেম কিবৰ্ড"
+          }
+        },
+        "ay" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sistema de teclado ukaxa"
+          }
+        },
+        "az" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sistem klaviaturası"
+          }
+        },
+        "be" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Сістэмная клавіятура"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Системна клавиатура"
+          }
+        },
+        "bho" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "सिस्टम कीबोर्ड के बा"
+          }
+        },
+        "bm" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sistɛmu ka klaviyeti"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "সিস্টেম কীবোর্ড"
+          }
+        },
+        "bo" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "མ་ལག་མཐེབ་གཞོང་།"
+          }
+        },
+        "br" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Klavier ar reizhiad"
+          }
+        },
+        "bs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sistemska tastatura"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Teclat del sistema"
+          }
+        },
+        "ceb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sistema nga keyboard"
+          }
+        },
+        "ckb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "کیبۆردەکەی سیستەم"
+          }
+        },
+        "co" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tastiera di u sistema"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Systémová klávesnice"
+          }
+        },
+        "cy" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bysellfwrdd system"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Systemtastatur"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Systemtastatur"
+          }
+        },
+        "dv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ސިސްޓަމް ކީބޯޑް"
+          }
+        },
+        "dz" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "རིམ་ལུགས་ལྡེ་སྒྲོམ།"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Πληκτρολόγιο συστήματος"
+          }
+        },
+        "eo" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sistema klavaro"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Süsteemi klaviatuur"
+          }
+        },
+        "eu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sistemaren teklatua"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "صفحه کلید سیستم"
+          }
+        },
+        "ff" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Keyboard system"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Järjestelmän näppäimistö"
+          }
+        },
+        "fy" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Systeem toetseboerd"
+          }
+        },
+        "ga" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Méarchlár córais"
+          }
+        },
+        "gd" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Meur-chlàr siostam"
+          }
+        },
+        "gl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Teclado do sistema"
+          }
+        },
+        "gn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Teclado sistema rehegua"
+          }
+        },
+        "gom" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "प्रणाली कीबोर्ड"
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "સિસ્ટમ કીબોર્ડ"
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Allon madannai na tsari"
+          }
+        },
+        "haw" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Papa keyboard nenoaiu"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "מקלדת מערכת"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "सिस्टम कीबोर्ड"
+          }
+        },
+        "hmn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Qhov system keyboard"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tipkovnica sustava"
+          }
+        },
+        "ht" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sistèm klavye"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rendszerbillentyűzet"
+          }
+        },
+        "hy" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Համակարգային ստեղնաշար"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Papan ketik sistem"
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ahụigodo sistemụ"
+          }
+        },
+        "ilo" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Teklado ti sistema"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kerfislyklaborð"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tastiera di sistema"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "システムキーボード"
+          }
+        },
+        "jv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Keyboard sistem"
+          }
+        },
+        "ka" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "სისტემის კლავიატურა"
+          }
+        },
+        "kk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Жүйелік пернетақта"
+          }
+        },
+        "km" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ក្តារចុចប្រព័ន្ធ"
+          }
+        },
+        "kmr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Klavyeya pergalê"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ಸಿಸ್ಟಮ್ ಕೀಬೋರ್ಡ್"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "시스템 키보드"
+          }
+        },
+        "kri" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sistem kibɔd"
+          }
+        },
+        "ky" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Системалык клавиатура"
+          }
+        },
+        "la" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ratio claviaturae"
+          }
+        },
+        "lb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "System Tastatur"
+          }
+        },
+        "lg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kiiboodi y’enkola"
+          }
+        },
+        "ln" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Clavier ya système"
+          }
+        },
+        "lo" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ແປ້ນພິມລະບົບ"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sistemos klaviatūra"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sistēmas tastatūra"
+          }
+        },
+        "mai" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "सिस्टम कीबोर्ड"
+          }
+        },
+        "mg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kitendry rafitra"
+          }
+        },
+        "mi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Papapātuhi Pūnaha"
+          }
+        },
+        "mk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Системска тастатура"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "സിസ്റ്റം കീബോർഡ്"
+          }
+        },
+        "mn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Системийн гар"
+          }
+        },
+        "mni-Mtei" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ꯁꯤꯁ꯭ꯇꯦꯝ ꯀꯤꯕꯣꯔꯗ꯫"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "सिस्टम कीबोर्ड"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Papan kekunci sistem"
+          }
+        },
+        "mt" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tastiera tas-sistema"
+          }
+        },
+        "my" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "စနစ်ကီးဘုတ်"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Systemtastatur"
+          }
+        },
+        "ne" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "प्रणाली किबोर्ड"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Systeem toetsenbord"
+          }
+        },
+        "nso" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Khiboto ya tshepedišo"
+          }
+        },
+        "oc" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Clavièr de sistèma"
+          }
+        },
+        "om" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kiiboodii sirnaa"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ସିଷ୍ଟମ୍ କୀବୋର୍ଡ୍ |"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ਸਿਸਟਮ ਕੀਬੋਰਡ"
+          }
+        },
+        "pam" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Keyboard ning sistema"
+          }
+        },
+        "pap" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Klave di sistema"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Klawiatura systemowa"
+          }
+        },
+        "prs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "صفحه کلید سیستم"
+          }
+        },
+        "ps" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "د سیسټم کیبورډ"
+          }
+        },
+        "qu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sistema teclado nisqa"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tastatura de sistem"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Системная клавиатура"
+          }
+        },
+        "rw" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Clavier ya sisitemu"
+          }
+        },
+        "sa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "सिस्टम कीबोर्ड"
+          }
+        },
+        "scn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tastiera di sistema"
+          }
+        },
+        "sd" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "سسٽم ڪيبورڊ"
+          }
+        },
+        "si" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "පද්ධති යතුරු පුවරුව"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Systémová klávesnica"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sistemska tipkovnica"
+          }
+        },
+        "sm" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Keyboard o le faiga"
+          }
+        },
+        "sn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kiibhodhi yesisitimu"
+          }
+        },
+        "so" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kiiboodhka nidaamka"
+          }
+        },
+        "sq" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tastiera e sistemit"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Системска тастатура"
+          }
+        },
+        "ss" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ikhibhodi yeluhlelo"
+          }
+        },
+        "st" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Keyboard ea sistimi"
+          }
+        },
+        "su" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kibor sistem"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Systemtangentbord"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kibodi ya mfumo"
+          }
+        },
+        "szl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Klawiatura systymowo"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "கணினி விசைப்பலகை"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "సిస్టమ్ కీబోర్డ్"
+          }
+        },
+        "tet" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tekladu sistema nian"
+          }
+        },
+        "tg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Клавиатураи системавӣ"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "แป้นพิมพ์ระบบ"
+          }
+        },
+        "ti" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ስርዓት ቁልፊ ሰሌዳ"
+          }
+        },
+        "tk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ulgam klawiaturasy"
+          }
+        },
+        "tl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Keyboard ng sistema"
+          }
+        },
+        "tn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Khiiboto ya tsamaiso"
+          }
+        },
+        "to" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kiipooti 'o e sisitemi"
+          }
+        },
+        "tpi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sistem kibod"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sistem klavyesi"
+          }
+        },
+        "ts" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Xikhibhodi xa sisiteme"
+          }
+        },
+        "tt" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Система клавиатурасы"
+          }
+        },
+        "ug" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "سىستېما كۇنۇپكا تاختىسى"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Системна клавіатура"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "سسٹم کی بورڈ"
+          }
+        },
+        "uz" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tizim klaviaturasi"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bàn phím hệ thống"
+          }
+        },
+        "wo" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Klaweer sistem"
+          }
+        },
+        "xh" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Inkqubo yekhibhodi"
+          }
+        },
+        "yi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "סיסטעם קלאַוויאַטור"
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bọtini itẹwe eto"
+          }
+        },
+        "yue" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "系統鍵盤"
+          }
+        },
+        "zgh" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ⵜⴰⵙⴼⵉⴼⵜ ⵏ ⵓⵏⴰⴳⵔⴰⵡ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "系统键盘"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "系統鍵盤"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ikhibhodi yesistimu"
+          }
+        }
+      }
+    },
+    "keyboard.typingLanguage" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Typing language" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Idioma de escritura" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Langue de saisie" } },
+        "pt" : { "stringUnit" : { "state" : "translated", "value" : "Idioma de escrita" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Idioma de digitação" } },
+        "af" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tiktaal"
+          }
+        },
+        "ak" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kasa a wɔde kyerɛw nsɛm"
+          }
+        },
+        "am" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ቋንቋ መተየብ"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "لغة الكتابة"
+          }
+        },
+        "as" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "টাইপিং ভাষা"
+          }
+        },
+        "ay" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Qillqañ aru"
+          }
+        },
+        "az" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Yazı dili"
+          }
+        },
+        "be" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Мова набору тэксту"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Език за писане"
+          }
+        },
+        "bho" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "टाइपिंग भाषा के बा"
+          }
+        },
+        "bm" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sɛbɛnni kan"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "টাইপিং ভাষা"
+          }
+        },
+        "bo" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ཡིག་གཟུགས་ཀྱི་སྐད་ཡིག།"
+          }
+        },
+        "br" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Yezh skrivañ"
+          }
+        },
+        "bs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Jezik kucanja"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Llenguatge de mecanografia"
+          }
+        },
+        "ceb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pag-type nga pinulongan"
+          }
+        },
+        "ckb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "زمانی تایپکردن"
+          }
+        },
+        "co" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lingua di scrittura"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Jazyk psaní"
+          }
+        },
+        "cy" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Iaith teipio"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skrivesprog"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Eingabesprache"
+          }
+        },
+        "dv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ޓައިޕިންގ ލޭންގުއޭޖް"
+          }
+        },
+        "dz" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ཡིག་དཔར་རྐྱབ་ནིའི་སྐད་ཡིག།"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Γλώσσα πληκτρολόγησης"
+          }
+        },
+        "eo" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tajpa lingvo"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tippimiskeel"
+          }
+        },
+        "eu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Idazketa hizkuntza"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "زبان تایپ"
+          }
+        },
+        "ff" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ɗemngal binndol"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kirjoituskieli"
+          }
+        },
+        "fy" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Typtaal"
+          }
+        },
+        "ga" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Teanga clóscríofa"
+          }
+        },
+        "gd" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A’ sgrìobhadh cànan"
+          }
+        },
+        "gl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lingua de escritura"
+          }
+        },
+        "gn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ñe’ẽ ojehai hag̃ua"
+          }
+        },
+        "gom" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "टंकलेखन भास"
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ટાઈપિંગ ભાષા"
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Harshen bugawa"
+          }
+        },
+        "haw" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ʻŌlelo kikokiko"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "שפת הקלדה"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "टाइपिंग भाषा"
+          }
+        },
+        "hmn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kev ntaus ntawv"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Jezik tipkanja"
+          }
+        },
+        "ht" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tape lang"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gépelési nyelv"
+          }
+        },
+        "hy" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Մուտքագրման լեզու"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mengetik bahasa"
+          }
+        },
+        "ig" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Asụsụ pịnye"
+          }
+        },
+        "ilo" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lenguahe ti panag-type"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vélritunarmál"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lingua di digitazione"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "入力言語"
+          }
+        },
+        "jv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Basa ngetik"
+          }
+        },
+        "ka" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "აკრეფის ენა"
+          }
+        },
+        "kk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Теру тілі"
+          }
+        },
+        "km" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ភាសាវាយអក្សរ"
+          }
+        },
+        "kmr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zimanê nivîsandinê"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ಟೈಪಿಂಗ್ ಭಾಷೆ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "입력 언어"
+          }
+        },
+        "kri" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tayp langwej"
+          }
+        },
+        "ky" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Терүү тили"
+          }
+        },
+        "la" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lingua scribendi"
+          }
+        },
+        "lb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Schreifsprooch"
+          }
+        },
+        "lg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Olulimi lw’okuwandiika"
+          }
+        },
+        "ln" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Elobeli ya kokoma na masini"
+          }
+        },
+        "lo" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ພາສາພິມ"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rašymo kalba"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rakstīšanas valoda"
+          }
+        },
+        "mai" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "टाइपिंग भाषा"
+          }
+        },
+        "mg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Fiteny fanoratana"
+          }
+        },
+        "mi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Te reo pato"
+          }
+        },
+        "mk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Јазик на пишување"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ടൈപ്പിംഗ് ഭാഷ"
+          }
+        },
+        "mn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Бичих хэл"
+          }
+        },
+        "mni-Mtei" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ꯇꯥꯏꯞ ꯇꯧꯕꯥ ꯂꯣꯜ꯫"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "टायपिंग भाषा"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bahasa menaip"
+          }
+        },
+        "mt" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lingwa tat-tajpjar"
+          }
+        },
+        "my" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "စာရိုက်ဘာသာစကား"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skrivespråk"
+          }
+        },
+        "ne" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "टाइपिङ भाषा"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Taal typen"
+          }
+        },
+        "nso" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Polelo ya go thaepa"
+          }
+        },
+        "oc" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lenga de mecanografia"
+          }
+        },
+        "om" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Afaan barreessuu"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ଭାଷା ଟାଇପ୍ କରିବା |"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ਟਾਈਪਿੰਗ ਭਾਸ਼ਾ"
+          }
+        },
+        "pam" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pamag-type king amanu"
+          }
+        },
+        "pap" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Idioma di skirbimentu"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Język pisania"
+          }
+        },
+        "prs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "زبان تایپ"
+          }
+        },
+        "ps" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "د ټایپ کولو ژبه"
+          }
+        },
+        "qu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Qillqana simi"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Limba de tastare"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Язык ввода"
+          }
+        },
+        "rw" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kwandika ururimi"
+          }
+        },
+        "sa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "टङ्कनभाषा"
+          }
+        },
+        "scn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Linguaggiu di scrìviri"
+          }
+        },
+        "sd" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ٽائپنگ ٻولي"
+          }
+        },
+        "si" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ටයිප් කිරීමේ භාෂාව"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Jazyk písania"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Jezik tipkanja"
+          }
+        },
+        "sm" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gagana lolomi"
+          }
+        },
+        "sn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mutauro wetaipa"
+          }
+        },
+        "so" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Luuqada qorida"
+          }
+        },
+        "sq" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gjuha e shkrimit"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Језик куцања"
+          }
+        },
+        "ss" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lulwimi lwekuthayipha"
+          }
+        },
+        "st" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Puo ea ho ngola"
+          }
+        },
+        "su" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Basa ngetik"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skrivspråk"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lugha ya kuchapa"
+          }
+        },
+        "szl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Jynzyk pisanio"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "தட்டச்சு மொழி"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "టైపింగ్ భాష"
+          }
+        },
+        "tet" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Linguajen ketik nian"
+          }
+        },
+        "tg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Забони чопкунӣ"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ภาษาการพิมพ์"
+          }
+        },
+        "ti" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ቋንቋ ምጽሓፍ"
+          }
+        },
+        "tk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dil ýazmak"
+          }
+        },
+        "tl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wika ng pagta-type"
+          }
+        },
+        "tn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Puo ya go thaepa"
+          }
+        },
+        "to" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lea taipe"
+          }
+        },
+        "tpi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tok ples bilong taip"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Yazma dili"
+          }
+        },
+        "ts" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ririmi ro thayipa"
+          }
+        },
+        "tt" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Тел язу"
+          }
+        },
+        "ug" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تىل يېزىش"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Мова друку"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ٹائپنگ کی زبان"
+          }
+        },
+        "uz" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Matn yozish tili"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ngôn ngữ gõ"
+          }
+        },
+        "wo" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Làkku bind"
+          }
+        },
+        "xh" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ukuchwetheza ulwimi"
+          }
+        },
+        "yi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "טייפּינג שפּראַך"
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Èdè titẹ"
+          }
+        },
+        "yue" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "打字語言"
+          }
+        },
+        "zgh" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ⵜⵉⵔⴰ ⵏ ⵜⵓⵜⵍⴰⵢⵜ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "打字语言"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "打字語言"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ulimi lokuthayipha"
+          }
+        }
+      }
+    },
     "keySetup.chooseFile" : {
       "extractionState" : "stale",
       "localizations" : {

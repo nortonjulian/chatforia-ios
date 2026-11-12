@@ -749,6 +749,9 @@ extension ChatThreadView {
             MessageComposerView(
                 draft: $draft,
                 isSending: isSendingText || vm.isSendingImage || vm.isSendingAudio || vm.isSendingGIF || isProcessingVideo,
+                typingContext: auth.currentUser.map {
+                    TypingConversationContext(userId: $0.id, kind: "chat", conversationId: room.id)
+                },
                 isSendingVoice: vm.isSendingAudio,
                 onDraftChanged: {
                     vm.typingStarted(roomId: room.id)
