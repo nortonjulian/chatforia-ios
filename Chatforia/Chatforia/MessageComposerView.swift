@@ -107,6 +107,12 @@ struct MessageComposerView: View {
         return TypingLanguagePreferences().language(for: typingContext)
     }
 
+    private var typingLanguageName: String? {
+        guard let typingLanguage,
+              let option = AppLanguages.all.first(where: { $0.code == typingLanguage }) else { return nil }
+        return TypingLanguagePreferences.localizedName(for: option, appLanguage: appLanguage)
+    }
+
     var body: some View {
         
         VStack(spacing: 0) {
@@ -205,8 +211,8 @@ struct MessageComposerView: View {
                 }
                 .accessibilityLabel(appText("keyboard.typingLanguage", languageCode: appLanguage,
                                             fallback: "Typing language"))
-                .accessibilityValue(typingLanguage ?? appText("keyboard.system", languageCode: appLanguage,
-                                                             fallback: "System keyboard"))
+                .accessibilityValue(typingLanguageName ?? appText("keyboard.system", languageCode: appLanguage,
+                                                                 fallback: "System keyboard"))
                 .accessibilityHint(appText("keyboard.help", languageCode: appLanguage,
                                             fallback: "Choose a language, then use the keyboard language key to switch. iOS may remember it for this conversation."))
                 .disabled(typingContext == nil)
