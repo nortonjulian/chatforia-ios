@@ -30,6 +30,19 @@ struct TypingLanguagePreferences {
         return AppLanguages.all.first { $0.code.lowercased() == normalized.lowercased() }?.code
     }
 
+    static func localizedName(for option: LanguageOption, appLanguage: String) -> String {
+        // The catalog calls Kurmanji "ku"; the iOS menu stores the more precise kmr tag.
+        let catalogCode = option.code == "kmr" ? "ku" : option.code
+        let key = "languages.\(catalogCode)"
+        let translated = appText(key, languageCode: appLanguage)
+        if translated != key { return translated }
+
+        // A few menu variants (including pt-BR) have no exact catalog key.
+        // Ask the locale for the exact identifier before falling back to the menu name.
+        let locale = Locale(identifier: appLanguage)
+        return locale.localizedString(forIdentifier: option.code) ?? option.name
+    }
+
     func language(for context: TypingConversationContext?) -> String? {
         guard let context else { return nil }
         let stored = defaults.dictionary(forKey: key)?[context.storageKey] as? String

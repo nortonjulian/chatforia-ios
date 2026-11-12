@@ -1234204,6 +1234204,33 @@
         }
       }
     },
+    "keyboard.help" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Choose a language, then use the keyboard language key to switch. iOS may remember it for this conversation." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Elige un idioma y luego usa la tecla de idioma del teclado para cambiarlo. iOS puede recordarlo para esta conversación." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Choisissez une langue, puis utilisez la touche de langue du clavier pour changer de clavier. iOS peut mémoriser ce choix pour cette conversation." } },
+        "pt" : { "stringUnit" : { "state" : "translated", "value" : "Escolha um idioma e depois use a tecla de idioma do teclado para mudar. O iOS poderá memorizar a sua escolha para esta conversa." } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Escolha um idioma e use a tecla de idioma do teclado para alternar. O iOS pode lembrar essa escolha para esta conversa." } }
+      }
+    },
+    "keyboard.system" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "System keyboard" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Teclado del sistema" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Clavier du système" } },
+        "pt" : { "stringUnit" : { "state" : "translated", "value" : "Teclado do sistema" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Teclado do sistema" } }
+      }
+    },
+    "keyboard.typingLanguage" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Typing language" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Idioma de escritura" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Langue de saisie" } },
+        "pt" : { "stringUnit" : { "state" : "translated", "value" : "Idioma de escrita" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Idioma de digitação" } }
+      }
+    },
     "keySetup.chooseFile" : {
       "extractionState" : "stale",
       "localizations" : {

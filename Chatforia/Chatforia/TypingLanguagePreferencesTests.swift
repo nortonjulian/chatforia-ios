@@ -101,6 +101,7 @@ final class TypingLanguagePreferencesTests: XCTestCase {
             preferences.setLanguage(option.code, for: conversation)
             XCTAssertEqual(preferences.language(for: conversation), option.code)
             identifiers.insert(conversation.keyboardContextIdentifier(language: option.code))
+            XCTAssertFalse(TypingLanguagePreferences.localizedName(for: option, appLanguage: "es").isEmpty)
         }
         XCTAssertEqual(identifiers.count, AppLanguages.all.count)
     }
@@ -125,5 +126,20 @@ final class TypingLanguagePreferencesTests: XCTestCase {
         XCTAssertTrue(chat.keyboardContextIdentifier(language: "zz").hasSuffix("system"))
         XCTAssertNotEqual(chat.keyboardContextIdentifier(language: "zh-Hans"),
                           chat.keyboardContextIdentifier(language: "zh-Hant"))
+    }
+
+    func testKeyboardMenuUsesAppLocalizationWithoutCollapsingPortugueseRegion() {
+        let portuguese = AppLanguages.all.first { $0.code == "pt-BR" }!
+        let kurmanji = AppLanguages.all.first { $0.code == "kmr" }!
+        let brazilianName = TypingLanguagePreferences.localizedName(for: portuguese, appLanguage: "es")
+        XCTAssertTrue(brazilianName.localizedCaseInsensitiveContains("Brasil"))
+        XCTAssertNotEqual(brazilianName, "Portuguese (Brazil)")
+        XCTAssertEqual(TypingLanguagePreferences.localizedName(for: kurmanji, appLanguage: "es"),
+                       appText("languages.ku", languageCode: "es"))
+        XCTAssertEqual(appText("keyboard.system", languageCode: "es"), "Teclado del sistema")
+        XCTAssertTrue(appText("keyboard.help", languageCode: "fr").contains("clavier"))
+        XCTAssertNotEqual(appText("keyboard.typingLanguage", languageCode: "pt-BR"), "Typing language")
+        XCTAssertEqual(TypingLanguagePreferences.canonicalCode("pt-BR"), "pt-BR")
+        XCTAssertNil(TypingLanguagePreferences.canonicalCode("pt"))
     }
 }

@@ -177,8 +177,10 @@ struct MessageComposerView: View {
                 }
 
                 Menu {
-                    Text(String(localized: "Use the keyboard language key to switch. iOS may remember the keyboard for this conversation."))
-                    Button(String(localized: "System keyboard")) {
+                    Text(appText("keyboard.help", languageCode: appLanguage,
+                                 fallback: "Choose a language, then use the keyboard language key to switch. iOS may remember it for this conversation."))
+                    Button(appText("keyboard.system", languageCode: appLanguage,
+                                   fallback: "System keyboard")) {
                         selectTypingLanguage(nil)
                     }
                     ForEach(AppLanguages.all) { language in
@@ -186,9 +188,9 @@ struct MessageComposerView: View {
                             selectTypingLanguage(language.code)
                         } label: {
                             if typingLanguage == language.code {
-                                Label(language.name, systemImage: "checkmark")
+                                Label(TypingLanguagePreferences.localizedName(for: language, appLanguage: appLanguage), systemImage: "checkmark")
                             } else {
-                                Text(language.name)
+                                Text(TypingLanguagePreferences.localizedName(for: language, appLanguage: appLanguage))
                             }
                         }
                     }
@@ -201,9 +203,12 @@ struct MessageComposerView: View {
                     }
                     .foregroundStyle(themeManager.palette.accent)
                 }
-                .accessibilityLabel(String(localized: "Typing language"))
-                .accessibilityValue(typingLanguage ?? String(localized: "System keyboard"))
-                .accessibilityHint(String(localized: "Choose a typing preference, then use the keyboard language key to select the keyboard. iOS may remember it for this conversation."))
+                .accessibilityLabel(appText("keyboard.typingLanguage", languageCode: appLanguage,
+                                            fallback: "Typing language"))
+                .accessibilityValue(typingLanguage ?? appText("keyboard.system", languageCode: appLanguage,
+                                                             fallback: "System keyboard"))
+                .accessibilityHint(appText("keyboard.help", languageCode: appLanguage,
+                                            fallback: "Choose a language, then use the keyboard language key to switch. iOS may remember it for this conversation."))
                 .disabled(typingContext == nil)
 
                 let placeholder = isCaptioningPendingMedia
