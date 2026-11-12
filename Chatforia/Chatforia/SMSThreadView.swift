@@ -404,6 +404,11 @@ struct SMSThreadView: View {
         MessageComposerView(
             draft: $draft,
             isSending: isUploadingMedia || vm.isSending || voice.isStarting || isPreparingVoiceSend,
+            typingContext: {
+                guard let userId = auth.currentUser?.id,
+                      let threadId = activeConversation.id else { return nil }
+                return TypingConversationContext(userId: userId, kind: "sms", conversationId: threadId)
+            }(),
             isSendingVoice: voice.isSending,
             onDraftChanged: {},
             onAttachmentTap: {

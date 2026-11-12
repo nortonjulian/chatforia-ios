@@ -1,16 +1,17 @@
 import SwiftUI
+import UIKit
 
 struct MessageComposerView: View {
     @Binding var draft: String
-    @FocusState private var isDraftFocused: Bool
-    @State private var draftFieldGeneration = 0
-    @State private var restoreDraftFocus = false
+    @State private var isDraftFocused = false
+    @State private var typingLanguage: String?
 
     @EnvironmentObject var settingsVM: SettingsViewModel
     @EnvironmentObject private var themeManager: ThemeManager
     @AppStorage("chatforia_language") private var appLanguage = "en"
 
     let isSending: Bool
+    let typingContext: TypingConversationContext?
     let isSendingVoice: Bool
     let onDraftChanged: () -> Void
     let onAttachmentTap: () -> Void
@@ -39,6 +40,7 @@ struct MessageComposerView: View {
     init(
         draft: Binding<String>,
         isSending: Bool,
+        typingContext: TypingConversationContext? = nil,
         isSendingVoice: Bool = false,
         onDraftChanged: @escaping () -> Void,
         onAttachmentTap: @escaping () -> Void,
@@ -64,6 +66,7 @@ struct MessageComposerView: View {
     ) {
         self._draft = draft
         self.isSending = isSending
+        self.typingContext = typingContext
         self.isSendingVoice = isSendingVoice
         self.onDraftChanged = onDraftChanged
         self.onAttachmentTap = onAttachmentTap
@@ -127,6 +130,9 @@ struct MessageComposerView: View {
             }
         }
         .background(themeManager.palette.composerBackground)
+        .task(id: typingContext?.storageKey) {
+            typingLanguage = TypingLanguagePreferences().language(for: typingContext)
+        }
     }
 
     private var normalComposer: some View {
@@ -168,38 +174,58 @@ struct MessageComposerView: View {
                     )
                 }
 
-                TextField(
-                    isCaptioningPendingMedia
-                        ? appText(
-                            "messages.addCaption",
-                            languageCode: appLanguage
-                        )
-                        : appText(
-                            "messages.message",
-                            languageCode: appLanguage
-                        ),
-                    text: $draft,
-                    axis: .vertical
-                )
-                .id(draftFieldGeneration)
-                .focused($isDraftFocused)
-                .task(id: draftFieldGeneration) {
-                    guard restoreDraftFocus else { return }
-                    isDraftFocused = true
-                    restoreDraftFocus = false
+                Menu {
+                    Text(String(localized: "Use the keyboard language key to switch. iOS may remember the keyboard for this conversation."))
+                    Button(String(localized: "System keyboard")) {
+                        selectTypingLanguage(nil)
+                    }
+                    ForEach(AppLanguages.all) { language in
+                        Button {
+                            selectTypingLanguage(language.code)
+                        } label: {
+                            if typingLanguage == language.code {
+                                Label(language.name, systemImage: "checkmark")
+                            } else {
+                                Text(language.name)
+                            }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 2) {
+                        Image(systemName: "globe")
+                        if let typingLanguage {
+                            Text(typingLanguage.uppercased()).font(.caption2)
+                        }
+                    }
+                    .foregroundStyle(themeManager.palette.accent)
                 }
-                .textFieldStyle(.plain)
-                .foregroundStyle(themeManager.palette.primaryText)
-                .lineLimit(1...5)
+                .accessibilityLabel(String(localized: "Typing language"))
+                .accessibilityValue(typingLanguage ?? String(localized: "System keyboard"))
+                .accessibilityHint(String(localized: "Choose a typing preference, then use the keyboard language key to select the keyboard. iOS may remember it for this conversation."))
+                .disabled(typingContext == nil)
+
+                let placeholder = isCaptioningPendingMedia
+                    ? appText("messages.addCaption", languageCode: appLanguage)
+                    : appText("messages.message", languageCode: appLanguage)
+                ZStack(alignment: .topLeading) {
+                    if draft.isEmpty {
+                        Text(placeholder)
+                            .foregroundStyle(themeManager.palette.secondaryText)
+                            .padding(.top, 1)
+                            .allowsHitTesting(false)
+                    }
+                    ContextualMessageTextView(
+                        text: $draft,
+                        isFocused: $isDraftFocused,
+                        contextIdentifier: typingContext?.keyboardContextIdentifier(language: typingLanguage),
+                        placeholder: placeholder,
+                        textColor: UIColor(themeManager.palette.primaryText),
+                        isEnabled: !hasVoiceDraft && !isRecordingVoice
+                    )
+                }
                 .padding(.vertical, 11)
                 .disabled(hasVoiceDraft || isRecordingVoice)
-                .onChange(of: draft) { oldValue, newValue in
-                    // The multiline TextField can retain its native display
-                    // after the binding clears. Recreate only on that transition.
-                    if !oldValue.isEmpty && newValue.isEmpty {
-                        restoreDraftFocus = isDraftFocused
-                        draftFieldGeneration += 1
-                    }
+                .onChange(of: draft) { _, _ in
                     onDraftChanged()
                 }
 
@@ -215,6 +241,11 @@ struct MessageComposerView: View {
             )
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         }
+    }
+
+    private func selectTypingLanguage(_ code: String?) {
+        TypingLanguagePreferences().setLanguage(code, for: typingContext)
+        typingLanguage = code
     }
 
     @ViewBuilder
