@@ -131,7 +131,9 @@ private struct ChatforiaDynamicTypeModifier: ViewModifier {
     }
 }
 
+#if !DISAPPEARING_QA
 @main
+#endif
 struct ChatforiaApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 

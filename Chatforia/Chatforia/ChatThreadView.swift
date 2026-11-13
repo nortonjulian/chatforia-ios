@@ -8,6 +8,9 @@ struct ChatThreadView: View {
     let room: ChatRoomDTO
     let randomSession: RandomSession?
     let onRandomLeave: (() -> Void)?
+    #if DISAPPEARING_QA
+    let qaMessagesSource: (() -> [MessageDTO])?
+    #endif
 
     init(
         room: ChatRoomDTO,
@@ -17,7 +20,21 @@ struct ChatThreadView: View {
         self.room = room
         self.randomSession = randomSession
         self.onRandomLeave = onRandomLeave
+        #if DISAPPEARING_QA
+        self.qaMessagesSource = nil
+        #endif
     }
+
+    #if DISAPPEARING_QA
+    init(room: ChatRoomDTO, qaViewModel: ChatThreadViewModel,
+         source: @escaping () -> [MessageDTO]) {
+        self.room = room
+        self.randomSession = nil
+        self.onRandomLeave = nil
+        self.qaMessagesSource = source
+        self._vm = StateObject(wrappedValue: qaViewModel)
+    }
+    #endif
 
     @EnvironmentObject var auth: AuthStore
     @EnvironmentObject var themeManager: ThemeManager
@@ -131,12 +148,13 @@ struct ChatThreadView: View {
             await onLoad()
         }
         .onDisappear {
+            #if !DISAPPEARING_QA
             vm.stopSocket(roomId: room.id)
-            vm.stopExpiryLoop()
             vm.stopTypingNow(roomId: room.id)
-
             cancelVoiceRecording()
             discardVoiceDraft()
+            #endif
+            vm.stopExpiryLoop()
         }
         .fullScreenCover(item: $selectedVideoURL) { item in
             FullscreenVideoView(url: item.url)
@@ -439,7 +457,11 @@ extension ChatThreadView {
                     isLoadingOlder: vm.isLoadingOlder,
                     deliveryStateForMessage: { _ in nil },
                     onLoadOlder: {
+                        #if DISAPPEARING_QA
+                        return
+                        #else
                         await vm.loadOlderMessagesIfNeeded()
+                        #endif
                     },
                     onRetryTap: { _ in },
                     onEdit: { msg in
@@ -1021,6 +1043,13 @@ extension ChatThreadView {
 
 
    private func onLoad() async {
+        #if DISAPPEARING_QA
+        if let qaMessagesSource {
+            vm.loadSyntheticQA(roomId: room.id, source: qaMessagesSource)
+            vm.startExpiryLoop()
+            return
+        }
+        #endif
         SocketManager.shared.suppressMessageTonesForOpeningThread(seconds: 8)
 
         guard !auth.needsKeyRestore else {

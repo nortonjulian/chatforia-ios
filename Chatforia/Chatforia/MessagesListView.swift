@@ -300,6 +300,12 @@ struct MessagesListView: View {
                 .onChange(of: oldestMessageId) { _, _ in
                     isPagingTriggerInFlight = false
                 }
+                #if DISAPPEARING_QA
+                .onReceive(NotificationCenter.default.publisher(
+                    for: Notification.Name("DisappearingQAScrollOldest"))) { _ in
+                    withAnimation(.none) { proxy.scrollTo("TOP_SENTINEL", anchor: .top) }
+                }
+                #endif
                 .onChange(of: highlightedMessageID) { _, newValue in
                     guard let id = newValue else { return }
 

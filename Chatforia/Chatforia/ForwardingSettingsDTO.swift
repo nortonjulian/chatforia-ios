@@ -10,6 +10,7 @@ struct ForwardingSettingsDTO: Codable, Equatable {
     let forwardToPhoneE164: String
     let forwardQuietHoursStart: Int?
     let forwardQuietHoursEnd: Int?
+    let forwardQuietHoursTimeZone: String?
 
     static let empty = ForwardingSettingsDTO(
         forwardingEnabledSms: false,
@@ -20,7 +21,8 @@ struct ForwardingSettingsDTO: Codable, Equatable {
         forwardingEnabledCalls: false,
         forwardToPhoneE164: "",
         forwardQuietHoursStart: nil,
-        forwardQuietHoursEnd: nil
+        forwardQuietHoursEnd: nil,
+        forwardQuietHoursTimeZone: nil
     )
 
     enum CodingKeys: String, CodingKey {
@@ -33,6 +35,7 @@ struct ForwardingSettingsDTO: Codable, Equatable {
         case forwardToPhoneE164
         case forwardQuietHoursStart
         case forwardQuietHoursEnd
+        case forwardQuietHoursTimeZone
     }
 
     init(
@@ -44,7 +47,8 @@ struct ForwardingSettingsDTO: Codable, Equatable {
         forwardingEnabledCalls: Bool,
         forwardToPhoneE164: String,
         forwardQuietHoursStart: Int?,
-        forwardQuietHoursEnd: Int?
+        forwardQuietHoursEnd: Int?,
+        forwardQuietHoursTimeZone: String? = nil
     ) {
         self.forwardingEnabledSms = forwardingEnabledSms
         self.forwardSmsToPhone = forwardSmsToPhone
@@ -55,6 +59,7 @@ struct ForwardingSettingsDTO: Codable, Equatable {
         self.forwardToPhoneE164 = forwardToPhoneE164
         self.forwardQuietHoursStart = forwardQuietHoursStart
         self.forwardQuietHoursEnd = forwardQuietHoursEnd
+        self.forwardQuietHoursTimeZone = forwardQuietHoursTimeZone
     }
 
     init(from decoder: Decoder) throws {
@@ -69,5 +74,6 @@ struct ForwardingSettingsDTO: Codable, Equatable {
         forwardToPhoneE164 = try c.decodeIfPresent(String.self, forKey: .forwardToPhoneE164) ?? ""
         forwardQuietHoursStart = try c.decodeIfPresent(Int.self, forKey: .forwardQuietHoursStart)
         forwardQuietHoursEnd = try c.decodeIfPresent(Int.self, forKey: .forwardQuietHoursEnd)
+        forwardQuietHoursTimeZone = try c.decodeIfPresent(String.self, forKey: .forwardQuietHoursTimeZone)
     }
 }

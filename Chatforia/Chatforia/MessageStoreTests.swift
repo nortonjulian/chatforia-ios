@@ -39,6 +39,35 @@ final class MessageStoreTests: XCTestCase {
         XCTAssertEqual(MessageStore.shared.currentWindow().first?.id, 1)
     }
 
+    func testExpiredMessageDoesNotReturnFromHistoryOrLateUpsert() {
+        let expired = makeMessage(id: 701, roomId: 10, text: "expired",
+                                  expiresAt: Date().addingTimeInterval(-60))
+        let live = makeMessage(id: 702, roomId: 10, text: "live",
+                               expiresAt: Date().addingTimeInterval(60))
+        MessageStore.shared.replaceMessages(forRoomId: 10, with: [expired, live])
+        waitForAsyncStoreWrite()
+        XCTAssertEqual(MessageStore.shared.currentWindow().map(\.id), [702])
+        XCTAssertNil(MessageStore.shared.message(withId: 701))
+
+        MessageStore.shared.upsertMessage(expired)
+        waitForAsyncStoreWrite()
+        XCTAssertEqual(MessageStore.shared.currentWindow().map(\.id), [702])
+    }
+
+    func testDeadlineHidesCachedMessageBeforeServerSweep() {
+        let deadline = Date().addingTimeInterval(60)
+        MessageStore.shared.upsertMessage(
+            makeMessage(id: 703, roomId: 10, text: "soon", expiresAt: deadline)
+        )
+        waitForAsyncStoreWrite()
+        XCTAssertEqual(
+            MessageStore.shared.currentWindow(now: deadline.addingTimeInterval(-1)).map(\.id),
+            [703]
+        )
+        XCTAssertTrue(MessageStore.shared.currentWindow(now: deadline).isEmpty)
+        XCTAssertNil(MessageStore.shared.message(withId: 703, now: deadline))
+    }
+
     func testUpsertMessageWithSameServerIdDoesNotDuplicate() {
         MessageStore.shared.upsertMessage(
             makeMessage(id: 1, roomId: 10, text: "Hello")
@@ -151,7 +180,8 @@ private func makeMessage(
     id: Int,
     roomId: Int,
     text: String,
-    createdAt: Date = Date()
+    createdAt: Date = Date(),
+    expiresAt: Date? = nil
 ) -> MessageDTO {
     MessageDTO(
         id: id,
@@ -167,7 +197,7 @@ private func makeMessage(
         attachments: nil,
         isExplicit: nil,
         createdAt: createdAt,
-        expiresAt: nil,
+        expiresAt: expiresAt,
         editedAt: nil,
         deletedBySender: nil,
         deletedForAll: nil,

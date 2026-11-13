@@ -4,6 +4,20 @@ struct ForwardingSettingsView: View {
     @EnvironmentObject var auth: AuthStore
     @AppStorage("chatforia_language") private var appLanguage = "en"
     @StateObject private var vm = ForwardingSettingsViewModel()
+    private let fetchSettings: (String) async throws -> ForwardingSettingsDTO
+    private let saveSettings: (ForwardingSettingsDTO, String) async throws -> ForwardingSettingsDTO
+
+    init(
+        fetchSettings: @escaping (String) async throws -> ForwardingSettingsDTO = {
+            try await ForwardingService.shared.fetchSettings(token: $0)
+        },
+        saveSettings: @escaping (ForwardingSettingsDTO, String) async throws -> ForwardingSettingsDTO = {
+            try await ForwardingService.shared.saveSettings($0, token: $1)
+        }
+    ) {
+        self.fetchSettings = fetchSettings
+        self.saveSettings = saveSettings
+    }
 
     var body: some View {
         ScrollView {
@@ -163,6 +177,23 @@ struct ForwardingSettingsView: View {
                                 .foregroundStyle(.red)
                         }
 
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Quiet-hours time zone (IANA)")
+                                .font(.subheadline.weight(.semibold))
+                            TextField("America/Denver", text: $vm.forwardQuietHoursTimeZone)
+                                .textFieldStyle(.roundedBorder)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                            if let error = vm.validationErrors["timeZone"] {
+                                Text(error).font(.caption).foregroundStyle(.red)
+                            }
+                            Text(vm.initialState?.forwardQuietHoursTimeZone == nil
+                                ? "Device time zone suggested. Save to use it across devices; existing quiet hours use the server time zone until saved."
+                                : "Saved for this account across devices. Daylight-saving changes follow this zone.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
                         HStack {
                             Button(
                                 appText(
@@ -202,12 +233,23 @@ struct ForwardingSettingsView: View {
             )
         )
         .navigationBarTitleDisplayMode(.inline)
-        .task {
+        .task(id: auth.currentUser?.id) {
             await load()
+#if DISAPPEARING_QA
+            if ProcessInfo.processInfo.arguments.contains("--forwarding-qa-save-reopen"),
+               auth.currentUser?.id == 1, vm.initialState?.forwardQuietHoursTimeZone == nil {
+                vm.forwardQuietHoursTimeZone = "America/Denver"
+                vm.forwardQuietHoursStart = 21
+                await save()
+                NotificationCenter.default.post(name: Notification.Name("ForwardingQASaved"), object: nil)
+            }
+#endif
         }
     }
 
     private func load() async {
+        vm.clearForAccountChange()
+        let accountID = auth.currentUser?.id
         guard let token = auth.currentToken, !token.isEmpty else {
             auth.handleInvalidSession()
             return
@@ -216,16 +258,19 @@ struct ForwardingSettingsView: View {
         do {
             vm.isLoading = true
             vm.errorMessage = nil
-            let dto = try await ForwardingService.shared.fetchSettings(token: token)
+            let dto = try await fetchSettings(token)
+            guard auth.currentUser?.id == accountID, !Task.isCancelled else { return }
             vm.load(from: dto)
         } catch {
+            guard auth.currentUser?.id == accountID, !Task.isCancelled else { return }
             vm.errorMessage = error.localizedDescription
         }
 
-        vm.isLoading = false
+        if auth.currentUser?.id == accountID { vm.isLoading = false }
     }
 
     private func save() async {
+        let accountID = auth.currentUser?.id
         guard let token = auth.currentToken, !token.isEmpty else {
             auth.handleInvalidSession()
             return
@@ -236,19 +281,18 @@ struct ForwardingSettingsView: View {
             vm.banner = nil
             vm.errorMessage = nil
 
-            let saved = try await ForwardingService.shared.saveSettings(
-                vm.makeRequest(),
-                token: token
-            )
+            let saved = try await saveSettings(vm.makeRequest(), token)
+            guard auth.currentUser?.id == accountID, !Task.isCancelled else { return }
             vm.load(from: saved)
             vm.banner = appText(
                 "forwarding.saved",
                 languageCode: appLanguage
             )
         } catch {
+            guard auth.currentUser?.id == accountID, !Task.isCancelled else { return }
             vm.errorMessage = error.localizedDescription
         }
 
-        vm.isSaving = false
+        if auth.currentUser?.id == accountID { vm.isSaving = false }
     }
 }
