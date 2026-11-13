@@ -545,7 +545,11 @@ struct SMSThreadView: View {
     private func reload() async {
         guard let threadId = activeConversation.id else { return }
         let token = TokenStore.shared.read()
-        await vm.loadThread(threadId: threadId, token: token)
+        await vm.loadThread(
+            threadId: threadId,
+            token: token,
+            acknowledgeVisibleRead: scenePhase == .active
+        )
     }
 
 
