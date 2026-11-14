@@ -4,6 +4,14 @@ import XCTest
 @MainActor
 final class WirelessServiceTests: XCTestCase {
 
+    func testUnlimitedStatusDoesNotRequirePositiveMegabytes() throws {
+        let data = Data(#"{"mode":"INDIVIDUAL","state":"OK","source":{"addonKind":"chatforia_esim_global_unlimited_premium","unlimited":true,"totalDataMb":0,"remainingDataMb":0},"queuedPacks":[]}"#.utf8)
+        let status = try JSONDecoder().decode(WirelessStatusDTO.self, from: data)
+
+        XCTAssertEqual(status.source?.isUnlimited, true)
+        XCTAssertEqual(status.source?.remainingDataMb, 0)
+    }
+
     func testFetchWirelessStatusThrowsUnauthorizedWhenNoToken() async {
         let client = StubWirelessAPIClient()
         let service = WirelessService(

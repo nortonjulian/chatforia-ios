@@ -341,6 +341,28 @@ struct WirelessHomeView: View {
         ) {
             VStack(alignment: .leading, spacing: 14) {
                 if let status = wirelessStatus,
+                   let source = status.source,
+                   source.isUnlimited {
+                    HStack {
+                        Text(appText("esim.unlimited", languageCode: appLanguage))
+                            .font(.title2.weight(.bold))
+                        Spacer()
+                        statusBadge(status.state)
+                    }
+                    Text("Speed and fair-use terms depend on your data package.")
+                        .font(.footnote)
+                        .foregroundStyle(themeManager.palette.secondaryText)
+                    infoPill(
+                        title: appText("ios.expires", languageCode: appLanguage),
+                        value: expirationText(from: source)
+                    )
+                    if let queuedPacks = status.queuedPacks,
+                       !queuedPacks.isEmpty {
+                        Text("\(queuedPacks.count) data pack\(queuedPacks.count == 1 ? "" : "s") queued")
+                            .font(.footnote)
+                            .foregroundStyle(themeManager.palette.secondaryText)
+                    }
+                } else if let status = wirelessStatus,
                 let source = status.source,
                 let totalMb = source.totalDataMb,
                 let remainingMb = source.remainingDataMb,
@@ -411,7 +433,7 @@ struct WirelessHomeView: View {
                     if let queuedPacks = status.queuedPacks,
                        let nextPack = queuedPacks.first,
                        let queuedRemainingMb = nextPack.remainingDataMb,
-                       queuedRemainingMb > 0 {
+                       (queuedRemainingMb > 0 || nextPack.isUnlimited) {
 
                         Divider()
                             .padding(.vertical, 2)
@@ -424,7 +446,9 @@ struct WirelessHomeView: View {
                                 )
 
                             HStack(alignment: .firstTextBaseline) {
-                                Text(formatGB(queuedRemainingMb))
+                                Text(nextPack.isUnlimited
+                                     ? appText("esim.unlimited", languageCode: appLanguage)
+                                     : formatGB(queuedRemainingMb))
                                     .font(.title3.weight(.bold))
                                     .foregroundStyle(
                                         themeManager.palette.primaryText
@@ -897,19 +921,19 @@ struct WirelessHomeView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     featureRow(
                         appText(
-                            "ios.activates_automatically_on_first_data_connection",
+                            "ios.esim_install_to_activate",
                             languageCode: appLanguage,
                             fallback:
-                                "Activates automatically on first data connection"
+                                "Install the eSIM to activate data service"
                         )
                     )
 
                     featureRow(
                         appText(
-                            "ios.valid_for_30_days_from_first_data_connection",
+                            "ios.esim_valid_30_days_check_expiry",
                             languageCode: appLanguage,
                             fallback:
-                                "Valid for 30 days from first data connection"
+                                "Valid for 30 days; check your pack expiry after purchase"
                         )
                     )
 

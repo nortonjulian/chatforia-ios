@@ -21,9 +21,7 @@ struct ESIMActivationView: View {
 
                 detailsSection
 
-                if !viewModel.isActive {
-                    supportSection
-                }
+                supportSection
             }
             .padding()
         }
@@ -431,10 +429,14 @@ struct ESIMActivationView: View {
     }
 
     private var supportSection: some View {
-        Text(appText("esim.installationSupportText", languageCode: appLanguage))
-            .font(.caption)
-            .foregroundStyle(themeManager.palette.secondaryText)
-            .frame(maxWidth: .infinity, alignment: .leading)
+        VStack(alignment: .leading, spacing: 8) {
+            Text(appText("esim.installationSupportText", languageCode: appLanguage))
+            Text("For mobile data, select the Chatforia eSIM in Settings > Cellular, enable Data Roaming for that line, and leave Network Selection on Automatic. Keep your preferred SIM for ordinary cellular calls and texts.")
+            Text("If data still fails, check your pack and destination, then restart the iPhone. If an APN is requested, ask Chatforia support for the correct value. Chatforia calls and SMS use the app over an internet connection.")
+        }
+        .font(.caption)
+        .foregroundStyle(themeManager.palette.secondaryText)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder
