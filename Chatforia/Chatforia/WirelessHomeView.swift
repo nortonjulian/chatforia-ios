@@ -117,10 +117,7 @@ struct WirelessHomeView: View {
                 }
             }
         } message: {
-            Text(
-                "Your remaining data and expiration date will move to a new eSIM. "
-                + "After the replacement succeeds, the old eSIM will stop working."
-            )
+            Text(appText("esim.transfer.confirmationWireless", languageCode: appLanguage))
         }
     }
 
@@ -360,7 +357,7 @@ struct WirelessHomeView: View {
                         Spacer()
                         statusBadge(status.state)
                     }
-                    Text("Speed and fair-use terms depend on your data package.")
+                    Text(appText("esim.purchase.speedTerms", languageCode: appLanguage))
                         .font(.footnote)
                         .foregroundStyle(themeManager.palette.secondaryText)
                     infoPill(
@@ -369,7 +366,7 @@ struct WirelessHomeView: View {
                     )
                     if let queuedPacks = status.queuedPacks,
                        !queuedPacks.isEmpty {
-                        Text("\(queuedPacks.count) data pack\(queuedPacks.count == 1 ? "" : "s") queued")
+                        Text(queuedCountText(queuedPacks.count))
                             .font(.footnote)
                             .foregroundStyle(themeManager.palette.secondaryText)
                     }
@@ -479,9 +476,7 @@ struct WirelessHomeView: View {
                                 )
 
                             if queuedPacks.count > 1 {
-                                Text(
-                                    "\(queuedPacks.count) data packs queued"
-                                )
+                                Text(queuedCountText(queuedPacks.count))
                                 .font(.caption)
                                 .foregroundStyle(
                                     themeManager.palette.secondaryText
@@ -508,7 +503,7 @@ struct WirelessHomeView: View {
                                         )
 
                                     Text(
-                                        "Current + queued data packs"
+                                        appText("Current + queued data packs", languageCode: appLanguage)
                                     )
                                     .font(.footnote)
                                     .foregroundStyle(
@@ -631,13 +626,13 @@ struct WirelessHomeView: View {
             purchasesErrorMessage = nil
         } catch {
             purchasedPackages = nil
-            purchasesErrorMessage = "Purchased data packages could not be loaded. Try opening Wireless again."
+            purchasesErrorMessage = appText("esim.purchase.loadFailed", languageCode: appLanguage)
             debugLog("Failed to load purchased packages:", error)
         }
     }
 
     private var purchasedPackagesSection: some View {
-        SectionCardView(title: "Purchased Data Packages") {
+        SectionCardView(title: appText("esim.purchase.historyTitle", languageCode: appLanguage)) {
             PurchasedDataPackagesList(
                 packages: purchasedPackages?.packages,
                 errorMessage: purchasesErrorMessage
@@ -716,16 +711,16 @@ struct WirelessHomeView: View {
             )
 
         case "AWAITING_ACTIVATION":
-            return "Awaiting activation"
+            return appText("esim.purchase.stateAwaitingActivation", languageCode: appLanguage)
 
         case "AWAITING_PROVISIONING":
-            return "Awaiting provisioning"
+            return appText("esim.purchase.stateAwaitingProvisioning", languageCode: appLanguage)
 
         case "PROVIDER_UNVERIFIED":
-            return "Status unverified"
+            return appText("esim.purchase.stateProviderUnverified", languageCode: appLanguage)
 
         case "TERMINATED":
-            return "Terminated"
+            return appText("esim.purchase.stateTerminated", languageCode: appLanguage)
 
         case "OK":
             return appText(
@@ -749,6 +744,17 @@ struct WirelessHomeView: View {
         } else {
             return String(format: "%.1f GB", gb)
         }
+    }
+
+    private func queuedCountText(_ count: Int) -> String {
+        if count == 1 {
+            return appText("esim.purchase.oneQueued", languageCode: appLanguage)
+        }
+        return String(
+            format: appText("esim.purchase.manyQueued", languageCode: appLanguage),
+            locale: Locale(identifier: appLanguage),
+            count
+        )
     }
 
     private func remainingText(totalMb: Int) -> String {
@@ -809,8 +815,8 @@ struct WirelessHomeView: View {
                 if canReplaceEsim {
                     ThemedOutlineButton(
                         title: isReplacingEsim
-                            ? "Replacing eSIM..."
-                            : "Request eSIM for a new phone"
+                            ? appText("esim.transfer.replacing", languageCode: appLanguage)
+                            : appText("esim.transfer.requestNewPhone", languageCode: appLanguage)
                     ) {
                         guard !isReplacingEsim else {
                             return
@@ -827,10 +833,14 @@ struct WirelessHomeView: View {
                     }
 
                 } else if activationPayload != nil {
-                    Text("Move eSIM to a new phone")
+                    Text(appText("esim.transfer.title", languageCode: appLanguage))
                         .font(.subheadline.weight(.semibold))
-                    Text(purchasedPackages?.replacementEligibility.reason
-                         ?? "Transfer eligibility is unavailable until your data packages load.")
+                    Text(purchasedPackages == nil
+                         ? appText("esim.transfer.packagesUnavailable", languageCode: appLanguage)
+                         : localizedEsimReplacementReason(
+                            purchasedPackages?.replacementEligibility.reason,
+                            languageCode: appLanguage
+                         ))
                         .font(.footnote)
                         .foregroundStyle(themeManager.palette.secondaryText)
                 }
@@ -1260,8 +1270,7 @@ struct WirelessHomeView: View {
             canReplaceEsim,
             let purchaseId = purchasedPackages?.replacementEligibility.purchaseId
         else {
-            replacementErrorMessage =
-                "This eSIM is not currently eligible for replacement."
+            replacementErrorMessage = appText("esim.transfer.notEligible", languageCode: appLanguage)
             return
         }
 
@@ -1309,8 +1318,7 @@ struct WirelessHomeView: View {
             await loadPurchasedPackages()
 
             guard activationPayload != nil else {
-                replacementErrorMessage =
-                    "Your replacement eSIM was created, but its installation details could not be loaded. Please try Manage Wireless again."
+                replacementErrorMessage = appText("esim.transfer.installationUnavailable", languageCode: appLanguage)
                 return
             }
 
@@ -1319,8 +1327,7 @@ struct WirelessHomeView: View {
             // Deliberately retain replacementIdempotencyKey here.
             // The request may have reached the server even when the
             // client received an error or lost its connection.
-            replacementErrorMessage =
-                "We couldn't confirm the eSIM replacement. Try again to safely check the same replacement request."
+            replacementErrorMessage = appText("esim.transfer.unconfirmed", languageCode: appLanguage)
 
             debugLog(
                 "Failed to replace eSIM:",
