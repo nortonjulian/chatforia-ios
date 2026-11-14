@@ -5,9 +5,14 @@ import CoreImage.CIFilterBuiltins
 
 struct ESIMActivationView: View {
     @StateObject var viewModel: ESIMActivationViewModel
+    let purchasedPackages: WirelessPurchasesResponseDTO?
+    let purchasesErrorMessage: String?
+    let onRequestReplacement: (() -> Void)?
     @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.dismiss) private var dismiss
     @AppStorage("chatforia_language") private var appLanguage = "en"
     @State private var showingInstallationOptions = false
+    @State private var showingReplacementConfirmation = false
 
     var body: some View {
         ScrollView {
@@ -20,6 +25,9 @@ struct ESIMActivationView: View {
                 }
 
                 detailsSection
+
+                purchasedPackagesSection
+                replacementSection
 
                 supportSection
             }
@@ -88,7 +96,7 @@ struct ESIMActivationView: View {
 
                 Text(
                     viewModel.isActive
-                    ? appText("esim.serviceActive", languageCode: appLanguage)
+                    ? appText("ios.your_esim_is_active", languageCode: appLanguage)
                     : appText("esim.readyToInstall", languageCode: appLanguage)
                 )
                 .font(.body.weight(.semibold))
@@ -407,8 +415,6 @@ struct ESIMActivationView: View {
                 .font(.headline)
                 .foregroundStyle(themeManager.palette.primaryText)
 
-            detailRow(title: "esim.plan", value: viewModel.payload.planName)
-
             if viewModel.showsProvisioningDetails {
                 detailRow(title: "esim.lpaUri", value: viewModel.explicitLpaText)
                 detailRow(title: "esim.activationCode", value: viewModel.installationCodeText)
@@ -425,6 +431,64 @@ struct ESIMActivationView: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .stroke(themeManager.palette.border, lineWidth: 1)
         )
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private var purchasedPackagesSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Purchased Data Packages")
+                .font(.headline)
+                .foregroundStyle(themeManager.palette.primaryText)
+
+            PurchasedDataPackagesList(
+                packages: purchasedPackages?.packages,
+                errorMessage: purchasesErrorMessage
+            )
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(themeManager.palette.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private var replacementSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Move eSIM to a new phone")
+                .font(.headline)
+                .foregroundStyle(themeManager.palette.primaryText)
+
+            Button("Request replacement eSIM") {
+                showingReplacementConfirmation = true
+            }
+            .disabled(
+                purchasedPackages?.replacementEligibility.eligible != true ||
+                onRequestReplacement == nil
+            )
+            .alert("Replace eSIM?", isPresented: $showingReplacementConfirmation) {
+                Button("Cancel", role: .cancel) {}
+                Button("Replace eSIM", role: .destructive) {
+                    // Return to Wireless before starting the existing workflow.
+                    // Its completion opens the new installation details.
+                    dismiss()
+                    onRequestReplacement?()
+                }
+            } message: {
+                Text("The old eSIM stops working after a successful replacement. Your eligible remaining data and original expiry move to the new eSIM.")
+            }
+
+            if let reason = purchasedPackages?.replacementEligibility.reason {
+                Text(reason)
+                    .font(.footnote)
+                    .foregroundStyle(themeManager.palette.secondaryText)
+            } else if purchasedPackages == nil {
+                Text("Transfer eligibility is unavailable until your data packages load.")
+                    .font(.footnote)
+                    .foregroundStyle(themeManager.palette.secondaryText)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(themeManager.palette.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
@@ -464,5 +528,106 @@ struct ESIMActivationView: View {
                 }
             }
         )
+    }
+}
+
+struct PurchasedDataPackagesList: View {
+    let packages: [WirelessPurchasedPackageDTO]?
+    let errorMessage: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if let packages {
+                if packages.isEmpty {
+                    Text("No purchased data packages are recorded for this account.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(packages) { package in
+                        VStack(alignment: .leading, spacing: 5) {
+                            HStack {
+                                Text(name(for: package))
+                                    .font(.subheadline.weight(.semibold))
+                                Spacer()
+                                Text(label(for: package.state))
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(package.state == "ACTIVE" ? .green : .orange)
+                            }
+
+                            Text(package.unlimited
+                                 ? "Unlimited data"
+                                 : "\(formatGB(package.remainingDataMb)) remaining of \(formatGB(package.totalDataMb))")
+
+                            if package.state == "BALANCE_NEEDS_REVIEW",
+                               let recorded = package.recordedRemainingDataMb,
+                               let provider = package.providerRemainingDataMb {
+                                Text("Chatforia records \(formatGB(recorded)) remaining; Telna reports \(formatGB(provider)). Contact support before relying on this balance.")
+                                    .foregroundStyle(.orange)
+                            }
+
+                            if let purchasedAt = package.purchasedAt {
+                                Text("Recorded \(purchasedAt.formatted(date: .abbreviated, time: .omitted))")
+                            }
+
+                            Text(package.activatedAt.map {
+                                "Activated \($0.formatted(date: .abbreviated, time: .omitted))"
+                            } ?? "Package activation time not reported")
+
+                            Text(package.expiresAt.map {
+                                "Expires \($0.formatted(date: .abbreviated, time: .omitted))"
+                            } ?? "Expiration not confirmed")
+
+                            if package.state == "EXPIRY_NEEDS_REVIEW" {
+                                Text("Telna reports this package as not active, but its recorded expiry has passed. Contact support before relying on this balance.")
+                                    .foregroundStyle(.orange)
+                            } else if package.state == "EXPIRED" {
+                                Text("Unused data is unavailable after the recorded expiration.")
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+
+                        if package.id != packages.last?.id {
+                            Divider()
+                        }
+                    }
+                }
+            } else {
+                Text(errorMessage ?? "Loading purchased data packages…")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func formatGB(_ megabytes: Int) -> String {
+        String(format: "%.1f GB", Double(megabytes) / 1024.0)
+    }
+
+    private func name(for package: WirelessPurchasedPackageDTO) -> String {
+        let parts = (package.addonKind ?? "").lowercased().split(separator: "_")
+        guard let index = parts.firstIndex(where: { ["local", "europe", "global"].contains(String($0)) }),
+              parts.indices.contains(index + 1) else {
+            return "Data package #\(package.id)"
+        }
+        let region = parts[index].capitalized
+        let size = package.unlimited ? "Unlimited" : "\(parts[index + 1]) GB"
+        return "\(region) \(size)"
+    }
+
+    private func label(for state: String) -> String {
+        switch state {
+        case "ACTIVE": return "Active"
+        case "AWAITING_ACTIVATION": return "Awaiting activation"
+        case "AWAITING_PROVISIONING": return "Paid · provider package not recorded"
+        case "PROVISIONING_NEEDS_REVIEW": return "Paid · provisioning needs review"
+        case "PAYMENT_UNVERIFIED": return "Payment unverified"
+        case "EXPIRED": return "Expired"
+        case "EXPIRY_NEEDS_REVIEW": return "Expiry needs review"
+        case "BALANCE_NEEDS_REVIEW": return "Balance needs review"
+        case "EXHAUSTED": return "Data used"
+        case "TERMINATED": return "Terminated"
+        default: return "Provider status unverified"
+        }
     }
 }

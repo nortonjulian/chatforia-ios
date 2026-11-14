@@ -42,3 +42,32 @@ struct WirelessQueuedPackDTO: Decodable, Identifiable {
         unlimited == true || addonKind?.localizedCaseInsensitiveContains("_unlimited") == true
     }
 }
+
+struct WirelessPurchasesResponseDTO: Decodable {
+    let packages: [WirelessPurchasedPackageDTO]
+    let replacementEligibility: WirelessReplacementEligibilityDTO
+}
+
+struct WirelessReplacementEligibilityDTO: Decodable {
+    let eligible: Bool
+    let purchaseId: Int?
+    let reason: String?
+}
+
+struct WirelessPurchasedPackageDTO: Decodable, Identifiable {
+    let id: Int
+    let addonKind: String?
+    let state: String
+    let providerStatus: String?
+    let unlimited: Bool
+    let totalDataMb: Int
+    let remainingDataMb: Int
+    let recordedRemainingDataMb: Int?
+    let providerRemainingDataMb: Int?
+    let purchasedAt: Date?
+    let activatedAt: Date?
+    let expiresAt: Date?
+    let recordedExpiresAt: Date?
+    let providerExpiresAt: Date?
+    let paid: Bool
+}

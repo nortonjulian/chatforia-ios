@@ -75,6 +75,21 @@ final class WirelessService {
         )
     }
 
+    func fetchPurchasedPackages() async throws -> WirelessPurchasesResponseDTO {
+        guard let token = tokenProvider(), !token.isEmpty else {
+            throw APIError.unauthorized
+        }
+
+        return try await apiClient.send(
+            APIRequest(
+                path: "api/wireless/purchases",
+                method: .GET,
+                requiresAuth: true
+            ),
+            token: token
+        )
+    }
+
     func replaceEsim(
         purchaseId: Int,
         idempotencyKey: String

@@ -19,6 +19,8 @@ struct WirelessHomeView: View {
     @State private var purchasingPackProduct: String?
 
     @State private var wirelessStatus: WirelessStatusDTO?
+    @State private var purchasedPackages: WirelessPurchasesResponseDTO?
+    @State private var purchasesErrorMessage: String?
     @State private var isLoadingStatus = false
     @State private var statusErrorMessage: String?
     @State private var hasLoadedActivation = false
@@ -47,6 +49,7 @@ struct WirelessHomeView: View {
                 scopePickerSection
                 activationSection
                 usageSection
+                purchasedPackagesSection
 
                 if let purchaseErrorMessage {
                     Text(purchaseErrorMessage)
@@ -78,6 +81,7 @@ struct WirelessHomeView: View {
         .task {
             await loadActivationIfExists()
             await loadWirelessStatus()
+            await loadPurchasedPackages()
         }
         .task(id: checkoutReturn.pendingEvent?.id) {
             guard let event =
@@ -90,7 +94,12 @@ struct WirelessHomeView: View {
         .navigationDestination(isPresented: $showActivation) {
             if let payload = activationPayload {
                 ESIMActivationView(
-                    viewModel: ESIMActivationViewModel(payload: payload)
+                    viewModel: ESIMActivationViewModel(payload: payload),
+                    purchasedPackages: purchasedPackages,
+                    purchasesErrorMessage: purchasesErrorMessage,
+                    onRequestReplacement: {
+                        Task { await replaceEsimForNewPhone() }
+                    }
                 )
             }
         }
@@ -292,6 +301,7 @@ struct WirelessHomeView: View {
 
                     await loadActivationIfExists()
                     await loadWirelessStatus()
+                    await loadPurchasedPackages()
 
                     checkoutReturn.consume(event)
                     return
@@ -332,6 +342,7 @@ struct WirelessHomeView: View {
 
         checkoutReturnState = .delayed
         await loadWirelessStatus()
+        await loadPurchasedPackages()
         checkoutReturn.consume(event)
     }
 
@@ -614,6 +625,27 @@ struct WirelessHomeView: View {
         }
     }
 
+    private func loadPurchasedPackages() async {
+        do {
+            purchasedPackages = try await WirelessService.shared.fetchPurchasedPackages()
+            purchasesErrorMessage = nil
+        } catch {
+            purchasedPackages = nil
+            purchasesErrorMessage = "Purchased data packages could not be loaded. Try opening Wireless again."
+            debugLog("Failed to load purchased packages:", error)
+        }
+    }
+
+    private var purchasedPackagesSection: some View {
+        SectionCardView(title: "Purchased Data Packages") {
+            PurchasedDataPackagesList(
+                packages: purchasedPackages?.packages,
+                errorMessage: purchasesErrorMessage
+            )
+            .padding(.vertical, 8)
+        }
+    }
+
     private func statusBadge(_ state: String) -> some View {
         Text(stateLabel(state))
             .font(.caption.weight(.semibold))
@@ -645,7 +677,10 @@ struct WirelessHomeView: View {
         case "LOW":
             return .orange
 
-        case "EXHAUSTED", "EXPIRED":
+        case "AWAITING_ACTIVATION", "AWAITING_PROVISIONING", "PROVIDER_UNVERIFIED":
+            return .orange
+
+        case "EXHAUSTED", "EXPIRED", "TERMINATED":
             return .red
 
         default:
@@ -679,6 +714,18 @@ struct WirelessHomeView: View {
                 "ios.expired",
                 languageCode: appLanguage
             )
+
+        case "AWAITING_ACTIVATION":
+            return "Awaiting activation"
+
+        case "AWAITING_PROVISIONING":
+            return "Awaiting provisioning"
+
+        case "PROVIDER_UNVERIFIED":
+            return "Status unverified"
+
+        case "TERMINATED":
+            return "Terminated"
 
         case "OK":
             return appText(
@@ -779,15 +826,20 @@ struct WirelessHomeView: View {
                         showReplaceEsimConfirmation = true
                     }
 
-                    if let replacementErrorMessage {
-                        Text(replacementErrorMessage)
-                            .font(.footnote)
-                            .foregroundStyle(.red)
-                            .frame(
-                                maxWidth: .infinity,
-                                alignment: .leading
-                            )
-                    }
+                } else if activationPayload != nil {
+                    Text("Move eSIM to a new phone")
+                        .font(.subheadline.weight(.semibold))
+                    Text(purchasedPackages?.replacementEligibility.reason
+                         ?? "Transfer eligibility is unavailable until your data packages load.")
+                        .font(.footnote)
+                        .foregroundStyle(themeManager.palette.secondaryText)
+                }
+
+                if let replacementErrorMessage {
+                    Text(replacementErrorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
                 // Porting is not available yet.
@@ -800,28 +852,12 @@ struct WirelessHomeView: View {
     private var canReplaceEsim: Bool {
         guard
             activationPayload != nil,
-            let source = wirelessStatus?.source,
-            let purchaseId = source.id,
+            purchasedPackages?.replacementEligibility.eligible == true,
+            let purchaseId = purchasedPackages?.replacementEligibility.purchaseId,
             purchaseId > 0
         else {
             return false
         }
-
-        if wirelessStatus?.exhausted == true ||
-            wirelessStatus?.expired == true {
-            return false
-        }
-
-        if source.remainingDataMb == 0 {
-            return false
-        }
-
-        if source.addonKind?
-            .uppercased()
-            .contains("UNLIMITED") == true {
-            return false
-        }
-
         return true
     }
 
@@ -1205,7 +1241,10 @@ struct WirelessHomeView: View {
 
    private func handleManageWirelessTapped() {
         if activationPayload != nil {
-            openActivation()
+            Task {
+                await loadPurchasedPackages()
+                openActivation()
+            }
         } else {
             openURL(URL(string: "https://chatforia.com/account/esim")!)
         }
@@ -1219,7 +1258,7 @@ struct WirelessHomeView: View {
 
         guard
             canReplaceEsim,
-            let purchaseId = wirelessStatus?.source?.id
+            let purchaseId = purchasedPackages?.replacementEligibility.purchaseId
         else {
             replacementErrorMessage =
                 "This eSIM is not currently eligible for replacement."
@@ -1267,6 +1306,7 @@ struct WirelessHomeView: View {
             // installation mapping from the replacement response.
             await loadActivationIfExists()
             await loadWirelessStatus()
+            await loadPurchasedPackages()
 
             guard activationPayload != nil else {
                 replacementErrorMessage =
