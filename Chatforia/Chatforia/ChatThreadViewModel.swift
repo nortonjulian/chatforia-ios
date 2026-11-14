@@ -140,6 +140,19 @@ struct EmptyAPIResponse: Decodable {}
 
 @MainActor
 final class ChatThreadViewModel: ObservableObject {
+    #if DISAPPEARING_QA
+    private var qaMessagesSource: (() -> [MessageDTO])?
+    @Published private(set) var qaReloadCount = 0
+
+    func loadSyntheticQA(roomId: Int, source: @escaping () -> [MessageDTO]) {
+        qaMessagesSource = source
+        configureRoom(roomId: roomId)
+        // Feed the unchanged synthetic response through the real cache path.
+        MessageStore.shared.replaceMessages(forRoomId: roomId, with: source())
+        refreshFromMessageStore()
+        qaReloadCount += 1
+    }
+    #endif
     @Published var messages: [MessageDTO] = []
     @Published var isLoading: Bool = false
     @Published var errorText: String?
@@ -634,6 +647,12 @@ final class ChatThreadViewModel: ObservableObject {
     }
 
     func resyncIfNeeded(token: String?) async {
+        #if DISAPPEARING_QA
+        if let qaMessagesSource, let roomId {
+            loadSyntheticQA(roomId: roomId, source: qaMessagesSource)
+            return
+        }
+        #endif
         guard !isResyncing else { return }
         guard let roomId else { return }
         guard let token, !token.isEmpty else { return }
