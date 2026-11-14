@@ -19,6 +19,8 @@ final class ESIMActivationViewModelTests: XCTestCase {
 
         XCTAssertTrue(viewModel.isActive)
         XCTAssertFalse(viewModel.showsProvisioningDetails)
+        XCTAssertTrue(viewModel.subtitleText.contains("eSIM profile is active"))
+        XCTAssertFalse(viewModel.subtitleText.contains("data pack is active"))
 
         XCTAssertEqual(viewModel.displayIccidText, "•••• •••• •••• 4567")
         XCTAssertNotEqual(viewModel.displayIccidText, payload.iccid)

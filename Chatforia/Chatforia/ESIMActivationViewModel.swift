@@ -23,8 +23,9 @@ final class ESIMActivationViewModel: ObservableObject {
     var subtitleText: String {
         if isActive {
             return appText(
-                "esim.activeSubtitle",
-                languageCode: appLanguage
+                "esim.profileActiveSubtitle",
+                languageCode: appLanguage,
+                fallback: "Your eSIM profile is active. Check Wireless for each data package's status."
             )
         }
 
