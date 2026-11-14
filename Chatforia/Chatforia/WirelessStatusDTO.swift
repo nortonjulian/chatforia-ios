@@ -19,16 +19,26 @@ struct WirelessStatusSourceDTO: Decodable {
     let type: String?
     let id: Int?
     let addonKind: String?
+    let unlimited: Bool?
     let totalDataMb: Int?
     let remainingDataMb: Int?
     let expiresAt: Date?
     let daysRemaining: Int?
+
+    var isUnlimited: Bool {
+        unlimited == true || addonKind?.localizedCaseInsensitiveContains("_unlimited") == true
+    }
 }
 
 struct WirelessQueuedPackDTO: Decodable, Identifiable {
     let id: Int
     let addonKind: String?
+    let unlimited: Bool?
     let totalDataMb: Int?
     let remainingDataMb: Int?
     let expiresAt: Date?
+
+    var isUnlimited: Bool {
+        unlimited == true || addonKind?.localizedCaseInsensitiveContains("_unlimited") == true
+    }
 }
