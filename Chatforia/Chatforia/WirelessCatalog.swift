@@ -47,7 +47,14 @@ struct DataPackOption: Identifiable, Hashable {
     }
 
     func description(languageCode: String) -> String {
-        appText(descriptionKey, languageCode: languageCode)
+        if gb == 0 {
+            return appText(
+                "esim.heavyUsageTermsDescription",
+                languageCode: languageCode,
+                fallback: "For heavy use in supported destinations; speed terms depend on the data package."
+            )
+        }
+        return appText(descriptionKey, languageCode: languageCode)
     }
 
     func displayDataAmount(languageCode: String) -> String {
