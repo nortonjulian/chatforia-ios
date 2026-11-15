@@ -703,6 +703,18 @@ final class ChatsViewModel: ObservableObject {
             let fetched = response.conversations ?? response.items ?? []
             guard requestVersion == conversationLoadVersion, !Task.isCancelled else { return }
 
+            #if DEBUG
+            // Sanitized diagnostics: no message bodies, contact names or numbers.
+            let smsRows = fetched.filter { $0.kind.lowercased() == "sms" }
+            debugLog(
+                "📨 iOS Chats list diagnostic:",
+                "total=\(fetched.count)",
+                "sms=\(smsRows.count)",
+                "smsUnread=\(smsRows.reduce(0) { $0 + max(0, $1.unreadCount ?? 0) })",
+                "smsThreadIds=\(smsRows.compactMap(\.id))"
+            )
+            #endif
+
             let hydrated = fetched.map { convo in
                 guard let last = convo.last,
                       let messageId = last.messageId,
@@ -760,6 +772,9 @@ final class ChatsViewModel: ObservableObject {
 
         } catch {
             guard requestVersion == conversationLoadVersion, !Task.isCancelled else { return }
+            #if DEBUG
+            debugLog("📨 iOS Chats list refresh failed:", String(describing: type(of: error)))
+            #endif
             errorText = error.localizedDescription
         }
     }

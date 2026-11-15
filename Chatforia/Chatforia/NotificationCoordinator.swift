@@ -73,6 +73,20 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
 
             let badgeCount = max(0, badgeState.total)
 
+            #if DEBUG
+            // Diagnose the actual on-device notification settings. A successful
+            // backend request does not imply that the iPhone permits icon badges.
+            let settings = await UNUserNotificationCenter.current().notificationSettings()
+            debugLog(
+                "🔔 iOS notification settings diagnostic:",
+                "authorization=\(settings.authorizationStatus.rawValue)",
+                "badge=\(settings.badgeSetting.rawValue)",
+                "alert=\(settings.alertSetting.rawValue)",
+                "sound=\(settings.soundSetting.rawValue)",
+                "requestedBadge=\(badgeCount)"
+            )
+            #endif
+
             if #available(iOS 16.0, *) {
                 try await UNUserNotificationCenter.current()
                     .setBadgeCount(badgeCount)
