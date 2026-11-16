@@ -195,6 +195,19 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
         accessibilityVisualAlertMessage = nil
     }
 
+    // A completed network request only proves registration for the identity
+    // and APNs token used when it started, not a subsequently changed account.
+    static func registrationStillCurrent(
+        attemptedUserId: Int,
+        attemptedPushToken: String,
+        currentUserId: Int,
+        currentPushToken: String?
+    ) -> Bool {
+        attemptedUserId > 0
+            && attemptedUserId == currentUserId
+            && attemptedPushToken == currentPushToken
+    }
+
     private func registerPushTokenIfPossible(_ pushToken: String) async {
         guard !isRegisteringPushToken else {
             // A new token or account may arrive during an in-flight registration.
@@ -251,7 +264,12 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
             let activePushToken = UserDefaults.standard.string(
                 forKey: apnsTokenDefaultsKey
             )
-            if activeUserId == currentUserId && activePushToken == pushToken {
+            if Self.registrationStillCurrent(
+                attemptedUserId: currentUserId,
+                attemptedPushToken: pushToken,
+                currentUserId: activeUserId,
+                currentPushToken: activePushToken
+            ) {
                 lastRegisteredPushToken = pushToken
                 lastRegisteredPushUserId = currentUserId
             } else {
