@@ -243,8 +243,20 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
                 token: authToken
             )
 
-            lastRegisteredPushToken = pushToken
-            lastRegisteredPushUserId = currentUserId
+            // Login/account changes can occur while the network calls are in flight.
+            // Never cache success for a different account or a newer APNs token.
+            let activeUserId = UserDefaults.standard.integer(
+                forKey: "chatforia.currentUserId"
+            )
+            let activePushToken = UserDefaults.standard.string(
+                forKey: apnsTokenDefaultsKey
+            )
+            if activeUserId == currentUserId && activePushToken == pushToken {
+                lastRegisteredPushToken = pushToken
+                lastRegisteredPushUserId = currentUserId
+            } else {
+                pushRegistrationRetryRequested = true
+            }
 
         } catch {
             debugLog("❌ push token registration failed:", error)
