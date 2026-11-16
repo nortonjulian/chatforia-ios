@@ -117,7 +117,8 @@ final class APIClient {
         return URLSession(configuration: configuration)
     }()
 
-    private func session(for request: APIRequest) -> URLSession {
+    // Internal for regression tests; no caller should mutate the session.
+    func session(for request: APIRequest) -> URLSession {
         request.requiresAuth ? bearerSession : .shared
     }
 
