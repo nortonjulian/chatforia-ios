@@ -16,6 +16,7 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
 
     private let apnsTokenDefaultsKey = "apns_token"
     private var isRegisteringPushToken = false
+    private var pushRegistrationRetryRequested = false
     private var lastRegisteredPushToken: String?
     private var lastRegisteredPushUserId: Int?
     private var hasRequestedAuthorizationThisLaunch = false
@@ -196,6 +197,9 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
 
     private func registerPushTokenIfPossible(_ pushToken: String) async {
         guard !isRegisteringPushToken else {
+            // A new token or account may arrive during an in-flight registration.
+            // Retry after completion rather than silently dropping that event.
+            pushRegistrationRetryRequested = true
             return
         }
 
@@ -220,7 +224,13 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
         }
 
         isRegisteringPushToken = true
-        defer { isRegisteringPushToken = false }
+        defer {
+            isRegisteringPushToken = false
+            if pushRegistrationRetryRequested {
+                pushRegistrationRetryRequested = false
+                Task { await self.retryPushRegistrationIfPossible() }
+            }
+        }
 
         do {
             _ = try await DeviceRegistrationService.shared.ensureCurrentDeviceRegistered(
