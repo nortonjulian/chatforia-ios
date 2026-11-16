@@ -13,6 +13,25 @@ final class APIClientTests: XCTestCase {
         XCTAssertTrue(request.requiresAuth)
     }
 
+    func testBearerAuthenticatedRequestsUseCookieFreeSession() {
+        let request = APIRequest(path: "devices/register", method: .POST)
+        let session = APIClient.shared.session(for: request)
+        XCTAssertNil(session.configuration.httpCookieStorage)
+        XCTAssertFalse(session.configuration.httpShouldSetCookies)
+    }
+
+    func testPushTokenRegistrationUsesCookieFreeSession() {
+        let request = APIRequest(path: "devices/push-token", method: .POST)
+        let session = APIClient.shared.session(for: request)
+        XCTAssertNil(session.configuration.httpCookieStorage)
+        XCTAssertFalse(session.configuration.httpShouldSetCookies)
+    }
+
+    func testUnauthenticatedRequestsRetainSharedSession() {
+        let request = APIRequest(path: "auth/register", method: .POST, requiresAuth: false)
+        XCTAssertTrue(APIClient.shared.session(for: request) === URLSession.shared)
+    }
+
     func testAPIRequestCanDisableAuth() {
         let request = APIRequest(
             path: "auth/register",
