@@ -17,8 +17,6 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
     private let apnsTokenDefaultsKey = "apns_token"
     private var isRegisteringPushToken = false
     private var pushRegistrationRetryRequested = false
-    private var lastRegisteredPushToken: String?
-    private var lastRegisteredPushUserId: Int?
     private var hasRequestedAuthorizationThisLaunch = false
 
     private override init() {
@@ -224,13 +222,8 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
             return
         }
 
-        guard
-            lastRegisteredPushToken != pushToken
-                || lastRegisteredPushUserId != currentUserId
-        else {
-            return
-        }
-
+        // Reconcile on each foreground/login attempt, even for an unchanged
+        // token: the server may have lost its registration since last success.
         guard let authToken = TokenStore.shared.read(), !authToken.isEmpty else {
             return
         }
@@ -269,8 +262,7 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
                 currentUserId: activeUserId,
                 currentPushToken: activePushToken
             ) {
-                lastRegisteredPushToken = pushToken
-                lastRegisteredPushUserId = currentUserId
+                debugLog("✅ APNs device registration reconciled")
             } else {
                 pushRegistrationRetryRequested = true
             }
