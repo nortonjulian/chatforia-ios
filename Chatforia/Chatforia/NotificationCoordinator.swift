@@ -30,23 +30,22 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
     }
 
     func requestAuthorization() async {
-        guard !hasRequestedAuthorizationThisLaunch else {
-            return
-        }
-
-        hasRequestedAuthorizationThisLaunch = true
-
-        do {
-            let granted = try await UNUserNotificationCenter.current()
-                .requestAuthorization(options: [.alert, .badge, .sound])
-
-
-            if granted {
-                UIApplication.shared.registerForRemoteNotifications()
+        // Prompt at most once per launch, but do not suppress subsequent APNs
+        // registration requests: Apple can rotate the token independently.
+        if !hasRequestedAuthorizationThisLaunch {
+            hasRequestedAuthorizationThisLaunch = true
+            do {
+                _ = try await UNUserNotificationCenter.current()
+                    .requestAuthorization(options: [.alert, .badge, .sound])
+            } catch {
+                debugLog("❌ notification auth failed:", error)
             }
-        } catch {
-            debugLog("❌ notification auth failed:", error)
         }
+
+        // Ask APNs for the current token even when the user has previously
+        // answered the alert permission prompt. Never rely on a cached token
+        // as the only source of truth.
+        UIApplication.shared.registerForRemoteNotifications()
     }
 
     func handleDeviceToken(_ deviceToken: Data) {
