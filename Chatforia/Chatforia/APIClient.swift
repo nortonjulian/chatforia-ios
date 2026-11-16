@@ -108,6 +108,19 @@ final class APIClient {
     static let shared = APIClient()
     private init() {}
 
+    // Keep native Bearer credentials separate from browser session cookies.
+    // The backend requires CSRF if its JWT cookie accompanies a Bearer token.
+    private lazy var bearerSession: URLSession = {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.httpCookieStorage = nil
+        configuration.httpShouldSetCookies = false
+        return URLSession(configuration: configuration)
+    }()
+
+    private func session(for request: APIRequest) -> URLSession {
+        request.requiresAuth ? bearerSession : .shared
+    }
+
     private var appLanguage: String {
         UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
     }
@@ -180,7 +193,7 @@ final class APIClient {
         }
 
         do {
-            let (data, response) = try await URLSession.shared.data(for: req)
+            let (data, response) = try await session(for: request).data(for: req)
 
             guard let http = response as? HTTPURLResponse else {
                 throw APIError.server(status: -1, message: "Non-HTTP response")
@@ -302,7 +315,7 @@ final class APIClient {
         }
 
         do {
-            let (data, response) = try await URLSession.shared.data(for: req)
+            let (data, response) = try await session(for: request).data(for: req)
 
             guard let http = response as? HTTPURLResponse else {
                 throw APIError.server(status: -1, message: "Non-HTTP response")
@@ -364,7 +377,7 @@ final class APIClient {
         do {
             debugLog("📤 uploadMultipart fileName =", fileName)
             debugLog("📤 uploadMultipart mimeType =", mimeType)
-            let (data, response) = try await URLSession.shared.data(for: req)
+            let (data, response) = try await bearerSession.data(for: req)
 
             guard let http = response as? HTTPURLResponse else {
                 throw APIError.server(status: -1, message: "Non-HTTP response")
