@@ -27,6 +27,7 @@ struct ProfileRootView: View {
 
     @State private var activeUpgradePrompt: UpgradePromptRequest?
 
+    @State private var showingThirdPartyNotices = false
     @State private var showingThemeSheet = false
     @State private var showingMessageToneSheet = false
     @State private var showingRingtoneSheet = false
@@ -221,6 +222,9 @@ struct ProfileRootView: View {
                     }
                 )
                 .environmentObject(themeManager)
+            }
+            .sheet(isPresented: $showingThirdPartyNotices) {
+                ThirdPartyNoticesView()
             }
             .sheet(isPresented: $showingThemeSheet) {
                 PremiumPickerSheet(
@@ -510,9 +514,20 @@ struct ProfileRootView: View {
                 Button {
                     openURL("https://chatforia.com/legal/open-source")
                 } label: {
-                    legalRow("Open Source Licenses")
+                    legalRow("Technology Across Chatforia")
                 }
                 .buttonStyle(.plain)
+
+                Divider()
+
+                Button {
+                    showingThirdPartyNotices = true
+                } label: {
+                    legalRow("This App’s Licenses")
+                }
+                .buttonStyle(.plain)
+
+                Divider()
 
                 Button {
                     openURL("mailto:support@chatforia.com")
@@ -1912,6 +1927,8 @@ struct ProfileRootView: View {
                 .foregroundStyle(.tertiary)
         }
         .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, minHeight: 44)
+        .contentShape(Rectangle())
     }
     
     private func deleteAccount() async {
