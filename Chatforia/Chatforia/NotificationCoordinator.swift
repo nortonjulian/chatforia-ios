@@ -62,12 +62,17 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
               !authToken.isEmpty else {
             return
         }
+        let accountId = UserDefaults.standard.integer(forKey: "chatforia.currentUserId")
 
         do {
             let badgeState =
                 try await BadgeStateService.shared.fetchBadgeState(
                     token: authToken
                 )
+
+            guard TokenStore.shared.read() == authToken,
+                  UserDefaults.standard.integer(forKey: "chatforia.currentUserId") == accountId
+            else { return }
 
             let badgeCount = max(0, badgeState.total)
 

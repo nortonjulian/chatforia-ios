@@ -85,6 +85,10 @@ struct SMSMessageDTO: Decodable, Identifiable, Equatable, Sendable {
         direction.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "out"
     }
 
+    var isIncoming: Bool {
+        direction.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "in"
+    }
+
     var trimmedBody: String? {
         body?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfBlank
     }

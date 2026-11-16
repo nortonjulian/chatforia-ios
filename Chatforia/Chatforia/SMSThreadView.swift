@@ -30,6 +30,8 @@ struct SMSThreadView: View {
     @Environment(\.scenePhase) private var scenePhase
     @EnvironmentObject private var themeManager: ThemeManager
     @State private var pollingTask: Task<Void, Never>?
+    @State private var visibleMessageIds: Set<Int> = []
+    @State private var isThreadScreenVisible = false
     @State private var showPhotoPicker = false
     @State private var showVideoPicker = false
     @State private var showGIFPicker = false
@@ -166,7 +168,7 @@ struct SMSThreadView: View {
             .environmentObject(themeManager)
         }
        
-        .task(id: activeConversation.uniqueId) {
+        .task(id: "\(activeConversation.uniqueId):\(auth.currentUser?.id ?? 0)") {
             if activeConversation.id != nil {
                 await reload()
                 startPolling()
@@ -176,14 +178,33 @@ struct SMSThreadView: View {
                 stopPolling()
             }
         }
+        .onAppear {
+            isThreadScreenVisible = true
+            syncReadVisibility()
+        }
         .onDisappear {
+            isThreadScreenVisible = false
+            syncReadVisibility()
             stopPolling()
             voice.discard()
         }
         .onChange(of: auth.currentUser?.id) { _, _ in
+            visibleMessageIds = []
+            vm.updateVisibleMessages([], threadId: nil, accountId: nil,
+                                     token: nil, isForeground: false)
+            vm.thread = nil
+            vm.messages = []
             voice.discard()
         }
+        .onChange(of: activeConversation.uniqueId) { _, _ in
+            visibleMessageIds = []
+            syncReadVisibility()
+        }
+        .onChange(of: canAcknowledgeVisibleMessages) { _, _ in
+            syncReadVisibility()
+        }
         .onChange(of: scenePhase) { _, newPhase in
+            syncReadVisibility()
             if newPhase == .active {
                 if activeConversation.id != nil {
                     Task { await reload() }
@@ -368,6 +389,10 @@ struct SMSThreadView: View {
             SMSMessagesListView(
                 messages: vm.messages,
                 highlightedMessageID: highlightedMessageID,
+                onVisibleMessageIdsChanged: { ids in
+                    visibleMessageIds = ids
+                    syncReadVisibility()
+                },
                 onDeleteForMe: { message in
                     Task {
                         await vm.deleteMessage(
@@ -546,6 +571,25 @@ struct SMSThreadView: View {
         guard let threadId = activeConversation.id else { return }
         let token = TokenStore.shared.read()
         await vm.loadThread(threadId: threadId, token: token)
+        syncReadVisibility()
+    }
+
+    private var canAcknowledgeVisibleMessages: Bool {
+        isThreadScreenVisible && scenePhase == .active &&
+        !showSearchSheet && !showingAddContact && !showNumberPicker &&
+        !showPhotoPicker && !showVideoPicker && !showGIFPicker &&
+        !showAttachmentChoices && reportingMessage == nil && !showBlockConfirmation
+    }
+
+    private func syncReadVisibility() {
+        vm.updateVisibleMessages(
+            visibleMessageIds,
+            threadId: activeConversation.id,
+            accountId: auth.currentUser?.id,
+            token: TokenStore.shared.read(),
+            isForeground: canAcknowledgeVisibleMessages
+        )
+        Task { await vm.acknowledgeVisibleMessages() }
     }
 
 
@@ -972,9 +1016,26 @@ struct SMSThreadView: View {
 
 // MARK: - Messages list
 
+private struct SMSMessageFramesPreferenceKey: PreferenceKey {
+    static var defaultValue: [Int: CGRect] = [:]
+
+    static func reduce(value: inout [Int: CGRect], nextValue: () -> [Int: CGRect]) {
+        value.merge(nextValue(), uniquingKeysWith: { _, newer in newer })
+    }
+}
+
+enum SMSVisibleMessageRows {
+    static func ids(in frames: [Int: CGRect], viewport: CGRect) -> Set<Int> {
+        Set(frames.compactMap { id, frame in
+            !frame.isEmpty && frame.intersects(viewport) ? id : nil
+        })
+    }
+}
+
 private struct SMSMessagesListView: View {
     let messages: [SMSMessageDTO]
     let highlightedMessageID: Int?
+    let onVisibleMessageIdsChanged: (Set<Int>) -> Void
     let onDeleteForMe: (SMSMessageDTO) -> Void
     let onReport: (SMSMessageDTO) -> Void
     let onBlock: (SMSMessageDTO) -> Void
@@ -1026,6 +1087,14 @@ private struct SMSMessagesListView: View {
                                 }
                             )
                             .id(msg.id)
+                            .background {
+                                GeometryReader { row in
+                                    Color.clear.preference(
+                                        key: SMSMessageFramesPreferenceKey.self,
+                                        value: [msg.id: row.frame(in: .named("smsMessageViewport"))]
+                                    )
+                                }
+                            }
                         }
 
                         Color.clear
@@ -1034,6 +1103,11 @@ private struct SMSMessagesListView: View {
                     }
                     .padding(.vertical, 14)
                     .frame(minHeight: geo.size.height, alignment: .bottom)
+                }
+                .coordinateSpace(name: "smsMessageViewport")
+                .onPreferenceChange(SMSMessageFramesPreferenceKey.self) { frames in
+                    let viewport = CGRect(origin: .zero, size: geo.size)
+                    onVisibleMessageIdsChanged(SMSVisibleMessageRows.ids(in: frames, viewport: viewport))
                 }
                 .background(themeManager.palette.screenBackground)
                 .onAppear {

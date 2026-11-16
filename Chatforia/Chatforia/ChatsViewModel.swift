@@ -243,32 +243,17 @@ final class ChatsViewModel: ObservableObject {
         }
     }
 
-    private func applySMSRead(threadId: Int, accountId: Int) {
+    // Internal so the unread reconciliation contract can be tested without a
+    // network request or a live notification delivery.
+    func applySMSRead(threadId: Int, accountId: Int) {
         guard threadId > 0, accountId > 0,
               UserDefaults.standard.integer(forKey: "chatforia.currentUserId") == accountId,
-              let index = conversations.firstIndex(where: {
+              conversations.contains(where: {
                   $0.kind.lowercased() == "sms" && $0.id == threadId
-              }),
-              conversations[index].unreadCount != 0 else { return }
+              }) else { return }
 
-        let conversation = conversations[index]
-        var updated = ConversationDTO(
-            kind: conversation.kind,
-            id: conversation.id,
-            title: conversation.title,
-            displayName: conversation.displayName,
-            updatedAt: conversation.updatedAt,
-            isGroup: conversation.isGroup,
-            phone: conversation.phone,
-            unreadCount: 0,
-            avatarUsers: conversation.avatarUsers,
-            last: conversation.last
-        )
-        updated.isRandomChat = conversation.isRandomChat
-        updated.randomChat = conversation.randomChat
-        updated.randomChatRoomId = conversation.randomChatRoomId
-        conversations[index] = updated
-        // Invalidates in-flight list responses before the debounced refresh.
+        // A newer inbound message may have arrived while the POST was running.
+        // Keep the current count until the server supplies the exact new one.
         scheduleLiveRefresh()
     }
 
@@ -678,11 +663,14 @@ final class ChatsViewModel: ObservableObject {
     func loadConversations(token: String?, showLoading: Bool = true) async {
         conversationLoadVersion += 1
         let requestVersion = conversationLoadVersion
+        let accountId = UserDefaults.standard.integer(forKey: "chatforia.currentUserId")
         guard let token else {
             errorText = appText("ios.missing_auth_token", languageCode: appLanguage)
             conversations = []
             return
         }
+        let storedToken = TokenStore.shared.read()
+        if let storedToken, storedToken != token { return }
 
         if showLoading { isLoading = true }
         errorText = nil
@@ -701,7 +689,9 @@ final class ChatsViewModel: ObservableObject {
             )
 
             let fetched = response.conversations ?? response.items ?? []
-            guard requestVersion == conversationLoadVersion, !Task.isCancelled else { return }
+            guard requestVersion == conversationLoadVersion, !Task.isCancelled,
+                  UserDefaults.standard.integer(forKey: "chatforia.currentUserId") == accountId,
+                  TokenStore.shared.read() == storedToken else { return }
 
             let hydrated = fetched.map { convo in
                 guard let last = convo.last,
@@ -759,7 +749,9 @@ final class ChatsViewModel: ObservableObject {
             }
 
         } catch {
-            guard requestVersion == conversationLoadVersion, !Task.isCancelled else { return }
+            guard requestVersion == conversationLoadVersion, !Task.isCancelled,
+                  UserDefaults.standard.integer(forKey: "chatforia.currentUserId") == accountId,
+                  TokenStore.shared.read() == storedToken else { return }
             errorText = error.localizedDescription
         }
     }
