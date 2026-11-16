@@ -4,7 +4,6 @@ import UIKit
 struct MessageComposerView: View {
     @Binding var draft: String
     @State private var isDraftFocused = false
-    @State private var typingSelectionRevision = 0
 
     @EnvironmentObject var settingsVM: SettingsViewModel
     @EnvironmentObject private var themeManager: ThemeManager
@@ -102,17 +101,6 @@ struct MessageComposerView: View {
         return isSending || isSendingVoice || (trimmedDraft.isEmpty && !hasPendingAttachment)
     }
 
-    private var typingLanguage: String? {
-        _ = typingSelectionRevision
-        return TypingLanguagePreferences().language(for: typingContext)
-    }
-
-    private var typingLanguageName: String? {
-        guard let typingLanguage,
-              let option = AppLanguages.all.first(where: { $0.code == typingLanguage }) else { return nil }
-        return TypingLanguagePreferences.localizedName(for: option, appLanguage: appLanguage)
-    }
-
     var body: some View {
         
         VStack(spacing: 0) {
@@ -182,41 +170,6 @@ struct MessageComposerView: View {
                     )
                 }
 
-                Menu {
-                    Text(appText("keyboard.help", languageCode: appLanguage,
-                                 fallback: "Choose a language, then use the keyboard language key to switch. iOS may remember it for this conversation."))
-                    Button(appText("keyboard.system", languageCode: appLanguage,
-                                   fallback: "System keyboard")) {
-                        selectTypingLanguage(nil)
-                    }
-                    ForEach(AppLanguages.all) { language in
-                        Button {
-                            selectTypingLanguage(language.code)
-                        } label: {
-                            if typingLanguage == language.code {
-                                Label(TypingLanguagePreferences.localizedName(for: language, appLanguage: appLanguage), systemImage: "checkmark")
-                            } else {
-                                Text(TypingLanguagePreferences.localizedName(for: language, appLanguage: appLanguage))
-                            }
-                        }
-                    }
-                } label: {
-                    HStack(spacing: 2) {
-                        Image(systemName: "globe")
-                        if let typingLanguage {
-                            Text(typingLanguage.uppercased()).font(.caption2)
-                        }
-                    }
-                    .foregroundStyle(themeManager.palette.accent)
-                }
-                .accessibilityLabel(appText("keyboard.typingLanguage", languageCode: appLanguage,
-                                            fallback: "Typing language"))
-                .accessibilityValue(typingLanguageName ?? appText("keyboard.system", languageCode: appLanguage,
-                                                                 fallback: "System keyboard"))
-                .accessibilityHint(appText("keyboard.help", languageCode: appLanguage,
-                                            fallback: "Choose a language, then use the keyboard language key to switch. iOS may remember it for this conversation."))
-                .disabled(typingContext == nil)
-
                 let placeholder = isCaptioningPendingMedia
                     ? appText("messages.addCaption", languageCode: appLanguage)
                     : appText("messages.message", languageCode: appLanguage)
@@ -230,7 +183,7 @@ struct MessageComposerView: View {
                     ContextualMessageTextView(
                         text: $draft,
                         isFocused: $isDraftFocused,
-                        contextIdentifier: typingContext?.keyboardContextIdentifier(language: typingLanguage),
+                        contextIdentifier: typingContext?.keyboardContextIdentifier,
                         placeholder: placeholder,
                         textColor: UIColor(themeManager.palette.primaryText),
                         isEnabled: !hasVoiceDraft && !isRecordingVoice
@@ -254,11 +207,6 @@ struct MessageComposerView: View {
             )
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         }
-    }
-
-    private func selectTypingLanguage(_ code: String?) {
-        TypingLanguagePreferences().setLanguage(code, for: typingContext)
-        typingSelectionRevision += 1
     }
 
     @ViewBuilder
