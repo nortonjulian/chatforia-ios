@@ -101,7 +101,7 @@ struct ChatsRootView: View {
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                         } else if vm.isLoading && vm.conversations.isEmpty {
-                            LoadingStateView(
+                            CompactLoadingStateView(
                                 title: appText(
                                     "ios.loading_chats",
                                     languageCode: appLanguage
@@ -269,7 +269,7 @@ struct ChatsRootView: View {
                             .scrollContentBackground(.hidden)
                             .background(Color.clear)
                             .listStyle(.insetGrouped)
-                            .contentMargins(.top, 0, for: .scrollContent)
+                            .chatforiaTopAlignedList()
                         }
                     }
 
