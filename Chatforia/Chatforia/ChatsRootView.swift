@@ -269,6 +269,7 @@ struct ChatsRootView: View {
                             .scrollContentBackground(.hidden)
                             .background(Color.clear)
                             .listStyle(.insetGrouped)
+                            .contentMargins(.top, 0, for: .scrollContent)
                         }
                     }
 
