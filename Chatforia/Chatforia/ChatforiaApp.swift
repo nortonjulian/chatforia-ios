@@ -265,7 +265,6 @@ struct ChatforiaApp: App {
 
                 notificationCoordinator.showAccessibilityVisualAlert()
             }
-            .id(appLanguage)
             .modifier(ChatforiaDynamicTypeModifier(chatforiaSize: accessibilityDynamicTypeSize))
             .onAppear {
                     AnalyticsManager.shared.capture("app_opened")

@@ -72,7 +72,6 @@ struct AppShellView: View {
                     }
                     .tag(3)
             }
-            .id(appLanguage)
             .tint(themeManager.palette.tabSelected)
 
             CallOverlayHostView()

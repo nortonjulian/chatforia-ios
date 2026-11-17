@@ -1907,8 +1907,14 @@ struct ProfileRootView: View {
             let themeToApply = AppThemes.isAvailable(updatedTheme, for: updatedPlan) ? updatedTheme : "dawn"
             themeManager.apply(code: themeToApply)
 
-            vm.saveSuccessMessage =
-                appText("settings_saved", languageCode: appLanguage)
+            let confirmation = appText("settings_saved", languageCode: appLanguage)
+            vm.saveSuccessMessage = confirmation
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                if vm.saveSuccessMessage == confirmation {
+                    vm.saveSuccessMessage = nil
+                }
+            }
         } catch {
             vm.saveError = error.localizedDescription
         }
