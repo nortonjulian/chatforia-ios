@@ -89,7 +89,17 @@ struct ChatsRootView: View {
                 VStack(spacing: 0) {
                     pinnedSearch
                     Group {
-                        if vm.isLoading && vm.conversations.isEmpty {
+                        if auth.isOfflineSession && vm.conversations.isEmpty {
+                            EmptyStateView(
+                                systemImage: "wifi.slash",
+                                title: appText("randomChat.connectionProblem", languageCode: appLanguage),
+                                subtitle: appText("ios.couldn_t_load_chats", languageCode: appLanguage),
+                                buttonTitle: appText("common.tryAgain", languageCode: appLanguage),
+                                buttonAction: { Task { await auth.retryOfflineBootstrap() } }
+                            )
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                        } else if vm.isLoading && vm.conversations.isEmpty {
                             LoadingStateView(
                                 title: appText(
                                     "ios.loading_chats",

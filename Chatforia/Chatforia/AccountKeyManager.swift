@@ -245,7 +245,7 @@ final class AccountKeyManager {
         guard userId > 0 else { return false }
 
         let me: AuthMeKeyCheckResponse = try await APIClient.shared.send(
-            APIRequest(path: "auth/me", method: .GET, requiresAuth: true),
+            APIRequest(path: "auth/me", method: .GET, requiresAuth: true, timeout: 8),
             token: token
         )
 

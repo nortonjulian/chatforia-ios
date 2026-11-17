@@ -4,12 +4,22 @@ struct ContentView: View {
     @EnvironmentObject var auth: AuthStore
     @EnvironmentObject var inviteFlow: InviteFlowManager
     @EnvironmentObject private var chatsVM: ChatsViewModel
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     var body: some View {
         Group {
             switch auth.state {
             case .loading:
                 SplashView()
+
+            case .unavailable:
+                EmptyStateView(
+                    systemImage: "wifi.slash",
+                    title: appText("randomChat.connectionProblem", languageCode: appLanguage),
+                    subtitle: appText("ios.couldn_t_load_chats", languageCode: appLanguage),
+                    buttonTitle: appText("common.tryAgain", languageCode: appLanguage),
+                    buttonAction: { Task { await auth.retryOfflineBootstrap() } }
+                )
 
             case .loggedOut:
                 LoginView()
@@ -28,11 +38,11 @@ struct ContentView: View {
                         RestoreEncryptionKeyView()
                     }
 
-                } else if !chatsVM.isInitialLoadComplete(
+                } else if !chatsVM.isSessionPrepared(
                     for: auth.currentToken
                 ) {
-                    // Keep the branded splash visible while the first
-                    // conversation list is being prepared.
+                    // Prepare the account boundary before showing the shell.
+                    // The network fetch itself must not hold the splash.
                     SplashView()
 
                 } else {
@@ -41,7 +51,9 @@ struct ContentView: View {
             }
         }
         .task(id: contentStateKey) {
-            guard !auth.needsKeyRestore else { return }
+            guard !auth.needsKeyRestore,
+                  !auth.isOfflineSession,
+                  !auth.isUnavailable else { return }
 
             await inviteFlow.redeemPendingInviteIfNeeded(
                 auth: auth
@@ -61,6 +73,9 @@ struct ContentView: View {
                 return
             }
 
+            chatsVM.prepareForSession(token: token)
+            guard !auth.isOfflineSession else { return }
+
             await chatsVM.loadInitialConversationsIfNeeded(
                 token: token
             )
@@ -72,6 +87,9 @@ struct ContentView: View {
         case .loading:
             return "loading"
 
+        case .unavailable:
+            return "unavailable"
+
         case .loggedOut:
             return "loggedOut"
 
@@ -79,7 +97,8 @@ struct ContentView: View {
             return """
             loggedIn-\(user.id)-\
             \(auth.needsOnboarding)-\
-            \(auth.needsKeyRestore)
+            \(auth.needsKeyRestore)-\
+            \(auth.isOfflineSession)
             """
         }
     }

@@ -8,19 +8,22 @@ struct APIRequest {
     let body: Data?
     let requiresAuth: Bool
     let headers: [String: String]
+    let timeout: TimeInterval?
 
     init(
         path: String,
         method: HTTPMethod,
         body: Data? = nil,
         requiresAuth: Bool = true,
-        headers: [String: String] = [:]
+        headers: [String: String] = [:],
+        timeout: TimeInterval? = nil
     ) {
         self.path = path
         self.method = method
         self.body = body
         self.requiresAuth = requiresAuth
         self.headers = headers
+        self.timeout = timeout
     }
 }
 
@@ -92,6 +95,12 @@ enum APIError: Error, LocalizedError {
             return err.localizedDescription
         }
     }
+}
+
+func isNetworkAvailabilityError(_ error: Error) -> Bool {
+    if let apiError = error as? APIError,
+       case .network = apiError { return true }
+    return error is URLError
 }
 
 private struct APIServerErrorEnvelope: Decodable {
@@ -176,7 +185,7 @@ final class APIClient {
         req.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
         req.setValue("no-cache", forHTTPHeaderField: "Pragma")
         req.httpMethod = request.method.rawValue
-        req.timeoutInterval = AppEnvironment.requestTimeout
+        req.timeoutInterval = request.timeout ?? AppEnvironment.requestTimeout
         req.setValue("application/json", forHTTPHeaderField: "Accept")
 
         for (field, value) in request.headers {
@@ -302,7 +311,7 @@ final class APIClient {
         req.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
         req.setValue("no-cache", forHTTPHeaderField: "Pragma")
         req.httpMethod = request.method.rawValue
-        req.timeoutInterval = AppEnvironment.requestTimeout
+        req.timeoutInterval = request.timeout ?? AppEnvironment.requestTimeout
         req.setValue("application/json", forHTTPHeaderField: "Accept")
 
         if let body = request.body {

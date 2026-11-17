@@ -18,6 +18,12 @@ protocol APIClientSending {
     func send<T: Decodable>(_ request: APIRequest, token: String?) async throws -> T
 }
 
+protocol OfflineSessionStoring {
+    func save(user: UserDTO, for token: String)
+    func user(for token: String) -> UserDTO?
+    func clear()
+}
+
 extension TokenStore: TokenStoring {}
 extension SocketManager: SocketManaging {}
 extension APIClient: APIClientSending {}
@@ -35,6 +41,7 @@ final class AuthStore: NSObject, ObservableObject {
 
     enum State {
         case loading
+        case unavailable
         case loggedOut
         case loggedIn(UserDTO)
     }
@@ -58,14 +65,23 @@ final class AuthStore: NSObject, ObservableObject {
     @Published var keyRestoreMessage: String?
     @Published var subscriptionPlan: SubscriptionPlan = .free
     @Published var isAppReady: Bool = false
+    @Published private(set) var isOfflineSession = false
+    @Published private(set) var recoveryRevision = 0
 
     private let tokenStore: TokenStoring
+    private let offlineSessionStore: OfflineSessionStoring
     private let apiClient: APIClientSending
     private let refreshEntitlements: () async -> Void
     private let ensureLocalKeys: (Int, String) async throws -> Bool
     private let finishLoginNotifications: () async -> Void
     private(set) var socket: SocketManaging
     private var isRefreshingCurrentUser = false
+    private struct BootstrapAttempt {
+        let token: String?
+        let version: Int
+    }
+    private var activeBootstrap: BootstrapAttempt?
+    private var bootstrapVersion = 0
     private var lastUserRefreshAt: Date?
     private let userRefreshInterval: TimeInterval = 30
     
@@ -79,6 +95,7 @@ final class AuthStore: NSObject, ObservableObject {
 
     init(
         tokenStore: TokenStoring? = nil,
+        offlineSessionStore: OfflineSessionStoring? = nil,
         apiClient: APIClientSending? = nil,
         socket: SocketManaging? = nil,
         refreshEntitlements: @escaping () async -> Void = {
@@ -93,6 +110,7 @@ final class AuthStore: NSObject, ObservableObject {
         }
     ) {
         self.tokenStore = tokenStore ?? TokenStore.shared
+        self.offlineSessionStore = offlineSessionStore ?? OfflineSessionStore.shared
         self.apiClient = apiClient ?? APIClient.shared
         self.socket = socket ?? SocketManager.shared
         self.refreshEntitlements = refreshEntitlements
@@ -135,13 +153,28 @@ final class AuthStore: NSObject, ObservableObject {
         evaluateKeyRestoreNeed(for: user)
         syncPlan(from: user)
         isAppReady = true
+        if !isOfflineSession, let token = currentToken {
+            offlineSessionStore.save(user: user, for: token)
+        }
     }
 
     func bootstrap() async {
-        isAppReady = false
+        let wasRecovering = isOfflineSession || isUnavailable
+        let startingToken = tokenStore.read()
+        if let activeBootstrap, activeBootstrap.token == startingToken { return }
+        bootstrapVersion += 1
+        let version = bootstrapVersion
+        activeBootstrap = BootstrapAttempt(token: startingToken, version: version)
+        defer {
+            if activeBootstrap?.version == version { activeBootstrap = nil }
+        }
 
-        guard let token = tokenStore.read(), !token.isEmpty else {
+        if case .loading = state { isAppReady = false }
+
+        guard let token = startingToken, !token.isEmpty else {
             socket.disconnect()
+            offlineSessionStore.clear()
+            isOfflineSession = false
             needsOnboarding = false
             needsKeyRestore = false
             keyRestoreMessage = nil
@@ -153,9 +186,10 @@ final class AuthStore: NSObject, ObservableObject {
 
         do {
             let response: MeResponse = try await apiClient.send(
-                APIRequest(path: "auth/me", method: .GET, requiresAuth: true),
+                APIRequest(path: "auth/me", method: .GET, requiresAuth: true, timeout: 8),
                 token: token
             )
+            guard isCurrentBootstrap(token: token, version: version) else { return }
 
             state = .loggedIn(response.user)
 
@@ -174,13 +208,15 @@ final class AuthStore: NSObject, ObservableObject {
 
             // 🔹 Sync StoreKit entitlements
             await refreshEntitlements()
+            guard isCurrentBootstrap(token: token, version: version) else { return }
 
             // 🔹 Re-fetch after StoreKit sync
             do {
                 let refreshed: MeResponse = try await apiClient.send(
-                    APIRequest(path: "auth/me", method: .GET, requiresAuth: true),
+                    APIRequest(path: "auth/me", method: .GET, requiresAuth: true, timeout: 8),
                     token: token
                 )
+                guard isCurrentBootstrap(token: token, version: version) else { return }
 
                 state = .loggedIn(refreshed.user)
                 evaluateOnboarding(for: refreshed.user)
@@ -188,12 +224,23 @@ final class AuthStore: NSObject, ObservableObject {
                 syncPlan(from: refreshed.user)
 
             } catch {
+                guard isCurrentBootstrap(token: token, version: version) else {
+                    return
+                }
+                if let apiError = error as? APIError,
+                   case .unauthorized = apiError {
+                    if isCurrentBootstrap(token: token, version: version) {
+                        handleInvalidSession()
+                    }
+                    return
+                }
                 debugLog("⚠️ post-StoreKit auth refresh failed:", error.localizedDescription)
             }
 
             // 🔹 Ensure encryption keys exist BEFORE allowing chats/socket
             do {
                 let shouldRestore = try await ensureLocalKeys(user.id, token)
+                guard isCurrentBootstrap(token: token, version: version) else { return }
 
                 if shouldRestore {
                     encryptionState = .missing
@@ -213,6 +260,16 @@ final class AuthStore: NSObject, ObservableObject {
                 keyRestoreMessage = nil
 
             } catch {
+                guard isCurrentBootstrap(token: token, version: version) else { return }
+                if let apiError = error as? APIError,
+                   case .unauthorized = apiError {
+                    handleInvalidSession()
+                    return
+                }
+                if isTransientConnectivityError(error) {
+                    useOfflineSession(for: token, error: error)
+                    return
+                }
                 debugLog("⚠️ key bootstrap failed:", error.localizedDescription)
 
                 encryptionState = .mismatch
@@ -228,23 +285,89 @@ final class AuthStore: NSObject, ObservableObject {
             }
 
             socket.connect(token: token)
+            if let verifiedUser = currentUser {
+                UserDefaults.standard.set(
+                    verifiedUser.id,
+                    forKey: "chatforia.currentUserId"
+                )
+                offlineSessionStore.save(user: verifiedUser, for: token)
+            }
+            isOfflineSession = false
 
             isAppReady = true
+            if wasRecovering { recoveryRevision += 1 }
 
         } catch let apiError as APIError {
             switch apiError {
             case .unauthorized:
-                handleInvalidSession()
+                if isCurrentBootstrap(token: token, version: version) {
+                    handleInvalidSession()
+                }
             default:
-                isAppReady = true
+                if isCurrentBootstrap(token: token, version: version) {
+                    useOfflineSession(for: token, error: apiError)
+                }
             }
 
         } catch {
-            isAppReady = true
+            if isCurrentBootstrap(token: token, version: version) {
+                useOfflineSession(for: token, error: error)
+            }
         }
     }
 
+    private func isCurrentBootstrap(token: String, version: Int) -> Bool {
+        tokenStore.read() == token && activeBootstrap?.version == version
+    }
+
+    func retryOfflineBootstrap() async {
+        guard isOfflineSession || isUnavailable else { return }
+        await bootstrap()
+    }
+
+    var isUnavailable: Bool {
+        if case .unavailable = state { return true }
+        return false
+    }
+
+    private func useOfflineSession(for token: String, error: Error) {
+        debugLog("Authentication startup unavailable:", error)
+        socket.disconnect()
+        let mayUseSnapshot = isTransientConnectivityError(error)
+        if mayUseSnapshot, let user = offlineSessionStore.user(for: token) {
+            state = .loggedIn(user)
+            UserDefaults.standard.set(user.id, forKey: "chatforia.currentUserId")
+            evaluateOnboarding(for: user)
+            evaluateKeyRestoreNeed(for: user)
+            syncPlan(from: user)
+            isOfflineSession = true
+        } else {
+            state = .unavailable
+            isOfflineSession = false
+        }
+        isAppReady = true
+    }
+
+    private func isTransientConnectivityError(_ error: Error) -> Bool {
+        if let apiError = error as? APIError {
+            switch apiError {
+            case .network:
+                return true
+            case .server(let status, _, _, _) where [502, 503, 504].contains(status):
+                return true
+            default:
+                return false
+            }
+        }
+        return error is URLError
+    }
+
     func setTokenAndLoadUser(_ token: String) async {
+        activeBootstrap = nil
+        socket.disconnect()
+        state = .loading
+        isAppReady = false
+        isOfflineSession = false
         tokenStore.save(token)
         await bootstrap()
 
@@ -263,6 +386,7 @@ final class AuthStore: NSObject, ObservableObject {
     }
 
     func logout() {
+        activeBootstrap = nil
         // Capture authenticated device information before local auth is cleared.
         let logoutToken = tokenStore.read()
         let logoutDeviceId =
@@ -275,6 +399,8 @@ final class AuthStore: NSObject, ObservableObject {
 
         socket.disconnect()
         tokenStore.clear()
+        offlineSessionStore.clear()
+        isOfflineSession = false
 
         // Explicit logout is a privacy boundary. Do not repopulate the
         // previous account identifier on the next login screen.
@@ -325,11 +451,14 @@ final class AuthStore: NSObject, ObservableObject {
     }
 
     func handleInvalidSession() {
+        activeBootstrap = nil
         isAppReady = true
         AnalyticsManager.shared.reset()
         
         socket.disconnect()
         tokenStore.clear()
+        offlineSessionStore.clear()
+        isOfflineSession = false
         needsOnboarding = false
         needsKeyRestore = false
         keyRestoreMessage = nil

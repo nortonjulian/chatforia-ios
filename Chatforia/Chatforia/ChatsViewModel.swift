@@ -12,7 +12,7 @@ final class ChatsViewModel: ObservableObject {
     @Published private(set) var hasCompletedInitialLoad = false
 
     private var initialLoadToken: String?
-    private var isInitialLoadInProgress = false
+    private var initialLoadInProgressToken: String?
     private var liveRefreshTask: Task<Void, Never>?
     private var conversationLoadVersion = 0
 
@@ -627,6 +627,22 @@ final class ChatsViewModel: ObservableObject {
             initialLoadToken == token
     }
 
+    func isSessionPrepared(for token: String?) -> Bool {
+        guard let token, !token.isEmpty else { return false }
+        return initialLoadToken == token
+    }
+
+    // Clear another account's in-memory conversations before the shell appears.
+    func prepareForSession(token: String) {
+        guard initialLoadToken != token else { return }
+        conversationLoadVersion += 1
+        initialLoadToken = token
+        conversations = []
+        errorText = nil
+        searchText = ""
+        hasCompletedInitialLoad = false
+    }
+
     func loadInitialConversationsIfNeeded(token: String?) async {
         guard let token = token?.trimmingCharacters(
             in: .whitespacesAndNewlines
@@ -637,24 +653,22 @@ final class ChatsViewModel: ObservableObject {
 
         // A different token means a different signed-in session.
         // Never display conversations left over from another session.
-        if initialLoadToken != token {
-            initialLoadToken = token
-            conversations = []
-            errorText = nil
-            searchText = ""
-            hasCompletedInitialLoad = false
-        }
+        prepareForSession(token: token)
 
         guard !hasCompletedInitialLoad,
-            !isInitialLoadInProgress else {
+            initialLoadInProgressToken != token else {
             return
         }
 
-        isInitialLoadInProgress = true
+        initialLoadInProgressToken = token
 
         defer {
-            isInitialLoadInProgress = false
-            hasCompletedInitialLoad = true
+            if initialLoadInProgressToken == token {
+                initialLoadInProgressToken = nil
+            }
+            if initialLoadToken == token {
+                hasCompletedInitialLoad = true
+            }
         }
 
         await loadConversations(token: token)
@@ -752,7 +766,10 @@ final class ChatsViewModel: ObservableObject {
             guard requestVersion == conversationLoadVersion, !Task.isCancelled,
                   UserDefaults.standard.integer(forKey: "chatforia.currentUserId") == accountId,
                   TokenStore.shared.read() == storedToken else { return }
-            errorText = error.localizedDescription
+            debugLog("loadConversations failed:", error)
+            errorText = isNetworkAvailabilityError(error)
+                ? appText("randomChat.connectionProblem", languageCode: appLanguage)
+                : error.localizedDescription
         }
     }
 
