@@ -130,6 +130,43 @@ final class MessageStoreTests: XCTestCase {
         XCTAssertNil(MessageStore.shared.message(withId: 1))
     }
 
+    func testDiscardUnqueuedOptimisticRemovesOnlyMatchingLocalRowAndState() {
+        let failed = MessageDTO.optimistic(
+            roomId: 10, clientMessageId: "failed-preparation", localId: -11,
+            text: "Draft", senderId: 1, senderUsername: "sender",
+            senderPublicKey: nil
+        )
+        let other = MessageDTO.optimistic(
+            roomId: 10, clientMessageId: "queued-send", localId: -12,
+            text: "Queued", senderId: 1, senderUsername: "sender",
+            senderPublicKey: nil
+        )
+        MessageStore.shared.upsertMany([failed, other, makeMessage(id: 13, roomId: 10, text: "Delivered")])
+        MessageStore.shared.setDeliveryState(clientMessageId: "failed-preparation", state: .sending)
+        MessageStore.shared.setDeliveryState(clientMessageId: "queued-send", state: .sending)
+
+        MessageStore.shared.discardUnqueuedOptimisticMessage(clientMessageId: "failed-preparation")
+
+        XCTAssertEqual(Set(MessageStore.shared.currentWindow().map(\.id)), Set([-12, 13]))
+        XCTAssertNil(MessageStore.shared.deliveryState(for: "failed-preparation"))
+        XCTAssertEqual(MessageStore.shared.deliveryState(for: "queued-send"), .sending)
+    }
+
+    func testDiscardUnqueuedOptimisticNeverRemovesServerAcknowledgedMessage() {
+        let delivered = MessageDTO.optimistic(
+            roomId: 10, clientMessageId: "same-id", localId: -14,
+            text: "Delivered", senderId: 1, senderUsername: "sender",
+            senderPublicKey: nil
+        )
+        MessageStore.shared.upsertMessage(delivered)
+        MessageStore.shared.upsertMessage(makeMessage(
+            id: 14, roomId: 10, text: "Server copy", clientMessageId: "same-id"
+        ))
+        MessageStore.shared.discardUnqueuedOptimisticMessage(clientMessageId: "same-id")
+
+        XCTAssertNotNil(MessageStore.shared.message(withId: 14))
+    }
+
     func testRemoveMessagesForRoomIdOnlyRemovesThatRoom() {
         MessageStore.shared.upsertMany([
             makeMessage(id: 1, roomId: 10, text: "Room 10"),
@@ -181,7 +218,8 @@ private func makeMessage(
     roomId: Int,
     text: String,
     createdAt: Date = Date(),
-    expiresAt: Date? = nil
+    expiresAt: Date? = nil,
+    clientMessageId: String? = nil
 ) -> MessageDTO {
     MessageDTO(
         id: id,
@@ -214,7 +252,7 @@ private func makeMessage(
         reactionSummary: nil,
         myReactions: nil,
         revision: nil,
-        clientMessageId: nil
+        clientMessageId: clientMessageId
     )
 }
 

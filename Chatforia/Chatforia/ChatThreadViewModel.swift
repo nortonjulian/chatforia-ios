@@ -207,6 +207,8 @@ final class ChatThreadViewModel: ObservableObject {
     private var currentUserId: Int?
     private var currentUsername: String?
     private var currentUserPublicKey: String?
+    typealias TextPayloadBuilder = (Int, String, String, Int) async throws -> [String: EncryptedMessagePayloadForUser]
+    private let textPayloadBuilder: TextPayloadBuilder?
     
     private var locallyReadMessageIds = Set<Int>()
 
@@ -221,7 +223,8 @@ final class ChatThreadViewModel: ObservableObject {
         )
     }
 
-    init() {
+    init(textPayloadBuilder: TextPayloadBuilder? = nil) {
+        self.textPayloadBuilder = textPayloadBuilder
         NotificationCenter.default.publisher(for: .MessagesChanged)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
@@ -962,12 +965,19 @@ final class ChatThreadViewModel: ObservableObject {
     refreshFromMessageStore()
 
     do {
-        let encryptedPayloads = try await buildEncryptedPayloadsForUsers(
-            roomId: roomId,
-            plaintext: trimmed,
-            token: token,
-            senderUserId: senderId
-        )
+        let encryptedPayloads: [String: EncryptedMessagePayloadForUser]
+        if let textPayloadBuilder {
+            encryptedPayloads = try await textPayloadBuilder(
+                roomId, trimmed, token, senderId
+            )
+        } else {
+            encryptedPayloads = try await buildEncryptedPayloadsForUsers(
+                roomId: roomId,
+                plaintext: trimmed,
+                token: token,
+                senderUserId: senderId
+            )
+        }
 
         let bodyRequest = SendMessageRequest(
             chatRoomId: roomId,
@@ -999,13 +1009,12 @@ final class ChatThreadViewModel: ObservableObject {
         
         return true
     } catch {
-        MessageStore.shared.setDeliveryState(
-            clientMessageId: clientMessageId,
-            state: .failed
+        MessageStore.shared.discardUnqueuedOptimisticMessage(
+            clientMessageId: clientMessageId
         )
-
-        errorText =
-            "\(appText("chat.sendMessageFailed", languageCode: appLanguage)) \(error.localizedDescription)"
+        refreshFromMessageStore()
+        debugLog("sendMessage preparation failed:", error)
+        errorText = appText("chat.sendMessageFailed", languageCode: appLanguage)
 
         return false
     }
