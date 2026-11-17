@@ -16,8 +16,7 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
 
     private let apnsTokenDefaultsKey = "apns_token"
     private var isRegisteringPushToken = false
-    private var lastRegisteredPushToken: String?
-    private var lastRegisteredPushUserId: Int?
+    private var pushRegistrationRetryRequested = false
     private var hasRequestedAuthorizationThisLaunch = false
 
     private override init() {
@@ -29,23 +28,22 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
     }
 
     func requestAuthorization() async {
-        guard !hasRequestedAuthorizationThisLaunch else {
-            return
-        }
-
-        hasRequestedAuthorizationThisLaunch = true
-
-        do {
-            let granted = try await UNUserNotificationCenter.current()
-                .requestAuthorization(options: [.alert, .badge, .sound])
-
-
-            if granted {
-                UIApplication.shared.registerForRemoteNotifications()
+        // Prompt at most once per launch, but do not suppress subsequent APNs
+        // registration requests: Apple can rotate the token independently.
+        if !hasRequestedAuthorizationThisLaunch {
+            hasRequestedAuthorizationThisLaunch = true
+            do {
+                _ = try await UNUserNotificationCenter.current()
+                    .requestAuthorization(options: [.alert, .badge, .sound])
+            } catch {
+                debugLog("❌ notification auth failed:", error)
             }
-        } catch {
-            debugLog("❌ notification auth failed:", error)
         }
+
+        // Ask APNs for the current token even when the user has previously
+        // answered the alert permission prompt. Never rely on a cached token
+        // as the only source of truth.
+        UIApplication.shared.registerForRemoteNotifications()
     }
 
     func handleDeviceToken(_ deviceToken: Data) {
@@ -64,12 +62,17 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
               !authToken.isEmpty else {
             return
         }
+        let accountId = UserDefaults.standard.integer(forKey: "chatforia.currentUserId")
 
         do {
             let badgeState =
                 try await BadgeStateService.shared.fetchBadgeState(
                     token: authToken
                 )
+
+            guard TokenStore.shared.read() == authToken,
+                  UserDefaults.standard.integer(forKey: "chatforia.currentUserId") == accountId
+            else { return }
 
             let badgeCount = max(0, badgeState.total)
 
@@ -194,8 +197,24 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
         accessibilityVisualAlertMessage = nil
     }
 
+    // A completed network request only proves registration for the identity
+    // and APNs token used when it started, not a subsequently changed account.
+    static func registrationStillCurrent(
+        attemptedUserId: Int,
+        attemptedPushToken: String,
+        currentUserId: Int,
+        currentPushToken: String?
+    ) -> Bool {
+        attemptedUserId > 0
+            && attemptedUserId == currentUserId
+            && attemptedPushToken == currentPushToken
+    }
+
     private func registerPushTokenIfPossible(_ pushToken: String) async {
         guard !isRegisteringPushToken else {
+            // A new token or account may arrive during an in-flight registration.
+            // Retry after completion rather than silently dropping that event.
+            pushRegistrationRetryRequested = true
             return
         }
 
@@ -208,19 +227,20 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
             return
         }
 
-        guard
-            lastRegisteredPushToken != pushToken
-                || lastRegisteredPushUserId != currentUserId
-        else {
-            return
-        }
-
+        // Reconcile on each foreground/login attempt, even for an unchanged
+        // token: the server may have lost its registration since last success.
         guard let authToken = TokenStore.shared.read(), !authToken.isEmpty else {
             return
         }
 
         isRegisteringPushToken = true
-        defer { isRegisteringPushToken = false }
+        defer {
+            isRegisteringPushToken = false
+            if pushRegistrationRetryRequested {
+                pushRegistrationRetryRequested = false
+                Task { await self.retryPushRegistrationIfPossible() }
+            }
+        }
 
         do {
             _ = try await DeviceRegistrationService.shared.ensureCurrentDeviceRegistered(
@@ -233,8 +253,24 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
                 token: authToken
             )
 
-            lastRegisteredPushToken = pushToken
-            lastRegisteredPushUserId = currentUserId
+            // Login/account changes can occur while the network calls are in flight.
+            // Never cache success for a different account or a newer APNs token.
+            let activeUserId = UserDefaults.standard.integer(
+                forKey: "chatforia.currentUserId"
+            )
+            let activePushToken = UserDefaults.standard.string(
+                forKey: apnsTokenDefaultsKey
+            )
+            if Self.registrationStillCurrent(
+                attemptedUserId: currentUserId,
+                attemptedPushToken: pushToken,
+                currentUserId: activeUserId,
+                currentPushToken: activePushToken
+            ) {
+                debugLog("✅ APNs device registration reconciled")
+            } else {
+                pushRegistrationRetryRequested = true
+            }
 
         } catch {
             debugLog("❌ push token registration failed:", error)

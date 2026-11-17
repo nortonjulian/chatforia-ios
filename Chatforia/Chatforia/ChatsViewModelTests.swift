@@ -4,6 +4,25 @@ import XCTest
 @MainActor
 final class ChatsViewModelTests: XCTestCase {
 
+    func testSMSReadDoesNotOptimisticallyEraseNewUnreadMessages() {
+        let key = "chatforia.currentUserId"
+        let previous = UserDefaults.standard.object(forKey: key)
+        defer { UserDefaults.standard.set(previous, forKey: key) }
+        UserDefaults.standard.set(7, forKey: key)
+
+        let vm = ChatsViewModel()
+        vm.conversations = [
+            makeConversation(id: 67, title: "Saved alias", kind: "sms", unreadCount: 2),
+            makeConversation(id: 67, title: "Chat", kind: "chat", unreadCount: 3),
+            makeConversation(id: 68, title: "Other SMS", kind: "sms", unreadCount: 4)
+        ]
+
+        vm.applySMSRead(threadId: 67, accountId: 7)
+        XCTAssertEqual(vm.conversations.map(\.unreadCount), [2, 3, 4])
+        vm.applySMSRead(threadId: 68, accountId: 8)
+        XCTAssertEqual(vm.conversations.map(\.unreadCount), [2, 3, 4])
+    }
+
     func testFilteredConversationsReturnsAllWhenSearchEmpty() {
         let vm = ChatsViewModel()
 
@@ -135,7 +154,8 @@ private func makeConversation(
     title: String,
     kind: String,
     phone: String? = nil,
-    lastText: String? = nil
+    lastText: String? = nil,
+    unreadCount: Int = 0
 ) -> ConversationDTO {
 
     ConversationDTO(
@@ -146,7 +166,7 @@ private func makeConversation(
         updatedAt: ISO8601DateFormatter().string(from: Date()),
         isGroup: false,
         phone: phone,
-        unreadCount: 0,
+        unreadCount: unreadCount,
         avatarUsers: nil,
         last: ConversationLastDTO(
             text: lastText,

@@ -20,6 +20,42 @@ final class NotificationCoordinatorTests: XCTestCase {
         super.tearDown()
     }
 
+    func testRegistrationCompletionAcceptsUnchangedIdentityAndToken() {
+        XCTAssertTrue(NotificationCoordinator.registrationStillCurrent(
+            attemptedUserId: 1,
+            attemptedPushToken: "token-A",
+            currentUserId: 1,
+            currentPushToken: "token-A"
+        ))
+    }
+
+    func testRegistrationCompletionRejectsAccountSwitch() {
+        XCTAssertFalse(NotificationCoordinator.registrationStillCurrent(
+            attemptedUserId: 1,
+            attemptedPushToken: "token-A",
+            currentUserId: 2,
+            currentPushToken: "token-A"
+        ))
+    }
+
+    func testRegistrationCompletionRejectsTokenRotation() {
+        XCTAssertFalse(NotificationCoordinator.registrationStillCurrent(
+            attemptedUserId: 1,
+            attemptedPushToken: "token-A",
+            currentUserId: 1,
+            currentPushToken: "token-B"
+        ))
+    }
+
+    func testRegistrationCompletionRejectsMissingTokenOrSignedOutUser() {
+        XCTAssertFalse(NotificationCoordinator.registrationStillCurrent(
+            attemptedUserId: 1,
+            attemptedPushToken: "token-A",
+            currentUserId: 0,
+            currentPushToken: nil
+        ))
+    }
+
     func testSMSNotificationWithStringThreadIdSetsPendingThread() {
         NotificationCoordinator.shared.handleNotificationUserInfo([
             "type": "sms_message",
