@@ -859,7 +859,10 @@ final class ChatThreadViewModel: ObservableObject {
                 debugLog("✅ loadMessages: loaded \(self.messages.count) messages for roomId:", roomId)
             }
         } catch {
-            errorText = "loadMessages: \(error.localizedDescription)"
+            debugLog("loadMessages failed:", error)
+            errorText = isNetworkAvailabilityError(error)
+                ? appText("randomChat.connectionProblem", languageCode: appLanguage)
+                : error.localizedDescription
         }
     }
 

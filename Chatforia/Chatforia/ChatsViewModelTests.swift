@@ -4,6 +4,31 @@ import XCTest
 @MainActor
 final class ChatsViewModelTests: XCTestCase {
 
+    func testSessionPreparationClearsOtherAccountsBeforeOfflineShellAppears() {
+        let vm = ChatsViewModel()
+        vm.prepareForSession(token: "account-one")
+        vm.conversations = [makeConversation(id: 1, title: "Private chat", kind: "chat")]
+        vm.searchText = "Private"
+
+        vm.prepareForSession(token: "account-two")
+
+        XCTAssertTrue(vm.isSessionPrepared(for: "account-two"))
+        XCTAssertFalse(vm.isSessionPrepared(for: "account-one"))
+        XCTAssertTrue(vm.conversations.isEmpty)
+        XCTAssertTrue(vm.searchText.isEmpty)
+        XCTAssertFalse(vm.hasCompletedInitialLoad)
+    }
+
+    func testSameSessionPreparationKeepsExistingInMemoryChats() {
+        let vm = ChatsViewModel()
+        vm.prepareForSession(token: "same-account")
+        vm.conversations = [makeConversation(id: 1, title: "Existing chat", kind: "chat")]
+
+        vm.prepareForSession(token: "same-account")
+
+        XCTAssertEqual(vm.conversations.first?.title, "Existing chat")
+    }
+
     func testSMSReadDoesNotOptimisticallyEraseNewUnreadMessages() {
         let key = "chatforia.currentUserId"
         let previous = UserDefaults.standard.object(forKey: key)

@@ -3,6 +3,25 @@ import Combine
 import UIKit
 import GoogleMobileAds
 import GoogleSignIn
+import Network
+
+@MainActor
+final class StartupConnectivityMonitor: ObservableObject {
+    @Published private(set) var isConnected = false
+    private let monitor = NWPathMonitor()
+
+    init() {
+        monitor.pathUpdateHandler = { [weak self] path in
+            let connected = path.status == .satisfied
+            Task { @MainActor [weak self] in
+                self?.isConnected = connected
+            }
+        }
+        monitor.start(queue: DispatchQueue(label: "chatforia.startup.connectivity"))
+    }
+
+    deinit { monitor.cancel() }
+}
 
 final class AppDelegate: NSObject, UIApplicationDelegate {
     func application(
@@ -150,6 +169,8 @@ struct ChatforiaApp: App {
     @StateObject private var settingsVM = SettingsViewModel()
     @StateObject private var chatsVM = ChatsViewModel()
     @StateObject private var voicemailLinks = VoicemailLinkCoordinator()
+    @StateObject private var startupConnectivity = StartupConnectivityMonitor()
+    @State private var isOfflineRecoveryInProgress = false
 
     @AppStorage("chatforia_language")
     private var appLanguage = "en"
@@ -288,7 +309,9 @@ struct ChatforiaApp: App {
 
                 if let user = auth.currentUser {
                     // Start Voice registration before notification permission work.
-                    callManager.startVoIPIfNeeded(auth: auth)
+                    if !auth.isOfflineSession {
+                        callManager.startVoIPIfNeeded(auth: auth)
+                    }
 
                     if let theme = user.theme {
                         themeManager.apply(code: theme)
@@ -302,18 +325,23 @@ struct ChatforiaApp: App {
                     settingsVM.loadLocalAISettings()
 
                     // 🔔 Request permission + trigger APNs
-                    await notificationCoordinator.requestAuthorization()
+                    if !auth.isOfflineSession {
+                        await notificationCoordinator.requestAuthorization()
 
-                    // 🔁 Retry sending token AFTER auth exists
-                    await notificationCoordinator.retryPushRegistrationIfPossible()
+                        // 🔁 Retry sending token AFTER auth exists
+                        await notificationCoordinator.retryPushRegistrationIfPossible()
 
-                    // 🔢 Load authoritative badge state after authentication.
-                    await notificationCoordinator.refreshBadgeState()
+                        // 🔢 Load authoritative badge state after authentication.
+                        await notificationCoordinator.refreshBadgeState()
+                    }
                 }
 
                 AppEnvironment.configureSendQueueHandlersIfNeeded()
-                SendQueueManager.shared.replayQueuedJobs()
-                await inviteFlow.redeemPendingInviteIfNeeded(auth: auth)
+                if auth.currentUser != nil && !auth.isOfflineSession &&
+                    !auth.needsKeyRestore {
+                    SendQueueManager.shared.replayQueuedJobs()
+                    await inviteFlow.redeemPendingInviteIfNeeded(auth: auth)
+                }
 
                 let shouldShowAds = resolvedAdsEnabled(
                     backendAdsEnabled:
@@ -426,6 +454,13 @@ struct ChatforiaApp: App {
                 themeManager.apply(code: newTheme)
                 settingsVM.theme = newTheme
             }
+            .onChange(of: startupConnectivity.isConnected) { _, connected in
+                guard connected else { return }
+                recoverOfflineStartupIfNeeded()
+            }
+            .onChange(of: auth.recoveryRevision) { _, _ in
+                finishRecoveredStartup()
+            }
             .confirmationDialog(
                 "Replace an existing device?",
                 isPresented: Binding(
@@ -478,13 +513,20 @@ struct ChatforiaApp: App {
             guard newPhase == .active else { return }
 
             AppEnvironment.configureSendQueueHandlersIfNeeded()
-            SendQueueManager.shared.replayQueuedJobs()
+            if auth.currentUser != nil && !auth.isOfflineSession &&
+                !auth.needsKeyRestore {
+                SendQueueManager.shared.replayQueuedJobs()
+            }
 
-            if let token = auth.currentToken, !token.isEmpty {
+            if let token = auth.currentToken, !token.isEmpty,
+               auth.currentUser != nil, auth.isAppReady,
+               !auth.needsKeyRestore, !auth.isOfflineSession {
                 SocketManager.shared.connect(token: token)
             }
 
-            if auth.currentUser != nil {
+            recoverOfflineStartupIfNeeded()
+
+            if auth.currentUser != nil && !auth.isOfflineSession {
                 Task {
                     await auth.refreshCurrentUser(force: true)
 
@@ -515,8 +557,11 @@ struct ChatforiaApp: App {
                 }
             }
 
-            Task {
-                await inviteFlow.redeemPendingInviteIfNeeded(auth: auth)
+            if auth.currentUser != nil && !auth.isOfflineSession &&
+                !auth.needsKeyRestore {
+                Task {
+                    await inviteFlow.redeemPendingInviteIfNeeded(auth: auth)
+                }
             }
 
             let shouldShowAds = resolvedAdsEnabled(
@@ -529,6 +574,38 @@ struct ChatforiaApp: App {
             if shouldShowAds {
                 InterstitialAdManager.shared.preloadIfNeeded()
             }
+        }
+    }
+
+    private func recoverOfflineStartupIfNeeded() {
+        guard (auth.isOfflineSession || auth.isUnavailable),
+              !isOfflineRecoveryInProgress else { return }
+        isOfflineRecoveryInProgress = true
+        Task { @MainActor in
+            defer { isOfflineRecoveryInProgress = false }
+            await auth.retryOfflineBootstrap()
+        }
+    }
+
+    private func finishRecoveredStartup() {
+        guard !auth.isOfflineSession, !auth.isUnavailable,
+              !auth.needsKeyRestore,
+              let token = auth.currentToken, !token.isEmpty,
+              let user = auth.currentUser else { return }
+        Task { @MainActor in
+            guard auth.currentToken == token,
+                  auth.currentUser?.id == user.id else { return }
+            settingsVM.load(from: user)
+            appLanguage = user.uiLanguage ?? user.preferredLanguage ?? "en"
+            if let theme = user.theme { themeManager.apply(code: theme) }
+            callManager.startVoIPIfNeeded(auth: auth)
+            SendQueueManager.shared.replayQueuedJobs()
+            guard auth.currentToken == token,
+                  auth.currentUser?.id == user.id else { return }
+            await notificationCoordinator.retryPushRegistrationIfPossible()
+            guard auth.currentToken == token,
+                  auth.currentUser?.id == user.id else { return }
+            await notificationCoordinator.refreshBadgeState()
         }
     }
 
