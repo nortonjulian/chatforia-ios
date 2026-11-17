@@ -865,7 +865,7 @@ final class ChatThreadViewModel: ObservableObject {
             debugLog("loadMessages failed:", error)
             errorText = isNetworkAvailabilityError(error)
                 ? appText("randomChat.connectionProblem", languageCode: appLanguage)
-                : error.localizedDescription
+                : appText("ios.couldn_t_load_chats", languageCode: appLanguage)
         }
     }
 

@@ -739,7 +739,7 @@ struct ChatsRootView: View {
             } catch {
                 isMatching = false
                 randomMatchNavigation.cancel()
-                vm.errorText = "Could not connect to Random Chat. Please try again."
+                vm.errorText = appText("randomChat.connectionProblem", languageCode: appLanguage)
                 debugLog("[RandomChat][iOS] failed to connect before random join:", error.localizedDescription)
             }
         }
