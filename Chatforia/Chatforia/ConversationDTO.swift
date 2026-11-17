@@ -51,6 +51,21 @@ struct ConversationLastDTO: Codable {
     let mediaKinds: [String]?
     let thumbUrl: String?
     let senderName: String?
+    let direction: String?
+
+    init(text: String?, messageId: Int?, at: String?, hasMedia: Bool?,
+         mediaCount: Int?, mediaKinds: [String]?, thumbUrl: String?,
+         senderName: String?, direction: String? = nil) {
+        self.text = text
+        self.messageId = messageId
+        self.at = at
+        self.hasMedia = hasMedia
+        self.mediaCount = mediaCount
+        self.mediaKinds = mediaKinds
+        self.thumbUrl = thumbUrl
+        self.senderName = senderName
+        self.direction = direction
+    }
 }
 
 extension ConversationDTO {

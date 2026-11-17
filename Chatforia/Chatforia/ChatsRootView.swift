@@ -1041,6 +1041,7 @@ enum SMSPreviewTranslation {
     static func message(for conversation: ConversationDTO) -> SMSMessageDTO? {
         guard let id = conversation.last?.messageId, id > 0,
               let threadId = conversation.id,
+              conversation.last?.direction?.lowercased() != "out",
               conversation.last?.hasMedia != true,
               let body = conversation.last?.text, !body.isEmpty else { return nil }
         return SMSMessageDTO(id: id, threadId: threadId, direction: "in",
@@ -1087,7 +1088,7 @@ private struct SMSPreviewChatListRowView: View {
     }
 
     private var previewMessage: SMSMessageDTO? {
-        // Direction is intentionally verified by the owned backend endpoint.
+        // The backend still verifies ownership and direction for every request.
         SMSPreviewTranslation.message(for: conversation)
     }
 

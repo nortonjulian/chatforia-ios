@@ -218,7 +218,8 @@ final class ChatsViewModel: ObservableObject {
                             mediaCount: last?.mediaCount,
                             mediaKinds: last?.mediaKinds,
                             thumbUrl: last?.thumbUrl,
-                            senderName: last?.senderName
+                            senderName: last?.senderName,
+                            direction: last?.direction
                         )
                     )
                 }
@@ -546,7 +547,8 @@ final class ChatsViewModel: ObservableObject {
             mediaKinds: mediaKinds,
             thumbUrl: thumbUrl,
             senderName: (payload["sender"] as? [String: Any])?["username"] as? String
-                ?? (isSameAsCurrentLast ? currentLast?.senderName : nil)
+                ?? (isSameAsCurrentLast ? currentLast?.senderName : nil),
+            direction: currentLast?.direction
         )
 
         var updated = ConversationDTO(
@@ -735,7 +737,8 @@ final class ChatsViewModel: ObservableObject {
                         mediaCount: last.mediaCount,
                         mediaKinds: last.mediaKinds,
                         thumbUrl: last.thumbUrl,
-                        senderName: last.senderName
+                        senderName: last.senderName,
+                        direction: last.direction
                     )
                 )
             }
@@ -1013,7 +1016,8 @@ final class ChatsViewModel: ObservableObject {
                         mediaCount: convo.last?.mediaCount,
                         mediaKinds: convo.last?.mediaKinds,
                         thumbUrl: convo.last?.thumbUrl,
-                        senderName: convo.last?.senderName
+                        senderName: convo.last?.senderName,
+                        direction: convo.last?.direction
                     )
                 )
 
@@ -1109,7 +1113,8 @@ final class ChatsViewModel: ObservableObject {
                     mediaCount: incoming.last?.mediaCount ?? existingLast.mediaCount,
                     mediaKinds: incoming.last?.mediaKinds ?? existingLast.mediaKinds,
                     thumbUrl: incoming.last?.thumbUrl ?? existingLast.thumbUrl,
-                    senderName: incoming.last?.senderName ?? existingLast.senderName
+                    senderName: incoming.last?.senderName ?? existingLast.senderName,
+                    direction: incoming.last?.direction ?? existingLast.direction
                 )
             )
         }
