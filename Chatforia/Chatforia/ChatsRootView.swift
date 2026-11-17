@@ -26,6 +26,7 @@ struct ChatsRootView: View {
 
     @State private var isMatching = false
     @State private var randomMatchSucceeded = false
+    @State private var randomMatchNavigation = RandomMatchNavigationGate()
     @State private var matchedRoom: ChatRoomDTO?
     @State private var selectedRandomSession: RandomSession? = nil
     @State private var didSetupRandomMatchListener = false
@@ -506,7 +507,12 @@ struct ChatsRootView: View {
                 onDismiss: {
                     // Dismissing the matching sheet after a successful match must
                     // not send random:leave: the server treats it as ending the room.
-                    if !randomMatchSucceeded {
+                    if randomMatchSucceeded {
+                        if randomMatchNavigation.didDismiss() {
+                            showSelectedRoom = true
+                        }
+                    } else {
+                        randomMatchNavigation.cancel()
                         SocketManager.shared.leaveRandomQueue()
                     }
                 }
@@ -715,6 +721,7 @@ struct ChatsRootView: View {
             return
         }
 
+        randomMatchNavigation.begin()
         isMatching = true
 
         Task { @MainActor in
@@ -730,6 +737,7 @@ struct ChatsRootView: View {
                 SocketManager.shared.joinRandomQueue()
             } catch {
                 isMatching = false
+                randomMatchNavigation.cancel()
                 vm.errorText = "Could not connect to Random Chat. Please try again."
                 debugLog("[RandomChat][iOS] failed to connect before random join:", error.localizedDescription)
             }
@@ -777,6 +785,10 @@ struct ChatsRootView: View {
             guard let roomId = (data.first as? [String: Any])?["roomId"] as? Int else { return }
 
             Task { @MainActor in
+                if randomMatchNavigation.pendingRoomId == roomId {
+                    randomMatchNavigation.cancel()
+                    isMatching = false
+                }
                 let wasCurrentSession = selectedRandomSession?.roomId == roomId
                 activeRandomRoomIds.remove(roomId)
                 activeRandomSessions.removeValue(forKey: roomId)
@@ -795,6 +807,9 @@ struct ChatsRootView: View {
     }
 
     private func handleMatchFound(roomId: Int, myAlias: String, partnerAlias: String) async {
+        guard isMatching else { return }
+        randomMatchNavigation.matched(roomId: roomId)
+        let navigationGeneration = randomMatchNavigation.generation
         randomMatchSucceeded = true
         isMatching = false
         SocketManager.shared.markRandomMatchCompleted()
@@ -807,6 +822,8 @@ struct ChatsRootView: View {
                 APIRequest(path: "chatrooms/\(roomId)", method: .GET, requiresAuth: true),
                 token: token
             )
+
+            guard randomMatchNavigation.generation == navigationGeneration else { return }
 
             let session = RandomSession(
                 roomId: roomId,
@@ -822,9 +839,13 @@ struct ChatsRootView: View {
 
             selectedRandomSession = session
 
-            showSelectedRoom = true
+            if randomMatchNavigation.roomReady(roomId: roomId) {
+                showSelectedRoom = true
+            }
         } catch {
             debugLog("❌ match fetch failed:", error)
+            guard randomMatchNavigation.generation == navigationGeneration else { return }
+            vm.errorText = appText("randomChat.connectionProblem", languageCode: appLanguage)
         }
     }
 
@@ -967,9 +988,55 @@ struct ChatsRootView: View {
     }
 }
 
-// Chats previews have a message ID but no SMS direction in /conversations.
-// The authenticated translation endpoint rejects outgoing IDs before billing;
-// only rows that appear onscreen make a request.
+// A navigation push can be lost when it is requested while SwiftUI is still
+// dismissing the matchmaking sheet. Wait for both independent events.
+struct RandomMatchNavigationGate {
+    private(set) var generation = 0
+    private(set) var pendingRoomId: Int?
+    private var sheetDismissed = false
+    private var readyRoomId: Int?
+    private var consumed = false
+
+    mutating func begin() {
+        generation += 1
+        pendingRoomId = nil
+        sheetDismissed = false
+        readyRoomId = nil
+        consumed = false
+    }
+
+    mutating func matched(roomId: Int) {
+        pendingRoomId = roomId
+    }
+
+    mutating func didDismiss() -> Bool {
+        sheetDismissed = true
+        return consumeIfReady()
+    }
+
+    mutating func roomReady(roomId: Int) -> Bool {
+        guard pendingRoomId == roomId else { return false }
+        readyRoomId = roomId
+        return consumeIfReady()
+    }
+
+    mutating func cancel() {
+        generation += 1
+        pendingRoomId = nil
+        readyRoomId = nil
+        consumed = true
+    }
+
+    private mutating func consumeIfReady() -> Bool {
+        guard sheetDismissed, readyRoomId == pendingRoomId,
+              readyRoomId != nil, !consumed else { return false }
+        consumed = true
+        return true
+    }
+}
+
+// Incoming SMS previews use the authenticated translation endpoint. Older
+// servers omit direction; retain their prior behavior until upgraded.
 enum SMSPreviewTranslation {
     static func message(for conversation: ConversationDTO) -> SMSMessageDTO? {
         guard let id = conversation.last?.messageId, id > 0,

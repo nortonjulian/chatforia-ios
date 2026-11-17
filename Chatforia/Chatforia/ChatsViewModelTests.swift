@@ -4,6 +4,39 @@ import XCTest
 @MainActor
 final class ChatsViewModelTests: XCTestCase {
 
+    func testRandomMatchNavigatesOnlyAfterSheetDismissalAndRoomLoad() {
+        var gate = RandomMatchNavigationGate()
+        gate.begin()
+        gate.matched(roomId: 42)
+        XCTAssertFalse(gate.roomReady(roomId: 42))
+        XCTAssertTrue(gate.didDismiss())
+        XCTAssertFalse(gate.didDismiss())
+
+        gate.begin()
+        gate.matched(roomId: 43)
+        XCTAssertFalse(gate.didDismiss())
+        XCTAssertFalse(gate.roomReady(roomId: 42))
+        XCTAssertTrue(gate.roomReady(roomId: 43))
+        XCTAssertFalse(gate.roomReady(roomId: 43))
+    }
+
+    func testRandomMatchCancelledOrStaleRoomCannotNavigate() {
+        var gate = RandomMatchNavigationGate()
+        gate.begin()
+        gate.matched(roomId: 42)
+        let staleGeneration = gate.generation
+        gate.cancel()
+        XCTAssertNotEqual(gate.generation, staleGeneration)
+        XCTAssertFalse(gate.roomReady(roomId: 42))
+        XCTAssertFalse(gate.didDismiss())
+
+        gate.begin()
+        gate.matched(roomId: 44)
+        XCTAssertFalse(gate.roomReady(roomId: 42))
+        XCTAssertFalse(gate.didDismiss())
+        XCTAssertTrue(gate.roomReady(roomId: 44))
+    }
+
     func testSessionPreparationClearsOtherAccountsBeforeOfflineShellAppears() {
         let vm = ChatsViewModel()
         vm.prepareForSession(token: "account-one")
