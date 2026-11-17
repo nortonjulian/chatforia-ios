@@ -1081,6 +1081,7 @@ enum SMSVisibleMessageRows {
 private struct SMSMessagesListView: View {
     let messages: [SMSMessageDTO]
     @ObservedObject var translationStore: SMSIncomingTranslationStore
+    @ObservedObject private var translationCache = SMSIncomingTranslationCache.shared
     let translationContext: SMSIncomingTranslationContext?
     let highlightedMessageID: Int?
     let onVisibleMessageIdsChanged: (Set<Int>) -> Void
@@ -1113,7 +1114,7 @@ private struct SMSMessagesListView: View {
 
                             SMSMessageRowView(
                                 msg: msg,
-                                translatedText: translationStore.translatedText(for: msg, context: translationContext),
+                                translation: translationStore.presentation(for: msg, context: translationContext),
                                 showOriginalWithTranslation: translationContext?.showOriginalWithTranslation == true,
                                 bubbleMaxWidth: bubbleMaxWidth,
                                 isHighlighted: highlightedMessageID == msg.id,
@@ -1217,7 +1218,7 @@ private struct SMSMessagesListView: View {
 
 private struct SMSMessageRowView: View {
     let msg: SMSMessageDTO
-    let translatedText: String?
+    let translation: SMSIncomingTranslationPresentation
     let showOriginalWithTranslation: Bool
     let bubbleMaxWidth: CGFloat
     let isHighlighted: Bool
@@ -1245,14 +1246,25 @@ private struct SMSMessageRowView: View {
                         }
                 }
 
-                if let text = translatedText ?? msg.trimmedBody, !text.isEmpty {
+                if let original = msg.trimmedBody, !original.isEmpty {
                     VStack(alignment: .leading, spacing: 5) {
-                        Text(text)
-                        if translatedText != nil, showOriginalWithTranslation,
-                           let original = msg.trimmedBody {
+                        switch translation {
+                        case .pending:
+                            HStack(spacing: 6) {
+                                ProgressView()
+                                    .controlSize(.mini)
+                                    .accessibilityLabel(appText("sms.loading", languageCode: appLanguage))
+                                Text("…").accessibilityHidden(true)
+                            }
+                        case .translated(let text):
+                            Text(text)
+                            if showOriginalWithTranslation {
+                                Text(original)
+                                    .font(.footnote)
+                                    .opacity(0.8)
+                            }
+                        case .original:
                             Text(original)
-                                .font(.footnote)
-                                .opacity(0.8)
                         }
                     }
                         .font(.body)
