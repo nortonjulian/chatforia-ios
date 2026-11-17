@@ -18,6 +18,7 @@ struct SMSThreadView: View {
     let conversation: ConversationDTO
 
     @StateObject private var vm = SMSThreadViewModel()
+    @StateObject private var translationStore = SMSIncomingTranslationStore()
     @State private var draft: String = ""
     @State private var selectedPhotos: [PhotosPickerItem] = []
     @State private var selectedPhotoPreview: UIImage? = nil
@@ -181,14 +182,17 @@ struct SMSThreadView: View {
         .onAppear {
             isThreadScreenVisible = true
             syncReadVisibility()
+            syncTranslationVisibility()
         }
         .onDisappear {
             isThreadScreenVisible = false
             syncReadVisibility()
+            translationStore.reset()
             stopPolling()
             voice.discard()
         }
         .onChange(of: auth.currentUser?.id) { _, _ in
+            translationStore.reset()
             visibleMessageIds = []
             vm.updateVisibleMessages([], threadId: nil, accountId: nil,
                                      token: nil, isForeground: false)
@@ -197,14 +201,20 @@ struct SMSThreadView: View {
             voice.discard()
         }
         .onChange(of: activeConversation.uniqueId) { _, _ in
+            translationStore.reset()
             visibleMessageIds = []
             syncReadVisibility()
         }
+        .onChange(of: vm.messages) { _, _ in syncTranslationVisibility() }
+        .onChange(of: auth.currentUser?.preferredLanguage) { _, _ in syncTranslationVisibility() }
+        .onChange(of: auth.currentUser?.autoTranslate) { _, _ in syncTranslationVisibility() }
+        .onChange(of: auth.currentUser?.showOriginalWithTranslation) { _, _ in syncTranslationVisibility() }
         .onChange(of: canAcknowledgeVisibleMessages) { _, _ in
             syncReadVisibility()
         }
         .onChange(of: scenePhase) { _, newPhase in
             syncReadVisibility()
+            syncTranslationVisibility()
             if newPhase == .active {
                 if activeConversation.id != nil {
                     Task { await reload() }
@@ -388,10 +398,13 @@ struct SMSThreadView: View {
         } else {
             SMSMessagesListView(
                 messages: vm.messages,
+                translationStore: translationStore,
+                translationContext: translationContext,
                 highlightedMessageID: highlightedMessageID,
                 onVisibleMessageIdsChanged: { ids in
                     visibleMessageIds = ids
                     syncReadVisibility()
+                    syncTranslationVisibility()
                 },
                 onDeleteForMe: { message in
                     Task {
@@ -590,6 +603,39 @@ struct SMSThreadView: View {
             isForeground: canAcknowledgeVisibleMessages
         )
         Task { await vm.acknowledgeVisibleMessages() }
+    }
+
+    private var translationContext: SMSIncomingTranslationContext? {
+        SMSIncomingTranslationContext(
+            accountId: auth.currentUser?.id,
+            token: TokenStore.shared.read(),
+            threadId: activeConversation.id,
+            language: auth.currentUser?.preferredLanguage,
+            autoTranslate: auth.currentUser?.autoTranslate == true,
+            showOriginalWithTranslation: auth.currentUser?.showOriginalWithTranslation == true
+        )
+    }
+
+    private func syncTranslationVisibility() {
+        let expected = translationContext
+        translationStore.update(
+            messages: vm.messages,
+            visibleIds: visibleMessageIds,
+            context: expected,
+            isForeground: isThreadScreenVisible && scenePhase == .active &&
+                vm.thread?.id == expected?.threadId,
+            identityMatches: {
+                guard let expected else { return false }
+                return auth.currentUser?.id == expected.accountId &&
+                    TokenStore.shared.read() == expected.token &&
+                    activeConversation.id == expected.threadId &&
+                    (auth.currentUser?.preferredLanguage ?? "en")
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                        .lowercased() == expected.language &&
+                    auth.currentUser?.autoTranslate == true &&
+                    (auth.currentUser?.showOriginalWithTranslation == true) == expected.showOriginalWithTranslation
+            }
+        )
     }
 
 
@@ -1034,6 +1080,8 @@ enum SMSVisibleMessageRows {
 
 private struct SMSMessagesListView: View {
     let messages: [SMSMessageDTO]
+    @ObservedObject var translationStore: SMSIncomingTranslationStore
+    let translationContext: SMSIncomingTranslationContext?
     let highlightedMessageID: Int?
     let onVisibleMessageIdsChanged: (Set<Int>) -> Void
     let onDeleteForMe: (SMSMessageDTO) -> Void
@@ -1065,6 +1113,8 @@ private struct SMSMessagesListView: View {
 
                             SMSMessageRowView(
                                 msg: msg,
+                                translatedText: translationStore.translatedText(for: msg, context: translationContext),
+                                showOriginalWithTranslation: translationContext?.showOriginalWithTranslation == true,
                                 bubbleMaxWidth: bubbleMaxWidth,
                                 isHighlighted: highlightedMessageID == msg.id,
                                 isTimestampVisible: expandedTimestampMessageId == msg.id,
@@ -1167,6 +1217,8 @@ private struct SMSMessagesListView: View {
 
 private struct SMSMessageRowView: View {
     let msg: SMSMessageDTO
+    let translatedText: String?
+    let showOriginalWithTranslation: Bool
     let bubbleMaxWidth: CGFloat
     let isHighlighted: Bool
     let isTimestampVisible: Bool
@@ -1193,8 +1245,16 @@ private struct SMSMessageRowView: View {
                         }
                 }
 
-                if let text = msg.trimmedBody, !text.isEmpty {
-                    Text(text)
+                if let text = translatedText ?? msg.trimmedBody, !text.isEmpty {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(text)
+                        if translatedText != nil, showOriginalWithTranslation,
+                           let original = msg.trimmedBody {
+                            Text(original)
+                                .font(.footnote)
+                                .opacity(0.8)
+                        }
+                    }
                         .font(.body)
                         .foregroundStyle(
                             msg.isOutgoing
