@@ -955,14 +955,8 @@ extension ChatThreadView {
             }
         } catch {
             await MainActor.run {
-                vm.errorText =
-                String(
-                    format: appText(
-                        "gif.sendFailed",
-                        languageCode: appLanguage
-                    ),
-                    error.localizedDescription
-                )
+                debugLog("sendPendingGIF failed:", error)
+                vm.errorText = localizedGIFSendFailure(languageCode: appLanguage)
             }
         }
     }

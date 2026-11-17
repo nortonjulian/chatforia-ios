@@ -175,6 +175,15 @@ final class ChatThreadViewModelTests: XCTestCase {
         MessageStore.shared.clearAll()
     }
 
+    func testLocalizedGIFFailureDoesNotExposeInterpolationMarkerOrRawNetworkError() {
+        let english = localizedGIFSendFailure(languageCode: "en")
+        let spanish = localizedGIFSendFailure(languageCode: "es")
+        XCTAssertFalse(english.contains("{error}"))
+        XCTAssertFalse(spanish.contains("{error}"))
+        XCTAssertTrue(english.contains("Try Again"))
+        XCTAssertTrue(spanish.contains("Inténtelo de nuevo"))
+    }
+
     func testSendImageMessageReturnsFalseWhenTokenMissing() async {
         let vm = ChatThreadViewModel()
 

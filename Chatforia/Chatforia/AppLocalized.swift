@@ -52,3 +52,11 @@ func appText(
         ? fallback
         : localized
 }
+
+func localizedGIFSendFailure(languageCode: String) -> String {
+    appText("gif.sendFailed", languageCode: languageCode)
+        .replacingOccurrences(
+            of: "{error}",
+            with: appText("common.tryAgain", languageCode: languageCode)
+        )
+}

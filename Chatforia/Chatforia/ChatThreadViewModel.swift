@@ -1372,7 +1372,7 @@ final class ChatThreadViewModel: ObservableObject {
             debugLog("sendGIFMessage failed before queueing:", error)
             MessageStore.shared.discardUnqueuedOptimisticMessage(clientMessageId: clientMessageId)
             refreshFromMessageStore()
-            errorText = appText("gif.sendFailed", languageCode: appLanguage)
+            errorText = localizedGIFSendFailure(languageCode: appLanguage)
             return false
         }
     }
