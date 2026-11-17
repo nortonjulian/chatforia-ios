@@ -911,7 +911,10 @@ final class ChatThreadViewModel: ObservableObject {
 
             debugLog("✅ loadOlderMessagesIfNeeded: inserted \(page.items.count) older messages")
         } catch {
-            self.errorText = "loadOlderMessagesIfNeeded: \(error.localizedDescription)"
+            debugLog("loadOlderMessagesIfNeeded failed:", error)
+            self.errorText = isNetworkAvailabilityError(error)
+                ? appText("randomChat.connectionProblem", languageCode: appLanguage)
+                : appText("ios.couldn_t_load_chats", languageCode: appLanguage)
         }
     }
 
@@ -1127,12 +1130,10 @@ final class ChatThreadViewModel: ObservableObject {
             SendQueueManager.shared.startIfNeeded()
             return true
         } catch {
-            MessageStore.shared.setDeliveryState(
-                clientMessageId: clientMessageId,
-                state: .failed
-            )
-            errorText =
-                "\(appText("chat.sendImageFailed", languageCode: appLanguage)) \(error.localizedDescription)"
+            debugLog("sendImageMessage failed before queueing:", error)
+            MessageStore.shared.discardUnqueuedOptimisticMessage(clientMessageId: clientMessageId)
+            refreshFromMessageStore()
+            errorText = appText("chat.sendImageFailed", languageCode: appLanguage)
             return false
         }
     }
@@ -1252,12 +1253,10 @@ final class ChatThreadViewModel: ObservableObject {
             SendQueueManager.shared.startIfNeeded()
             return true
         } catch {
-            MessageStore.shared.setDeliveryState(
-                clientMessageId: clientMessageId,
-                state: .failed
-            )
-            errorText =
-                "\(appText("chat.sendVideoFailed", languageCode: appLanguage)) \(error.localizedDescription)"
+            debugLog("sendVideoMessage failed before queueing:", error)
+            MessageStore.shared.discardUnqueuedOptimisticMessage(clientMessageId: clientMessageId)
+            refreshFromMessageStore()
+            errorText = appText("chat.sendVideoFailed", languageCode: appLanguage)
             return false
         }
     }
@@ -1370,9 +1369,10 @@ final class ChatThreadViewModel: ObservableObject {
             SendQueueManager.shared.startIfNeeded()
             return true
         } catch {
-            MessageStore.shared.setDeliveryState(clientMessageId: clientMessageId, state: .failed)
-            errorText =
-                "\(appText("gif.sendFailed", languageCode: appLanguage)) \(error.localizedDescription)"
+            debugLog("sendGIFMessage failed before queueing:", error)
+            MessageStore.shared.discardUnqueuedOptimisticMessage(clientMessageId: clientMessageId)
+            refreshFromMessageStore()
+            errorText = appText("gif.sendFailed", languageCode: appLanguage)
             return false
         }
     }
@@ -1472,12 +1472,10 @@ final class ChatThreadViewModel: ObservableObject {
             SendQueueManager.shared.startIfNeeded()
             return true
         } catch {
-            MessageStore.shared.setDeliveryState(
-                clientMessageId: clientMessageId,
-                state: .failed
-            )
-            errorText =
-                "\(appText("chat.sendAudioFailed", languageCode: appLanguage)) \(error.localizedDescription)"
+            debugLog("sendAudioMessage failed before queueing:", error)
+            MessageStore.shared.discardUnqueuedOptimisticMessage(clientMessageId: clientMessageId)
+            refreshFromMessageStore()
+            errorText = appText("chat.sendAudioFailed", languageCode: appLanguage)
             return false
         }
     }
