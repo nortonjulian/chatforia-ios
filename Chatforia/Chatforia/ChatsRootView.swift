@@ -185,15 +185,24 @@ struct ChatsRootView: View {
                                                 .accessibilityHidden(true)
                                             }
 
-                                            ChatListRowView(
-                                                title: conversationTitle(conversation),
-                                                subtitle: conversationSubtitle(conversation),
-                                                timestamp: conversationTimestamp(conversation),
-                                                unreadCount: conversation.unreadCount ?? 0,
-                                                avatarUsers: conversation.avatarUsers ?? [],
-                                                isPinned: false,
-                                                isSMS: conversation.kind.lowercased() == "sms"
-                                            )
+                                            if conversation.kind.lowercased() == "sms" {
+                                                SMSPreviewChatListRowView(
+                                                    conversation: conversation,
+                                                    title: conversationTitle(conversation),
+                                                    originalSubtitle: conversationSubtitle(conversation),
+                                                    timestamp: conversationTimestamp(conversation)
+                                                )
+                                            } else {
+                                                ChatListRowView(
+                                                    title: conversationTitle(conversation),
+                                                    subtitle: conversationSubtitle(conversation),
+                                                    timestamp: conversationTimestamp(conversation),
+                                                    unreadCount: conversation.unreadCount ?? 0,
+                                                    avatarUsers: conversation.avatarUsers ?? [],
+                                                    isPinned: false,
+                                                    isSMS: false
+                                                )
+                                            }
                                         }
                                         .contentShape(Rectangle())
                                     }
@@ -945,6 +954,126 @@ struct ChatsRootView: View {
         }
 
         return TimestampFormatter.chatListTimestamp(from: item.updatedAt)
+    }
+}
+
+// Chats previews have a message ID but no SMS direction in /conversations.
+// The authenticated translation endpoint rejects outgoing IDs before billing;
+// only rows that appear onscreen make a request.
+enum SMSPreviewTranslation {
+    static func message(for conversation: ConversationDTO) -> SMSMessageDTO? {
+        guard let id = conversation.last?.messageId, id > 0,
+              let threadId = conversation.id,
+              conversation.last?.hasMedia != true,
+              let body = conversation.last?.text, !body.isEmpty else { return nil }
+        return SMSMessageDTO(id: id, threadId: threadId, direction: "in",
+                             body: body, createdAt: Date())
+    }
+
+    static func subtitle(original: String, presentation: SMSIncomingTranslationPresentation,
+                         showOriginal: Bool, originalBody: String?) -> String {
+        switch presentation {
+        case .translated(let text):
+            if showOriginal, let originalBody {
+                return "\(text) · \(originalBody)"
+            }
+            return text
+        case .pending:
+            return "…"
+        case .original:
+            return original
+        }
+    }
+}
+
+private struct SMSPreviewChatListRowView: View {
+    let conversation: ConversationDTO
+    let title: String
+    let originalSubtitle: String
+    let timestamp: String
+
+    @EnvironmentObject private var auth: AuthStore
+    @Environment(\.scenePhase) private var scenePhase
+    @StateObject private var translationStore = SMSIncomingTranslationStore(allowTrimmedOriginal: true)
+    @ObservedObject private var translationCache = SMSIncomingTranslationCache.shared
+    @State private var isVisible = false
+
+    private var context: SMSIncomingTranslationContext? {
+        SMSIncomingTranslationContext(
+            accountId: auth.currentUser?.id,
+            token: TokenStore.shared.read(),
+            threadId: conversation.id,
+            language: auth.currentUser?.preferredLanguage,
+            autoTranslate: auth.currentUser?.autoTranslate == true,
+            showOriginalWithTranslation: auth.currentUser?.showOriginalWithTranslation == true
+        )
+    }
+
+    private var previewMessage: SMSMessageDTO? {
+        // Direction is intentionally verified by the owned backend endpoint.
+        SMSPreviewTranslation.message(for: conversation)
+    }
+
+    private var presentation: SMSIncomingTranslationPresentation {
+        guard let previewMessage else { return .original }
+        return translationStore.presentation(for: previewMessage, context: context)
+    }
+
+    var body: some View {
+        ChatListRowView(
+            title: title,
+            subtitle: subtitle,
+            timestamp: timestamp,
+            unreadCount: conversation.unreadCount ?? 0,
+            avatarUsers: conversation.avatarUsers ?? [],
+            isPinned: false,
+            isSMS: true,
+            isSubtitlePending: presentation == .pending
+        )
+        .onAppear {
+            isVisible = true
+            updateTranslation()
+        }
+        .onDisappear {
+            isVisible = false
+            translationStore.reset()
+        }
+        .onChange(of: conversation.last?.messageId) { _, _ in updateTranslation() }
+        .onChange(of: conversation.last?.text) { _, _ in updateTranslation() }
+        .onChange(of: auth.currentUser?.id) { _, _ in updateTranslation() }
+        .onChange(of: auth.currentUser?.preferredLanguage) { _, _ in updateTranslation() }
+        .onChange(of: auth.currentUser?.autoTranslate) { _, _ in updateTranslation() }
+        .onChange(of: auth.currentUser?.showOriginalWithTranslation) { _, _ in updateTranslation() }
+        .onChange(of: scenePhase) { _, _ in updateTranslation() }
+    }
+
+    private var subtitle: String {
+        SMSPreviewTranslation.subtitle(
+            original: originalSubtitle, presentation: presentation,
+            showOriginal: context?.showOriginalWithTranslation == true,
+            originalBody: previewMessage?.trimmedBody
+        )
+    }
+
+    private func updateTranslation() {
+        let expected = context
+        translationStore.update(
+            messages: previewMessage.map { [$0] } ?? [],
+            visibleIds: previewMessage.map { [$0.id] } ?? [],
+            context: expected,
+            isForeground: isVisible && scenePhase == .active,
+            identityMatches: {
+                guard let expected else { return false }
+                return auth.currentUser?.id == expected.accountId &&
+                    TokenStore.shared.read() == expected.token &&
+                    conversation.id == expected.threadId &&
+                    (auth.currentUser?.preferredLanguage ?? "en")
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                        .lowercased() == expected.language &&
+                    auth.currentUser?.autoTranslate == true &&
+                    (auth.currentUser?.showOriginalWithTranslation == true) == expected.showOriginalWithTranslation
+            }
+        )
     }
 }
 

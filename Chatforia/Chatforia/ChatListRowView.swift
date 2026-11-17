@@ -9,6 +9,7 @@ struct ChatListRowView: View {
 
     var isPinned: Bool = false
     var isSMS: Bool = false
+    var isSubtitlePending: Bool = false
 
     @EnvironmentObject private var themeManager: ThemeManager
     
@@ -49,6 +50,11 @@ struct ChatListRowView: View {
                 }
 
                 HStack(alignment: .center, spacing: 8) {
+                    if isSubtitlePending {
+                        ProgressView()
+                            .controlSize(.mini)
+                            .accessibilityLabel(String(localized: "sms.loading"))
+                    }
                     Text(subtitle)
                         .font(.subheadline)
                         .foregroundStyle(themeManager.palette.secondaryText)

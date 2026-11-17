@@ -41,7 +41,7 @@ final class SMSIncomingTranslationStoreTests: XCTestCase {
 
     func testTranslatedDisplayPreservesOriginalAndAvoidsDuplicateOrOffscreenRequests() async {
         var ids: [Int] = []
-        let store = SMSIncomingTranslationStore(fetch: { [self] id, _ in
+        let store = SMSIncomingTranslationStore(cache: SMSIncomingTranslationCache(), fetch: { [self] id, _ in
             ids.append(id)
             return translated(incoming)
         })
@@ -61,7 +61,7 @@ final class SMSIncomingTranslationStoreTests: XCTestCase {
 
     func testPendingRetriesAreBoundedAndOriginalRemainsVisibleUntilSuccess() async {
         var attempts = 0
-        let store = SMSIncomingTranslationStore(fetch: { [self] _, _ in
+        let store = SMSIncomingTranslationStore(cache: SMSIncomingTranslationCache(), fetch: { [self] _, _ in
             attempts += 1
             if attempts < 3 {
                 return SMSIncomingTranslationResponse(messageId: 501, originalText: "Hello",
@@ -71,6 +71,7 @@ final class SMSIncomingTranslationStoreTests: XCTestCase {
             return translated(incoming)
         }, delay: { _ in })
         let current = context()
+        XCTAssertEqual(store.presentation(for: incoming, context: current), .pending)
         store.update(messages: [incoming], visibleIds: [501], context: current,
                      isForeground: true, identityMatches: { true })
         XCTAssertNil(store.translatedText(for: incoming, context: current))
@@ -79,7 +80,7 @@ final class SMSIncomingTranslationStoreTests: XCTestCase {
         XCTAssertEqual(store.translatedText(for: incoming, context: current), "Hola")
 
         var bounded = 0
-        let pending = SMSIncomingTranslationStore(fetch: { _, _ in
+        let pending = SMSIncomingTranslationStore(cache: SMSIncomingTranslationCache(), fetch: { _, _ in
             bounded += 1
             return SMSIncomingTranslationResponse(messageId: 501, originalText: "Hello",
                 translatedText: nil, displayText: "Hello", targetLanguage: "es",
@@ -94,7 +95,7 @@ final class SMSIncomingTranslationStoreTests: XCTestCase {
 
     func testFailureAndDisabledPreferenceKeepOriginalWithoutExtraCalls() async {
         var calls = 0
-        let store = SMSIncomingTranslationStore(fetch: { _, _ in
+        let store = SMSIncomingTranslationStore(cache: SMSIncomingTranslationCache(), fetch: { _, _ in
             calls += 1
             throw URLError(.notConnectedToInternet)
         })
@@ -104,6 +105,7 @@ final class SMSIncomingTranslationStoreTests: XCTestCase {
         await settle()
         XCTAssertNil(store.translatedText(for: incoming, context: current))
         XCTAssertEqual(calls, 1)
+        XCTAssertEqual(store.presentation(for: incoming, context: current), .original)
         store.update(messages: [incoming], visibleIds: [501], context: current,
                      isForeground: true, identityMatches: { true })
         await settle()
@@ -115,7 +117,7 @@ final class SMSIncomingTranslationStoreTests: XCTestCase {
     }
 
     func testBackendOriginalFallbackNeverReplacesStoredSMSBody() async {
-        let store = SMSIncomingTranslationStore(fetch: { _, _ in
+        let store = SMSIncomingTranslationStore(cache: SMSIncomingTranslationCache(), fetch: { _, _ in
             SMSIncomingTranslationResponse(messageId: 501, originalText: "Hello",
                 translatedText: nil, displayText: "Hello", targetLanguage: "es",
                 showOriginalWithTranslation: false, status: "original",
@@ -131,7 +133,7 @@ final class SMSIncomingTranslationStoreTests: XCTestCase {
 
     func testLanguageAndShowOriginalChangeDiscardOldTranslation() async {
         var requests: [String] = []
-        let store = SMSIncomingTranslationStore(fetch: { [self] _, token in
+        let store = SMSIncomingTranslationStore(cache: SMSIncomingTranslationCache(), fetch: { [self] _, token in
             requests.append(token)
             return translated(incoming, language: requests.count == 1 ? "es" : "fr")
         })
@@ -153,7 +155,7 @@ final class SMSIncomingTranslationStoreTests: XCTestCase {
 
     func testAccountThreadAndLateResponsesCannotCrossContexts() async {
         var resume: CheckedContinuation<SMSIncomingTranslationResponse, Never>?
-        let store = SMSIncomingTranslationStore(fetch: { [self] id, _ in
+        let store = SMSIncomingTranslationStore(cache: SMSIncomingTranslationCache(), fetch: { [self] id, _ in
             if id == 501 {
                 return await withCheckedContinuation { resume = $0 }
             }
@@ -180,7 +182,7 @@ final class SMSIncomingTranslationStoreTests: XCTestCase {
 
     func testBackgroundAndOffscreenRowsDoNotStartTranslation() async {
         var calls = 0
-        let store = SMSIncomingTranslationStore(fetch: { [self] _, _ in
+        let store = SMSIncomingTranslationStore(cache: SMSIncomingTranslationCache(), fetch: { [self] _, _ in
             calls += 1
             return translated(incoming)
         })
@@ -198,7 +200,7 @@ final class SMSIncomingTranslationStoreTests: XCTestCase {
         var calls = 0
         let edited = SMSMessageDTO(id: 501, threadId: 67, direction: "in",
                                    body: "Updated", createdAt: incoming.createdAt)
-        let store = SMSIncomingTranslationStore(fetch: { [self] _, _ in
+        let store = SMSIncomingTranslationStore(cache: SMSIncomingTranslationCache(), fetch: { [self] _, _ in
             calls += 1
             if calls == 1 {
                 return await withCheckedContinuation { resumeOld = $0 }
@@ -220,5 +222,60 @@ final class SMSIncomingTranslationStoreTests: XCTestCase {
         XCTAssertEqual(calls, 2)
         XCTAssertNil(store.translatedText(for: incoming, context: current))
         XCTAssertEqual(store.translatedText(for: edited, context: current), "Actualizado")
+    }
+
+    func testCacheReusesTranslationImmediatelyAfterReopeningButIsolatesAccountAndLanguage() async {
+        let cache = SMSIncomingTranslationCache()
+        let current = context()
+        let first = SMSIncomingTranslationStore(cache: cache, fetch: { [self] _, _ in
+            translated(incoming)
+        })
+        first.update(messages: [incoming], visibleIds: [501], context: current,
+                     isForeground: true, identityMatches: { true })
+        await settle()
+        XCTAssertEqual(first.presentation(for: incoming, context: current), .translated("Hola"))
+        first.reset()
+
+        var repeatedCalls = 0
+        let reopened = SMSIncomingTranslationStore(cache: cache, fetch: { [self] _, _ in
+            repeatedCalls += 1
+            return translated(incoming)
+        })
+        XCTAssertEqual(reopened.presentation(for: incoming, context: current), .translated("Hola"))
+        reopened.update(messages: [incoming], visibleIds: [501], context: current,
+                        isForeground: true, identityMatches: { true })
+        await settle()
+        XCTAssertEqual(repeatedCalls, 0)
+        XCTAssertEqual(reopened.presentation(for: incoming, context: context(account: 2)), .pending)
+        XCTAssertEqual(reopened.presentation(for: incoming, context: context(language: "fr")), .pending)
+        XCTAssertEqual(reopened.presentation(for: incoming, context: context(enabled: false)), .original)
+    }
+
+    func testPreviewTranslationWithTrimmedBodyReusesCacheInThreadWithExactOriginal() async {
+        let cache = SMSIncomingTranslationCache()
+        let preview = SMSIncomingTranslationStore(allowTrimmedOriginal: true, cache: cache,
+            fetch: { _, _ in
+                SMSIncomingTranslationResponse(messageId: 501, originalText: " Hello ",
+                    translatedText: "Hola", displayText: "Hola", targetLanguage: "es",
+                    showOriginalWithTranslation: false, status: "translated", reason: nil)
+            })
+        let current = context()
+        preview.update(messages: [incoming], visibleIds: [501], context: current,
+                       isForeground: true, identityMatches: { true })
+        await settle()
+        XCTAssertEqual(preview.presentation(for: incoming, context: current), .translated("Hola"))
+
+        var repeatedCalls = 0
+        let threadMessage = SMSMessageDTO(id: 501, threadId: 67, direction: "in",
+                                          body: " Hello ", createdAt: incoming.createdAt)
+        let thread = SMSIncomingTranslationStore(cache: cache, fetch: { _, _ in
+            repeatedCalls += 1
+            throw URLError(.badServerResponse)
+        })
+        XCTAssertEqual(thread.presentation(for: threadMessage, context: current), .translated("Hola"))
+        thread.update(messages: [threadMessage], visibleIds: [501], context: current,
+                      isForeground: true, identityMatches: { true })
+        await settle()
+        XCTAssertEqual(repeatedCalls, 0)
     }
 }
