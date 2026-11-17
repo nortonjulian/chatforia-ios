@@ -4,6 +4,14 @@ import XCTest
 @MainActor
 final class WirelessServiceTests: XCTestCase {
 
+    func testProfileInstallationReadinessNeverMasksUnusablePackageState() {
+        XCTAssertEqual(wirelessDisplayState("OK", readyToInstall: true), "READY_TO_INSTALL")
+        for state in ["EXPIRED", "EXHAUSTED", "TERMINATED", "AWAITING_ACTIVATION"] {
+            XCTAssertEqual(wirelessDisplayState(state, readyToInstall: true), state)
+        }
+        XCTAssertEqual(wirelessDisplayState("OK", readyToInstall: false), "OK")
+    }
+
     func testUnlimitedStatusDoesNotRequirePositiveMegabytes() throws {
         let data = Data(#"{"mode":"INDIVIDUAL","state":"OK","source":{"addonKind":"chatforia_esim_global_unlimited_premium","unlimited":true,"totalDataMb":0,"remainingDataMb":0},"queuedPacks":[]}"#.utf8)
         let status = try JSONDecoder().decode(WirelessStatusDTO.self, from: data)

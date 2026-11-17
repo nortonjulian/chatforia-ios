@@ -621,10 +621,21 @@ struct WirelessHomeView: View {
     }
 
     private func loadPurchasedPackages() async {
+        let accountID = auth.currentUser?.id
+        let token = auth.currentToken
+        guard accountID != nil, token != nil else {
+            purchasedPackages = nil
+            return
+        }
         do {
-            purchasedPackages = try await WirelessService.shared.fetchPurchasedPackages()
+            let response = try await WirelessService.shared.fetchPurchasedPackages()
+            guard auth.currentUser?.id == accountID,
+                  auth.currentToken == token else { return }
+            purchasedPackages = response
             purchasesErrorMessage = nil
         } catch {
+            guard auth.currentUser?.id == accountID,
+                  auth.currentToken == token else { return }
             purchasedPackages = nil
             purchasesErrorMessage = appText("esim.purchase.loadFailed", languageCode: appLanguage)
             debugLog("Failed to load purchased packages:", error)
@@ -664,7 +675,7 @@ struct WirelessHomeView: View {
     }
 
     private func statusColor(_ state: String) -> Color {
-        if activationStatus == .readyToInstall {
+        if wirelessDisplayState(state, readyToInstall: activationStatus == .readyToInstall) == "READY_TO_INSTALL" {
             return themeManager.palette.buttonEnd
         }
 
@@ -684,7 +695,7 @@ struct WirelessHomeView: View {
     }
 
     private func stateLabel(_ state: String) -> String {
-        if activationStatus == .readyToInstall {
+        if wirelessDisplayState(state, readyToInstall: activationStatus == .readyToInstall) == "READY_TO_INSTALL" {
             return appText(
                 "esim.readyToInstall",
                 languageCode: appLanguage
@@ -1088,7 +1099,7 @@ struct WirelessHomeView: View {
         case .none:
             return appText("esim.setup", languageCode: appLanguage)
         case .readyToInstall:
-            return appText("esim.activate", languageCode: appLanguage)
+            return appText("esim.install", languageCode: appLanguage)
         case .active:
             return appText("esim.manage", languageCode: appLanguage)
         }
@@ -1340,6 +1351,13 @@ struct WirelessHomeView: View {
         debugLog("TODO: open port number flow")
     }
 
+}
+
+// Profile installation readiness must not override a package's expiry or
+// balance state. An installed profile and a usable data entitlement differ.
+func wirelessDisplayState(_ packageState: String, readyToInstall: Bool) -> String {
+    let state = packageState.uppercased()
+    return readyToInstall && state == "OK" ? "READY_TO_INSTALL" : state
 }
 
 #Preview {
