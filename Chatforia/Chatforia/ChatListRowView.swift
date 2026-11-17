@@ -73,21 +73,7 @@ struct ChatListRowView: View {
     }
 
     private var avatar: some View {
-        Circle()
-            .fill(themeManager.palette.accent.opacity(0.14))
-            .frame(width: 44, height: 44)
-            .overlay(
-                Circle()
-                    .stroke(themeManager.palette.border.opacity(0.8), lineWidth: 1)
-            )
-            .overlay(avatarContent)
-    }
-
-    @ViewBuilder
-    private var avatarContent: some View {
-        Text(initials)
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(themeManager.palette.accent)
+        ThemeAvatarPlaceholder(initials: initials, size: 44, font: .subheadline)
     }
 
     private var initials: String {
