@@ -5,9 +5,14 @@ import CoreImage.CIFilterBuiltins
 
 struct ESIMActivationView: View {
     @StateObject var viewModel: ESIMActivationViewModel
+    let purchasedPackages: WirelessPurchasesResponseDTO?
+    let purchasesErrorMessage: String?
+    let onRequestReplacement: (() -> Void)?
     @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.dismiss) private var dismiss
     @AppStorage("chatforia_language") private var appLanguage = "en"
     @State private var showingInstallationOptions = false
+    @State private var showingReplacementConfirmation = false
 
     var body: some View {
         ScrollView {
@@ -21,9 +26,10 @@ struct ESIMActivationView: View {
 
                 detailsSection
 
-                if !viewModel.isActive {
-                    supportSection
-                }
+                purchasedPackagesSection
+                replacementSection
+
+                supportSection
             }
             .padding()
         }
@@ -90,7 +96,7 @@ struct ESIMActivationView: View {
 
                 Text(
                     viewModel.isActive
-                    ? appText("esim.serviceActive", languageCode: appLanguage)
+                    ? appText("ios.your_esim_is_active", languageCode: appLanguage)
                     : appText("esim.readyToInstall", languageCode: appLanguage)
                 )
                 .font(.body.weight(.semibold))
@@ -409,8 +415,6 @@ struct ESIMActivationView: View {
                 .font(.headline)
                 .foregroundStyle(themeManager.palette.primaryText)
 
-            detailRow(title: "esim.plan", value: viewModel.payload.planName)
-
             if viewModel.showsProvisioningDetails {
                 detailRow(title: "esim.lpaUri", value: viewModel.explicitLpaText)
                 detailRow(title: "esim.activationCode", value: viewModel.installationCodeText)
@@ -430,11 +434,73 @@ struct ESIMActivationView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
+    private var purchasedPackagesSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(appText("esim.purchase.historyTitle", languageCode: appLanguage))
+                .font(.headline)
+                .foregroundStyle(themeManager.palette.primaryText)
+
+            PurchasedDataPackagesList(
+                packages: purchasedPackages?.packages,
+                errorMessage: purchasesErrorMessage
+            )
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(themeManager.palette.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private var replacementSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(appText("esim.transfer.title", languageCode: appLanguage))
+                .font(.headline)
+                .foregroundStyle(themeManager.palette.primaryText)
+
+            Button(appText("esim.transfer.request", languageCode: appLanguage)) {
+                showingReplacementConfirmation = true
+            }
+            .disabled(
+                purchasedPackages?.replacementEligibility.eligible != true ||
+                onRequestReplacement == nil
+            )
+            .alert("Replace eSIM?", isPresented: $showingReplacementConfirmation) {
+                Button("Cancel", role: .cancel) {}
+                Button("Replace eSIM", role: .destructive) {
+                    // Return to Wireless before starting the existing workflow.
+                    // Its completion opens the new installation details.
+                    dismiss()
+                    onRequestReplacement?()
+                }
+            } message: {
+                Text(appText("esim.transfer.confirmation", languageCode: appLanguage))
+            }
+
+            if let reason = purchasedPackages?.replacementEligibility.reason {
+                Text(localizedEsimReplacementReason(reason, languageCode: appLanguage))
+                    .font(.footnote)
+                    .foregroundStyle(themeManager.palette.secondaryText)
+            } else if purchasedPackages == nil {
+                Text(appText("esim.transfer.packagesUnavailable", languageCode: appLanguage))
+                    .font(.footnote)
+                    .foregroundStyle(themeManager.palette.secondaryText)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(themeManager.palette.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
     private var supportSection: some View {
-        Text(appText("esim.installationSupportText", languageCode: appLanguage))
-            .font(.caption)
-            .foregroundStyle(themeManager.palette.secondaryText)
-            .frame(maxWidth: .infinity, alignment: .leading)
+        VStack(alignment: .leading, spacing: 8) {
+            Text(appText("esim.installationSupportText", languageCode: appLanguage))
+            Text(appText("esim.install.dataSettingsIos", languageCode: appLanguage))
+            Text(appText("esim.install.troubleshootingIos", languageCode: appLanguage))
+        }
+        .font(.caption)
+        .foregroundStyle(themeManager.palette.secondaryText)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder
@@ -463,4 +529,154 @@ struct ESIMActivationView: View {
             }
         )
     }
+}
+
+struct PurchasedDataPackagesList: View {
+    let packages: [WirelessPurchasedPackageDTO]?
+    let errorMessage: String?
+    @AppStorage("chatforia_language") private var appLanguage = "en"
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if let packages {
+                if packages.isEmpty {
+                    Text(appText("esim.purchase.none", languageCode: appLanguage))
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(packages) { package in
+                        VStack(alignment: .leading, spacing: 5) {
+                            HStack {
+                                Text(name(for: package))
+                                    .font(.subheadline.weight(.semibold))
+                                Spacer()
+                                Text(label(for: package.state))
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(package.state == "ACTIVE" ? .green : .orange)
+                            }
+
+                            Text(package.unlimited
+                                 ? appText("esim.purchase.unlimited", languageCode: appLanguage)
+                                 : formattedText(
+                                    "esim.purchase.remainingOf",
+                                    formatGB(package.remainingDataMb),
+                                    formatGB(package.totalDataMb)
+                                 ))
+
+                            if package.state == "BALANCE_NEEDS_REVIEW",
+                               let recorded = package.recordedRemainingDataMb,
+                               let provider = package.providerRemainingDataMb {
+                                Text(formattedText(
+                                    "esim.purchase.balanceConflict",
+                                    formatGB(recorded),
+                                    formatGB(provider)
+                                ))
+                                    .foregroundStyle(.orange)
+                            }
+
+                            if let purchasedAt = package.purchasedAt {
+                                Text(formattedText("esim.purchase.recordedAt", formatDate(purchasedAt)))
+                            }
+
+                            Text(package.activatedAt.map {
+                                formattedText("esim.purchase.activatedAt", formatDate($0))
+                            } ?? appText("esim.purchase.activationUnknown", languageCode: appLanguage))
+
+                            Text(package.expiresAt.map {
+                                formattedText("esim.purchase.expiresAt", formatDate($0))
+                            } ?? appText("esim.purchase.expiryUnknown", languageCode: appLanguage))
+
+                            if package.state == "EXPIRY_NEEDS_REVIEW" {
+                                Text(appText("esim.purchase.expiryConflict", languageCode: appLanguage))
+                                    .foregroundStyle(.orange)
+                            } else if package.state == "EXPIRED" {
+                                Text(appText("esim.purchase.expiredExplanation", languageCode: appLanguage))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+
+                        if package.id != packages.last?.id {
+                            Divider()
+                        }
+                    }
+                }
+            } else {
+                Text(errorMessage ?? appText("esim.purchase.loading", languageCode: appLanguage))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func formatGB(_ megabytes: Int) -> String {
+        String(
+            format: "%.1f GB",
+            locale: Locale(identifier: appLanguage),
+            Double(megabytes) / 1024.0
+        )
+    }
+
+    private func formatDate(_ date: Date) -> String {
+        date.formatted(
+            .dateTime.year().month(.abbreviated).day()
+                .locale(Locale(identifier: appLanguage))
+        )
+    }
+
+    private func formattedText(_ key: String, _ arguments: CVarArg...) -> String {
+        String(
+            format: appText(key, languageCode: appLanguage),
+            locale: Locale(identifier: appLanguage),
+            arguments: arguments
+        )
+    }
+
+    private func name(for package: WirelessPurchasedPackageDTO) -> String {
+        let parts = (package.addonKind ?? "").lowercased().split(separator: "_")
+        guard let index = parts.firstIndex(where: { ["local", "europe", "global"].contains(String($0)) }),
+              parts.indices.contains(index + 1) else {
+            return formattedText("esim.purchase.fallbackName", package.id)
+        }
+        let region = appText("esim.\(parts[index])", languageCode: appLanguage)
+        let size = package.unlimited
+            ? appText("esim.unlimited", languageCode: appLanguage)
+            : formattedText("esim.purchase.sizeGb", String(parts[index + 1]))
+        return formattedText("esim.purchase.name", region, size)
+    }
+
+    private func label(for state: String) -> String {
+        switch state {
+        case "ACTIVE": return appText("ios.active", languageCode: appLanguage)
+        case "AWAITING_ACTIVATION": return appText("esim.purchase.stateAwaitingActivation", languageCode: appLanguage)
+        case "AWAITING_PROVISIONING": return appText("esim.purchase.stateAwaitingProvisioning", languageCode: appLanguage)
+        case "PROVISIONING_NEEDS_REVIEW": return appText("esim.purchase.stateProvisioningReview", languageCode: appLanguage)
+        case "PAYMENT_UNVERIFIED": return appText("esim.purchase.statePaymentUnverified", languageCode: appLanguage)
+        case "EXPIRED": return appText("ios.expired", languageCode: appLanguage)
+        case "EXPIRY_NEEDS_REVIEW": return appText("esim.purchase.stateExpiryReview", languageCode: appLanguage)
+        case "BALANCE_NEEDS_REVIEW": return appText("esim.purchase.stateBalanceReview", languageCode: appLanguage)
+        case "EXHAUSTED": return appText("esim.purchase.stateExhausted", languageCode: appLanguage)
+        case "TERMINATED": return appText("esim.purchase.stateTerminated", languageCode: appLanguage)
+        default: return appText("esim.purchase.stateProviderUnverified", languageCode: appLanguage)
+        }
+    }
+}
+
+func localizedEsimReplacementReason(_ reason: String?, languageCode: String) -> String {
+    let key: String
+    switch reason {
+    case "No eligible active data package is available for transfer.":
+        key = "esim.transfer.noEligiblePack"
+    case "Multiple or pending data packages may share this eSIM. Transfer is unavailable until every remaining entitlement can be preserved.":
+        key = "esim.transfer.multipleOrPending"
+    case "Unlimited data package transfer requires Telna confirmation.":
+        key = "esim.transfer.unlimitedUnconfirmed"
+    case "This data package cannot be safely transferred with the current provider workflow.":
+        key = "esim.transfer.unsupportedPack"
+    case "Transfer requires one active, unexpired data package with a confirmed balance.":
+        key = "esim.transfer.activePackRequired"
+    default:
+        key = "esim.transfer.unavailable"
+    }
+    return appText(key, languageCode: languageCode)
 }

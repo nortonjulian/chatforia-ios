@@ -3,6 +3,28 @@ import XCTest
 
 @MainActor
 final class ESIMActivationViewModelTests: XCTestCase {
+    func testPurchaseAndTransferLocalizationKeysResolve() {
+        XCTAssertEqual(
+            appText("esim.purchase.historyTitle", languageCode: "en"),
+            "Purchased Data Packages"
+        )
+        XCTAssertEqual(
+            appText("esim.profileActiveSubtitle", languageCode: "en"),
+            "Your eSIM profile is active. Check Wireless for each data package's status."
+        )
+        XCTAssertEqual(
+            localizedEsimReplacementReason(
+                "Multiple or pending data packages may share this eSIM. Transfer is unavailable until every remaining entitlement can be preserved.",
+                languageCode: "en"
+            ),
+            "Multiple or pending data packages may share this eSIM. Transfer is unavailable until every remaining entitlement can be preserved."
+        )
+        XCTAssertEqual(
+            localizedEsimReplacementReason("Unknown future reason", languageCode: "en"),
+            "eSIM transfer is unavailable until package eligibility can be confirmed."
+        )
+    }
+
     func testActiveEsimHidesProvisioningDetailsAndMasksIccid() {
         let payload = ESIMActivationDTO(
             smdpAddress: "smdp.example.com",
@@ -19,6 +41,8 @@ final class ESIMActivationViewModelTests: XCTestCase {
 
         XCTAssertTrue(viewModel.isActive)
         XCTAssertFalse(viewModel.showsProvisioningDetails)
+        XCTAssertTrue(viewModel.subtitleText.contains("eSIM profile is active"))
+        XCTAssertFalse(viewModel.subtitleText.contains("data pack is active"))
 
         XCTAssertEqual(viewModel.displayIccidText, "•••• •••• •••• 4567")
         XCTAssertNotEqual(viewModel.displayIccidText, payload.iccid)
