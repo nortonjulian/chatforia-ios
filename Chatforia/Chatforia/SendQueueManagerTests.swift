@@ -12,6 +12,7 @@ final class SendQueueManagerTests: XCTestCase {
         SendQueueManager.shared.sendJobHandler = nil
         SendQueueManager.shared.sendSuccessCallback = nil
         SendQueueManager.shared.sendFailedCallback = nil
+        SendQueueManager.shared.restrictedMediaCallback = nil
     }
 
     override func tearDown() {
@@ -20,6 +21,7 @@ final class SendQueueManagerTests: XCTestCase {
         SendQueueManager.shared.sendJobHandler = nil
         SendQueueManager.shared.sendSuccessCallback = nil
         SendQueueManager.shared.sendFailedCallback = nil
+        SendQueueManager.shared.restrictedMediaCallback = nil
 
         super.tearDown()
     }
@@ -112,6 +114,22 @@ final class SendQueueManagerTests: XCTestCase {
         )
 
         wait(for: [expectation], timeout: 2.0)
+    }
+
+    func testRestrictedMediaFailureNotifiesWithoutRetryingSend() {
+        let rejected = XCTestExpectation(description: "restricted media callback")
+        var sends = 0
+        SendQueueManager.shared.sendJobHandler = { _, completion in
+            sends += 1
+            completion(.restrictedMedia)
+        }
+        SendQueueManager.shared.restrictedMediaCallback = { clientMessageId in
+            XCTAssertEqual(clientMessageId, "job-restricted")
+            rejected.fulfill()
+        }
+        SendQueueManager.shared.enqueue(makeJob(clientMessageId: "job-restricted"))
+        wait(for: [rejected], timeout: 2.0)
+        XCTAssertEqual(sends, 1)
     }
 
     func testMarkJobSucceededDoesNotCrash() {

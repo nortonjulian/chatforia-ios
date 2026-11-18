@@ -121,6 +121,17 @@ struct ChatMessageRowView: View {
                     }
                 }
 
+                if msg.mediaRestricted == true {
+                    Label(
+                        appText("messages.teenMediaRestricted", languageCode: appLanguage,
+                                fallback: "Images and videos are unavailable in conversations involving teen accounts."),
+                        systemImage: "eye.slash"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(themeManager.palette.secondaryText)
+                    .accessibilityAddTraits(.isStaticText)
+                }
+
                 if shouldShowBubble {
                     MessageBubbleView(
                         msg: msg,

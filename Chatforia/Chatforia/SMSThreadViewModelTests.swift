@@ -4,6 +4,17 @@ import XCTest
 @MainActor
 final class SMSThreadViewModelTests: XCTestCase {
 
+    func testRestrictedMmsResponseKeepsTextAndDoesNotExposeMediaURL() throws {
+        let json = """
+        {"id":42,"threadId":9,"direction":"in","body":"keep text","mediaUrls":[],"mediaRestricted":true,
+         "createdAt":"2026-11-17T00:00:00Z"}
+        """
+        let dto = try JSONDecoder.tolerantISO8601Decoder().decode(SMSMessageDTO.self, from: Data(json.utf8))
+        XCTAssertTrue(dto.mediaRestricted)
+        XCTAssertEqual(dto.body, "keep text")
+        XCTAssertTrue(dto.media.isEmpty)
+    }
+
     private final class ReadProbe {
         var accountId = 1
         var token = "synthetic-token"

@@ -1246,6 +1246,16 @@ private struct SMSMessageRowView: View {
                         }
                 }
 
+                if msg.mediaRestricted {
+                    Label(
+                        appText("messages.teenMediaRestricted", languageCode: appLanguage,
+                                fallback: "Images and videos are unavailable in conversations involving teen accounts."),
+                        systemImage: "eye.slash"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(themeManager.palette.secondaryText)
+                }
+
                 if let original = msg.trimmedBody, !original.isEmpty {
                     VStack(alignment: .leading, spacing: 5) {
                         switch translation {
@@ -1320,7 +1330,7 @@ private struct SMSMessageRowView: View {
                             onBubbleTap()
                         }
 
-                } else if msg.media.isEmpty {
+                } else if msg.media.isEmpty && !msg.mediaRestricted {
                     Text("—")
                         .font(.body)
                         .foregroundStyle(

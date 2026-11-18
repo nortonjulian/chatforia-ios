@@ -51,6 +51,7 @@ struct ConversationLastDTO: Codable {
     let mediaKinds: [String]?
     let thumbUrl: String?
     let senderName: String?
+    var mediaRestricted: Bool? = nil
 }
 
 extension ConversationDTO {

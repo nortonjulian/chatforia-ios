@@ -13,6 +13,7 @@ struct SMSMessageDTO: Decodable, Identifiable, Equatable, Sendable {
     let provider: String?
     let providerMessageId: String?
     let media: [SMSMediaItemDTO]
+    let mediaRestricted: Bool
     let createdAt: Date
     let editedAt: Date?
 
@@ -26,6 +27,7 @@ struct SMSMessageDTO: Decodable, Identifiable, Equatable, Sendable {
         case provider
         case providerMessageId
         case mediaUrls
+        case mediaRestricted
         case createdAt
         case editedAt
     }
@@ -40,6 +42,7 @@ struct SMSMessageDTO: Decodable, Identifiable, Equatable, Sendable {
         provider: String? = nil,
         providerMessageId: String? = nil,
         media: [SMSMediaItemDTO] = [],
+        mediaRestricted: Bool = false,
         createdAt: Date,
         editedAt: Date? = nil
     ) {
@@ -52,6 +55,7 @@ struct SMSMessageDTO: Decodable, Identifiable, Equatable, Sendable {
         self.provider = provider
         self.providerMessageId = providerMessageId
         self.media = media
+        self.mediaRestricted = mediaRestricted
         self.createdAt = createdAt
         self.editedAt = editedAt
     }
@@ -69,6 +73,7 @@ struct SMSMessageDTO: Decodable, Identifiable, Equatable, Sendable {
         providerMessageId = try c.decodeIfPresent(String.self, forKey: .providerMessageId)
         createdAt = try c.decode(Date.self, forKey: .createdAt)
         editedAt = try c.decodeIfPresent(Date.self, forKey: .editedAt)
+        mediaRestricted = try c.decodeIfPresent(Bool.self, forKey: .mediaRestricted) ?? false
 
         if let items = try? c.decode([SMSMediaItemDTO].self, forKey: .mediaUrls) {
             media = items

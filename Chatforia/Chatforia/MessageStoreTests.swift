@@ -161,6 +161,28 @@ final class MessageStoreTests: XCTestCase {
         )
     }
 
+    func testRestrictedMediaResponseClearsCachedVisualAttachmentWithoutDeletingText() throws {
+        let original = MessageDTO(
+            id: 44, rawContent: "Keep this text",
+            imageUrl: "https://example.invalid/old.jpg",
+            attachments: [AttachmentDTO(id: 9, kind: "IMAGE", url: "media/old.jpg")],
+            createdAt: Date(), sender: SenderDTO(id: 2, username: "sender", publicKey: nil, avatarUrl: nil),
+            chatRoomId: 10
+        )
+        let restricted = MessageDTO(
+            id: 44, rawContent: "Keep this text", imageUrl: nil,
+            attachments: [], mediaRestricted: true,
+            createdAt: original.createdAt, sender: original.sender, chatRoomId: 10
+        )
+        let decoded = try JSONDecoder().decode(MessageDTO.self, from: JSONEncoder().encode(restricted))
+        let merged = MessageDTO.merged(current: original, incoming: decoded)
+        XCTAssertTrue(merged.mediaRestricted == true)
+        XCTAssertNil(merged.imageUrl)
+        XCTAssertEqual(merged.attachments?.count, 0)
+        XCTAssertEqual(merged.rawContent, "Keep this text")
+        XCTAssertEqual(original.attachments?.count, 1)
+    }
+
     func testServerBeforeIdForPagingReturnsLowestServerId() {
         MessageStore.shared.upsertMany([
             makeMessage(id: 10, roomId: 1, text: "Ten"),

@@ -919,6 +919,11 @@ struct ChatsRootView: View {
             return text
         }
 
+        if last.mediaRestricted == true {
+            return appText("messages.teenMediaRestricted", languageCode: appLanguage,
+                           fallback: "Images and videos are unavailable in conversations involving teen accounts.")
+        }
+
         if last.hasMedia == true || isLegacyChatforiaMarker {
             var kinds = (last.mediaKinds ?? []).map { $0.uppercased() }
             if kinds.isEmpty && isLegacyChatforiaMarker {

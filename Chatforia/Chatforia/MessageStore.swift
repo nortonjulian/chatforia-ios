@@ -3,6 +3,7 @@ import Foundation
 extension Notification.Name {
     static let DeliveryStateChanged = Notification.Name("Chatforia.DeliveryStateChanged")
     static let MessagesChanged = Notification.Name("Chatforia.MessagesChanged")
+    static let teenVisualMediaRestricted = Notification.Name("Chatforia.TeenVisualMediaRestricted")
 }
 
 final class MessageStore {
@@ -437,6 +438,7 @@ final class MessageStore {
                         audioUrl: serverMessage.audioUrl,
                         audioDurationSec: serverMessage.audioDurationSec,
                         attachments: serverMessage.attachments,
+                        mediaRestricted: serverMessage.mediaRestricted,
                         isExplicit: serverMessage.isExplicit,
                         createdAt: serverMessage.createdAt,
                         expiresAt: serverMessage.expiresAt,

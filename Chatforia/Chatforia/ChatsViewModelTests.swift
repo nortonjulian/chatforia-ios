@@ -4,6 +4,17 @@ import XCTest
 @MainActor
 final class ChatsViewModelTests: XCTestCase {
 
+    func testRestrictedMediaPreviewDecodesWithoutThumbnail() throws {
+        let json = """
+        {"kind":"chat","id":9,"title":"Teen room","last":{
+          "text":"","messageId":42,"hasMedia":false,"mediaCount":0,
+          "mediaKinds":[],"thumbUrl":null,"mediaRestricted":true}}
+        """
+        let conversation = try JSONDecoder().decode(ConversationDTO.self, from: Data(json.utf8))
+        XCTAssertEqual(conversation.last?.mediaRestricted, true)
+        XCTAssertNil(conversation.last?.thumbUrl)
+    }
+
     func testSessionPreparationClearsOtherAccountsBeforeOfflineShellAppears() {
         let vm = ChatsViewModel()
         vm.prepareForSession(token: "account-one")

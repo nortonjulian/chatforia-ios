@@ -42,6 +42,16 @@ struct SimpleMessageRowView: View {
                         )
                     }
 
+                    if msg.mediaRestricted == true {
+                        Label(
+                            appText("messages.teenMediaRestricted", languageCode: appLanguage,
+                                    fallback: "Images and videos are unavailable in conversations involving teen accounts."),
+                            systemImage: "eye.slash"
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+
                     if shouldShowBubble {
                         Text(displayText)
                             .font(.body)

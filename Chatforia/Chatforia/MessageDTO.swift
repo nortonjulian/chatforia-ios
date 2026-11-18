@@ -24,10 +24,12 @@ extension MessageDTO {
             translatedForMe: incoming.translatedForMe ?? current.translatedForMe,
             encryptedKeyForMe: encryption.encryptedKeyForMe,
             encryptedPayloadForMe: encryption.encryptedPayloadForMe,
-            imageUrl: incoming.imageUrl ?? current.imageUrl,
+            imageUrl: incoming.mediaRestricted == true ? nil : (incoming.imageUrl ?? current.imageUrl),
             audioUrl: incoming.audioUrl ?? current.audioUrl,
             audioDurationSec: incoming.audioDurationSec ?? current.audioDurationSec,
-            attachments: preferredAttachments(current: current.attachments, incoming: incoming.attachments),
+            attachments: incoming.mediaRestricted == true ? incoming.attachments :
+                preferredAttachments(current: current.attachments, incoming: incoming.attachments),
+            mediaRestricted: incoming.mediaRestricted ?? current.mediaRestricted,
             isExplicit: incoming.isExplicit ?? current.isExplicit,
             createdAt: incoming.createdAt,
             expiresAt: incoming.expiresAt ?? current.expiresAt,
@@ -314,6 +316,7 @@ struct MessageDTO: Codable, Identifiable, Equatable {
     let audioDurationSec: Double?
 
     let attachments: [AttachmentDTO]?
+    let mediaRestricted: Bool?
 
     let isExplicit: Bool?
 
@@ -351,6 +354,7 @@ struct MessageDTO: Codable, Identifiable, Equatable {
         case audioUrl
         case audioDurationSec
         case attachments
+        case mediaRestricted
         case isExplicit
         case createdAt
         case expiresAt
@@ -381,6 +385,7 @@ struct MessageDTO: Codable, Identifiable, Equatable {
         audioUrl: String? = nil,
         audioDurationSec: Double? = nil,
         attachments: [AttachmentDTO]? = nil,
+        mediaRestricted: Bool? = nil,
         isExplicit: Bool? = nil,
         createdAt: Date,
         expiresAt: Date? = nil,
@@ -409,6 +414,7 @@ struct MessageDTO: Codable, Identifiable, Equatable {
         self.audioUrl = audioUrl
         self.audioDurationSec = audioDurationSec
         self.attachments = attachments
+        self.mediaRestricted = mediaRestricted
         self.isExplicit = isExplicit
         self.createdAt = createdAt
         self.expiresAt = expiresAt
@@ -456,6 +462,7 @@ struct MessageDTO: Codable, Identifiable, Equatable {
         }
 
         attachments = try c.decodeIfPresent([AttachmentDTO].self, forKey: .attachments)
+        mediaRestricted = try c.decodeIfPresent(Bool.self, forKey: .mediaRestricted)
 
         isExplicit = try c.decodeIfPresent(Bool.self, forKey: .isExplicit)
 
@@ -500,6 +507,7 @@ struct MessageDTO: Codable, Identifiable, Equatable {
         try c.encodeIfPresent(audioUrl, forKey: .audioUrl)
         try c.encodeIfPresent(audioDurationSec, forKey: .audioDurationSec)
         try c.encodeIfPresent(attachments, forKey: .attachments)
+        try c.encodeIfPresent(mediaRestricted, forKey: .mediaRestricted)
 
         try c.encodeIfPresent(isExplicit, forKey: .isExplicit)
 
@@ -535,6 +543,7 @@ struct MessageDTO: Codable, Identifiable, Equatable {
         lhs.encryptedPayloadForMe == rhs.encryptedPayloadForMe &&
         lhs.translatedForMe == rhs.translatedForMe &&
         lhs.attachments == rhs.attachments &&
+        lhs.mediaRestricted == rhs.mediaRestricted &&
         lhs.deletedForAll == rhs.deletedForAll &&
         lhs.deletedBySender == rhs.deletedBySender &&
         lhs.reactionSummary == rhs.reactionSummary &&
