@@ -15,6 +15,21 @@ final class SMSThreadViewModelTests: XCTestCase {
         XCTAssertTrue(dto.media.isEmpty)
     }
 
+    func testTeenCachedMmsMediaKeepsAudioAndHidesVisualOrUnknownItems() {
+        let message = SMSMessageDTO(
+            id: 42, direction: "in", body: "text",
+            media: [
+                SMSMediaItemDTO(url: "https://example.test/photo.jpg", contentType: "image/jpeg"),
+                SMSMediaItemDTO(url: "https://example.test/voice.mp3", contentType: "audio/mpeg"),
+                SMSMediaItemDTO(url: "https://example.test/disguised.mp3", contentType: "image/jpeg"),
+                SMSMediaItemDTO(url: "https://example.test/opaque"),
+            ],
+            createdAt: Date()
+        )
+        XCTAssertEqual(message.mediaVisibleToTeen.count, 1)
+        XCTAssertTrue(message.mediaVisibleToTeen[0].isAudio)
+    }
+
     private final class ReadProbe {
         var accountId = 1
         var token = "synthetic-token"

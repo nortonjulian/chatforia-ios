@@ -647,6 +647,20 @@ struct AttachmentDTO: Codable, Equatable {
     let caption: String?
     let thumbUrl: String?
 
+    var isVisualForTeenSafety: Bool {
+        let category = (kind ?? "").uppercased()
+        let mime = (mimeType ?? "").lowercased()
+        if ["IMAGE", "VIDEO", "GIF"].contains(category) ||
+            mime.hasPrefix("image/") || mime.hasPrefix("video/") { return true }
+        if category == "AUDIO" || mime.hasPrefix("audio/") { return false }
+        if thumbUrl != nil { return true }
+        let path = (url ?? "").lowercased()
+            .split(whereSeparator: { $0 == "?" || $0 == "#" }).first.map(String.init) ?? ""
+        return [".jpg", ".jpeg", ".png", ".gif", ".webp", ".heic", ".mp4", ".mov", ".m4v", ".webm"].contains {
+            path.hasSuffix($0)
+        }
+    }
+
     enum CodingKeys: String, CodingKey {
         case id
         case kind

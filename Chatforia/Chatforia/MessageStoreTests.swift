@@ -3,6 +3,15 @@ import XCTest
 
 final class MessageStoreTests: XCTestCase {
 
+    func testTeenVisualMetadataFilterKeepsAudioAndDocuments() {
+        XCTAssertTrue(AttachmentDTO(kind: "IMAGE", url: "media/a", mimeType: "image/jpeg").isVisualForTeenSafety)
+        XCTAssertTrue(AttachmentDTO(kind: "FILE", url: "media/a.mp4", mimeType: "application/octet-stream").isVisualForTeenSafety)
+        XCTAssertTrue(AttachmentDTO(kind: "FILE", url: "media/a", mimeType: "application/octet-stream", thumbUrl: "thumbs/a").isVisualForTeenSafety)
+        XCTAssertTrue(AttachmentDTO(kind: "AUDIO", url: "media/disguised.mp3", mimeType: "image/jpeg").isVisualForTeenSafety)
+        XCTAssertFalse(AttachmentDTO(kind: "AUDIO", url: "media/voice.webm", mimeType: "audio/webm").isVisualForTeenSafety)
+        XCTAssertFalse(AttachmentDTO(kind: "FILE", url: "media/notes.pdf", mimeType: "application/pdf").isVisualForTeenSafety)
+    }
+
     override func setUp() {
         super.setUp()
         MessageStore.shared.clearAll()

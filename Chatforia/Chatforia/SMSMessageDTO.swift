@@ -110,6 +110,12 @@ struct SMSMessageDTO: Decodable, Identifiable, Equatable, Sendable {
         media.count
     }
 
+    var mediaVisibleToTeen: [SMSMediaItemDTO] {
+        // Unknown legacy MMS items may be visual; the backend uses the same
+        // conservative rule and reindexes the surviving audio items.
+        media.filter { $0.isAudio && !$0.isImage && !$0.isVideo }
+    }
+
     var displayFallbackText: String {
         if hasText { return trimmedBody ?? "" }
 
