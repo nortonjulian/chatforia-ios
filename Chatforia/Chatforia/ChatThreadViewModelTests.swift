@@ -23,11 +23,19 @@ final class ChatThreadViewModelTests: XCTestCase {
         XCTAssertEqual(try APIClient.shared.buildURL(from: request).path, "/messages/report")
 
         let vm = ChatThreadViewModel()
-        let message = MessageDTO(
-            id: 802, rawContent: "synthetic report", createdAt: Date(),
+        let previous = MessageDTO(
+            id: 801, rawContent: "previous context", createdAt: Date().addingTimeInterval(-30),
             sender: SenderDTO(id: 9, username: "sender", publicKey: nil, avatarUrl: nil),
             chatRoomId: 10
         )
+        let message = MessageDTO(
+            id: 802, rawContent: "synthetic report",
+            attachments: [AttachmentDTO(id: 7, kind: "IMAGE", url: "synthetic-private-media")],
+            createdAt: Date(),
+            sender: SenderDTO(id: 9, username: "sender", publicKey: nil, avatarUrl: nil),
+            chatRoomId: 10
+        )
+        vm.messages = [previous, message]
         var sent = 0
         vm.reportSender = { payload, token in
             sent += 1
@@ -38,15 +46,18 @@ final class ChatThreadViewModelTests: XCTestCase {
             XCTAssertEqual(object["reportedUserId"] as? Int, 9)
             XCTAssertEqual(object["reason"] as? String, "sexual_content")
             let snapshots = try XCTUnwrap(object["messages"] as? [[String: Any]])
-            XCTAssertEqual(snapshots.count, 1)
-            XCTAssertEqual(snapshots[0]["plaintext"] as? String, "synthetic report")
+            XCTAssertEqual(snapshots.count, 2)
+            XCTAssertEqual(snapshots[0]["plaintext"] as? String, "previous context")
+            XCTAssertEqual(snapshots[1]["plaintext"] as? String, "synthetic report")
+            let attachments = try XCTUnwrap(snapshots[1]["attachments"] as? [[String: Any]])
+            XCTAssertEqual(attachments.first?["id"] as? Int, 7)
             XCTAssertEqual(object["blockAfterReport"] as? Bool, true)
             return true
         }
 
         let succeeded = await vm.submitReport(
             targetMessage: message, roomId: 10, reason: .sexualContent,
-            details: "synthetic media", reportedContent: "synthetic report", contextCount: 0,
+            details: "synthetic media", reportedContent: "synthetic report", contextCount: 5,
             blockAfterReport: true, token: "synthetic-token"
         )
         XCTAssertTrue(succeeded)
