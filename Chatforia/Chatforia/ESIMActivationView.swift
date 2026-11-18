@@ -464,9 +464,9 @@ struct ESIMActivationView: View {
                 purchasedPackages?.replacementEligibility.eligible != true ||
                 onRequestReplacement == nil
             )
-            .alert("Replace eSIM?", isPresented: $showingReplacementConfirmation) {
-                Button("Cancel", role: .cancel) {}
-                Button("Replace eSIM", role: .destructive) {
+            .alert(appText("esim.transfer.confirmTitle", languageCode: appLanguage), isPresented: $showingReplacementConfirmation) {
+                Button(appText("common.cancel", languageCode: appLanguage), role: .cancel) {}
+                Button(appText("esim.transfer.confirmAction", languageCode: appLanguage), role: .destructive) {
                     // Return to Wireless before starting the existing workflow.
                     // Its completion opens the new installation details.
                     dismiss()

@@ -104,14 +104,14 @@ struct WirelessHomeView: View {
             }
         }
         .alert(
-            "Replace eSIM?",
+            appText("esim.transfer.confirmTitle", languageCode: appLanguage),
             isPresented: $showReplaceEsimConfirmation
         ) {
-            Button("Cancel", role: .cancel) {
+            Button(appText("common.cancel", languageCode: appLanguage), role: .cancel) {
                 replacementIdempotencyKey = nil
             }
 
-            Button("Replace eSIM", role: .destructive) {
+            Button(appText("esim.transfer.confirmAction", languageCode: appLanguage), role: .destructive) {
                 Task {
                     await replaceEsimForNewPhone()
                 }

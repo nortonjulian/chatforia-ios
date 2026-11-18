@@ -798411,6 +798411,28 @@
         }
       }
     },
+    "esim.transfer.confirmAction" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replace eSIM"
+          }
+        }
+      }
+    },
+    "esim.transfer.confirmTitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replace eSIM?"
+          }
+        }
+      }
+    },
     "esim.transfer.confirmation" : {
       "extractionState" : "manual",
       "localizations" : {

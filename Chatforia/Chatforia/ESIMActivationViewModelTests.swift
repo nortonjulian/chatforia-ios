@@ -4,6 +4,9 @@ import XCTest
 @MainActor
 final class ESIMActivationViewModelTests: XCTestCase {
     func testPurchaseAndTransferLocalizationKeysResolve() {
+        XCTAssertEqual(appText("esim.transfer.confirmTitle", languageCode: "en"), "Replace eSIM?")
+        XCTAssertEqual(appText("esim.transfer.confirmAction", languageCode: "en"), "Replace eSIM")
+        XCTAssertEqual(appText("common.cancel", languageCode: "es"), "Cancelar")
         XCTAssertEqual(
             appText("esim.purchase.historyTitle", languageCode: "en"),
             "Purchased Data Packages"
