@@ -650,12 +650,16 @@ struct AttachmentDTO: Codable, Equatable {
     var isVisualForTeenSafety: Bool {
         let category = (kind ?? "").uppercased()
         let mime = (mimeType ?? "").lowercased()
+        let path = (url ?? "").lowercased()
+            .split(whereSeparator: { $0 == "?" || $0 == "#" }).first.map(String.init) ?? ""
+        // An image suffix remains visual even when a client labels it as audio.
+        if [".jpg", ".jpeg", ".png", ".gif", ".webp", ".avif", ".heic", ".heif", ".bmp", ".tif", ".tiff"].contains(where: path.hasSuffix) {
+            return true
+        }
         if ["IMAGE", "VIDEO", "GIF"].contains(category) ||
             mime.hasPrefix("image/") || mime.hasPrefix("video/") { return true }
         if category == "AUDIO" || mime.hasPrefix("audio/") { return false }
         if thumbUrl != nil { return true }
-        let path = (url ?? "").lowercased()
-            .split(whereSeparator: { $0 == "?" || $0 == "#" }).first.map(String.init) ?? ""
         return [".jpg", ".jpeg", ".png", ".gif", ".webp", ".heic", ".mp4", ".mov", ".m4v", ".webm"].contains {
             path.hasSuffix($0)
         }

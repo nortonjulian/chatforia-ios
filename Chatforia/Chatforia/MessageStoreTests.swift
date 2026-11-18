@@ -8,7 +8,9 @@ final class MessageStoreTests: XCTestCase {
         XCTAssertTrue(AttachmentDTO(kind: "FILE", url: "media/a.mp4", mimeType: "application/octet-stream").isVisualForTeenSafety)
         XCTAssertTrue(AttachmentDTO(kind: "FILE", url: "media/a", mimeType: "application/octet-stream", thumbUrl: "thumbs/a").isVisualForTeenSafety)
         XCTAssertTrue(AttachmentDTO(kind: "AUDIO", url: "media/disguised.mp3", mimeType: "image/jpeg").isVisualForTeenSafety)
+        XCTAssertTrue(AttachmentDTO(kind: "AUDIO", url: "media/disguised.jpg?download=1", mimeType: "audio/mpeg").isVisualForTeenSafety)
         XCTAssertFalse(AttachmentDTO(kind: "AUDIO", url: "media/voice.webm", mimeType: "audio/webm").isVisualForTeenSafety)
+        XCTAssertFalse(AttachmentDTO(kind: "AUDIO", url: "media/voice.mp4", mimeType: "audio/mp4").isVisualForTeenSafety)
         XCTAssertFalse(AttachmentDTO(kind: "FILE", url: "media/notes.pdf", mimeType: "application/pdf").isVisualForTeenSafety)
     }
 
