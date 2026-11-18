@@ -45,6 +45,28 @@ final class SMSPreviewTranslationTests: XCTestCase {
             conversation(text: "Received", direction: nil)))
     }
 
+    func testRestrictedMixedMmsCaptionStillRequestsTranslationButMediaLabelDoesNot() {
+        let caption = ConversationDTO(kind: "sms", id: 67, title: "Saved contact", displayName: nil,
+            updatedAt: nil, isGroup: false, phone: "+13035550123", unreadCount: 1, avatarUsers: nil,
+            last: ConversationLastDTO(text: "Keep this caption", messageId: 501, at: nil,
+                hasMedia: true, mediaCount: 1, mediaKinds: ["audio"], thumbUrl: nil,
+                senderName: nil, direction: "in", mediaRestricted: true))
+        XCTAssertEqual(SMSPreviewTranslation.message(for: caption)?.body, "Keep this caption")
+
+        let label = ConversationDTO(kind: "sms", id: 67, title: "Saved contact", displayName: nil,
+            updatedAt: nil, isGroup: false, phone: "+13035550123", unreadCount: 1, avatarUsers: nil,
+            last: ConversationLastDTO(text: "Voice note", messageId: 502, at: nil,
+                hasMedia: true, mediaCount: 1, mediaKinds: ["audio"], thumbUrl: nil,
+                senderName: nil, direction: "in", mediaRestricted: true))
+        XCTAssertNil(SMSPreviewTranslation.message(for: label))
+        let legacyLabel = ConversationDTO(kind: "sms", id: 67, title: "Saved contact", displayName: nil,
+            updatedAt: nil, isGroup: false, phone: "+13035550123", unreadCount: 1, avatarUsers: nil,
+            last: ConversationLastDTO(text: "[audio]", messageId: 503, at: nil,
+                hasMedia: true, mediaCount: 1, mediaKinds: ["audio"], thumbUrl: nil,
+                senderName: nil, direction: "in", mediaRestricted: true))
+        XCTAssertNil(SMSPreviewTranslation.message(for: legacyLabel))
+    }
+
     func testDirectionDecodesFromConversationPayload() throws {
         let json = #"{"text":"Sent","messageId":501,"direction":"out"}"#.data(using: .utf8)!
         let last = try JSONDecoder().decode(ConversationLastDTO.self, from: json)

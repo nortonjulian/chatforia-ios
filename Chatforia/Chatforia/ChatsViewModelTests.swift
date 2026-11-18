@@ -60,25 +60,25 @@ final class ChatsViewModelTests: XCTestCase {
     }
 
     func testTeenMmsPreviewKeepsOnlyPermittedAudioAndDirection() throws {
-        let mixed = #"{"kind":"sms","id":9,"title":"Teen MMS","last":{"text":"","messageId":42,"direction":"in","hasMedia":true,"mediaCount":1,"mediaKinds":["audio"],"thumbUrl":"old-thumbnail","mediaRestricted":true}}"#
+        let mixed = #"{"kind":"sms","id":9,"title":"Teen MMS","last":{"text":"Voice note","messageId":42,"direction":"in","hasMedia":true,"mediaCount":1,"mediaKinds":["audio"],"thumbUrl":"old-thumbnail","mediaRestricted":true}}"#
         let decoded = try JSONDecoder().decode(ConversationDTO.self, from: Data(mixed.utf8))
         XCTAssertEqual(decoded.last?.direction, "in")
         XCTAssertEqual(decoded.last?.hasMedia, true)
         XCTAssertEqual(decoded.last?.mediaCount, 1)
         XCTAssertEqual(decoded.last?.mediaKinds, ["AUDIO"])
         XCTAssertNil(decoded.last?.thumbUrl)
-        XCTAssertTrue(ChatsRootView().conversationSubtitle(decoded).contains("🎤"))
+        XCTAssertEqual(ChatsRootView().conversationSubtitle(decoded, languageCode: "en"), "Voice note")
 
         let imageOnly = #"{"kind":"sms","id":10,"title":"Teen MMS","last":{"text":"","messageId":43,"hasMedia":false,"mediaCount":0,"mediaKinds":[],"mediaRestricted":true}}"#
         let hidden = try JSONDecoder().decode(ConversationDTO.self, from: Data(imageOnly.utf8))
         XCTAssertEqual(hidden.last?.hasMedia, false)
-        XCTAssertTrue(ChatsRootView().conversationSubtitle(hidden).contains("Images and videos"))
+        XCTAssertTrue(ChatsRootView().conversationSubtitle(hidden, languageCode: "en").contains("Images and videos"))
 
         let audioOnly = #"{"kind":"sms","id":11,"title":"Voice","last":{"text":"","messageId":44,"direction":"out","hasMedia":true,"mediaCount":1,"mediaKinds":["audio"]}}"#
         let voice = try JSONDecoder().decode(ConversationDTO.self, from: Data(audioOnly.utf8))
         XCTAssertEqual(voice.last?.direction, "out")
         XCTAssertEqual(voice.last?.hasMedia, true)
-        XCTAssertTrue(ChatsRootView().conversationSubtitle(voice).contains("🎤"))
+        XCTAssertTrue(ChatsRootView().conversationSubtitle(voice, languageCode: "en").contains("🎤"))
     }
 
     func testRestrictedPreviewNeverPreservesVisualKindsOrCountsFromOlderPayloads() throws {
