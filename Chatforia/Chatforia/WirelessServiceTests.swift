@@ -4,6 +4,22 @@ import XCTest
 @MainActor
 final class WirelessServiceTests: XCTestCase {
 
+    func testProfileInstallationReadinessNeverMasksUnusablePackageState() {
+        XCTAssertEqual(wirelessDisplayState("OK", readyToInstall: true), "READY_TO_INSTALL")
+        for state in ["EXPIRED", "EXHAUSTED", "TERMINATED", "AWAITING_ACTIVATION"] {
+            XCTAssertEqual(wirelessDisplayState(state, readyToInstall: true), state)
+        }
+        XCTAssertEqual(wirelessDisplayState("OK", readyToInstall: false), "OK")
+    }
+
+    func testUnlimitedStatusDoesNotRequirePositiveMegabytes() throws {
+        let data = Data(#"{"mode":"INDIVIDUAL","state":"OK","source":{"addonKind":"chatforia_esim_global_unlimited_premium","unlimited":true,"totalDataMb":0,"remainingDataMb":0},"queuedPacks":[]}"#.utf8)
+        let status = try JSONDecoder().decode(WirelessStatusDTO.self, from: data)
+
+        XCTAssertEqual(status.source?.isUnlimited, true)
+        XCTAssertEqual(status.source?.remainingDataMb, 0)
+    }
+
     func testFetchWirelessStatusThrowsUnauthorizedWhenNoToken() async {
         let client = StubWirelessAPIClient()
         let service = WirelessService(
@@ -79,6 +95,40 @@ final class WirelessServiceTests: XCTestCase {
             )
         } catch {
             XCTFail("Unexpected failure: \(error)")
+        }
+    }
+
+    func testPurchasedPackagesPreserveIndependentStatusesAndReplacementGate() async throws {
+        let client = StubWirelessAPIClient()
+        let service = WirelessService(
+            apiClient: client,
+            tokenProvider: { "fake-test-token" }
+        )
+
+        let response = try await service.fetchPurchasedPackages()
+
+        XCTAssertEqual(client.receivedPath, "api/wireless/purchases")
+        XCTAssertEqual(client.receivedMethod, .GET)
+        XCTAssertEqual(client.receivedToken, "fake-test-token")
+        XCTAssertEqual(response.packages.map(\.state), ["AWAITING_ACTIVATION", "EXPIRED"])
+        XCTAssertEqual(response.packages.map(\.remainingDataMb), [3072, 3072])
+        XCTAssertEqual(response.packages.first?.providerStatus, "NOT_ACTIVE")
+        XCTAssertFalse(response.replacementEligibility.eligible)
+        XCTAssertNil(response.replacementEligibility.purchaseId)
+        XCTAssertNotNil(response.replacementEligibility.reason)
+    }
+
+    func testPurchasedPackagesRequireAuthentication() async {
+        let client = StubWirelessAPIClient()
+        let service = WirelessService(apiClient: client, tokenProvider: { nil })
+
+        do {
+            _ = try await service.fetchPurchasedPackages()
+            XCTFail("Expected APIError.unauthorized")
+        } catch APIError.unauthorized {
+            XCTAssertNil(client.receivedPath)
+        } catch {
+            XCTFail("Expected APIError.unauthorized, got \(error)")
         }
     }
 
@@ -196,7 +246,51 @@ private final class StubWirelessAPIClient: APIClientSending {
 
         let data: Data
 
-        if request.path.contains("/replace") {
+        if request.path.contains("/purchases") {
+            data = Data(
+                #"""
+                {
+                  "packages": [
+                    {
+                      "id": 43,
+                      "addonKind": "chatforia_esim_europe_3_premium",
+                      "state": "AWAITING_ACTIVATION",
+                      "providerStatus": "NOT_ACTIVE",
+                      "unlimited": false,
+                      "totalDataMb": 3072,
+                      "remainingDataMb": 3072,
+                      "purchasedAt": "2026-11-12T19:27:49Z",
+                      "activatedAt": null,
+                      "expiresAt": "2026-12-12T19:27:49Z",
+                      "recordedExpiresAt": "2026-12-12T19:27:49Z",
+                      "providerExpiresAt": null,
+                      "paid": true
+                    },
+                    {
+                      "id": 42,
+                      "addonKind": "chatforia_esim_local_3_premium",
+                      "state": "EXPIRED",
+                      "providerStatus": "ACTIVE",
+                      "unlimited": false,
+                      "totalDataMb": 3072,
+                      "remainingDataMb": 3072,
+                      "purchasedAt": "2026-10-01T19:27:49Z",
+                      "activatedAt": null,
+                      "expiresAt": "2026-10-31T19:27:49Z",
+                      "recordedExpiresAt": "2026-10-31T19:27:49Z",
+                      "providerExpiresAt": null,
+                      "paid": true
+                    }
+                  ],
+                  "replacementEligibility": {
+                    "eligible": false,
+                    "purchaseId": null,
+                    "reason": "Multiple packages require provider confirmation."
+                  }
+                }
+                """#.utf8
+            )
+        } else if request.path.contains("/replace") {
             data = Data(
                 #"""
                 {

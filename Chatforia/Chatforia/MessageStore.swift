@@ -3,6 +3,7 @@ import Foundation
 extension Notification.Name {
     static let DeliveryStateChanged = Notification.Name("Chatforia.DeliveryStateChanged")
     static let MessagesChanged = Notification.Name("Chatforia.MessagesChanged")
+    static let teenVisualMediaRestricted = Notification.Name("Chatforia.TeenVisualMediaRestricted")
 }
 
 final class MessageStore {
@@ -437,6 +438,7 @@ final class MessageStore {
                         audioUrl: serverMessage.audioUrl,
                         audioDurationSec: serverMessage.audioDurationSec,
                         attachments: serverMessage.attachments,
+                        mediaRestricted: serverMessage.mediaRestricted,
                         isExplicit: serverMessage.isExplicit,
                         createdAt: serverMessage.createdAt,
                         expiresAt: serverMessage.expiresAt,
@@ -503,6 +505,19 @@ final class MessageStore {
             }
 
             self.messages.removeAll { $0.id == id }
+            self.persistLocked()
+            self.postMessagesChanged()
+        }
+    }
+
+    // Preparation failed before a SendJob was queued. Discard only the local
+    // optimistic row, never a server-acknowledged copy with the same client ID.
+    func discardUnqueuedOptimisticMessage(clientMessageId: String) {
+        lock.async(flags: .barrier) {
+            self.messages.removeAll {
+                $0.id <= 0 && $0.clientMessageId == clientMessageId
+            }
+            self.deliveryStates.removeValue(forKey: clientMessageId)
             self.persistLocked()
             self.postMessagesChanged()
         }

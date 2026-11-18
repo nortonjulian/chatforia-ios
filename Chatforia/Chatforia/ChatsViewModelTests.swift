@@ -4,6 +4,110 @@ import XCTest
 @MainActor
 final class ChatsViewModelTests: XCTestCase {
 
+    func testRandomMatchNavigatesOnlyAfterSheetDismissalAndRoomLoad() {
+        var gate = RandomMatchNavigationGate()
+        gate.begin()
+        gate.matched(roomId: 42)
+        XCTAssertFalse(gate.roomReady(roomId: 42))
+        XCTAssertTrue(gate.didDismiss())
+        XCTAssertFalse(gate.didDismiss())
+
+        gate.begin()
+        gate.matched(roomId: 43)
+        XCTAssertFalse(gate.didDismiss())
+        XCTAssertFalse(gate.roomReady(roomId: 42))
+        XCTAssertTrue(gate.roomReady(roomId: 43))
+        XCTAssertFalse(gate.roomReady(roomId: 43))
+    }
+
+    func testRandomMatchCancelledOrStaleRoomCannotNavigate() {
+        var gate = RandomMatchNavigationGate()
+        gate.begin()
+        gate.matched(roomId: 42)
+        let staleGeneration = gate.generation
+        gate.cancel()
+        XCTAssertNotEqual(gate.generation, staleGeneration)
+        XCTAssertFalse(gate.roomReady(roomId: 42))
+        XCTAssertFalse(gate.didDismiss())
+
+        gate.begin()
+        gate.matched(roomId: 44)
+        XCTAssertFalse(gate.roomReady(roomId: 42))
+        XCTAssertFalse(gate.didDismiss())
+        XCTAssertTrue(gate.roomReady(roomId: 44))
+    }
+
+    func testRestrictedMediaPreviewDecodesWithoutThumbnail() throws {
+        let json = """
+        {"kind":"chat","id":9,"title":"Teen room","last":{
+          "text":"","messageId":42,"hasMedia":true,"mediaCount":2,
+          "mediaKinds":["IMAGE"],"thumbUrl":"old-thumbnail","mediaRestricted":true}}
+        """
+        let conversation = try JSONDecoder().decode(ConversationDTO.self, from: Data(json.utf8))
+        XCTAssertEqual(conversation.last?.mediaRestricted, true)
+        XCTAssertEqual(conversation.last?.hasMedia, false)
+        XCTAssertEqual(conversation.last?.mediaCount, 0)
+        XCTAssertEqual(conversation.last?.mediaKinds, [])
+        XCTAssertNil(conversation.last?.thumbUrl)
+    }
+
+    func testOlderPreviewPayloadWithoutDirectionOrRestrictionStillDecodes() throws {
+        let json = #"{"kind":"sms","id":8,"title":"Older thread","last":{"text":"Hi","messageId":5}}"#
+        let conversation = try JSONDecoder().decode(ConversationDTO.self, from: Data(json.utf8))
+        XCTAssertEqual(conversation.last?.text, "Hi")
+        XCTAssertNil(conversation.last?.direction)
+        XCTAssertNil(conversation.last?.mediaRestricted)
+    }
+
+    func testTeenMmsPreviewKeepsOnlyPermittedAudioAndDirection() throws {
+        let mixed = #"{"kind":"sms","id":9,"title":"Teen MMS","last":{"text":"Voice note","messageId":42,"direction":"in","hasMedia":true,"mediaCount":1,"mediaKinds":["audio"],"thumbUrl":"old-thumbnail","mediaRestricted":true}}"#
+        let decoded = try JSONDecoder().decode(ConversationDTO.self, from: Data(mixed.utf8))
+        XCTAssertEqual(decoded.last?.direction, "in")
+        XCTAssertEqual(decoded.last?.hasMedia, true)
+        XCTAssertEqual(decoded.last?.mediaCount, 1)
+        XCTAssertEqual(decoded.last?.mediaKinds, ["AUDIO"])
+        XCTAssertNil(decoded.last?.thumbUrl)
+        XCTAssertEqual(ChatsRootView().conversationSubtitle(decoded, languageCode: "en"), "Voice note")
+
+        let imageOnly = #"{"kind":"sms","id":10,"title":"Teen MMS","last":{"text":"","messageId":43,"hasMedia":false,"mediaCount":0,"mediaKinds":[],"mediaRestricted":true}}"#
+        let hidden = try JSONDecoder().decode(ConversationDTO.self, from: Data(imageOnly.utf8))
+        XCTAssertEqual(hidden.last?.hasMedia, false)
+        XCTAssertTrue(ChatsRootView().conversationSubtitle(hidden, languageCode: "en").contains("Images and videos"))
+
+        let audioOnly = #"{"kind":"sms","id":11,"title":"Voice","last":{"text":"","messageId":44,"direction":"out","hasMedia":true,"mediaCount":1,"mediaKinds":["audio"]}}"#
+        let voice = try JSONDecoder().decode(ConversationDTO.self, from: Data(audioOnly.utf8))
+        XCTAssertEqual(voice.last?.direction, "out")
+        XCTAssertEqual(voice.last?.hasMedia, true)
+        XCTAssertTrue(ChatsRootView().conversationSubtitle(voice, languageCode: "en").contains("🎤"))
+    }
+
+    func testRestrictedPreviewNeverPreservesVisualKindsOrCountsFromOlderPayloads() throws {
+        let legacy = #"{"text":"","messageId":42,"hasMedia":true,"mediaCount":2,"mediaKinds":["IMAGE","AUDIO"],"thumbUrl":"old-thumbnail","mediaRestricted":true}"#
+        let decoded = try JSONDecoder().decode(ConversationLastDTO.self, from: Data(legacy.utf8))
+        XCTAssertEqual(decoded.hasMedia, true)
+        XCTAssertNil(decoded.mediaCount)
+        XCTAssertEqual(decoded.mediaKinds, ["AUDIO"])
+        XCTAssertNil(decoded.thumbUrl)
+    }
+
+    func testRestrictedPreviewCopyRetainsDirectionButClearsMediaMetadata() throws {
+        let copied = ConversationLastDTO(
+            text: "Restricted media", messageId: 42, at: nil,
+            hasMedia: true, mediaCount: 2, mediaKinds: ["IMAGE"],
+            thumbUrl: "old-thumbnail", senderName: nil,
+            direction: "out", mediaRestricted: true
+        )
+        let decoded = try JSONDecoder().decode(
+            ConversationLastDTO.self, from: JSONEncoder().encode(copied)
+        )
+        XCTAssertEqual(decoded.direction, "out")
+        XCTAssertEqual(decoded.mediaRestricted, true)
+        XCTAssertEqual(decoded.hasMedia, false)
+        XCTAssertEqual(decoded.mediaCount, 0)
+        XCTAssertEqual(decoded.mediaKinds, [])
+        XCTAssertNil(decoded.thumbUrl)
+    }
+
     func testSessionPreparationClearsOtherAccountsBeforeOfflineShellAppears() {
         let vm = ChatsViewModel()
         vm.prepareForSession(token: "account-one")

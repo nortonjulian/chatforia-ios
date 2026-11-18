@@ -3,6 +3,17 @@ import XCTest
 
 final class MessageStoreTests: XCTestCase {
 
+    func testTeenVisualMetadataFilterKeepsAudioAndDocuments() {
+        XCTAssertTrue(AttachmentDTO(kind: "IMAGE", url: "media/a", mimeType: "image/jpeg").isVisualForTeenSafety)
+        XCTAssertTrue(AttachmentDTO(kind: "FILE", url: "media/a.mp4", mimeType: "application/octet-stream").isVisualForTeenSafety)
+        XCTAssertTrue(AttachmentDTO(kind: "FILE", url: "media/a", mimeType: "application/octet-stream", thumbUrl: "thumbs/a").isVisualForTeenSafety)
+        XCTAssertTrue(AttachmentDTO(kind: "AUDIO", url: "media/disguised.mp3", mimeType: "image/jpeg").isVisualForTeenSafety)
+        XCTAssertTrue(AttachmentDTO(kind: "AUDIO", url: "media/disguised.jpg?download=1", mimeType: "audio/mpeg").isVisualForTeenSafety)
+        XCTAssertFalse(AttachmentDTO(kind: "AUDIO", url: "media/voice.webm", mimeType: "audio/webm").isVisualForTeenSafety)
+        XCTAssertFalse(AttachmentDTO(kind: "AUDIO", url: "media/voice.mp4", mimeType: "audio/mp4").isVisualForTeenSafety)
+        XCTAssertFalse(AttachmentDTO(kind: "FILE", url: "media/notes.pdf", mimeType: "application/pdf").isVisualForTeenSafety)
+    }
+
     override func setUp() {
         super.setUp()
         MessageStore.shared.clearAll()
@@ -130,6 +141,43 @@ final class MessageStoreTests: XCTestCase {
         XCTAssertNil(MessageStore.shared.message(withId: 1))
     }
 
+    func testDiscardUnqueuedOptimisticRemovesOnlyMatchingLocalRowAndState() {
+        let failed = MessageDTO.optimistic(
+            roomId: 10, clientMessageId: "failed-preparation", localId: -11,
+            text: "Draft", senderId: 1, senderUsername: "sender",
+            senderPublicKey: nil
+        )
+        let other = MessageDTO.optimistic(
+            roomId: 10, clientMessageId: "queued-send", localId: -12,
+            text: "Queued", senderId: 1, senderUsername: "sender",
+            senderPublicKey: nil
+        )
+        MessageStore.shared.upsertMany([failed, other, makeMessage(id: 13, roomId: 10, text: "Delivered")])
+        MessageStore.shared.setDeliveryState(clientMessageId: "failed-preparation", state: .sending)
+        MessageStore.shared.setDeliveryState(clientMessageId: "queued-send", state: .sending)
+
+        MessageStore.shared.discardUnqueuedOptimisticMessage(clientMessageId: "failed-preparation")
+
+        XCTAssertEqual(Set(MessageStore.shared.currentWindow().map(\.id)), Set([-12, 13]))
+        XCTAssertNil(MessageStore.shared.deliveryState(for: "failed-preparation"))
+        XCTAssertEqual(MessageStore.shared.deliveryState(for: "queued-send"), .sending)
+    }
+
+    func testDiscardUnqueuedOptimisticNeverRemovesServerAcknowledgedMessage() {
+        let delivered = MessageDTO.optimistic(
+            roomId: 10, clientMessageId: "same-id", localId: -14,
+            text: "Delivered", senderId: 1, senderUsername: "sender",
+            senderPublicKey: nil
+        )
+        MessageStore.shared.upsertMessage(delivered)
+        MessageStore.shared.upsertMessage(makeMessage(
+            id: 14, roomId: 10, text: "Server copy", clientMessageId: "same-id"
+        ))
+        MessageStore.shared.discardUnqueuedOptimisticMessage(clientMessageId: "same-id")
+
+        XCTAssertNotNil(MessageStore.shared.message(withId: 14))
+    }
+
     func testRemoveMessagesForRoomIdOnlyRemovesThatRoom() {
         MessageStore.shared.upsertMany([
             makeMessage(id: 1, roomId: 10, text: "Room 10"),
@@ -161,6 +209,28 @@ final class MessageStoreTests: XCTestCase {
         )
     }
 
+    func testRestrictedMediaResponseClearsCachedVisualAttachmentWithoutDeletingText() throws {
+        let original = MessageDTO(
+            id: 44, rawContent: "Keep this text",
+            imageUrl: "https://example.invalid/old.jpg",
+            attachments: [AttachmentDTO(id: 9, kind: "IMAGE", url: "media/old.jpg")],
+            createdAt: Date(), sender: SenderDTO(id: 2, username: "sender", publicKey: nil, avatarUrl: nil),
+            chatRoomId: 10
+        )
+        let restricted = MessageDTO(
+            id: 44, rawContent: "Keep this text", imageUrl: nil,
+            attachments: [], mediaRestricted: true,
+            createdAt: original.createdAt, sender: original.sender, chatRoomId: 10
+        )
+        let decoded = try JSONDecoder().decode(MessageDTO.self, from: JSONEncoder().encode(restricted))
+        let merged = MessageDTO.merged(current: original, incoming: decoded)
+        XCTAssertTrue(merged.mediaRestricted == true)
+        XCTAssertNil(merged.imageUrl)
+        XCTAssertEqual(merged.attachments?.count, 0)
+        XCTAssertEqual(merged.rawContent, "Keep this text")
+        XCTAssertEqual(original.attachments?.count, 1)
+    }
+
     func testServerBeforeIdForPagingReturnsLowestServerId() {
         MessageStore.shared.upsertMany([
             makeMessage(id: 10, roomId: 1, text: "Ten"),
@@ -181,7 +251,8 @@ private func makeMessage(
     roomId: Int,
     text: String,
     createdAt: Date = Date(),
-    expiresAt: Date? = nil
+    expiresAt: Date? = nil,
+    clientMessageId: String? = nil
 ) -> MessageDTO {
     MessageDTO(
         id: id,
@@ -214,7 +285,7 @@ private func makeMessage(
         reactionSummary: nil,
         myReactions: nil,
         revision: nil,
-        clientMessageId: nil
+        clientMessageId: clientMessageId
     )
 }
 

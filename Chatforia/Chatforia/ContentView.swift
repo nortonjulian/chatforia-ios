@@ -47,6 +47,7 @@ struct ContentView: View {
 
                 } else {
                     AppShellView(user: user)
+                        .id(user.id)
                 }
             }
         }

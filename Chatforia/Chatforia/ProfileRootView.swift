@@ -1069,11 +1069,14 @@ struct ProfileRootView: View {
 
                 ThemedToggleRow(
                     title: appText(
-                        "setting_allow_explicit_content",
+                        "setting_allow_profanity_in_chat_text",
                         languageCode: appLanguage
                     ),
                     isOn: $vm.allowExplicitContent
                 )
+                Text(appText("setting_profanity_text_only_note", languageCode: appLanguage))
+                    .font(.footnote)
+                    .foregroundStyle(themeManager.palette.secondaryText)
 
                 ThemedToggleRow(
                     title: appText(

@@ -4,6 +4,95 @@ import XCTest
 @MainActor
 final class ChatThreadViewModelTests: XCTestCase {
 
+    func testContactAccountReportUsesAuthenticatedModerationRoute() throws {
+        let path = ContactAccountReportRequest.path(userId: 29)
+        let request = APIRequest(path: path, method: .POST, requiresAuth: true)
+        XCTAssertEqual(try APIClient.shared.buildURL(from: request).path, "/reports/users/29")
+        let payload = ContactAccountReportRequest(reason: ReportReason.harassment.rawValue, details: "synthetic")
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(payload)) as? [String: Any])
+        XCTAssertEqual(object["reason"] as? String, "harassment")
+        XCTAssertEqual(object["details"] as? String, "synthetic")
+    }
+
+    func testReportSubmissionUsesExistingAuthenticatedRouteAndSelectedMessage() async throws {
+        let request = APIRequest(
+            path: ReportCreateRequest.endpoint,
+            method: .POST,
+            requiresAuth: true
+        )
+        XCTAssertEqual(try APIClient.shared.buildURL(from: request).path, "/messages/report")
+
+        let vm = ChatThreadViewModel()
+        let previous = MessageDTO(
+            id: 801, rawContent: "previous context", createdAt: Date().addingTimeInterval(-30),
+            sender: SenderDTO(id: 9, username: "sender", publicKey: nil, avatarUrl: nil),
+            chatRoomId: 10
+        )
+        let message = MessageDTO(
+            id: 802, rawContent: "synthetic report",
+            attachments: [AttachmentDTO(id: 7, kind: "IMAGE", url: "synthetic-private-media")],
+            createdAt: Date(),
+            sender: SenderDTO(id: 9, username: "sender", publicKey: nil, avatarUrl: nil),
+            chatRoomId: 10
+        )
+        vm.messages = [previous, message]
+        var sent = 0
+        vm.reportSender = { payload, token in
+            sent += 1
+            XCTAssertEqual(token, "synthetic-token")
+            let object = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(payload)) as? [String: Any])
+            XCTAssertEqual(object["messageId"] as? Int, 802)
+            XCTAssertEqual(object["chatRoomId"] as? Int, 10)
+            XCTAssertEqual(object["reportedUserId"] as? Int, 9)
+            XCTAssertEqual(object["reason"] as? String, "sexual_content")
+            let snapshots = try XCTUnwrap(object["messages"] as? [[String: Any]])
+            XCTAssertEqual(snapshots.count, 2)
+            XCTAssertEqual(snapshots[0]["plaintext"] as? String, "previous context")
+            XCTAssertEqual(snapshots[1]["plaintext"] as? String, "synthetic report")
+            let attachments = try XCTUnwrap(snapshots[1]["attachments"] as? [[String: Any]])
+            XCTAssertEqual(attachments.first?["id"] as? Int, 7)
+            XCTAssertEqual(object["blockAfterReport"] as? Bool, true)
+            return true
+        }
+
+        let succeeded = await vm.submitReport(
+            targetMessage: message, roomId: 10, reason: .sexualContent,
+            details: "synthetic media", reportedContent: "synthetic report", contextCount: 5,
+            blockAfterReport: true, token: "synthetic-token"
+        )
+        XCTAssertTrue(succeeded)
+        XCTAssertEqual(sent, 1)
+        XCTAssertNil(vm.reportErrorText)
+    }
+
+    func testFailedReportRetainsErrorAndCanRetryWithoutDuplicateSubmission() async {
+        let vm = ChatThreadViewModel()
+        let message = MessageDTO(
+            id: 803, rawContent: "synthetic report", createdAt: Date(),
+            sender: SenderDTO(id: 9, username: "sender", publicKey: nil, avatarUrl: nil),
+            chatRoomId: 10
+        )
+        var attempts = 0
+        vm.reportSender = { _, _ in
+            attempts += 1
+            if attempts == 1 { throw URLError(.notConnectedToInternet) }
+            return true
+        }
+        let first = await vm.submitReport(
+            targetMessage: message, roomId: 10, reason: .other,
+            details: "", contextCount: 0, blockAfterReport: false, token: "synthetic-token"
+        )
+        XCTAssertFalse(first)
+        XCTAssertNotNil(vm.reportErrorText)
+        let second = await vm.submitReport(
+            targetMessage: message, roomId: 10, reason: .other,
+            details: "", contextCount: 0, blockAfterReport: false, token: "synthetic-token"
+        )
+        XCTAssertTrue(second)
+        XCTAssertEqual(attempts, 2)
+        XCTAssertNil(vm.reportErrorText)
+    }
+
     func testVisibleExpiryAndRestartAfterBackground() {
         let vm = ChatThreadViewModel()
         let expired = MessageDTO(
@@ -155,6 +244,33 @@ final class ChatThreadViewModelTests: XCTestCase {
         )
 
         XCTAssertFalse(result)
+    }
+
+    func testOfflinePreparationFailureDoesNotLeaveOptimisticBubble() async {
+        MessageStore.shared.clearAll()
+        let vm = ChatThreadViewModel(textPayloadBuilder: { _, _, _, _ in
+            throw URLError(.notConnectedToInternet)
+        })
+
+        let sent = await vm.sendMessage(
+            roomId: 77, token: "synthetic-token", text: "Preserved draft",
+            senderId: 42, senderUsername: "sender", senderPublicKey: nil
+        )
+
+        XCTAssertFalse(sent)
+        XCTAssertTrue(MessageStore.shared.currentWindow().filter { $0.chatRoomId == 77 }.isEmpty)
+        XCTAssertEqual(vm.errorText, appText("chat.sendMessageFailed", languageCode:
+            UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"))
+        MessageStore.shared.clearAll()
+    }
+
+    func testLocalizedGIFFailureDoesNotExposeInterpolationMarkerOrRawNetworkError() {
+        let english = localizedGIFSendFailure(languageCode: "en")
+        let spanish = localizedGIFSendFailure(languageCode: "es")
+        XCTAssertFalse(english.contains("{error}"))
+        XCTAssertFalse(spanish.contains("{error}"))
+        XCTAssertTrue(english.contains("Try Again"))
+        XCTAssertTrue(spanish.contains("Inténtelo de nuevo"))
     }
 
     func testSendImageMessageReturnsFalseWhenTokenMissing() async {

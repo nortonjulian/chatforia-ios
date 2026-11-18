@@ -230,6 +230,12 @@ final class SendQueueManager {
                 case .permanentFailure:
                     self.handlePermanentFailureLocked(for: jobForSend)
 
+                case .restrictedMedia:
+                    self.handlePermanentFailureLocked(for: jobForSend)
+                    DispatchQueue.main.async {
+                        self.restrictedMediaCallback?(jobForSend.clientMessageId)
+                    }
+
                 case .temporaryFailure:
                     self.handleTemporaryFailureLocked(for: jobForSend, reason: "temporary failure")
                 }
@@ -330,6 +336,7 @@ final class SendQueueManager {
     var sendJobHandler: ((SendJob, @escaping (SendAttemptResult) -> Void) -> Void)?
     var sendSuccessCallback: ((String, MessageDTO?) -> Void)?
     var sendFailedCallback: ((String) -> Void)?
+    var restrictedMediaCallback: ((String) -> Void)?
 }
 
 struct SendJob: Codable, Equatable {
@@ -371,6 +378,7 @@ enum SendAttemptResult {
     case success(serverMessage: MessageDTO?)
     case temporaryFailure
     case permanentFailure
+    case restrictedMedia
 }
 
 extension SendQueueManager {

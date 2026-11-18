@@ -62,6 +62,11 @@ struct ChatThreadView: View {
     @State private var showEditGIFPicker = false
 
     @State private var deletingMessage: MessageDTO? = nil
+    @State private var reportingMessage: MessageDTO? = nil
+    @State private var reportReason: ReportReason = .other
+    @State private var reportContextCount = 0
+    @State private var reportDetails = ""
+    @State private var blockAfterReport = false
 
     @State private var showAttachmentSheet = false
     @State private var showGIFPicker = false
@@ -161,9 +166,48 @@ struct ChatThreadView: View {
         }
         .onChange(of: auth.currentUser?.id) { _, _ in
             selectedVideoURL = nil
+            reportingMessage = nil
         }
         .onChange(of: auth.currentToken) { _, _ in
             selectedVideoURL = nil
+            reportingMessage = nil
+        }
+        .sheet(item: $reportingMessage) { message in
+            let previewText = DecryptedMessageTextStore.shared.text(for: message.id)
+                ?? message.rawContent
+                ?? message.translatedForMe
+                ?? ""
+            ReportMessageSheet(
+                targetMessage: message,
+                senderName: message.sender.username ?? appText("common.unknown", languageCode: appLanguage),
+                previewText: previewText,
+                isSubmitting: vm.isSubmittingReport,
+                errorText: vm.reportErrorText,
+                reason: $reportReason,
+                contextCount: $reportContextCount,
+                details: $reportDetails,
+                blockAfterReport: $blockAfterReport,
+                onCancel: { reportingMessage = nil },
+                onSubmit: {
+                    let userID = auth.currentUser?.id
+                    let token = auth.currentToken
+                    Task {
+                        let submitted = await vm.submitReport(
+                            targetMessage: message,
+                            roomId: room.id,
+                            reason: reportReason,
+                            details: reportDetails,
+                            reportedContent: previewText,
+                            contextCount: reportContextCount,
+                            blockAfterReport: blockAfterReport,
+                            token: token
+                        )
+                        if submitted && auth.currentUser?.id == userID {
+                            reportingMessage = nil
+                        }
+                    }
+                }
+            )
         }
         .sheet(item: $editingMessage) { _ in
             editMessageSheet
@@ -493,7 +537,14 @@ extension ChatThreadView {
                     onDelete: { msg in
                         deletingMessage = msg
                     },
-                    onReport: { _ in },
+                    onReport: { message in
+                        reportReason = .other
+                        reportContextCount = 0
+                        reportDetails = ""
+                        blockAfterReport = false
+                        vm.reportErrorText = nil
+                        reportingMessage = message
+                    },
                     onVideoTap: { url in
                         selectedVideoURL = IdentifiableURL(url: url)
                     },
@@ -955,14 +1006,8 @@ extension ChatThreadView {
             }
         } catch {
             await MainActor.run {
-                vm.errorText =
-                String(
-                    format: appText(
-                        "gif.sendFailed",
-                        languageCode: appLanguage
-                    ),
-                    error.localizedDescription
-                )
+                debugLog("sendPendingGIF failed:", error)
+                vm.errorText = localizedGIFSendFailure(languageCode: appLanguage)
             }
         }
     }

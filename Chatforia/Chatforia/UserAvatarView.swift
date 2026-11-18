@@ -1,5 +1,30 @@
 import SwiftUI
 
+// Chats and Contacts share the selected theme's placeholder surface and
+// readable text color while retaining their own initials and typography.
+struct ThemeAvatarPlaceholder: View {
+    let initials: String
+    let size: CGFloat
+    let font: Font
+
+    @EnvironmentObject private var themeManager: ThemeManager
+
+    var body: some View {
+        Circle()
+            .fill(themeManager.palette.accent.opacity(0.14))
+            .frame(width: size, height: size)
+            .overlay(
+                Circle()
+                    .stroke(themeManager.palette.border.opacity(0.8), lineWidth: 1)
+            )
+            .overlay(
+                Text(initials)
+                    .font(font.weight(.semibold))
+                    .foregroundStyle(themeManager.palette.primaryText)
+            )
+    }
+}
+
 struct UserAvatarView: View {
     enum FallbackStyle {
         case profileDefault

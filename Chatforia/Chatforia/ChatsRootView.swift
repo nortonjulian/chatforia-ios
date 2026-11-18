@@ -26,6 +26,7 @@ struct ChatsRootView: View {
 
     @State private var isMatching = false
     @State private var randomMatchSucceeded = false
+    @State private var randomMatchNavigation = RandomMatchNavigationGate()
     @State private var matchedRoom: ChatRoomDTO?
     @State private var selectedRandomSession: RandomSession? = nil
     @State private var didSetupRandomMatchListener = false
@@ -100,7 +101,7 @@ struct ChatsRootView: View {
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                         } else if vm.isLoading && vm.conversations.isEmpty {
-                            LoadingStateView(
+                            CompactLoadingStateView(
                                 title: appText(
                                     "ios.loading_chats",
                                     languageCode: appLanguage
@@ -268,6 +269,7 @@ struct ChatsRootView: View {
                             .scrollContentBackground(.hidden)
                             .background(Color.clear)
                             .listStyle(.insetGrouped)
+                            .chatforiaTopAlignedList()
                         }
                     }
 
@@ -506,7 +508,12 @@ struct ChatsRootView: View {
                 onDismiss: {
                     // Dismissing the matching sheet after a successful match must
                     // not send random:leave: the server treats it as ending the room.
-                    if !randomMatchSucceeded {
+                    if randomMatchSucceeded {
+                        if randomMatchNavigation.didDismiss() {
+                            showSelectedRoom = true
+                        }
+                    } else {
+                        randomMatchNavigation.cancel()
                         SocketManager.shared.leaveRandomQueue()
                     }
                 }
@@ -715,6 +722,7 @@ struct ChatsRootView: View {
             return
         }
 
+        randomMatchNavigation.begin()
         isMatching = true
 
         Task { @MainActor in
@@ -730,7 +738,8 @@ struct ChatsRootView: View {
                 SocketManager.shared.joinRandomQueue()
             } catch {
                 isMatching = false
-                vm.errorText = "Could not connect to Random Chat. Please try again."
+                randomMatchNavigation.cancel()
+                vm.errorText = appText("randomChat.connectionProblem", languageCode: appLanguage)
                 debugLog("[RandomChat][iOS] failed to connect before random join:", error.localizedDescription)
             }
         }
@@ -777,6 +786,10 @@ struct ChatsRootView: View {
             guard let roomId = (data.first as? [String: Any])?["roomId"] as? Int else { return }
 
             Task { @MainActor in
+                if randomMatchNavigation.pendingRoomId == roomId {
+                    randomMatchNavigation.cancel()
+                    isMatching = false
+                }
                 let wasCurrentSession = selectedRandomSession?.roomId == roomId
                 activeRandomRoomIds.remove(roomId)
                 activeRandomSessions.removeValue(forKey: roomId)
@@ -795,6 +808,9 @@ struct ChatsRootView: View {
     }
 
     private func handleMatchFound(roomId: Int, myAlias: String, partnerAlias: String) async {
+        guard isMatching else { return }
+        randomMatchNavigation.matched(roomId: roomId)
+        let navigationGeneration = randomMatchNavigation.generation
         randomMatchSucceeded = true
         isMatching = false
         SocketManager.shared.markRandomMatchCompleted()
@@ -807,6 +823,8 @@ struct ChatsRootView: View {
                 APIRequest(path: "chatrooms/\(roomId)", method: .GET, requiresAuth: true),
                 token: token
             )
+
+            guard randomMatchNavigation.generation == navigationGeneration else { return }
 
             let session = RandomSession(
                 roomId: roomId,
@@ -822,9 +840,13 @@ struct ChatsRootView: View {
 
             selectedRandomSession = session
 
-            showSelectedRoom = true
+            if randomMatchNavigation.roomReady(roomId: roomId) {
+                showSelectedRoom = true
+            }
         } catch {
             debugLog("❌ match fetch failed:", error)
+            guard randomMatchNavigation.generation == navigationGeneration else { return }
+            vm.errorText = appText("randomChat.connectionProblem", languageCode: appLanguage)
         }
     }
 
@@ -882,7 +904,8 @@ struct ChatsRootView: View {
         )
     }
 
-    private func conversationSubtitle(_ conversation: ConversationDTO) -> String {
+    func conversationSubtitle(_ conversation: ConversationDTO, languageCode: String? = nil) -> String {
+        let appLanguage = languageCode ?? self.appLanguage
         guard let last = conversation.last else {
             return conversation.kind.lowercased() == "sms"
                 ? appText(
@@ -906,7 +929,9 @@ struct ChatsRootView: View {
             && mediaMarkers.contains(rawText.lowercased())
         let mediaPlaceholder = mediaMarkers.contains(rawText.lowercased())
             && (last.hasMedia == true || isLegacyChatforiaMarker)
-        let text = rawText.caseInsensitiveCompare("[voice note]") == .orderedSame
+        let isVoiceNoteLabel = rawText.caseInsensitiveCompare("[voice note]") == .orderedSame ||
+            (last.hasMedia == true && rawText.caseInsensitiveCompare("Voice note") == .orderedSame)
+        let text = isVoiceNoteLabel
             ? (voiceNoteLabel.isEmpty || voiceNoteLabel == "sms.voiceNote" ? "Voice note" : voiceNoteLabel)
             : (mediaPlaceholder ? "" : rawText)
 
@@ -917,6 +942,11 @@ struct ChatsRootView: View {
                 return "\(sender): \(text)"
             }
             return text
+        }
+
+        if last.mediaRestricted == true && last.hasMedia != true {
+            return appText("messages.teenMediaRestricted", languageCode: appLanguage,
+                           fallback: "Images and videos are unavailable in conversations involving teen accounts.")
         }
 
         if last.hasMedia == true || isLegacyChatforiaMarker {
@@ -967,15 +997,70 @@ struct ChatsRootView: View {
     }
 }
 
-// Chats previews have a message ID but no SMS direction in /conversations.
-// The authenticated translation endpoint rejects outgoing IDs before billing;
-// only rows that appear onscreen make a request.
+// A navigation push can be lost when it is requested while SwiftUI is still
+// dismissing the matchmaking sheet. Wait for both independent events.
+struct RandomMatchNavigationGate {
+    private(set) var generation = 0
+    private(set) var pendingRoomId: Int?
+    private var sheetDismissed = false
+    private var readyRoomId: Int?
+    private var consumed = false
+
+    mutating func begin() {
+        generation += 1
+        pendingRoomId = nil
+        sheetDismissed = false
+        readyRoomId = nil
+        consumed = false
+    }
+
+    mutating func matched(roomId: Int) {
+        pendingRoomId = roomId
+    }
+
+    mutating func didDismiss() -> Bool {
+        sheetDismissed = true
+        return consumeIfReady()
+    }
+
+    mutating func roomReady(roomId: Int) -> Bool {
+        guard pendingRoomId == roomId else { return false }
+        readyRoomId = roomId
+        return consumeIfReady()
+    }
+
+    mutating func cancel() {
+        generation += 1
+        pendingRoomId = nil
+        readyRoomId = nil
+        consumed = true
+    }
+
+    private mutating func consumeIfReady() -> Bool {
+        guard sheetDismissed, readyRoomId == pendingRoomId,
+              readyRoomId != nil, !consumed else { return false }
+        consumed = true
+        return true
+    }
+}
+
+// Incoming SMS previews use the authenticated translation endpoint. Older
+// servers omit direction; retain their prior behavior until upgraded.
 enum SMSPreviewTranslation {
     static func message(for conversation: ConversationDTO) -> SMSMessageDTO? {
         guard let id = conversation.last?.messageId, id > 0,
               let threadId = conversation.id,
-              conversation.last?.hasMedia != true,
+              conversation.last?.direction?.lowercased() != "out",
               let body = conversation.last?.text, !body.isEmpty else { return nil }
+        // Media-only labels are generated by the backend; real MMS captions
+        // remain text and should still use the recipient's translation setting.
+        let mediaLabels: Set<String> = [
+            "voice note", "photo", "video", "audio", "attachment", "file",
+            "[voice note]", "[image]", "[video]", "[audio]", "[file]", "[gif]"
+        ]
+        if conversation.last?.hasMedia == true && mediaLabels.contains(body.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()) {
+            return nil
+        }
         return SMSMessageDTO(id: id, threadId: threadId, direction: "in",
                              body: body, createdAt: Date())
     }
@@ -1020,7 +1105,7 @@ private struct SMSPreviewChatListRowView: View {
     }
 
     private var previewMessage: SMSMessageDTO? {
-        // Direction is intentionally verified by the owned backend endpoint.
+        // The backend still verifies ownership and direction for every request.
         SMSPreviewTranslation.message(for: conversation)
     }
 

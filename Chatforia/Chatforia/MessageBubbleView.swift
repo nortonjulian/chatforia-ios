@@ -109,7 +109,8 @@ struct MessageBubbleView: View {
     }
 
     private var gifAttachment: AttachmentDTO? {
-        msg.attachments?.first(where: { att in
+        if auth.currentUser?.ageBand == "TEEN_13_17" { return nil }
+        return msg.attachments?.first(where: { att in
             let kind = (att.kind ?? "").uppercased()
             let mime = (att.mimeType ?? "").lowercased()
             return kind == "GIF" || mime == "image/gif"

@@ -51,6 +51,50 @@ struct ConversationLastDTO: Codable {
     let mediaKinds: [String]?
     let thumbUrl: String?
     let senderName: String?
+    let direction: String?
+    let mediaRestricted: Bool?
+
+    init(text: String?, messageId: Int?, at: String?, hasMedia: Bool?,
+         mediaCount: Int?, mediaKinds: [String]?, thumbUrl: String?,
+         senderName: String?, direction: String? = nil,
+         mediaRestricted: Bool? = nil) {
+        self.text = text
+        self.messageId = messageId
+        self.at = at
+        let kinds = mediaKinds ?? []
+        let hasPermittedAudio = kinds.contains { $0.uppercased() == "AUDIO" }
+        let audioOnly = !kinds.isEmpty && kinds.allSatisfy { $0.uppercased() == "AUDIO" }
+        self.hasMedia = mediaRestricted == true ? hasPermittedAudio : hasMedia
+        self.mediaCount = mediaRestricted == true
+            ? (audioOnly ? mediaCount : (hasPermittedAudio ? nil : 0)) : mediaCount
+        self.mediaKinds = mediaRestricted == true
+            ? (hasPermittedAudio ? ["AUDIO"] : []) : mediaKinds
+        self.thumbUrl = mediaRestricted == true ? nil : thumbUrl
+        self.senderName = senderName
+        self.direction = direction
+        self.mediaRestricted = mediaRestricted
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case text, messageId, at, hasMedia, mediaCount, mediaKinds
+        case thumbUrl, senderName, direction, mediaRestricted
+    }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            text: try values.decodeIfPresent(String.self, forKey: .text),
+            messageId: try values.decodeIfPresent(Int.self, forKey: .messageId),
+            at: try values.decodeIfPresent(String.self, forKey: .at),
+            hasMedia: try values.decodeIfPresent(Bool.self, forKey: .hasMedia),
+            mediaCount: try values.decodeIfPresent(Int.self, forKey: .mediaCount),
+            mediaKinds: try values.decodeIfPresent([String].self, forKey: .mediaKinds),
+            thumbUrl: try values.decodeIfPresent(String.self, forKey: .thumbUrl),
+            senderName: try values.decodeIfPresent(String.self, forKey: .senderName),
+            direction: try values.decodeIfPresent(String.self, forKey: .direction),
+            mediaRestricted: try values.decodeIfPresent(Bool.self, forKey: .mediaRestricted)
+        )
+    }
 }
 
 extension ConversationDTO {

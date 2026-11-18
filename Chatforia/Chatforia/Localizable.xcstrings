@@ -798048,6 +798048,578 @@
         }
       }
     },
+    "esim.install.dataSettingsIos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For mobile data, select the Chatforia eSIM in Settings > Cellular, enable Data Roaming for that line, and leave Network Selection on Automatic. Keep your preferred SIM for ordinary cellular calls and texts."
+          }
+        }
+      }
+    },
+    "esim.install.troubleshootingIos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If data still fails, check your pack and destination, then restart the iPhone. If an APN is requested, ask Chatforia support for the correct value. Chatforia calls and SMS use the app over an internet connection."
+          }
+        }
+      }
+    },
+    "esim.profileActiveSubtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your eSIM profile is active. Check Wireless for each data package's status."
+          }
+        }
+      }
+    },
+    "esim.purchase.activatedAt" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activated %@"
+          }
+        }
+      }
+    },
+    "esim.purchase.activationUnknown" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Package activation time not reported"
+          }
+        }
+      }
+    },
+    "esim.purchase.balanceConflict" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chatforia records %1$@ remaining; Telna reports %2$@. Contact support before relying on this balance."
+          }
+        }
+      }
+    },
+    "esim.purchase.expiredExplanation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unused data is unavailable after the recorded expiration."
+          }
+        }
+      }
+    },
+    "esim.purchase.expiresAt" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expires %@"
+          }
+        }
+      }
+    },
+    "esim.purchase.expiryConflict" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Telna reports this package as not active, but its recorded expiry has passed. Contact support before relying on this balance."
+          }
+        }
+      }
+    },
+    "esim.purchase.expiryUnknown" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expiration not confirmed"
+          }
+        }
+      }
+    },
+    "esim.purchase.fallbackName" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data package #%d"
+          }
+        }
+      }
+    },
+    "esim.purchase.historyTitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Purchased Data Packages"
+          }
+        }
+      }
+    },
+    "esim.purchase.loadFailed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Purchased data packages could not be loaded. Try opening Wireless again."
+          }
+        }
+      }
+    },
+    "esim.purchase.loading" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading purchased data packages…"
+          }
+        }
+      }
+    },
+    "esim.purchase.manyQueued" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d data packs queued"
+          }
+        }
+      }
+    },
+    "esim.purchase.name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        }
+      }
+    },
+    "esim.purchase.none" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No purchased data packages are recorded for this account."
+          }
+        }
+      }
+    },
+    "esim.purchase.oneQueued" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 data pack queued"
+          }
+        }
+      }
+    },
+    "esim.purchase.recordedAt" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recorded %@"
+          }
+        }
+      }
+    },
+    "esim.purchase.remainingOf" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ remaining of %2$@"
+          }
+        }
+      }
+    },
+    "esim.purchase.sizeGb" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ GB"
+          }
+        }
+      }
+    },
+    "esim.purchase.speedTerms" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speed and fair-use terms depend on your data package."
+          }
+        }
+      }
+    },
+    "esim.purchase.stateAwaitingActivation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Awaiting activation"
+          }
+        }
+      }
+    },
+    "esim.purchase.stateAwaitingProvisioning" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paid · provider package not recorded"
+          }
+        }
+      }
+    },
+    "esim.purchase.stateBalanceReview" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Balance needs review"
+          }
+        }
+      }
+    },
+    "esim.purchase.stateExhausted" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data used"
+          }
+        }
+      }
+    },
+    "esim.purchase.stateExpiryReview" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expiry needs review"
+          }
+        }
+      }
+    },
+    "esim.purchase.statePaymentUnverified" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Payment unverified"
+          }
+        }
+      }
+    },
+    "esim.purchase.stateProviderUnverified" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Provider status unverified"
+          }
+        }
+      }
+    },
+    "esim.purchase.stateProvisioningReview" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paid · provisioning needs review"
+          }
+        }
+      }
+    },
+    "esim.purchase.stateTerminated" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminated"
+          }
+        }
+      }
+    },
+    "esim.purchase.unlimited" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlimited data"
+          }
+        }
+      }
+    },
+    "esim.transfer.activePackRequired" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transfer requires one active, unexpired data package with a confirmed balance."
+          }
+        }
+      }
+    },
+    "esim.transfer.confirmAction" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replace eSIM"
+          }
+        }
+      }
+    },
+    "esim.transfer.confirmTitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replace eSIM?"
+          }
+        }
+      }
+    },
+    "esim.transfer.confirmation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The old eSIM stops working after a successful replacement. Your eligible remaining data and original expiry move to the new eSIM."
+          }
+        }
+      }
+    },
+    "esim.transfer.confirmationWireless" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your remaining data and expiration date will move to a new eSIM. After the replacement succeeds, the old eSIM will stop working."
+          }
+        }
+      }
+    },
+    "esim.transfer.installationUnavailable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your replacement eSIM was created, but its installation details could not be loaded. Please try Manage Wireless again."
+          }
+        }
+      }
+    },
+    "esim.transfer.multipleOrPending" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Multiple or pending data packages may share this eSIM. Transfer is unavailable until every remaining entitlement can be preserved."
+          }
+        }
+      }
+    },
+    "esim.transfer.noEligiblePack" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No eligible active data package is available for transfer."
+          }
+        }
+      }
+    },
+    "esim.transfer.notEligible" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This eSIM is not currently eligible for replacement."
+          }
+        }
+      }
+    },
+    "esim.transfer.packagesUnavailable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transfer eligibility is unavailable until your data packages load."
+          }
+        }
+      }
+    },
+    "esim.transfer.replacing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replacing eSIM..."
+          }
+        }
+      }
+    },
+    "esim.transfer.request" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Request replacement eSIM"
+          }
+        }
+      }
+    },
+    "esim.transfer.requestNewPhone" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Request eSIM for a new phone"
+          }
+        }
+      }
+    },
+    "esim.transfer.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move eSIM to a new phone"
+          }
+        }
+      }
+    },
+    "esim.transfer.unavailable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "eSIM transfer is unavailable until package eligibility can be confirmed."
+          }
+        }
+      }
+    },
+    "esim.transfer.unconfirmed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "We couldn't confirm the eSIM replacement. Try again to safely check the same replacement request."
+          }
+        }
+      }
+    },
+    "esim.transfer.unlimitedUnconfirmed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlimited data package transfer requires Telna confirmation."
+          }
+        }
+      }
+    },
+    "esim.transfer.unsupportedPack" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This data package cannot be safely transferred with the current provider workflow."
+          }
+        }
+      }
+    },
+    "ios.esim_install_to_activate" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install the eSIM to activate data service"
+          }
+        }
+      }
+    },
+    "ios.esim_valid_30_days_check_expiry" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valid for 30 days; check your pack expiry after purchase"
+          }
+        }
+      }
+    },
     "Everyone" : {
 
     },
@@ -1548001,6 +1548573,25 @@
         }
       }
     },
+    "messages.teenMediaRestricted" : {
+      "comment" : "Temporary safety rule: image and video attachments are unavailable in any conversation with a teen account. This is shown for restricted historical media and a rejected send.",
+      "localizations" : {
+        "ar" : { "stringUnit" : { "state" : "translated", "value" : "الصور ومقاطع الفيديو غير متاحة في المحادثات التي تضم حسابات مراهقين." } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Bilder und Videos sind in Unterhaltungen mit Konten von Jugendlichen nicht verfügbar." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Images and videos are unavailable in conversations involving teen accounts." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Las imágenes y los videos no están disponibles en conversaciones con cuentas de adolescentes." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Les images et les vidéos ne sont pas disponibles dans les conversations avec des comptes d'adolescents." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "किशोर खातों वाली बातचीत में चित्र और वीडियो उपलब्ध नहीं हैं।" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Immagini e video non sono disponibili nelle conversazioni con account di adolescenti." } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "未成年者のアカウントが参加するチャットでは、画像と動画を利用できません。" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "청소년 계정이 참여한 대화에서는 이미지와 동영상을 사용할 수 없습니다." } },
+        "pt" : { "stringUnit" : { "state" : "translated", "value" : "Imagens e vídeos não estão disponíveis em conversas com contas de adolescentes." } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Imagens e vídeos não estão disponíveis em conversas com contas de adolescentes." } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Изображения и видео недоступны в беседах с участием аккаунтов подростков." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "有青少年账号参与的聊天中无法使用图片和视频。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "有青少年帳號參與的對話中無法使用圖片和影片。" } }
+      }
+    },
     "messages.thisMessageWasDeleted" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1959046,6 +1959637,26 @@
         }
       }
     },
+    "report.accountTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Report account"
+          }
+        }
+      }
+    },
+    "report.accountSubmitted" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Report submitted"
+          }
+        }
+      }
+    },
     "report.title" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2096541,6 +2097152,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Khetha ibanga lobudala"
+          }
+        }
+      }
+    },
+    "setting_allow_profanity_in_chat_text" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow profanity in chat text"
+          }
+        }
+      }
+    },
+    "setting_profanity_text_only_note" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If anyone in the conversation turns this off, chat profanity is masked for everyone. Photos and videos are not screened."
           }
         }
       }

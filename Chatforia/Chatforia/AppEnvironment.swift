@@ -98,6 +98,12 @@ enum AppEnvironment {
 
                 } catch {
 
+                    if case APIError.server(_, let code, _, _) = error,
+                       code == "TEEN_VISUAL_MEDIA_RESTRICTED" {
+                        completion(.restrictedMedia)
+                        return
+                    }
+
                     let nsError = error as NSError
                     let isRetryable =
                         nsError.code == NSURLErrorNotConnectedToInternet ||
@@ -131,6 +137,7 @@ enum AppEnvironment {
                     audioUrl: serverMessage.audioUrl,
                     audioDurationSec: serverMessage.audioDurationSec,
                     attachments: serverMessage.attachments,
+                    mediaRestricted: serverMessage.mediaRestricted,
                     isExplicit: serverMessage.isExplicit,
                     createdAt: serverMessage.createdAt,
                     expiresAt: serverMessage.expiresAt,
@@ -170,6 +177,13 @@ enum AppEnvironment {
                     state: DeliveryState.failed
                 )
             }
+        }
+        SendQueueManager.shared.restrictedMediaCallback = { clientMessageId in
+            NotificationCenter.default.post(
+                name: .teenVisualMediaRestricted,
+                object: nil,
+                userInfo: ["clientMessageId": clientMessageId]
+            )
         }
     }
 }

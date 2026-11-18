@@ -7,8 +7,10 @@ struct VoicemailInboxView: View {
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
     @EnvironmentObject private var callManager: CallManager
+    @Environment(\.scenePhase) private var scenePhase
     @AppStorage("chatforia_language") private var appLanguage = "en"
-    @StateObject private var viewModel = VoicemailInboxViewModel()
+    @ObservedObject var viewModel: VoicemailInboxViewModel
+    @State private var isVisible = false
 
     @State private var selectedVoicemailIds: Set<String> = []
     @State private var showDeleteSelectedConfirmation = false
@@ -145,6 +147,7 @@ struct VoicemailInboxView: View {
             )
         }
         .task(id: "\(auth.currentUser?.id ?? 0)-\(voicemailLink?.id.uuidString ?? "inbox")") {
+            viewModel.prepareForAccount(auth.currentUser?.id)
             if voicemailLink != nil { viewModel.selectedVoicemail = nil }
             let accountID = auth.currentUser?.id
             guard let token = auth.currentToken, !token.isEmpty else {
@@ -152,7 +155,9 @@ struct VoicemailInboxView: View {
                 appText("auth.youNeedToBeSignedIn", languageCode: appLanguage)
                 return
             }
-            let loaded = await viewModel.load(token: token)
+            let loaded = voicemailLink != nil
+                ? await viewModel.load(token: token)
+                : await viewModel.loadIfNeeded(token: token)
             guard loaded, !Task.isCancelled,
                   auth.currentUser?.id == accountID,
                   auth.currentToken == token,
@@ -164,6 +169,13 @@ struct VoicemailInboxView: View {
             } else {
                 viewModel.errorMessage = "This voicemail is unavailable. Sign in to the account that received it."
             }
+        }
+        .onAppear { isVisible = true }
+        .onDisappear { isVisible = false }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active, isVisible,
+                  let token = auth.currentToken, !token.isEmpty else { return }
+            Task { await viewModel.loadIfNeeded(token: token) }
         }
         .refreshable {
             guard let token = auth.currentToken, !token.isEmpty else { return }
@@ -303,17 +315,14 @@ struct VoicemailInboxView: View {
             }
         }
         .listStyle(.plain)
+        .chatforiaTopAlignedList()
         .scrollContentBackground(.hidden)
     }
 
     private var loadingView: some View {
-        VStack(spacing: 12) {
-            ProgressView()
-            Text(appText("voicemail.loading", languageCode: appLanguage))
-                .font(.subheadline)
-                .foregroundStyle(themeManager.palette.secondaryText)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        CompactLoadingStateView(
+            title: appText("voicemail.loading", languageCode: appLanguage)
+        )
     }
 
     private func errorView(_ message: String) -> some View {
