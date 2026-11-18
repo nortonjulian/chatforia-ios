@@ -904,7 +904,7 @@ struct ChatsRootView: View {
         )
     }
 
-    private func conversationSubtitle(_ conversation: ConversationDTO) -> String {
+    func conversationSubtitle(_ conversation: ConversationDTO) -> String {
         guard let last = conversation.last else {
             return conversation.kind.lowercased() == "sms"
                 ? appText(
@@ -941,7 +941,7 @@ struct ChatsRootView: View {
             return text
         }
 
-        if last.mediaRestricted == true {
+        if last.mediaRestricted == true && last.hasMedia != true {
             return appText("messages.teenMediaRestricted", languageCode: appLanguage,
                            fallback: "Images and videos are unavailable in conversations involving teen accounts.")
         }

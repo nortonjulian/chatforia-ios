@@ -59,6 +59,37 @@ final class ChatsViewModelTests: XCTestCase {
         XCTAssertNil(conversation.last?.mediaRestricted)
     }
 
+    func testTeenMmsPreviewKeepsOnlyPermittedAudioAndDirection() throws {
+        let mixed = #"{"kind":"sms","id":9,"title":"Teen MMS","last":{"text":"","messageId":42,"direction":"in","hasMedia":true,"mediaCount":1,"mediaKinds":["audio"],"thumbUrl":"old-thumbnail","mediaRestricted":true}}"#
+        let decoded = try JSONDecoder().decode(ConversationDTO.self, from: Data(mixed.utf8))
+        XCTAssertEqual(decoded.last?.direction, "in")
+        XCTAssertEqual(decoded.last?.hasMedia, true)
+        XCTAssertEqual(decoded.last?.mediaCount, 1)
+        XCTAssertEqual(decoded.last?.mediaKinds, ["AUDIO"])
+        XCTAssertNil(decoded.last?.thumbUrl)
+        XCTAssertTrue(ChatsRootView().conversationSubtitle(decoded).contains("🎤"))
+
+        let imageOnly = #"{"kind":"sms","id":10,"title":"Teen MMS","last":{"text":"","messageId":43,"hasMedia":false,"mediaCount":0,"mediaKinds":[],"mediaRestricted":true}}"#
+        let hidden = try JSONDecoder().decode(ConversationDTO.self, from: Data(imageOnly.utf8))
+        XCTAssertEqual(hidden.last?.hasMedia, false)
+        XCTAssertTrue(ChatsRootView().conversationSubtitle(hidden).contains("Images and videos"))
+
+        let audioOnly = #"{"kind":"sms","id":11,"title":"Voice","last":{"text":"","messageId":44,"direction":"out","hasMedia":true,"mediaCount":1,"mediaKinds":["audio"]}}"#
+        let voice = try JSONDecoder().decode(ConversationDTO.self, from: Data(audioOnly.utf8))
+        XCTAssertEqual(voice.last?.direction, "out")
+        XCTAssertEqual(voice.last?.hasMedia, true)
+        XCTAssertTrue(ChatsRootView().conversationSubtitle(voice).contains("🎤"))
+    }
+
+    func testRestrictedPreviewNeverPreservesVisualKindsOrCountsFromOlderPayloads() throws {
+        let legacy = #"{"text":"","messageId":42,"hasMedia":true,"mediaCount":2,"mediaKinds":["IMAGE","AUDIO"],"thumbUrl":"old-thumbnail","mediaRestricted":true}"#
+        let decoded = try JSONDecoder().decode(ConversationLastDTO.self, from: Data(legacy.utf8))
+        XCTAssertEqual(decoded.hasMedia, true)
+        XCTAssertNil(decoded.mediaCount)
+        XCTAssertEqual(decoded.mediaKinds, ["AUDIO"])
+        XCTAssertNil(decoded.thumbUrl)
+    }
+
     func testRestrictedPreviewCopyRetainsDirectionButClearsMediaMetadata() throws {
         let copied = ConversationLastDTO(
             text: "Restricted media", messageId: 42, at: nil,

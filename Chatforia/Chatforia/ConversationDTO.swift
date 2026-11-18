@@ -61,9 +61,14 @@ struct ConversationLastDTO: Codable {
         self.text = text
         self.messageId = messageId
         self.at = at
-        self.hasMedia = mediaRestricted == true ? false : hasMedia
-        self.mediaCount = mediaRestricted == true ? 0 : mediaCount
-        self.mediaKinds = mediaRestricted == true ? [] : mediaKinds
+        let kinds = mediaKinds ?? []
+        let hasPermittedAudio = kinds.contains { $0.uppercased() == "AUDIO" }
+        let audioOnly = !kinds.isEmpty && kinds.allSatisfy { $0.uppercased() == "AUDIO" }
+        self.hasMedia = mediaRestricted == true ? hasPermittedAudio : hasMedia
+        self.mediaCount = mediaRestricted == true
+            ? (audioOnly ? mediaCount : (hasPermittedAudio ? nil : 0)) : mediaCount
+        self.mediaKinds = mediaRestricted == true
+            ? (hasPermittedAudio ? ["AUDIO"] : []) : mediaKinds
         self.thumbUrl = mediaRestricted == true ? nil : thumbUrl
         self.senderName = senderName
         self.direction = direction
