@@ -16,12 +16,16 @@ struct CallHistoryView: View {
     var voicemailLink: VoicemailLinkRequest? = nil
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.scenePhase) private var scenePhase
     @AppStorage("chatforia_language") private var appLanguage = "en"
     @EnvironmentObject private var callManager: CallManager
     
     @State private var items: [CallRecordDTO] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var lastLoadedToken: String?
+    @State private var lastLoadedAt: Date?
+    @State private var isVisible = false
     @State private var selectedSegment: CallsSegment = .recents
     @State private var showDialer = false
     @State private var savedContacts: [ContactDTO] = []
@@ -41,6 +45,7 @@ struct CallHistoryView: View {
     @State private var selectedSMSConversation: ConversationDTO?
     @State private var showSelectedSMS = false
     @StateObject private var startChatVM = StartChatViewModel()
+    @StateObject private var voicemailInboxVM = VoicemailInboxViewModel()
     
     var body: some View {
         VStack(spacing: 0) {
@@ -66,7 +71,8 @@ struct CallHistoryView: View {
                 case .voicemail:
                     VoicemailInboxView(
                         isEditingVoicemails: $isEditingVoicemails,
-                        voicemailLink: voicemailLink
+                        voicemailLink: voicemailLink,
+                        viewModel: voicemailInboxVM
                     )
                 }
             }
@@ -246,6 +252,8 @@ struct CallHistoryView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .callHistoryShouldRefresh)) { _ in
+            lastLoadedAt = nil
+            voicemailInboxVM.invalidateForNextOpen()
             guard selectedSegment == .recents else { return }
 
             Task {
@@ -253,14 +261,28 @@ struct CallHistoryView: View {
                 await load()
             }
         }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active {
+                lastLoadedAt = nil
+                voicemailInboxVM.invalidateForNextOpen()
+            }
+            guard phase == .active, isVisible, selectedSegment == .recents,
+                  TabRefreshPolicy.shouldLoad(
+                    token: auth.currentToken, loadedToken: lastLoadedToken,
+                    loadedAt: lastLoadedAt, now: Date()
+                  ) else { return }
+            Task { await load() }
+        }
+        .onAppear { isVisible = true }
+        .onDisappear { isVisible = false }
     }
     
     @ViewBuilder
     private var recentsContent: some View {
         Group {
             if isLoading && items.isEmpty {
-                ProgressView(
-                    appText("calls.loadingCalls", languageCode: appLanguage)
+                CompactLoadingStateView(
+                    title: appText("calls.loadingCalls", languageCode: appLanguage)
                 )
             } else if let errorMessage, items.isEmpty {
                 contentUnavailable(
@@ -370,16 +392,20 @@ struct CallHistoryView: View {
                     .constant(isEditingRecents ? .active : .inactive)
                 )
                 .scrollContentBackground(.hidden)
+                .chatforiaTopAlignedList()
             }
         }
         .task {
-            async let historyLoad: Void = load()
             async let missedCallAcknowledgement: Void = acknowledgeMissedCalls()
-
-            _ = await (
-                historyLoad,
-                missedCallAcknowledgement
-            )
+            if TabRefreshPolicy.shouldLoad(
+                token: auth.currentToken,
+                loadedToken: lastLoadedToken,
+                loadedAt: lastLoadedAt,
+                now: Date()
+            ) {
+                await load()
+            }
+            _ = await missedCallAcknowledgement
         }
         .refreshable {
             await load()
@@ -578,22 +604,33 @@ private func title(for choice: PendingCallChoice) -> String {
         
         isLoading = true
         errorMessage = nil
+        defer { isLoading = false }
         
         do {
             async let fetchedCalls = CallHistoryService.shared.fetchHistory(token: token)
             async let fetchedContacts = fetchAllContacts(token: token)
             
             let calls = try await fetchedCalls
-            savedContacts = try await fetchedContacts
-            
+            guard auth.currentToken == token, !Task.isCancelled else { return }
             items = calls.sorted {
                 ($0.endedAt ?? $0.startedAt ?? $0.createdAt) > ($1.endedAt ?? $1.startedAt ?? $1.createdAt)
             }
+            lastLoadedToken = token
+            lastLoadedAt = Date()
+            // Contact aliases enrich rows, but should not hold the call list
+            // behind a separate request once history has arrived.
+            do {
+                let contacts = try await fetchedContacts
+                guard auth.currentToken == token, !Task.isCancelled else { return }
+                savedContacts = contacts
+            } catch {
+                debugLog("Call contact enrichment unavailable:", error)
+            }
         } catch {
-            errorMessage = error.localizedDescription
+            if auth.currentToken == token, !Task.isCancelled {
+                errorMessage = error.localizedDescription
+            }
         }
-        
-        isLoading = false
     }
     
     private func fetchAllContacts(token: String) async throws -> [ContactDTO] {

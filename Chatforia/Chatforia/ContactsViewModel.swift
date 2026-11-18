@@ -1,6 +1,18 @@
 import Foundation
 import Combine
 
+enum TabRefreshPolicy {
+    static func shouldLoad(
+        token: String?, loadedToken: String?, loadedAt: Date?,
+        now: Date, freshness: TimeInterval = 60
+    ) -> Bool {
+        guard let token, !token.isEmpty else { return true }
+        guard token == loadedToken, let loadedAt else { return true }
+        let age = now.timeIntervalSince(loadedAt)
+        return age < 0 || age >= freshness
+    }
+}
+
 @MainActor
 final class ContactsViewModel: ObservableObject {
     @Published var contacts: [ContactDTO] = []
@@ -8,30 +20,87 @@ final class ContactsViewModel: ObservableObject {
     @Published var errorText: String?
     @Published var searchText: String = ""
 
+    private let fetchContacts: (String?, String) async throws -> ContactsResponseDTO
+    private var sessionToken: String?
+    private var loadedQuery: String?
+    private var loadedAt: Date?
+    private var loadingQuery: String?
+    private var loadVersion = 0
+
+    init(fetchContacts: @escaping (String?, String) async throws -> ContactsResponseDTO = { query, token in
+        try await ContactsService.shared.fetchContacts(query: query, token: token)
+    }) {
+        self.fetchContacts = fetchContacts
+    }
+
     private var appLanguage: String {
         UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
     }
 
+    func prepareForSession(token: String?) {
+        guard sessionToken != token else { return }
+        loadVersion += 1
+        sessionToken = token
+        loadedQuery = nil
+        loadedAt = nil
+        loadingQuery = nil
+        contacts = []
+        errorText = nil
+        isLoading = false
+        searchText = ""
+    }
+
+    func loadContactsIfNeeded(token: String?, now: Date = Date()) async {
+        prepareForSession(token: token)
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard loadedQuery != query || TabRefreshPolicy.shouldLoad(
+            token: token, loadedToken: sessionToken, loadedAt: loadedAt, now: now
+        ) else { return }
+        await loadContacts(token: token)
+    }
+
+    func invalidateForNextOpen() { loadedAt = nil }
+
     func loadContacts(token: String?) async {
         guard let token, !token.isEmpty else {
+            prepareForSession(token: nil)
             errorText = appText("ios.missing_auth_token", languageCode: appLanguage)
             contacts = []
             return
         }
 
+        prepareForSession(token: token)
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !isLoading || loadingQuery != query else { return }
+        loadVersion += 1
+        let version = loadVersion
+        loadingQuery = query
+
         isLoading = true
         errorText = nil
-        defer { isLoading = false }
+        defer {
+            if loadVersion == version {
+                isLoading = false
+                loadingQuery = nil
+            }
+        }
 
         do {
-            let response = try await ContactsService.shared.fetchContacts(
-                query: searchText,
-                token: token
-            )
+            let response = try await fetchContacts(query, token)
+            guard sessionToken == token, loadVersion == version,
+                  searchText.trimmingCharacters(in: .whitespacesAndNewlines) == query,
+                  !Task.isCancelled else { return }
             contacts = response.items
+            loadedQuery = query
+            loadedAt = Date()
         } catch {
+            guard sessionToken == token, loadVersion == version,
+                  searchText.trimmingCharacters(in: .whitespacesAndNewlines) == query,
+                  !Task.isCancelled else { return }
             errorText = error.localizedDescription
             contacts = []
+            loadedQuery = nil
+            loadedAt = nil
         }
     }
 

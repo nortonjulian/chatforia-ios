@@ -3,6 +3,7 @@ import SwiftUI
 struct ContactsRootView: View {
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.scenePhase) private var scenePhase
     @AppStorage("chatforia_language") private var appLanguage = "en"
     @StateObject private var vm = ContactsViewModel()
 
@@ -23,6 +24,8 @@ struct ContactsRootView: View {
     @State private var contactToDelete: ContactDTO? = nil
     @State private var showingDeleteContactAlert = false
     @State private var contactToEdit: ContactDTO? = nil
+    @State private var pendingSearch: Task<Void, Never>?
+    @State private var isVisible = false
     
     @EnvironmentObject private var callManager: CallManager
 
@@ -126,7 +129,12 @@ struct ContactsRootView: View {
             )
             .navigationBarTitleDisplayMode(.inline)
             .onChange(of: vm.searchText) { _, _ in
-                Task { await reload() }
+                pendingSearch?.cancel()
+                pendingSearch = Task {
+                    try? await Task.sleep(nanoseconds: 250_000_000)
+                    guard !Task.isCancelled else { return }
+                    await reload()
+                }
             }
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
@@ -257,8 +265,18 @@ struct ContactsRootView: View {
             } message: {
                 Text(appText("ios.delete_contact_confirmation", languageCode: appLanguage))
             }
-            .task {
-                await reload()
+            .task(id: auth.currentToken) {
+                await vm.loadContactsIfNeeded(token: auth.currentToken)
+            }
+            .onChange(of: scenePhase) { _, phase in
+                if phase != .active { vm.invalidateForNextOpen() }
+                guard phase == .active, isVisible else { return }
+                Task { await vm.loadContactsIfNeeded(token: auth.currentToken) }
+            }
+            .onAppear { isVisible = true }
+            .onDisappear {
+                isVisible = false
+                pendingSearch?.cancel()
             }
             .refreshable {
                 await reload()
@@ -270,7 +288,7 @@ struct ContactsRootView: View {
     private var content: some View {
         Group {
             if vm.isLoading && vm.contacts.isEmpty {
-                LoadingStateView(
+                CompactLoadingStateView(
                     title: appText(
                             "ios.loading_contacts",
                             languageCode: appLanguage
@@ -367,6 +385,7 @@ struct ContactsRootView: View {
                 .scrollContentBackground(.hidden)
                 .background(Color.clear)
                 .listStyle(.insetGrouped)
+                .chatforiaTopAlignedList()
             }
         }
     }

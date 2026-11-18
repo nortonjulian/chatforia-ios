@@ -10,8 +10,16 @@ final class VoicemailInboxViewModel: ObservableObject {
 
     private var observers: [NSObjectProtocol] = []
     private var loadGeneration = UUID()
+    private let fetchVoicemails: @MainActor (String) async throws -> [VoicemailDTO]
+    private var loadedToken: String?
+    private var loadedAt: Date?
+    private var loadingToken: String?
+    private var accountID: Int?
 
-    init() {
+    init(fetchVoicemails: @escaping @MainActor (String) async throws -> [VoicemailDTO] = { token in
+        try await VoicemailService.shared.fetchVoicemails(token: token)
+    }) {
+        self.fetchVoicemails = fetchVoicemails
         bindSocketEvents()
     }
 
@@ -21,23 +29,61 @@ final class VoicemailInboxViewModel: ObservableObject {
         }
     }
 
+    func prepareForAccount(_ id: Int?) {
+        guard accountID != id else { return }
+        accountID = id
+        loadGeneration = UUID()
+        loadedToken = nil
+        loadedAt = nil
+        loadingToken = nil
+        isLoading = false
+        voicemails = []
+        selectedVoicemail = nil
+        errorMessage = nil
+    }
+
+    @discardableResult
+    func loadIfNeeded(token: String, now: Date = Date()) async -> Bool {
+        guard loadingToken != token else { return false }
+        guard TabRefreshPolicy.shouldLoad(
+            token: token, loadedToken: loadedToken, loadedAt: loadedAt, now: now
+        ) else { return true }
+        return await load(token: token)
+    }
+
+    func invalidateForNextOpen() { loadedAt = nil }
+
     @discardableResult
     func load(token: String) async -> Bool {
+        if loadedToken != token {
+            voicemails = []
+            selectedVoicemail = nil
+            loadedAt = nil
+        }
+        loadedToken = token
+        loadingToken = token
         let generation = UUID()
         loadGeneration = generation
         isLoading = true
         errorMessage = nil
         defer {
-            if loadGeneration == generation { isLoading = false }
+            if loadGeneration == generation {
+                isLoading = false
+                loadingToken = nil
+            }
         }
         do {
-            let items = try await VoicemailService.shared.fetchVoicemails(token: token)
-            guard !Task.isCancelled, loadGeneration == generation else { return false }
+            let items = try await fetchVoicemails(token)
+            guard !Task.isCancelled, loadGeneration == generation,
+                  loadedToken == token else { return false }
             voicemails = items
+            loadedAt = Date()
             return true
         } catch {
-            guard !Task.isCancelled, loadGeneration == generation else { return false }
+            guard !Task.isCancelled, loadGeneration == generation,
+                  loadedToken == token else { return false }
             errorMessage = error.localizedDescription
+            loadedAt = nil
             return false
         }
     }
@@ -192,6 +238,7 @@ final class VoicemailInboxViewModel: ObservableObject {
                         let data = try? JSONSerialization.data(withJSONObject: voicemailPayload),
                         let voicemail = try? JSONDecoder().decode(VoicemailDTO.self, from: data)
                     else { return }
+                    guard voicemail.userId == self.accountID else { return }
 
                     if let existingIndex = self.voicemails.firstIndex(where: { $0.id == voicemail.id }) {
                         self.voicemails[existingIndex] = voicemail

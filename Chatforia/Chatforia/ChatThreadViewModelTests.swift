@@ -157,6 +157,33 @@ final class ChatThreadViewModelTests: XCTestCase {
         XCTAssertFalse(result)
     }
 
+    func testOfflinePreparationFailureDoesNotLeaveOptimisticBubble() async {
+        MessageStore.shared.clearAll()
+        let vm = ChatThreadViewModel(textPayloadBuilder: { _, _, _, _ in
+            throw URLError(.notConnectedToInternet)
+        })
+
+        let sent = await vm.sendMessage(
+            roomId: 77, token: "synthetic-token", text: "Preserved draft",
+            senderId: 42, senderUsername: "sender", senderPublicKey: nil
+        )
+
+        XCTAssertFalse(sent)
+        XCTAssertTrue(MessageStore.shared.currentWindow().filter { $0.chatRoomId == 77 }.isEmpty)
+        XCTAssertEqual(vm.errorText, appText("chat.sendMessageFailed", languageCode:
+            UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"))
+        MessageStore.shared.clearAll()
+    }
+
+    func testLocalizedGIFFailureDoesNotExposeInterpolationMarkerOrRawNetworkError() {
+        let english = localizedGIFSendFailure(languageCode: "en")
+        let spanish = localizedGIFSendFailure(languageCode: "es")
+        XCTAssertFalse(english.contains("{error}"))
+        XCTAssertFalse(spanish.contains("{error}"))
+        XCTAssertTrue(english.contains("Try Again"))
+        XCTAssertTrue(spanish.contains("Inténtelo de nuevo"))
+    }
+
     func testSendImageMessageReturnsFalseWhenTokenMissing() async {
         let vm = ChatThreadViewModel()
 

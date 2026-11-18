@@ -9,15 +9,11 @@ struct ContactRowView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(themeManager.palette.border)
-                    .frame(width: 44, height: 44)
-
-                Text(String(title.prefix(1)).uppercased())
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(themeManager.palette.primaryText)
-            }
+            ThemeAvatarPlaceholder(
+                initials: String(title.prefix(1)).uppercased(),
+                size: 44,
+                font: .headline
+            )
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {

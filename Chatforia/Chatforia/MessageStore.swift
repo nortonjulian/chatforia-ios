@@ -508,6 +508,19 @@ final class MessageStore {
         }
     }
 
+    // Preparation failed before a SendJob was queued. Discard only the local
+    // optimistic row, never a server-acknowledged copy with the same client ID.
+    func discardUnqueuedOptimisticMessage(clientMessageId: String) {
+        lock.async(flags: .barrier) {
+            self.messages.removeAll {
+                $0.id <= 0 && $0.clientMessageId == clientMessageId
+            }
+            self.deliveryStates.removeValue(forKey: clientMessageId)
+            self.persistLocked()
+            self.postMessagesChanged()
+        }
+    }
+
     func clearAll() {
         lock.async(flags: .barrier) {
             self.messages.removeAll()
