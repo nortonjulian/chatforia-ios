@@ -16,6 +16,12 @@ private struct ContactBlockMutationResponse: Decodable {
     let success: Bool
 }
 
+struct ContactAccountReportRequest: Encodable {
+    static func path(userId: Int) -> String { "reports/users/\(userId)" }
+    let reason: String
+    let details: String?
+}
+
 
 enum ContactDetailAction {
     case message
@@ -29,12 +35,19 @@ struct ContactDetailView: View {
     let onEdit: () -> Void
 
     @EnvironmentObject private var themeManager: ThemeManager
+    @EnvironmentObject private var auth: AuthStore
     @AppStorage("chatforia_language") private var appLanguage = "en"
     @State private var accountBlockKnown = false
     @State private var isAccountBlocked = false
     @State private var isUpdatingAccountBlock = false
     @State private var confirmAccountBlockChange = false
     @State private var accountBlockError: String?
+    @State private var showAccountReport = false
+    @State private var accountReportReason: ReportReason = .other
+    @State private var accountReportDetails = ""
+    @State private var isSubmittingAccountReport = false
+    @State private var accountReportError: String?
+    @State private var accountReportSubmitted = false
 
 
     private var displayName: String {
@@ -146,6 +159,19 @@ struct ContactDetailView: View {
                         }
                         .buttonStyle(.plain)
                         .disabled(!accountBlockKnown || isUpdatingAccountBlock)
+
+                        Button {
+                            accountReportReason = .other
+                            accountReportDetails = ""
+                            accountReportError = nil
+                            showAccountReport = true
+                        } label: {
+                            actionRow(
+                                title: appText("report.accountTitle", languageCode: appLanguage),
+                                systemImage: "flag.fill"
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.top, 8)
@@ -205,6 +231,40 @@ struct ContactDetailView: View {
     .task(id: contact.user?.id) {
         await loadAccountBlockState()
     }
+    .onChange(of: auth.currentUser?.id) { _, _ in showAccountReport = false }
+    .sheet(isPresented: $showAccountReport) {
+        NavigationStack {
+            Form {
+                Picker(appText("report.reason", languageCode: appLanguage), selection: $accountReportReason) {
+                    ForEach(ReportReason.allCases) { reason in
+                        Text(reason.title(languageCode: appLanguage)).tag(reason)
+                    }
+                }
+                Section(appText("common.additionalDetails", languageCode: appLanguage)) {
+                    TextEditor(text: $accountReportDetails).frame(minHeight: 120)
+                }
+                if let accountReportError {
+                    Text(accountReportError).foregroundStyle(.red)
+                }
+            }
+            .navigationTitle(appText("report.accountTitle", languageCode: appLanguage))
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(appText("button_cancel", languageCode: appLanguage)) {
+                        showAccountReport = false
+                    }.disabled(isSubmittingAccountReport)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(appText("common.submit", languageCode: appLanguage)) {
+                        Task { await submitAccountReport() }
+                    }.disabled(isSubmittingAccountReport)
+                }
+            }
+        }
+    }
+    .alert(appText("report.accountSubmitted", languageCode: appLanguage), isPresented: $accountReportSubmitted) {
+        Button(appText("common.done", languageCode: appLanguage), role: .cancel) {}
+    }
     .confirmationDialog(
         isAccountBlocked ? "Unblock this Chatforia account?" : "Block this Chatforia account?",
         isPresented: $confirmAccountBlockChange,
@@ -228,6 +288,36 @@ struct ContactDetailView: View {
         Text(accountBlockError ?? "")
     }
 }
+
+    private func submitAccountReport() async {
+        guard !isSubmittingAccountReport, let userId = contact.user?.id,
+              let token = auth.currentToken, !token.isEmpty else { return }
+        isSubmittingAccountReport = true
+        accountReportError = nil
+        defer { isSubmittingAccountReport = false }
+        let accountId = auth.currentUser?.id
+        do {
+            let details = accountReportDetails.trimmingCharacters(in: .whitespacesAndNewlines)
+            let body = try JSONEncoder().encode(ContactAccountReportRequest(
+                reason: accountReportReason.rawValue,
+                details: details.isEmpty ? nil : details
+            ))
+            let response: ReportCreateResponse = try await APIClient.shared.send(
+                APIRequest(path: ContactAccountReportRequest.path(userId: userId),
+                           method: .POST, body: body, requiresAuth: true), token: token
+            )
+            guard auth.currentUser?.id == accountId, auth.currentToken == token else { return }
+            if response.success {
+                showAccountReport = false
+                accountReportSubmitted = true
+            } else {
+                accountReportError = appText("common.tryAgain", languageCode: appLanguage)
+            }
+        } catch {
+            guard auth.currentUser?.id == accountId, auth.currentToken == token else { return }
+            accountReportError = appText("common.tryAgain", languageCode: appLanguage)
+        }
+    }
 
     private func loadAccountBlockState() async {
         accountBlockKnown = false

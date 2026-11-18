@@ -1959046,6 +1959046,26 @@
         }
       }
     },
+    "report.accountTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Report account"
+          }
+        }
+      }
+    },
+    "report.accountSubmitted" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Report submitted"
+          }
+        }
+      }
+    },
     "report.title" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2096541,6 +2096561,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Khetha ibanga lobudala"
+          }
+        }
+      }
+    },
+    "setting_allow_profanity_in_chat_text" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow profanity in chat text"
+          }
+        }
+      }
+    },
+    "setting_profanity_text_only_note" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If anyone in the conversation turns this off, chat profanity is masked for everyone. Photos and videos are not screened."
           }
         }
       }

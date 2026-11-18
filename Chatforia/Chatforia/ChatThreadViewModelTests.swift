@@ -4,6 +4,84 @@ import XCTest
 @MainActor
 final class ChatThreadViewModelTests: XCTestCase {
 
+    func testContactAccountReportUsesAuthenticatedModerationRoute() throws {
+        let path = ContactAccountReportRequest.path(userId: 29)
+        let request = APIRequest(path: path, method: .POST, requiresAuth: true)
+        XCTAssertEqual(try APIClient.shared.buildURL(from: request).path, "/reports/users/29")
+        let payload = ContactAccountReportRequest(reason: ReportReason.harassment.rawValue, details: "synthetic")
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(payload)) as? [String: Any])
+        XCTAssertEqual(object["reason"] as? String, "harassment")
+        XCTAssertEqual(object["details"] as? String, "synthetic")
+    }
+
+    func testReportSubmissionUsesExistingAuthenticatedRouteAndSelectedMessage() async throws {
+        let request = APIRequest(
+            path: ReportCreateRequest.endpoint,
+            method: .POST,
+            requiresAuth: true
+        )
+        XCTAssertEqual(try APIClient.shared.buildURL(from: request).path, "/messages/report")
+
+        let vm = ChatThreadViewModel()
+        let message = MessageDTO(
+            id: 802, rawContent: "synthetic report", createdAt: Date(),
+            sender: SenderDTO(id: 9, username: "sender", publicKey: nil, avatarUrl: nil),
+            chatRoomId: 10
+        )
+        var sent = 0
+        vm.reportSender = { payload, token in
+            sent += 1
+            XCTAssertEqual(token, "synthetic-token")
+            let object = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(payload)) as? [String: Any])
+            XCTAssertEqual(object["messageId"] as? Int, 802)
+            XCTAssertEqual(object["chatRoomId"] as? Int, 10)
+            XCTAssertEqual(object["reportedUserId"] as? Int, 9)
+            XCTAssertEqual(object["reason"] as? String, "sexual_content")
+            let snapshots = try XCTUnwrap(object["messages"] as? [[String: Any]])
+            XCTAssertEqual(snapshots.count, 1)
+            XCTAssertEqual(snapshots[0]["plaintext"] as? String, "synthetic report")
+            XCTAssertEqual(object["blockAfterReport"] as? Bool, true)
+            return true
+        }
+
+        let succeeded = await vm.submitReport(
+            targetMessage: message, roomId: 10, reason: .sexualContent,
+            details: "synthetic media", reportedContent: "synthetic report", contextCount: 0,
+            blockAfterReport: true, token: "synthetic-token"
+        )
+        XCTAssertTrue(succeeded)
+        XCTAssertEqual(sent, 1)
+        XCTAssertNil(vm.reportErrorText)
+    }
+
+    func testFailedReportRetainsErrorAndCanRetryWithoutDuplicateSubmission() async {
+        let vm = ChatThreadViewModel()
+        let message = MessageDTO(
+            id: 803, rawContent: "synthetic report", createdAt: Date(),
+            sender: SenderDTO(id: 9, username: "sender", publicKey: nil, avatarUrl: nil),
+            chatRoomId: 10
+        )
+        var attempts = 0
+        vm.reportSender = { _, _ in
+            attempts += 1
+            if attempts == 1 { throw URLError(.notConnectedToInternet) }
+            return true
+        }
+        let first = await vm.submitReport(
+            targetMessage: message, roomId: 10, reason: .other,
+            details: "", contextCount: 0, blockAfterReport: false, token: "synthetic-token"
+        )
+        XCTAssertFalse(first)
+        XCTAssertNotNil(vm.reportErrorText)
+        let second = await vm.submitReport(
+            targetMessage: message, roomId: 10, reason: .other,
+            details: "", contextCount: 0, blockAfterReport: false, token: "synthetic-token"
+        )
+        XCTAssertTrue(second)
+        XCTAssertEqual(attempts, 2)
+        XCTAssertNil(vm.reportErrorText)
+    }
+
     func testVisibleExpiryAndRestartAfterBackground() {
         let vm = ChatThreadViewModel()
         let expired = MessageDTO(
