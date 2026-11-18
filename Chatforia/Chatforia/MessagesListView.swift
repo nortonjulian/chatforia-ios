@@ -18,6 +18,7 @@ private struct BottomSentinelMinYKey: PreferenceKey {
 
 struct MessagesListView: View {
     @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
 
     let messages: [MessageDTO]
     let currentUserId: Int?
@@ -37,6 +38,7 @@ struct MessagesListView: View {
     
     @State private var expandedTimestampMessageId: Int?
     @State private var selectedReceiptMessage: MessageDTO?
+    @State private var showRestrictedMediaAlert = false
 
     @State private var lastPagingTriggerOldestId: Int?
     @State private var isPagingTriggerInFlight = false
@@ -317,6 +319,18 @@ struct MessagesListView: View {
                 }
                 .sheet(item: $selectedReceiptMessage) { msg in
                     MessageReceiptSheet(message: msg, isGroupRoom: isGroupRoom)
+                }
+                .onReceive(NotificationCenter.default.publisher(for: .teenVisualMediaRestricted)) { notification in
+                    guard let clientMessageId = notification.userInfo?["clientMessageId"] as? String,
+                          messages.contains(where: { $0.clientMessageId == clientMessageId }) else { return }
+                    showRestrictedMediaAlert = true
+                }
+                .alert(
+                    appText("messages.teenMediaRestricted", languageCode: appLanguage,
+                            fallback: "Images and videos are unavailable in conversations involving teen accounts."),
+                    isPresented: $showRestrictedMediaAlert
+                ) {
+                    Button(appText("common.ok", languageCode: appLanguage), role: .cancel) {}
                 }
             }
         }

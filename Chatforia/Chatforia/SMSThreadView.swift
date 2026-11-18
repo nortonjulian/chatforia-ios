@@ -1229,6 +1229,7 @@ private struct SMSMessageRowView: View {
     let onBlock: () -> Void
 
     @EnvironmentObject private var themeManager: ThemeManager
+    @EnvironmentObject private var auth: AuthStore
     @AppStorage("chatforia_language") private var appLanguage = "en"
 
     var body: some View {
@@ -1238,12 +1239,22 @@ private struct SMSMessageRowView: View {
             }
 
             VStack(alignment: msg.isOutgoing ? .trailing : .leading, spacing: 6) {
-                if !msg.media.isEmpty {
-                    SMSMediaStackView(message: msg, maxWidth: bubbleMaxWidth)
+                if !visibleMessage.media.isEmpty {
+                    SMSMediaStackView(message: visibleMessage, maxWidth: bubbleMaxWidth)
                         .contentShape(Rectangle())
                         .onTapGesture {
                             onBubbleTap()
                         }
+                }
+
+                if msg.mediaRestricted || locallyRestrictedVisualMedia {
+                    Label(
+                        appText("messages.teenMediaRestricted", languageCode: appLanguage,
+                                fallback: "Images and videos are unavailable in conversations involving teen accounts."),
+                        systemImage: "eye.slash"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(themeManager.palette.secondaryText)
                 }
 
                 if let original = msg.trimmedBody, !original.isEmpty {
@@ -1320,7 +1331,7 @@ private struct SMSMessageRowView: View {
                             onBubbleTap()
                         }
 
-                } else if msg.media.isEmpty {
+                } else if visibleMessage.media.isEmpty && !msg.mediaRestricted && !locallyRestrictedVisualMedia {
                     Text("—")
                         .font(.body)
                         .foregroundStyle(
@@ -1457,6 +1468,21 @@ private struct SMSMessageRowView: View {
                 }
             }
         }
+    }
+
+    private var locallyRestrictedVisualMedia: Bool {
+        auth.currentUser?.ageBand == "TEEN_13_17" && msg.media.count != msg.mediaVisibleToTeen.count
+    }
+
+    private var visibleMessage: SMSMessageDTO {
+        guard auth.currentUser?.ageBand == "TEEN_13_17" else { return msg }
+        return SMSMessageDTO(
+            id: msg.id, threadId: msg.threadId, direction: msg.direction,
+            fromNumber: msg.fromNumber, toNumber: msg.toNumber, body: msg.body,
+            provider: msg.provider, providerMessageId: msg.providerMessageId,
+            media: msg.mediaVisibleToTeen, mediaRestricted: msg.mediaRestricted,
+            createdAt: msg.createdAt, editedAt: msg.editedAt
+        )
     }
 
     private func timestampText(_ date: Date) -> String {

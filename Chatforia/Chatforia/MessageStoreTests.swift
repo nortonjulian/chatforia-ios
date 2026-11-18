@@ -3,6 +3,17 @@ import XCTest
 
 final class MessageStoreTests: XCTestCase {
 
+    func testTeenVisualMetadataFilterKeepsAudioAndDocuments() {
+        XCTAssertTrue(AttachmentDTO(kind: "IMAGE", url: "media/a", mimeType: "image/jpeg").isVisualForTeenSafety)
+        XCTAssertTrue(AttachmentDTO(kind: "FILE", url: "media/a.mp4", mimeType: "application/octet-stream").isVisualForTeenSafety)
+        XCTAssertTrue(AttachmentDTO(kind: "FILE", url: "media/a", mimeType: "application/octet-stream", thumbUrl: "thumbs/a").isVisualForTeenSafety)
+        XCTAssertTrue(AttachmentDTO(kind: "AUDIO", url: "media/disguised.mp3", mimeType: "image/jpeg").isVisualForTeenSafety)
+        XCTAssertTrue(AttachmentDTO(kind: "AUDIO", url: "media/disguised.jpg?download=1", mimeType: "audio/mpeg").isVisualForTeenSafety)
+        XCTAssertFalse(AttachmentDTO(kind: "AUDIO", url: "media/voice.webm", mimeType: "audio/webm").isVisualForTeenSafety)
+        XCTAssertFalse(AttachmentDTO(kind: "AUDIO", url: "media/voice.mp4", mimeType: "audio/mp4").isVisualForTeenSafety)
+        XCTAssertFalse(AttachmentDTO(kind: "FILE", url: "media/notes.pdf", mimeType: "application/pdf").isVisualForTeenSafety)
+    }
+
     override func setUp() {
         super.setUp()
         MessageStore.shared.clearAll()
@@ -196,6 +207,28 @@ final class MessageStoreTests: XCTestCase {
             MessageStore.shared.deliveryState(for: "abc-123"),
             .sending
         )
+    }
+
+    func testRestrictedMediaResponseClearsCachedVisualAttachmentWithoutDeletingText() throws {
+        let original = MessageDTO(
+            id: 44, rawContent: "Keep this text",
+            imageUrl: "https://example.invalid/old.jpg",
+            attachments: [AttachmentDTO(id: 9, kind: "IMAGE", url: "media/old.jpg")],
+            createdAt: Date(), sender: SenderDTO(id: 2, username: "sender", publicKey: nil, avatarUrl: nil),
+            chatRoomId: 10
+        )
+        let restricted = MessageDTO(
+            id: 44, rawContent: "Keep this text", imageUrl: nil,
+            attachments: [], mediaRestricted: true,
+            createdAt: original.createdAt, sender: original.sender, chatRoomId: 10
+        )
+        let decoded = try JSONDecoder().decode(MessageDTO.self, from: JSONEncoder().encode(restricted))
+        let merged = MessageDTO.merged(current: original, incoming: decoded)
+        XCTAssertTrue(merged.mediaRestricted == true)
+        XCTAssertNil(merged.imageUrl)
+        XCTAssertEqual(merged.attachments?.count, 0)
+        XCTAssertEqual(merged.rawContent, "Keep this text")
+        XCTAssertEqual(original.attachments?.count, 1)
     }
 
     func testServerBeforeIdForPagingReturnsLowestServerId() {

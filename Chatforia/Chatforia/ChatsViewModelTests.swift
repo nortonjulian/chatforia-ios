@@ -37,6 +37,46 @@ final class ChatsViewModelTests: XCTestCase {
         XCTAssertTrue(gate.roomReady(roomId: 44))
     }
 
+    func testRestrictedMediaPreviewDecodesWithoutThumbnail() throws {
+        let json = """
+        {"kind":"chat","id":9,"title":"Teen room","last":{
+          "text":"","messageId":42,"hasMedia":true,"mediaCount":2,
+          "mediaKinds":["IMAGE"],"thumbUrl":"old-thumbnail","mediaRestricted":true}}
+        """
+        let conversation = try JSONDecoder().decode(ConversationDTO.self, from: Data(json.utf8))
+        XCTAssertEqual(conversation.last?.mediaRestricted, true)
+        XCTAssertEqual(conversation.last?.hasMedia, false)
+        XCTAssertEqual(conversation.last?.mediaCount, 0)
+        XCTAssertEqual(conversation.last?.mediaKinds, [])
+        XCTAssertNil(conversation.last?.thumbUrl)
+    }
+
+    func testOlderPreviewPayloadWithoutDirectionOrRestrictionStillDecodes() throws {
+        let json = #"{"kind":"sms","id":8,"title":"Older thread","last":{"text":"Hi","messageId":5}}"#
+        let conversation = try JSONDecoder().decode(ConversationDTO.self, from: Data(json.utf8))
+        XCTAssertEqual(conversation.last?.text, "Hi")
+        XCTAssertNil(conversation.last?.direction)
+        XCTAssertNil(conversation.last?.mediaRestricted)
+    }
+
+    func testRestrictedPreviewCopyRetainsDirectionButClearsMediaMetadata() throws {
+        let copied = ConversationLastDTO(
+            text: "Restricted media", messageId: 42, at: nil,
+            hasMedia: true, mediaCount: 2, mediaKinds: ["IMAGE"],
+            thumbUrl: "old-thumbnail", senderName: nil,
+            direction: "out", mediaRestricted: true
+        )
+        let decoded = try JSONDecoder().decode(
+            ConversationLastDTO.self, from: JSONEncoder().encode(copied)
+        )
+        XCTAssertEqual(decoded.direction, "out")
+        XCTAssertEqual(decoded.mediaRestricted, true)
+        XCTAssertEqual(decoded.hasMedia, false)
+        XCTAssertEqual(decoded.mediaCount, 0)
+        XCTAssertEqual(decoded.mediaKinds, [])
+        XCTAssertNil(decoded.thumbUrl)
+    }
+
     func testSessionPreparationClearsOtherAccountsBeforeOfflineShellAppears() {
         let vm = ChatsViewModel()
         vm.prepareForSession(token: "account-one")

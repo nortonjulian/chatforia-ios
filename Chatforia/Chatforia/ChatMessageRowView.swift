@@ -27,6 +27,7 @@ struct ChatMessageRowView: View {
     let onVideoTap: ((URL) -> Void)?
 
     @EnvironmentObject private var themeManager: ThemeManager
+    @EnvironmentObject private var auth: AuthStore
     @AppStorage("chatforia_language") private var appLanguage = "en"
 
     var body: some View {
@@ -119,6 +120,17 @@ struct ChatMessageRowView: View {
                             }
                         }
                     }
+                }
+
+                if msg.mediaRestricted == true || locallyRestrictedVisualMedia {
+                    Label(
+                        appText("messages.teenMediaRestricted", languageCode: appLanguage,
+                                fallback: "Images and videos are unavailable in conversations involving teen accounts."),
+                        systemImage: "eye.slash"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(themeManager.palette.secondaryText)
+                    .accessibilityAddTraits(.isStaticText)
                 }
 
                 if shouldShowBubble {
@@ -395,10 +407,16 @@ struct ChatMessageRowView: View {
 
     private var visibleAttachments: [AttachmentDTO] {
         (msg.attachments ?? []).filter { attachment in
+            if auth.currentUser?.ageBand == "TEEN_13_17" && attachment.isVisualForTeenSafety { return false }
             let hasURL = !(attachment.url?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
             let hasThumb = !(attachment.thumbUrl?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
             return hasURL || hasThumb
         }
+    }
+
+    private var locallyRestrictedVisualMedia: Bool {
+        auth.currentUser?.ageBand == "TEEN_13_17" &&
+            (msg.attachments ?? []).contains(where: \.isVisualForTeenSafety)
     }
 
     private var hasVisibleAttachments: Bool {

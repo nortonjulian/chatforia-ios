@@ -219,7 +219,8 @@ final class ChatsViewModel: ObservableObject {
                             mediaKinds: last?.mediaKinds,
                             thumbUrl: last?.thumbUrl,
                             senderName: last?.senderName,
-                            direction: last?.direction
+                            direction: last?.direction,
+                            mediaRestricted: last?.mediaRestricted
                         )
                     )
                 }
@@ -498,6 +499,7 @@ final class ChatsViewModel: ObservableObject {
         }()
 
         let thumbUrl: String? = {
+            if payload["mediaRestricted"] as? Bool == true { return nil }
             if let attachments =
                     payload["attachments"] as? [[String: Any]] {
                 for attachment in attachments {
@@ -548,7 +550,10 @@ final class ChatsViewModel: ObservableObject {
             thumbUrl: thumbUrl,
             senderName: (payload["sender"] as? [String: Any])?["username"] as? String
                 ?? (isSameAsCurrentLast ? currentLast?.senderName : nil),
-            direction: currentLast?.direction
+            direction: (payload["direction"] as? String)
+                ?? (isSameAsCurrentLast ? currentLast?.direction : nil),
+            mediaRestricted: (payload["mediaRestricted"] as? Bool)
+                ?? (isSameAsCurrentLast ? currentLast?.mediaRestricted : nil)
         )
 
         var updated = ConversationDTO(
@@ -738,7 +743,8 @@ final class ChatsViewModel: ObservableObject {
                         mediaKinds: last.mediaKinds,
                         thumbUrl: last.thumbUrl,
                         senderName: last.senderName,
-                        direction: last.direction
+                        direction: last.direction,
+                        mediaRestricted: last.mediaRestricted
                     )
                 )
             }
@@ -1017,7 +1023,8 @@ final class ChatsViewModel: ObservableObject {
                         mediaKinds: convo.last?.mediaKinds,
                         thumbUrl: convo.last?.thumbUrl,
                         senderName: convo.last?.senderName,
-                        direction: convo.last?.direction
+                        direction: convo.last?.direction,
+                        mediaRestricted: convo.last?.mediaRestricted
                     )
                 )
 
@@ -1114,7 +1121,8 @@ final class ChatsViewModel: ObservableObject {
                     mediaKinds: incoming.last?.mediaKinds ?? existingLast.mediaKinds,
                     thumbUrl: incoming.last?.thumbUrl ?? existingLast.thumbUrl,
                     senderName: incoming.last?.senderName ?? existingLast.senderName,
-                    direction: incoming.last?.direction ?? existingLast.direction
+                    direction: incoming.last?.direction ?? existingLast.direction,
+                    mediaRestricted: incoming.last?.mediaRestricted ?? existingLast.mediaRestricted
                 )
             )
         }

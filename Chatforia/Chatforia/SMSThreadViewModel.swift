@@ -575,6 +575,10 @@ final class SMSThreadViewModel: ObservableObject {
     if let apiError = error as? APIError {
         switch apiError {
         case .server(let status, let code, _, _):
+            if code == "TEEN_VISUAL_MEDIA_RESTRICTED" {
+                return appText("messages.teenMediaRestricted", languageCode: appLanguage,
+                               fallback: "Images and videos are unavailable in conversations involving teen accounts.")
+            }
             if code == "SMS_OPTED_OUT" {
                 return "This number has opted out of SMS. " +
                     "They must reply START before you can message them again."

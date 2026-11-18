@@ -125,11 +125,21 @@ struct BlockUserRequest: Encodable {
 }
 
 struct ReportCreateRequest: Encodable {
+    static let endpoint = "messages/report"
     let messageId: Int
+    let chatRoomId: Int
+    let reportedUserId: Int
     let reason: String
     let details: String?
-    let contextCount: Int
+    let messages: [ReportMessageSnapshot]
     let blockAfterReport: Bool
+}
+
+struct ReportMessageSnapshot: Encodable {
+    let messageId: Int
+    let senderId: Int
+    let plaintext: String
+    let attachments: [AttachmentDTO]
 }
 
 struct ReportCreateResponse: Decodable {
@@ -163,6 +173,8 @@ final class ChatThreadViewModel: ObservableObject {
     @Published var isSendingAudio: Bool = false
     @Published var isSubmittingReport: Bool = false
     @Published var reportErrorText: String?
+    // Test seam for report submission; normal app requests still use APIClient.
+    var reportSender: ((ReportCreateRequest, String) async throws -> Bool)?
     @Published private(set) var nowTick: Date = Date()
     
     @Published var smartReplies: [String] = []
@@ -1815,11 +1827,12 @@ extension ChatThreadViewModel {
         roomId: Int,
         reason: ReportReason,
         details: String,
+        reportedContent: String? = nil,
         contextCount: Int,
         blockAfterReport: Bool,
         token: String?
     ) async -> Bool {
-        _ = roomId
+        guard !isSubmittingReport else { return false }
 
         guard let token, !token.isEmpty else {
             reportErrorText = appText(
@@ -1834,29 +1847,55 @@ extension ChatThreadViewModel {
         defer { isSubmittingReport = false }
 
         let trimmedDetails = details.trimmingCharacters(in: .whitespacesAndNewlines)
+        let targetIndex = messages.firstIndex(where: { $0.id == targetMessage.id })
+        let selectedMessages: [MessageDTO]
+        if let targetIndex {
+            selectedMessages = Array(messages[max(0, targetIndex - max(0, min(contextCount, 20)))...targetIndex])
+        } else {
+            selectedMessages = [targetMessage]
+        }
 
         let payload = ReportCreateRequest(
             messageId: targetMessage.id,
+            chatRoomId: roomId,
+            reportedUserId: targetMessage.sender.id,
             reason: reason.rawValue,
             details: trimmedDetails.isEmpty ? nil : trimmedDetails,
-            contextCount: contextCount,
+            messages: selectedMessages.map { message in
+                ReportMessageSnapshot(
+                    messageId: message.id,
+                    senderId: message.sender.id,
+                    plaintext: message.id == targetMessage.id
+                        ? (reportedContent?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")
+                        : (DecryptedMessageTextStore.shared.text(for: message.id)
+                            ?? message.rawContent ?? ""),
+                    attachments: message.attachments ?? []
+                )
+            },
             blockAfterReport: blockAfterReport
         )
 
         do {
-            let bodyData = try JSONEncoder().encode(payload)
-
-            let _: ReportCreateResponse = try await APIClient.shared.send(
-                APIRequest(
-                    path: "reports/messages",
-                    method: .POST,
-                    body: bodyData,
-                    requiresAuth: true
-                ),
-                token: token
-            )
-
-            return true
+            let success: Bool
+            if let reportSender {
+                success = try await reportSender(payload, token)
+            } else {
+                let bodyData = try JSONEncoder().encode(payload)
+                let response: ReportCreateResponse = try await APIClient.shared.send(
+                    APIRequest(
+                        path: ReportCreateRequest.endpoint,
+                        method: .POST,
+                        body: bodyData,
+                        requiresAuth: true
+                    ),
+                    token: token
+                )
+                success = response.success
+            }
+            if !success {
+                reportErrorText = appText("common.tryAgain", languageCode: appLanguage)
+            }
+            return success
         } catch {
             reportErrorText = error.localizedDescription
             return false

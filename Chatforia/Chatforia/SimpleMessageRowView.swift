@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SimpleMessageRowView: View {
     @AppStorage("chatforia_language") private var appLanguage = "en"
+    @EnvironmentObject private var auth: AuthStore
 
     let msg: MessageDTO
     let isMe: Bool
@@ -40,6 +41,16 @@ struct SimpleMessageRowView: View {
                             maxWidth: maxBubbleWidth,
                             onVideoTap: nil
                         )
+                    }
+
+                    if msg.mediaRestricted == true || locallyRestrictedVisualMedia {
+                        Label(
+                            appText("messages.teenMediaRestricted", languageCode: appLanguage,
+                                    fallback: "Images and videos are unavailable in conversations involving teen accounts."),
+                            systemImage: "eye.slash"
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                     }
 
                     if shouldShowBubble {
@@ -120,10 +131,16 @@ struct SimpleMessageRowView: View {
 
     private var visibleAttachments: [AttachmentDTO] {
         (msg.attachments ?? []).filter { attachment in
+            if auth.currentUser?.ageBand == "TEEN_13_17" && attachment.isVisualForTeenSafety { return false }
             let hasURL = !(attachment.url?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
             let hasThumb = !(attachment.thumbUrl?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
             return hasURL || hasThumb
         }
+    }
+
+    private var locallyRestrictedVisualMedia: Bool {
+        auth.currentUser?.ageBand == "TEEN_13_17" &&
+            (msg.attachments ?? []).contains(where: \.isVisualForTeenSafety)
     }
 
     private var hasVisibleAttachments: Bool {

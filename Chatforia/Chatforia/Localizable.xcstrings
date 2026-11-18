@@ -1548551,6 +1548551,25 @@
         }
       }
     },
+    "messages.teenMediaRestricted" : {
+      "comment" : "Temporary safety rule: image and video attachments are unavailable in any conversation with a teen account. This is shown for restricted historical media and a rejected send.",
+      "localizations" : {
+        "ar" : { "stringUnit" : { "state" : "translated", "value" : "الصور ومقاطع الفيديو غير متاحة في المحادثات التي تضم حسابات مراهقين." } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Bilder und Videos sind in Unterhaltungen mit Konten von Jugendlichen nicht verfügbar." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Images and videos are unavailable in conversations involving teen accounts." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Las imágenes y los videos no están disponibles en conversaciones con cuentas de adolescentes." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Les images et les vidéos ne sont pas disponibles dans les conversations avec des comptes d'adolescents." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "किशोर खातों वाली बातचीत में चित्र और वीडियो उपलब्ध नहीं हैं।" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Immagini e video non sono disponibili nelle conversazioni con account di adolescenti." } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "未成年者のアカウントが参加するチャットでは、画像と動画を利用できません。" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "청소년 계정이 참여한 대화에서는 이미지와 동영상을 사용할 수 없습니다." } },
+        "pt" : { "stringUnit" : { "state" : "translated", "value" : "Imagens e vídeos não estão disponíveis em conversas com contas de adolescentes." } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Imagens e vídeos não estão disponíveis em conversas com contas de adolescentes." } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Изображения и видео недоступны в беседах с участием аккаунтов подростков." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "有青少年账号参与的聊天中无法使用图片和视频。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "有青少年帳號參與的對話中無法使用圖片和影片。" } }
+      }
+    },
     "messages.thisMessageWasDeleted" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1959596,6 +1959615,26 @@
         }
       }
     },
+    "report.accountTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Report account"
+          }
+        }
+      }
+    },
+    "report.accountSubmitted" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Report submitted"
+          }
+        }
+      }
+    },
     "report.title" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2097091,6 +2097130,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Khetha ibanga lobudala"
+          }
+        }
+      }
+    },
+    "setting_allow_profanity_in_chat_text" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow profanity in chat text"
+          }
+        }
+      }
+    },
+    "setting_profanity_text_only_note" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If anyone in the conversation turns this off, chat profanity is masked for everyone. Photos and videos are not screened."
           }
         }
       }
