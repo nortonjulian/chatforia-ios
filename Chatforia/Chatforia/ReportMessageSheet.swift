@@ -1,9 +1,81 @@
 import SwiftUI
 
+func localizedReportSender(_ template: String, name: String) -> String {
+    for token in ["{name}", "%@", "@@"] where template.contains(token) {
+        return template.replacingOccurrences(of: token, with: name)
+    }
+    // Older catalog entries for Japanese omit the placeholder entirely.
+    return "\(name) \(template)"
+}
+
+struct ReportMessagePreview {
+    let displayText: String
+    let evidenceText: String?
+
+    static func resolve(
+        message: MessageDTO,
+        decryptedText: String?,
+        languageCode: String
+    ) -> Self {
+        func visibleText(_ candidate: String?) -> String? {
+            guard let trimmed = candidate?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !trimmed.isEmpty else { return nil }
+            let placeholder = trimmed.lowercased()
+            guard !["[image]", "[video]", "[audio]", "[file]", "[attachment]", "[gif]", "attachment"].contains(placeholder) else {
+                return nil
+            }
+            return trimmed
+        }
+
+        let permittedAttachments = (message.attachments ?? []).filter {
+            message.mediaRestricted != true || !$0.isVisualForTeenSafety
+        }
+        let caption = permittedAttachments.lazy.compactMap { visibleText($0.caption) }.first
+        if let text = visibleText(decryptedText)
+            ?? visibleText(message.rawContent)
+            ?? visibleText(message.translatedForMe)
+            ?? caption {
+            return Self(displayText: text, evidenceText: text)
+        }
+
+        if let attachment = permittedAttachments.first {
+            let kind = (attachment.kind ?? "").uppercased()
+            let mime = (attachment.mimeType ?? "").lowercased()
+            let key: String
+            if kind == "AUDIO" || mime.hasPrefix("audio/") {
+                key = "messages.mediaAudio"
+            } else if kind == "VIDEO" || mime.hasPrefix("video/") {
+                key = "messages.mediaVideo"
+            } else if kind == "IMAGE" || kind == "GIF" || mime.hasPrefix("image/") {
+                key = "messages.mediaPhoto"
+            } else {
+                key = "messages.mediaFile"
+            }
+            return Self(displayText: appText(key, languageCode: languageCode), evidenceText: nil)
+        }
+
+        if message.mediaRestricted == true {
+            return Self(
+                displayText: appText("messages.teenMediaRestricted", languageCode: languageCode),
+                evidenceText: nil
+            )
+        }
+        if message.audioUrl != nil {
+            return Self(displayText: appText("messages.mediaAudio", languageCode: languageCode), evidenceText: nil)
+        }
+        if message.imageUrl != nil {
+            return Self(displayText: appText("messages.mediaPhoto", languageCode: languageCode), evidenceText: nil)
+        }
+        if message.encryptedPayloadForMe != nil || message.contentCiphertext != nil {
+            return Self(displayText: appText("messages.encryptedMessage", languageCode: languageCode), evidenceText: nil)
+        }
+        return Self(displayText: appText("report.noVisibleText", languageCode: languageCode), evidenceText: nil)
+    }
+}
+
 struct ReportMessageSheet: View {
     let targetMessage: MessageDTO
     let senderName: String
-    let previewText: String
     let isSubmitting: Bool
     let errorText: String?
 
@@ -13,9 +85,18 @@ struct ReportMessageSheet: View {
     @Binding var blockAfterReport: Bool
 
     let onCancel: () -> Void
-    let onSubmit: () -> Void
+    let onSubmit: (String?) -> Void
 
     @AppStorage("chatforia_language") private var appLanguage = "en"
+    @StateObject private var decryptedStore = DecryptedMessageTextStore.shared
+
+    private var preview: ReportMessagePreview {
+        ReportMessagePreview.resolve(
+            message: targetMessage,
+            decryptedText: decryptedStore.text(for: targetMessage.id),
+            languageCode: appLanguage
+        )
+    }
 
     var body: some View {
         NavigationStack {
@@ -67,20 +148,15 @@ struct ReportMessageSheet: View {
                 Section(appText("report.preview", languageCode: appLanguage)) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(
-                            String(
-                                format: appText(
-                                    "report.reportingMessageFrom",
-                                    languageCode: appLanguage
-                                ),
-                                senderName
+                            localizedReportSender(
+                                appText("report.reportingMessageFrom", languageCode: appLanguage),
+                                name: senderName
                             )
                         )
                         .font(.subheadline)
 
                         Text(
-                            previewText.isEmpty
-                                ? appText("report.noVisibleText", languageCode: appLanguage)
-                                : previewText
+                            preview.displayText
                         )
                         .foregroundStyle(.secondary)
                         .lineLimit(5)
@@ -111,7 +187,7 @@ struct ReportMessageSheet: View {
 
                 ToolbarItem(placement: .confirmationAction) {
                     Button(appText("common.submit", languageCode: appLanguage)) {
-                        onSubmit()
+                        onSubmit(preview.evidenceText)
                     }
                     .disabled(isSubmitting)
                 }

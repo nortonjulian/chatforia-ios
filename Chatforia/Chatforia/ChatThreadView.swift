@@ -173,14 +173,9 @@ struct ChatThreadView: View {
             reportingMessage = nil
         }
         .sheet(item: $reportingMessage) { message in
-            let previewText = DecryptedMessageTextStore.shared.text(for: message.id)
-                ?? message.rawContent
-                ?? message.translatedForMe
-                ?? ""
             ReportMessageSheet(
                 targetMessage: message,
                 senderName: message.sender.username ?? appText("common.unknown", languageCode: appLanguage),
-                previewText: previewText,
                 isSubmitting: vm.isSubmittingReport,
                 errorText: vm.reportErrorText,
                 reason: $reportReason,
@@ -188,7 +183,7 @@ struct ChatThreadView: View {
                 details: $reportDetails,
                 blockAfterReport: $blockAfterReport,
                 onCancel: { reportingMessage = nil },
-                onSubmit: {
+                onSubmit: { reportedContent in
                     let userID = auth.currentUser?.id
                     let token = auth.currentToken
                     Task {
@@ -197,7 +192,7 @@ struct ChatThreadView: View {
                             roomId: room.id,
                             reason: reportReason,
                             details: reportDetails,
-                            reportedContent: previewText,
+                            reportedContent: reportedContent,
                             contextCount: reportContextCount,
                             blockAfterReport: blockAfterReport,
                             token: token
