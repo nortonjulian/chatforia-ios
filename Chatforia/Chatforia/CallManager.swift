@@ -1173,7 +1173,11 @@ final class CallManager: ObservableObject {
             Task { [weak self] in
                 guard let self else { return }
 
-                for _ in 0..<80 {
+                // Twilio can ring the destination for 25 seconds before
+                // falling through to voicemail. At 250 ms per poll, 80
+                // attempts can expire before that transition and leave our
+                // looping local ringback audible over the voicemail greeting.
+                for _ in 0..<160 {
                     guard !Task.isCancelled else {
                         return
                     }
@@ -1259,6 +1263,19 @@ final class CallManager: ObservableObject {
                     } catch {
                         return
                     }
+                }
+
+                // Fail safely if the status endpoint never becomes terminal:
+                // stop *our local ringback only*. Do not hang up the Twilio
+                // call, which may still be playing voicemail or recording.
+                if !Task.isCancelled,
+                   let current = self.activeSession,
+                   current.id == session.id,
+                   current.direction == .outgoing,
+                   current.isVideo == false,
+                   current.answeredAt == nil,
+                   case .appUser = current.destination {
+                    AudioPlayerService.shared.stopOutgoingRingback()
                 }
             }
     }
