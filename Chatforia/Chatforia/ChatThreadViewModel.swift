@@ -2054,8 +2054,8 @@ extension ChatThreadViewModel {
 
             applyToStore(updated)
 
-            if isEncrypted {
-                DecryptedMessageTextStore.shared.setText(trimmed, for: updated.id)
+            if isEncrypted, let currentUserId {
+                DecryptedMessageTextStore.shared.setText(trimmed, for: updated.id, accountId: currentUserId)
             }
 
             refreshFromMessageStore()

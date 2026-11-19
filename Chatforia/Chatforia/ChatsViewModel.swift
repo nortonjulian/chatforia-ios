@@ -427,7 +427,8 @@ final class ChatsViewModel: ObservableObject {
                                 ) {
                         DecryptedMessageTextStore.shared.setText(
                             decrypted,
-                            for: messageId
+                            for: messageId,
+                            accountId: currentUserId
                         )
 
                         return decrypted
@@ -955,7 +956,7 @@ final class ChatsViewModel: ObservableObject {
 
                 await MainActor.run {
                     DecryptedMessageTextStore.shared
-                        .setText(decrypted, for: newest.id)
+                        .setText(decrypted, for: newest.id, accountId: currentUserId)
                 }
 
             } else if
@@ -979,7 +980,7 @@ final class ChatsViewModel: ObservableObject {
 
                 await MainActor.run {
                     DecryptedMessageTextStore.shared
-                        .setText(decrypted, for: newest.id)
+                        .setText(decrypted, for: newest.id, accountId: currentUserId)
                 }
 
             } else {

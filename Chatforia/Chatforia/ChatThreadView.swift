@@ -63,6 +63,7 @@ struct ChatThreadView: View {
 
     @State private var deletingMessage: MessageDTO? = nil
     @State private var reportingMessage: MessageDTO? = nil
+    @State private var reportingAccountId: Int? = nil
     @State private var reportReason: ReportReason = .other
     @State private var reportContextCount = 0
     @State private var reportDetails = ""
@@ -167,14 +168,17 @@ struct ChatThreadView: View {
         .onChange(of: auth.currentUser?.id) { _, _ in
             selectedVideoURL = nil
             reportingMessage = nil
+            reportingAccountId = nil
         }
         .onChange(of: auth.currentToken) { _, _ in
             selectedVideoURL = nil
             reportingMessage = nil
+            reportingAccountId = nil
         }
         .sheet(item: $reportingMessage) { message in
             ReportMessageSheet(
                 targetMessage: message,
+                accountId: reportingAccountId ?? 0,
                 senderName: message.sender.username ?? appText("common.unknown", languageCode: appLanguage),
                 isSubmitting: vm.isSubmittingReport,
                 errorText: vm.reportErrorText,
@@ -184,6 +188,7 @@ struct ChatThreadView: View {
                 blockAfterReport: $blockAfterReport,
                 onCancel: { reportingMessage = nil },
                 onSubmit: { reportedContent in
+                    guard auth.currentUser?.id == reportingAccountId else { return }
                     let userID = auth.currentUser?.id
                     let token = auth.currentToken
                     Task {
@@ -538,6 +543,7 @@ extension ChatThreadView {
                         reportDetails = ""
                         blockAfterReport = false
                         vm.reportErrorText = nil
+                        reportingAccountId = auth.currentUser?.id
                         reportingMessage = message
                     },
                     onVideoTap: { url in

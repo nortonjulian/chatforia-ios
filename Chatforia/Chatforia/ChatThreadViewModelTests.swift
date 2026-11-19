@@ -24,6 +24,9 @@ final class ChatThreadViewModelTests: XCTestCase {
 
     func testReportPreviewUpdatesWhenDecryptionBecomesAvailable() {
         let id = 906
+        let store = DecryptedMessageTextStore.shared
+        store.activateAccount(7)
+        defer { store.deactivateAccount() }
         let sender = SenderDTO(id: 9, username: "sender", publicKey: nil, avatarUrl: nil)
         let message = MessageDTO(
             id: id, contentCiphertext: "synthetic-ciphertext", rawContent: nil,
@@ -36,13 +39,60 @@ final class ChatThreadViewModelTests: XCTestCase {
             languageCode: "en"
         ).evidenceText)
 
-        DecryptedMessageTextStore.shared.setText("decrypted later", for: id)
+        DecryptedMessageTextStore.shared.setText("decrypted later", for: id, accountId: 7)
         defer { DecryptedMessageTextStore.shared.removeText(for: id) }
         XCTAssertEqual(ReportMessagePreview.resolve(
             message: message,
             decryptedText: DecryptedMessageTextStore.shared.text(for: id),
             languageCode: "en"
         ).evidenceText, "decrypted later")
+    }
+
+    func testReportPreviewNeverUsesPreviousAccountsDecryptedText() {
+        let store = DecryptedMessageTextStore.shared
+        let message = MessageDTO(
+            id: 907, contentCiphertext: "synthetic-ciphertext", rawContent: nil,
+            createdAt: Date(),
+            sender: SenderDTO(id: 9, username: "sender", publicKey: nil, avatarUrl: nil),
+            chatRoomId: 10
+        )
+        store.activateAccount(7)
+        store.setText("account A secret", for: 907, accountId: 7)
+        XCTAssertEqual(store.text(for: 907), "account A secret")
+
+        store.activateAccount(8)
+        store.setText("late account A secret", for: 907, accountId: 7)
+        XCTAssertNil(store.text(for: 907))
+        XCTAssertNil(ReportMessagePreview.resolve(
+            message: message, store: store, accountId: 7, languageCode: "en"
+        ).evidenceText)
+
+        store.setText("account B text", for: 907, accountId: 8)
+        XCTAssertEqual(store.text(for: 907), "account B text")
+        store.deactivateAccount()
+        XCTAssertNil(store.text(for: 907))
+        store.activateAccount(7)
+        XCTAssertNil(store.text(for: 907))
+        store.deactivateAccount()
+    }
+
+    func testPreviousAccountReportPreviewCannotUseEvenLocalRawContent() {
+        let store = DecryptedMessageTextStore.shared
+        let message = MessageDTO(
+            id: 908, rawContent: "account A plaintext", createdAt: Date(),
+            sender: SenderDTO(id: 9, username: "sender", publicKey: nil, avatarUrl: nil),
+            chatRoomId: 10
+        )
+        store.activateAccount(7)
+        XCTAssertEqual(ReportMessagePreview.resolve(
+            message: message, store: store, accountId: 7, languageCode: "en"
+        ).evidenceText, "account A plaintext")
+
+        store.activateAccount(8)
+        XCTAssertNil(ReportMessagePreview.resolve(
+            message: message, store: store, accountId: 7, languageCode: "en"
+        ).evidenceText)
+        store.deactivateAccount()
     }
 
     func testReportPreviewUsesLocalTextThenPermittedMedia() {

@@ -14,6 +14,25 @@ struct ReportMessagePreview {
 
     static func resolve(
         message: MessageDTO,
+        store: DecryptedMessageTextStore,
+        accountId: Int,
+        languageCode: String
+    ) -> Self {
+        guard accountId > 0, store.activeAccountId == accountId else {
+            return Self(
+                displayText: appText("report.noVisibleText", languageCode: languageCode),
+                evidenceText: nil
+            )
+        }
+        return resolve(
+            message: message,
+            decryptedText: store.text(for: message.id),
+            languageCode: languageCode
+        )
+    }
+
+    static func resolve(
+        message: MessageDTO,
         decryptedText: String?,
         languageCode: String
     ) -> Self {
@@ -75,6 +94,7 @@ struct ReportMessagePreview {
 
 struct ReportMessageSheet: View {
     let targetMessage: MessageDTO
+    let accountId: Int
     let senderName: String
     let isSubmitting: Bool
     let errorText: String?
@@ -93,7 +113,8 @@ struct ReportMessageSheet: View {
     private var preview: ReportMessagePreview {
         ReportMessagePreview.resolve(
             message: targetMessage,
-            decryptedText: decryptedStore.text(for: targetMessage.id),
+            store: decryptedStore,
+            accountId: accountId,
             languageCode: appLanguage
         )
     }
@@ -187,9 +208,11 @@ struct ReportMessageSheet: View {
 
                 ToolbarItem(placement: .confirmationAction) {
                     Button(appText("common.submit", languageCode: appLanguage)) {
-                        onSubmit(preview.evidenceText)
+                        if decryptedStore.activeAccountId == accountId {
+                            onSubmit(preview.evidenceText)
+                        }
                     }
-                    .disabled(isSubmitting)
+                    .disabled(isSubmitting || decryptedStore.activeAccountId != accountId)
                 }
             }
             .overlay {
