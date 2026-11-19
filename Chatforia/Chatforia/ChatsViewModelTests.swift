@@ -4,6 +4,26 @@ import XCTest
 @MainActor
 final class ChatsViewModelTests: XCTestCase {
 
+    func testRandomResumeIgnoresLateNoneAfterNewMatch() {
+        var gate = RandomResumeRequestGate()
+        let old = gate.begin()
+        gate.invalidate() // A newer match arrived while the request was in flight.
+        XCTAssertFalse(gate.acceptNone(old))
+        let current = gate.begin()
+        XCTAssertFalse(gate.acceptNone(old))
+        XCTAssertTrue(gate.acceptNone(current))
+    }
+
+    func testRandomResumeIgnoresOutOfOrderResponses() {
+        var gate = RandomResumeRequestGate()
+        let old = gate.begin()
+        let current = gate.begin()
+        XCTAssertFalse(gate.acceptResumed(old))
+        XCTAssertFalse(gate.acceptResumed(nil))
+        XCTAssertTrue(gate.acceptResumed(current))
+        XCTAssertFalse(gate.acceptNone(current))
+    }
+
     func testRandomSessionRestorationKeepsAliasesAndFriendRequestState() {
         let session = RandomSession(socketPayload: [
             "roomId": 42,

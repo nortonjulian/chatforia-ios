@@ -754,17 +754,25 @@ struct ChatsRootView: View {
                   let session = RandomSession(socketPayload: dict) else { return }
             let roomId = session.roomId
             Task { @MainActor in
+                guard SocketManager.shared.acceptRandomResumed(dict) else { return }
                 activeRandomRoomIds.insert(roomId)
                 activeRandomSessions[roomId] = session
                 if selectedRoom?.id == roomId {
                     selectedRandomSession = session
                 }
-                await reload()
+                if isMatching {
+                    await handleMatchFound(roomId: roomId, myAlias: session.myAlias,
+                                           partnerAlias: session.partnerAlias, restoredSession: session)
+                } else {
+                    await reload()
+                }
             }
         }
 
-        SocketManager.shared.on("random:none") { _, _ in
+        SocketManager.shared.on("random:none") { data, _ in
+            let payload = data.first as? [String: Any]
             Task { @MainActor in
+                guard SocketManager.shared.acceptRandomNone(payload) else { return }
                 activeRandomRoomIds.removeAll()
                 activeRandomSessions.removeAll()
                 if selectedRandomSession != nil {
@@ -789,6 +797,7 @@ struct ChatsRootView: View {
                 ?? appText("random.stranger", languageCode: appLanguage)
 
             Task { @MainActor in
+                SocketManager.shared.invalidateRandomResume()
                 await handleMatchFound(
                     roomId: roomId,
                     myAlias: myAlias,
@@ -835,7 +844,8 @@ struct ChatsRootView: View {
         }
     }
 
-    private func handleMatchFound(roomId: Int, myAlias: String, partnerAlias: String) async {
+    private func handleMatchFound(roomId: Int, myAlias: String, partnerAlias: String,
+                                  restoredSession: RandomSession? = nil) async {
         guard isMatching else { return }
         randomMatchNavigation.matched(roomId: roomId)
         let navigationGeneration = randomMatchNavigation.generation
@@ -854,7 +864,7 @@ struct ChatsRootView: View {
 
             guard randomMatchNavigation.generation == navigationGeneration else { return }
 
-            let session = RandomSession(
+            let session = restoredSession ?? RandomSession(
                 roomId: roomId,
                 myAlias: myAlias,
                 partnerAlias: partnerAlias
