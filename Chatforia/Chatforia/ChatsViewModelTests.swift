@@ -24,6 +24,16 @@ final class ChatsViewModelTests: XCTestCase {
         XCTAssertFalse(gate.acceptNone(current))
     }
 
+    func testRandomProtocolCapabilityAndStaleUpdateResponse() {
+        XCTAssertEqual(SocketManager.randomChatProtocol, 2)
+        var gate = RandomResumeRequestGate()
+        let stale = gate.begin()
+        let current = gate.begin()
+        XCTAssertFalse(gate.acceptNone(stale))
+        XCTAssertTrue(gate.acceptNone(current))
+        XCTAssertFalse(gate.acceptResumed(current))
+    }
+
     func testRandomSessionRestorationKeepsAliasesAndFriendRequestState() {
         let session = RandomSession(socketPayload: [
             "roomId": 42,

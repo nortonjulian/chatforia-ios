@@ -48,6 +48,7 @@ extension Notification.Name {
 @MainActor
 final class SocketManager: ObservableObject {
     static let shared = SocketManager()
+    static let randomChatProtocol = 2
 
     @Published private(set) var isConnected: Bool = false
 
@@ -513,7 +514,7 @@ func joinRandomQueue(topic: String? = nil, region: String? = nil) {
         return
     }
 
-    var payload: [String: Any] = [:]
+    var payload: [String: Any] = ["randomChatProtocol": Self.randomChatProtocol]
     payload["requestId"] = randomResumeGate.begin()
     if let topic { payload["topic"] = topic }
     if let region { payload["region"] = region }
@@ -544,7 +545,17 @@ func leaveRandomQueue() {
 
 func resumeRandomChat() {
     guard let socket, socket.status == .connected else { return }
-    socket.emit("random:resume", ["requestId": randomResumeGate.begin()])
+    socket.emit("random:resume", [
+        "requestId": randomResumeGate.begin(),
+        "randomChatProtocol": Self.randomChatProtocol
+    ])
+}
+
+func acceptRandomUpdateRequired(_ payload: [String: Any]) -> Bool {
+    guard payload["code"] as? String == "UPDATE_REQUIRED" else { return false }
+    let accepted = randomResumeGate.acceptNone(payload["requestId"] as? String)
+    if accepted { isInRandomQueue = false }
+    return accepted
 }
 
 func acceptRandomNone(_ payload: [String: Any]?) -> Bool {
