@@ -4,6 +4,22 @@ import XCTest
 @MainActor
 final class ChatsViewModelTests: XCTestCase {
 
+    func testRandomSessionRestorationKeepsAliasesAndFriendRequestState() {
+        let session = RandomSession(socketPayload: [
+            "roomId": 42,
+            "chatRoomId": 42,
+            "myAlias": "Quiet Signal 1000",
+            "partnerAlias": "Bright Wave 2000",
+            "iRequestedFriend": true
+        ])
+        XCTAssertEqual(session?.roomId, 42)
+        XCTAssertEqual(session?.myAlias, "Quiet Signal 1000")
+        XCTAssertEqual(session?.partnerAlias, "Bright Wave 2000")
+        XCTAssertEqual(session?.iRequestedFriend, true)
+        XCTAssertNil(RandomSession(socketPayload: ["roomId": 0]))
+        XCTAssertNil(RandomSession(socketPayload: ["roomId": "42"]))
+    }
+
     func testRandomMatchNavigatesOnlyAfterSheetDismissalAndRoomLoad() {
         var gate = RandomMatchNavigationGate()
         gate.begin()

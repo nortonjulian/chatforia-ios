@@ -672,7 +672,7 @@ extension ChatThreadView {
                                     imageData: imageData,
                                     caption: caption,
                                     senderId: auth.currentUser?.id ?? 0,
-                                    senderUsername: auth.currentUser?.username,
+                                    senderUsername: localDisplayUsername,
                                     senderPublicKey: auth.currentUser?.publicKey
                                 )
 
@@ -705,7 +705,7 @@ extension ChatThreadView {
                                         mimeType: "video/quicktime",
                                         caption: caption,
                                         senderId: auth.currentUser?.id ?? 0,
-                                        senderUsername: auth.currentUser?.username,
+                                        senderUsername: localDisplayUsername,
                                         senderPublicKey: auth.currentUser?.publicKey
                                     )
 
@@ -995,7 +995,7 @@ extension ChatThreadView {
                 gifData: data,
                 caption: effectiveCaption,
                 senderId: senderId,
-                senderUsername: auth.currentUser?.username,
+                senderUsername: localDisplayUsername,
                 senderPublicKey: auth.currentUser?.publicKey
             )
 
@@ -1023,7 +1023,7 @@ extension ChatThreadView {
                 imageData: imageData,
                 caption: caption,
                 senderId: auth.currentUser?.id ?? 0,
-                senderUsername: auth.currentUser?.username,
+                senderUsername: localDisplayUsername,
                 senderPublicKey: auth.currentUser?.publicKey
             )
 
@@ -1055,7 +1055,7 @@ extension ChatThreadView {
                     mimeType: "video/quicktime",
                     caption: caption,
                     senderId: auth.currentUser?.id ?? 0,
-                    senderUsername: auth.currentUser?.username,
+                    senderUsername: localDisplayUsername,
                     senderPublicKey: auth.currentUser?.publicKey
                 )
 
@@ -1156,7 +1156,7 @@ extension ChatThreadView {
             token: TokenStore.shared.read(),
             text: textToSend,
             senderId: senderId,
-            senderUsername: auth.currentUser?.username,
+            senderUsername: localDisplayUsername,
             senderPublicKey: auth.currentUser?.publicKey
         )
 
@@ -1248,6 +1248,12 @@ extension ChatThreadView {
             ),
             auth: auth
         )
+    }
+
+    private var localDisplayUsername: String? {
+        vm.randomSession?.myAlias
+            ?? randomSession?.myAlias
+            ?? auth.currentUser?.username
     }
 
     private var roomDisplayTitle: String {
@@ -1504,7 +1510,7 @@ extension ChatThreadView {
             fileURL: voiceDraft.fileURL,
             durationSec: voiceDraft.durationSec,
             senderId: senderId,
-            senderUsername: auth.currentUser?.username,
+            senderUsername: localDisplayUsername,
             senderPublicKey: auth.currentUser?.publicKey
         )
 

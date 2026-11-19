@@ -209,6 +209,10 @@ final class SocketManager: ObservableObject {
                     debugLog("[SocketManager] rejoined room \(roomId)")
                 }
 
+                // The authenticated server decides whether this user has a
+                // recoverable Random Chat. No room ID is trusted from the app.
+                socket.emit("random:resume")
+
                 NotificationCenter.default.post(name: .socketDidReconnect, object: nil)
             }
         }
@@ -493,6 +497,7 @@ func joinRandomQueue(topic: String? = nil, region: String? = nil) {
 }
 
 func leaveRandomQueue() {
+    guard isInRandomQueue else { return }
     guard let socket else {
         debugLog("[RandomChat][iOS] leaveRandomQueue skipped: socket is nil")
         isInRandomQueue = false
@@ -508,6 +513,11 @@ func leaveRandomQueue() {
     debugLog("[RandomChat][iOS] emitting random:leave")
     socket.emit("random:leave")
     isInRandomQueue = false
+}
+
+func resumeRandomChat() {
+    guard let socket, socket.status == .connected else { return }
+    socket.emit("random:resume")
 }
 
 func skipRandomChat(roomId: Int?) {

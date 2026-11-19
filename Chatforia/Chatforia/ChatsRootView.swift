@@ -567,6 +567,8 @@ struct ChatsRootView: View {
                     didSetupRandomMatchListener = true
                 }
 
+                SocketManager.shared.resumeRandomChat()
+
                 await vm.loadInitialConversationsIfNeeded(
                     token: auth.currentToken
                 )
@@ -746,6 +748,32 @@ struct ChatsRootView: View {
     }
 
     private func setupRandomMatchListener() {
+
+        SocketManager.shared.on("random:resumed") { data, _ in
+            guard let dict = data.first as? [String: Any],
+                  let session = RandomSession(socketPayload: dict) else { return }
+            let roomId = session.roomId
+            Task { @MainActor in
+                activeRandomRoomIds.insert(roomId)
+                activeRandomSessions[roomId] = session
+                if selectedRoom?.id == roomId {
+                    selectedRandomSession = session
+                }
+                await reload()
+            }
+        }
+
+        SocketManager.shared.on("random:none") { _, _ in
+            Task { @MainActor in
+                activeRandomRoomIds.removeAll()
+                activeRandomSessions.removeAll()
+                if selectedRandomSession != nil {
+                    selectedRandomSession = nil
+                    showSelectedRoom = false
+                }
+                await reload()
+            }
+        }
 
         // 🔹 MATCH FOUND
         SocketManager.shared.on("random:matched") { data, _ in
