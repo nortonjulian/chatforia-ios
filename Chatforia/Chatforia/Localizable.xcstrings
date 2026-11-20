@@ -798296,7 +798296,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Awaiting activation"
+            "value" : "Not active yet"
           }
         }
       }
@@ -798307,7 +798307,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Paid · provider package not recorded"
+            "value" : "Data package setup not confirmed"
           }
         }
       }
@@ -798318,7 +798318,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Balance needs review"
+            "value" : "Data balance needs confirmation"
           }
         }
       }
@@ -798340,7 +798340,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Expiry needs review"
+            "value" : "Expiration needs confirmation"
           }
         }
       }
@@ -798351,7 +798351,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Payment unverified"
+            "value" : "Payment status not confirmed"
           }
         }
       }
@@ -798362,7 +798362,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Provider status unverified"
+            "value" : "Provider status not confirmed"
           }
         }
       }
@@ -798373,7 +798373,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Paid · provisioning needs review"
+            "value" : "Data package setup needs review"
           }
         }
       }
@@ -798384,7 +798384,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Terminated"
+            "value" : "Package ended by provider"
           }
         }
       }

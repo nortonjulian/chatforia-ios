@@ -14,6 +14,7 @@ struct WirelessHomeView: View {
     @State private var activationPayload: ESIMActivationDTO?
 
     @State private var showActivation = false
+    @State private var showHistoryOnly = false
     @State private var isPurchasingPack = false
     @State private var purchaseErrorMessage: String?
     @State private var purchasingPackProduct: String?
@@ -30,6 +31,23 @@ struct WirelessHomeView: View {
     @State private var isReplacingEsim = false
     @State private var replacementErrorMessage: String?
     @State private var replacementIdempotencyKey: String?
+
+    private let shouldLoadRemoteData: Bool
+
+    init(
+        purchasedPackagesForPreview: WirelessPurchasesResponseDTO? = nil,
+        activationForPreview: ESIMActivationDTO? = nil,
+        shouldLoadRemoteData: Bool = true
+    ) {
+        self.shouldLoadRemoteData = shouldLoadRemoteData
+        _purchasedPackages = State(initialValue: purchasedPackagesForPreview)
+        _activationPayload = State(initialValue: activationForPreview)
+        _hasLoadedActivation = State(initialValue: activationForPreview != nil)
+        _activationStatus = State(initialValue: activationForPreview == nil
+                                  ? .none
+                                  : (activationForPreview?.status.lowercased() == "active"
+                                     ? .active : .readyToInstall))
+    }
 
 
     enum ESIMStatus {
@@ -76,14 +94,17 @@ struct WirelessHomeView: View {
         .navigationTitle(appText("ios.wireless", languageCode: appLanguage))
         .navigationBarTitleDisplayMode(.inline)
         .task(id: selectedScope) {
+            guard shouldLoadRemoteData else { return }
             await loadQuotes()
         }
         .task {
+            guard shouldLoadRemoteData else { return }
             await loadActivationIfExists()
             await loadWirelessStatus()
             await loadPurchasedPackages()
         }
         .task(id: checkoutReturn.pendingEvent?.id) {
+            guard shouldLoadRemoteData else { return }
             guard let event =
                     checkoutReturn.pendingEvent else {
                 return
@@ -102,6 +123,12 @@ struct WirelessHomeView: View {
                     }
                 )
             }
+        }
+        .navigationDestination(isPresented: $showHistoryOnly) {
+            WirelessPurchaseHistoryView(
+                purchasedPackages: purchasedPackages,
+                purchasesErrorMessage: purchasesErrorMessage
+            )
         }
         .alert(
             appText("esim.transfer.confirmTitle", languageCode: appLanguage),
@@ -646,9 +673,19 @@ struct WirelessHomeView: View {
         SectionCardView(title: appText("esim.purchase.historyTitle", languageCode: appLanguage)) {
             PurchasedDataPackagesList(
                 packages: purchasedPackages?.packages,
-                errorMessage: purchasesErrorMessage
+                errorMessage: purchasesErrorMessage,
+                presentation: .recent
             )
             .padding(.vertical, 8)
+
+            if purchasedPackages?.packages.isEmpty == false {
+                Button(appText("ios.manage_wireless", languageCode: appLanguage)) {
+                    handleManageWirelessTapped()
+                }
+                .font(.subheadline.weight(.semibold))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.bottom, 8)
+            }
         }
     }
 
@@ -1261,13 +1298,20 @@ struct WirelessHomeView: View {
 
 
    private func handleManageWirelessTapped() {
-        if activationPayload != nil {
-            Task {
-                await loadPurchasedPackages()
-                openActivation()
-            }
-        } else {
+        guard let accountID = auth.currentUser?.id,
+              let token = auth.currentToken else {
             openURL(URL(string: "https://chatforia.com/account/esim")!)
+            return
+        }
+        Task {
+            await loadPurchasedPackages()
+            guard auth.currentUser?.id == accountID,
+                  auth.currentToken == token else { return }
+            if activationPayload != nil {
+                openActivation()
+            } else {
+                showHistoryOnly = true
+            }
         }
     }
 
@@ -1351,6 +1395,36 @@ struct WirelessHomeView: View {
         debugLog("TODO: open port number flow")
     }
 
+}
+
+private struct WirelessPurchaseHistoryView: View {
+    let purchasedPackages: WirelessPurchasesResponseDTO?
+    let purchasesErrorMessage: String?
+    @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                SectionCardView(title: appText("esim.purchase.historyTitle", languageCode: appLanguage)) {
+                    PurchasedDataPackagesList(
+                        packages: purchasedPackages?.packages,
+                        errorMessage: purchasesErrorMessage
+                    )
+                    .padding(.vertical, 8)
+                }
+                Link(destination: URL(string: "https://chatforia.com/account/esim")!) {
+                    Label(appText("ios.manage_wireless", languageCode: appLanguage),
+                          systemImage: "arrow.up.right.square")
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding()
+        }
+        .background(themeManager.palette.screenBackground)
+        .navigationTitle(appText("esim.purchase.historyTitle", languageCode: appLanguage))
+        .navigationBarTitleDisplayMode(.inline)
+    }
 }
 
 // Profile installation readiness must not override a package's expiry or

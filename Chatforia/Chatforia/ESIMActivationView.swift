@@ -532,8 +532,14 @@ struct ESIMActivationView: View {
 }
 
 struct PurchasedDataPackagesList: View {
+    enum Presentation: Equatable {
+        case recent
+        case complete
+    }
+
     let packages: [WirelessPurchasedPackageDTO]?
     let errorMessage: String?
+    var presentation: Presentation = .complete
     @AppStorage("chatforia_language") private var appLanguage = "en"
 
     var body: some View {
@@ -543,12 +549,12 @@ struct PurchasedDataPackagesList: View {
                     Text(appText("esim.purchase.none", languageCode: appLanguage))
                         .foregroundStyle(.secondary)
                 } else {
-                    ForEach(packages) { package in
+                    let visible = Self.visiblePackages(packages, presentation: presentation)
+                    ForEach(visible) { package in
                         VStack(alignment: .leading, spacing: 5) {
-                            HStack {
+                            VStack(alignment: .leading, spacing: 4) {
                                 Text(name(for: package))
                                     .font(.subheadline.weight(.semibold))
-                                Spacer()
                                 Text(label(for: package.state))
                                     .font(.caption.weight(.semibold))
                                     .foregroundStyle(package.state == "ACTIVE" ? .green : .orange)
@@ -562,7 +568,8 @@ struct PurchasedDataPackagesList: View {
                                     formatGB(package.totalDataMb)
                                  ))
 
-                            if package.state == "BALANCE_NEEDS_REVIEW",
+                            if presentation == .complete,
+                               package.state == "BALANCE_NEEDS_REVIEW",
                                let recorded = package.recordedRemainingDataMb,
                                let provider = package.providerRemainingDataMb {
                                 Text(formattedText(
@@ -573,30 +580,39 @@ struct PurchasedDataPackagesList: View {
                                     .foregroundStyle(.orange)
                             }
 
-                            if let purchasedAt = package.purchasedAt {
+                            if presentation == .complete, let purchasedAt = package.purchasedAt {
                                 Text(formattedText("esim.purchase.recordedAt", formatDate(purchasedAt)))
                             }
 
-                            Text(package.activatedAt.map {
-                                formattedText("esim.purchase.activatedAt", formatDate($0))
-                            } ?? appText("esim.purchase.activationUnknown", languageCode: appLanguage))
+                            if presentation == .complete {
+                                if let activatedAt = package.activatedAt {
+                                    Text(formattedText("esim.purchase.activatedAt", formatDate(activatedAt)))
+                                } else if Self.activationDateMatters(for: package.state) {
+                                    Text(appText("esim.purchase.activationUnknown", languageCode: appLanguage))
+                                }
+                            }
 
-                            Text(package.expiresAt.map {
-                                formattedText("esim.purchase.expiresAt", formatDate($0))
-                            } ?? appText("esim.purchase.expiryUnknown", languageCode: appLanguage))
+                            if let expiresAt = package.expiresAt {
+                                Text(formattedText("esim.purchase.expiresAt", formatDate(expiresAt)))
+                            } else if presentation == .complete {
+                                Text(appText("esim.purchase.expiryUnknown", languageCode: appLanguage))
+                            }
 
-                            if package.state == "EXPIRY_NEEDS_REVIEW" {
+                            if presentation == .complete, package.state == "EXPIRY_NEEDS_REVIEW" {
                                 Text(appText("esim.purchase.expiryConflict", languageCode: appLanguage))
                                     .foregroundStyle(.orange)
-                            } else if package.state == "EXPIRED" {
+                            } else if presentation == .complete, package.state == "EXPIRED" {
                                 Text(appText("esim.purchase.expiredExplanation", languageCode: appLanguage))
                                     .foregroundStyle(.secondary)
                             }
                         }
                         .font(.footnote)
                         .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .accessibilityElement(children: .combine)
+                        .accessibilityIdentifier("esim.package.\(package.id)")
 
-                        if package.id != packages.last?.id {
+                        if package.id != visible.last?.id {
                             Divider()
                         }
                     }
@@ -607,6 +623,16 @@ struct PurchasedDataPackagesList: View {
                     .foregroundStyle(.secondary)
             }
         }
+    }
+
+    static func visiblePackages(
+        _ packages: [WirelessPurchasedPackageDTO], presentation: Presentation
+    ) -> [WirelessPurchasedPackageDTO] {
+        presentation == .recent ? Array(packages.prefix(2)) : packages
+    }
+
+    static func activationDateMatters(for state: String) -> Bool {
+        state == "AWAITING_ACTIVATION" || state == "EXPIRY_NEEDS_REVIEW"
     }
 
     private func formatGB(_ megabytes: Int) -> String {
@@ -646,18 +672,22 @@ struct PurchasedDataPackagesList: View {
     }
 
     private func label(for state: String) -> String {
+        appText(Self.statusKey(for: state), languageCode: appLanguage)
+    }
+
+    static func statusKey(for state: String) -> String {
         switch state {
-        case "ACTIVE": return appText("ios.active", languageCode: appLanguage)
-        case "AWAITING_ACTIVATION": return appText("esim.purchase.stateAwaitingActivation", languageCode: appLanguage)
-        case "AWAITING_PROVISIONING": return appText("esim.purchase.stateAwaitingProvisioning", languageCode: appLanguage)
-        case "PROVISIONING_NEEDS_REVIEW": return appText("esim.purchase.stateProvisioningReview", languageCode: appLanguage)
-        case "PAYMENT_UNVERIFIED": return appText("esim.purchase.statePaymentUnverified", languageCode: appLanguage)
-        case "EXPIRED": return appText("ios.expired", languageCode: appLanguage)
-        case "EXPIRY_NEEDS_REVIEW": return appText("esim.purchase.stateExpiryReview", languageCode: appLanguage)
-        case "BALANCE_NEEDS_REVIEW": return appText("esim.purchase.stateBalanceReview", languageCode: appLanguage)
-        case "EXHAUSTED": return appText("esim.purchase.stateExhausted", languageCode: appLanguage)
-        case "TERMINATED": return appText("esim.purchase.stateTerminated", languageCode: appLanguage)
-        default: return appText("esim.purchase.stateProviderUnverified", languageCode: appLanguage)
+        case "ACTIVE": return "ios.active"
+        case "AWAITING_ACTIVATION": return "esim.purchase.stateAwaitingActivation"
+        case "AWAITING_PROVISIONING": return "esim.purchase.stateAwaitingProvisioning"
+        case "PROVISIONING_NEEDS_REVIEW": return "esim.purchase.stateProvisioningReview"
+        case "PAYMENT_UNVERIFIED": return "esim.purchase.statePaymentUnverified"
+        case "EXPIRED": return "ios.expired"
+        case "EXPIRY_NEEDS_REVIEW": return "esim.purchase.stateExpiryReview"
+        case "BALANCE_NEEDS_REVIEW": return "esim.purchase.stateBalanceReview"
+        case "EXHAUSTED": return "esim.purchase.stateExhausted"
+        case "TERMINATED": return "esim.purchase.stateTerminated"
+        default: return "esim.purchase.stateProviderUnverified"
         }
     }
 }
