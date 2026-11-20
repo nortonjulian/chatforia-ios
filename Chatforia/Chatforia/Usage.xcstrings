@@ -1,0 +1,166 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "Monthly usage": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Monthly usage"
+          }
+        }
+      }
+    },
+    "Shared AI actions": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shared AI actions"
+          }
+        }
+      }
+    },
+    "Translation characters": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translation characters"
+          }
+        }
+      }
+    },
+    "App-call participant-minutes": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App-call participant-minutes"
+          }
+        }
+      }
+    },
+    "SMS and MMS messages": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SMS and MMS messages"
+          }
+        }
+      }
+    },
+    "Phone-call minutes": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phone-call minutes"
+          }
+        }
+      }
+    },
+    "Forwarding minutes": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forwarding minutes"
+          }
+        }
+      }
+    },
+    "Voice-note transcription minutes": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice-note transcription minutes"
+          }
+        }
+      }
+    },
+    "Voicemail transcription minutes": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voicemail transcription minutes"
+          }
+        }
+      }
+    },
+    "Usage is unavailable. Please retry.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usage is unavailable. Please retry."
+          }
+        }
+      }
+    },
+    "Refresh usage": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refresh usage"
+          }
+        }
+      }
+    },
+    "AI tools share one action allowance. Translation counts processed characters. Voice-note transcription and live captions share recorded usage; voicemail is separate. A zero limit means no included allowance. Feature eligibility still depends on your plan.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI tools share one action allowance. Translation counts processed characters. Voice-note transcription and live captions share recorded usage; voicemail is separate. A zero limit means no included allowance. Feature eligibility still depends on your plan."
+          }
+        }
+      }
+    },
+    "App calls count each connected person's time against the caller's allowance. Two people calling for one minute use two participant-minutes.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App calls count each connected person's time against the caller's allowance. Two people calling for one minute use two participant-minutes."
+          }
+        }
+      }
+    },
+    "Reaching a limit pauses that feature until reset. It does not stop ordinary in-app text chat. Usage updates after processing; refresh for the latest balance.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reaching a limit pauses that feature until reset. It does not stop ordinary in-app text chat. Usage updates after processing; refresh for the latest balance."
+          }
+        }
+      }
+    },
+    "%@ of %@ remaining": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ of %@ remaining"
+          }
+        }
+      }
+    },
+    "Resets %@ at 00:00 UTC.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resets %@ at 00:00 UTC."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
