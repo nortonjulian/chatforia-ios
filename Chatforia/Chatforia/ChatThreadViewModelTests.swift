@@ -4,6 +4,154 @@ import XCTest
 @MainActor
 final class ChatThreadViewModelTests: XCTestCase {
 
+    func testReportSenderInterpolationPreservesRegionalCatalogFormats() {
+        XCTAssertEqual(localizedReportSender("Mensaje de {name}", name: "Lucía"), "Mensaje de Lucía")
+        XCTAssertEqual(localizedReportSender("来自 %@ 的报告信息", name: "Li"), "来自 Li 的报告信息")
+        XCTAssertEqual(localizedReportSender("からの報告メッセージ", name: "花子"), "花子 からの報告メッセージ")
+        XCTAssertEqual(localizedReportSender("@@ adresinden mesaj bildiriliyor", name: "Ayşe"), "Ayşe adresinden mesaj bildiriliyor")
+        XCTAssertEqual(localizedReportSender("Reporting message from {name}", name: "%@"), "Reporting message from %@")
+    }
+
+    func testReportSenderInterpolationResolvesBundledLocales() {
+        for code in ["en", "es", "zh-CN", "zh-TW", "ja", "tr"] {
+            let template = appText("report.reportingMessageFrom", languageCode: code)
+            let rendered = localizedReportSender(template, name: "Sample")
+            XCTAssertTrue(rendered.contains("Sample"), "Missing name in \(code)")
+            XCTAssertFalse(rendered.contains("{name}"), "Unresolved token in \(code)")
+            XCTAssertFalse(rendered.contains("@@"), "Unresolved token in \(code)")
+        }
+    }
+
+    func testReportPreviewUpdatesWhenDecryptionBecomesAvailable() {
+        let id = 906
+        let store = DecryptedMessageTextStore.shared
+        store.activateAccount(7)
+        defer { store.deactivateAccount() }
+        let sender = SenderDTO(id: 9, username: "sender", publicKey: nil, avatarUrl: nil)
+        let message = MessageDTO(
+            id: id, contentCiphertext: "synthetic-ciphertext", rawContent: nil,
+            createdAt: Date(), sender: sender, chatRoomId: 10
+        )
+        DecryptedMessageTextStore.shared.removeText(for: id)
+        XCTAssertNil(ReportMessagePreview.resolve(
+            message: message,
+            decryptedText: DecryptedMessageTextStore.shared.text(for: id),
+            languageCode: "en"
+        ).evidenceText)
+
+        DecryptedMessageTextStore.shared.setText("decrypted later", for: id, accountId: 7)
+        defer { DecryptedMessageTextStore.shared.removeText(for: id) }
+        XCTAssertEqual(ReportMessagePreview.resolve(
+            message: message,
+            decryptedText: DecryptedMessageTextStore.shared.text(for: id),
+            languageCode: "en"
+        ).evidenceText, "decrypted later")
+    }
+
+    func testReportPreviewNeverUsesPreviousAccountsDecryptedText() {
+        let store = DecryptedMessageTextStore.shared
+        let message = MessageDTO(
+            id: 907, contentCiphertext: "synthetic-ciphertext", rawContent: nil,
+            createdAt: Date(),
+            sender: SenderDTO(id: 9, username: "sender", publicKey: nil, avatarUrl: nil),
+            chatRoomId: 10
+        )
+        store.activateAccount(7)
+        store.setText("account A secret", for: 907, accountId: 7)
+        XCTAssertEqual(store.text(for: 907), "account A secret")
+
+        store.activateAccount(8)
+        store.setText("late account A secret", for: 907, accountId: 7)
+        XCTAssertNil(store.text(for: 907))
+        XCTAssertNil(ReportMessagePreview.resolve(
+            message: message, store: store, accountId: 7, languageCode: "en"
+        ).evidenceText)
+
+        store.setText("account B text", for: 907, accountId: 8)
+        XCTAssertEqual(store.text(for: 907), "account B text")
+        store.deactivateAccount()
+        XCTAssertNil(store.text(for: 907))
+        store.activateAccount(7)
+        XCTAssertNil(store.text(for: 907))
+        store.deactivateAccount()
+    }
+
+    func testPreviousAccountReportPreviewCannotUseEvenLocalRawContent() {
+        let store = DecryptedMessageTextStore.shared
+        let message = MessageDTO(
+            id: 908, rawContent: "account A plaintext", createdAt: Date(),
+            sender: SenderDTO(id: 9, username: "sender", publicKey: nil, avatarUrl: nil),
+            chatRoomId: 10
+        )
+        store.activateAccount(7)
+        XCTAssertEqual(ReportMessagePreview.resolve(
+            message: message, store: store, accountId: 7, languageCode: "en"
+        ).evidenceText, "account A plaintext")
+
+        store.activateAccount(8)
+        XCTAssertNil(ReportMessagePreview.resolve(
+            message: message, store: store, accountId: 7, languageCode: "en"
+        ).evidenceText)
+        store.deactivateAccount()
+    }
+
+    func testReportPreviewUsesLocalTextThenPermittedMedia() {
+        let sender = SenderDTO(id: 9, username: "sender", publicKey: nil, avatarUrl: nil)
+        let encrypted = MessageDTO(
+            id: 901, contentCiphertext: "synthetic-ciphertext", rawContent: nil,
+            createdAt: Date(), sender: sender, chatRoomId: 10
+        )
+        let pending = ReportMessagePreview.resolve(message: encrypted, decryptedText: nil, languageCode: "en")
+        XCTAssertEqual(pending.displayText, appText("messages.encryptedMessage", languageCode: "en"))
+        XCTAssertNil(pending.evidenceText)
+        let decrypted = ReportMessagePreview.resolve(message: encrypted, decryptedText: "  Private text  ", languageCode: "en")
+        XCTAssertEqual(decrypted.displayText, "Private text")
+        XCTAssertEqual(decrypted.evidenceText, "Private text")
+
+        let mediaOnly = MessageDTO(
+            id: 902, rawContent: "[image]",
+            attachments: [AttachmentDTO(id: 8, kind: "IMAGE", url: "synthetic-private-media")],
+            createdAt: Date(), sender: sender, chatRoomId: 10
+        )
+        let photo = ReportMessagePreview.resolve(message: mediaOnly, decryptedText: nil, languageCode: "en")
+        XCTAssertEqual(photo.displayText, appText("messages.mediaPhoto", languageCode: "en"))
+        XCTAssertNil(photo.evidenceText)
+
+        let captioned = MessageDTO(
+            id: 903, rawContent: nil,
+            attachments: [AttachmentDTO(id: 9, kind: "IMAGE", url: "synthetic-private-media", caption: "  Visible caption  ")],
+            createdAt: Date(), sender: sender, chatRoomId: 10
+        )
+        XCTAssertEqual(
+            ReportMessagePreview.resolve(message: captioned, decryptedText: nil, languageCode: "en").evidenceText,
+            "Visible caption"
+        )
+    }
+
+    func testReportPreviewDoesNotExposeRestrictedVisualMediaOrInventPlaintext() {
+        let sender = SenderDTO(id: 9, username: "sender", publicKey: nil, avatarUrl: nil)
+        let restricted = MessageDTO(
+            id: 904, rawContent: nil,
+            attachments: [AttachmentDTO(id: 10, kind: "IMAGE", url: "synthetic-private-media", caption: "hidden caption")],
+            mediaRestricted: true, createdAt: Date(), sender: sender, chatRoomId: 10
+        )
+        let preview = ReportMessagePreview.resolve(message: restricted, decryptedText: nil, languageCode: "en")
+        XCTAssertEqual(preview.displayText, appText("messages.teenMediaRestricted", languageCode: "en"))
+        XCTAssertNil(preview.evidenceText)
+
+        let audio = MessageDTO(
+            id: 905, rawContent: nil,
+            attachments: [
+                AttachmentDTO(id: 11, kind: "IMAGE", url: "synthetic-private-media"),
+                AttachmentDTO(id: 12, kind: "AUDIO", url: "synthetic-private-audio", mimeType: "audio/mp4")
+            ],
+            mediaRestricted: true, createdAt: Date(), sender: sender, chatRoomId: 10
+        )
+        let audioPreview = ReportMessagePreview.resolve(message: audio, decryptedText: nil, languageCode: "en")
+        XCTAssertEqual(audioPreview.displayText, appText("messages.mediaAudio", languageCode: "en"))
+        XCTAssertNil(audioPreview.evidenceText)
+    }
+
     func testContactAccountReportUsesAuthenticatedModerationRoute() throws {
         let path = ContactAccountReportRequest.path(userId: 29)
         let request = APIRequest(path: path, method: .POST, requiresAuth: true)

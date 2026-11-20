@@ -59,7 +59,24 @@ final class AuthStore: NSObject, ObservableObject {
     }
 
     @Published var encryptionState: EncryptionState = .ready
-    @Published var state: State = .loading
+    @Published var state: State = .loading {
+        didSet {
+            switch state {
+            case .loggedIn(let user):
+                let cachedAccountId = DecryptedMessageTextStore.shared.activeAccountId
+                    ?? UserDefaults.standard.integer(forKey: "chatforia.currentUserId")
+                if cachedAccountId > 0 && cachedAccountId != user.id {
+                    MessageStore.shared.clearAll()
+                }
+                DecryptedMessageTextStore.shared.activateAccount(user.id)
+            case .loggedOut, .unavailable:
+                DecryptedMessageTextStore.shared.deactivateAccount()
+                MessageStore.shared.clearAll()
+            case .loading:
+                break
+            }
+        }
+    }
     @Published var needsOnboarding: Bool = false
     @Published var needsKeyRestore: Bool = false
     @Published var keyRestoreMessage: String?
@@ -365,6 +382,9 @@ final class AuthStore: NSObject, ObservableObject {
     func setTokenAndLoadUser(_ token: String) async {
         activeBootstrap = nil
         socket.disconnect()
+        DecryptedMessageTextStore.shared.deactivateAccount()
+        MessageStore.shared.clearAll()
+        UserDefaults.standard.removeObject(forKey: "chatforia.currentUserId")
         state = .loading
         isAppReady = false
         isOfflineSession = false
@@ -401,6 +421,7 @@ final class AuthStore: NSObject, ObservableObject {
         tokenStore.clear()
         offlineSessionStore.clear()
         isOfflineSession = false
+        UserDefaults.standard.removeObject(forKey: "chatforia.currentUserId")
 
         // Explicit logout is a privacy boundary. Do not repopulate the
         // previous account identifier on the next login screen.
@@ -459,6 +480,7 @@ final class AuthStore: NSObject, ObservableObject {
         tokenStore.clear()
         offlineSessionStore.clear()
         isOfflineSession = false
+        UserDefaults.standard.removeObject(forKey: "chatforia.currentUserId")
         needsOnboarding = false
         needsKeyRestore = false
         keyRestoreMessage = nil

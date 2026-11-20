@@ -95,7 +95,7 @@ struct DecryptMessageTextView: View {
                 encryptedKeyPayload: encryptedKeyPayload,
                 userId: currentUserId
             )
-            store.setText(plaintext, for: msg.id)
+            store.setText(plaintext, for: msg.id, accountId: currentUserId)
         } catch {
             // Keep the encrypted placeholder. A changed payload or cache
             // invalidation can trigger another attempt for this message ID.

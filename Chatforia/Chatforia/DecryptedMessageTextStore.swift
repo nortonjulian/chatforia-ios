@@ -7,14 +7,31 @@ final class DecryptedMessageTextStore: ObservableObject {
     static let shared = DecryptedMessageTextStore()
 
     @Published private(set) var values: [Int: String] = [:]
+    private(set) var activeAccountId: Int?
 
     private init() {}
 
-    func text(for messageId: Int) -> String? {
-        values[messageId]
+    func activateAccount(_ accountId: Int) {
+        guard accountId > 0 else { return }
+        guard activeAccountId != accountId else { return }
+        values.removeAll()
+        activeAccountId = accountId
+        NotificationCenter.default.post(name: .MessagesChanged, object: nil)
     }
 
-    func setText(_ text: String, for messageId: Int) {
+    func deactivateAccount() {
+        guard activeAccountId != nil || !values.isEmpty else { return }
+        activeAccountId = nil
+        clearAll()
+    }
+
+    func text(for messageId: Int) -> String? {
+        guard activeAccountId != nil else { return nil }
+        return values[messageId]
+    }
+
+    func setText(_ text: String, for messageId: Int, accountId: Int) {
+        guard activeAccountId == accountId else { return }
         values[messageId] = text
 
         NotificationCenter.default.post(

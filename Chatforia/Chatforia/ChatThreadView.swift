@@ -63,6 +63,7 @@ struct ChatThreadView: View {
 
     @State private var deletingMessage: MessageDTO? = nil
     @State private var reportingMessage: MessageDTO? = nil
+    @State private var reportingAccountId: Int? = nil
     @State private var reportReason: ReportReason = .other
     @State private var reportContextCount = 0
     @State private var reportDetails = ""
@@ -167,20 +168,18 @@ struct ChatThreadView: View {
         .onChange(of: auth.currentUser?.id) { _, _ in
             selectedVideoURL = nil
             reportingMessage = nil
+            reportingAccountId = nil
         }
         .onChange(of: auth.currentToken) { _, _ in
             selectedVideoURL = nil
             reportingMessage = nil
+            reportingAccountId = nil
         }
         .sheet(item: $reportingMessage) { message in
-            let previewText = DecryptedMessageTextStore.shared.text(for: message.id)
-                ?? message.rawContent
-                ?? message.translatedForMe
-                ?? ""
             ReportMessageSheet(
                 targetMessage: message,
+                accountId: reportingAccountId ?? 0,
                 senderName: message.sender.username ?? appText("common.unknown", languageCode: appLanguage),
-                previewText: previewText,
                 isSubmitting: vm.isSubmittingReport,
                 errorText: vm.reportErrorText,
                 reason: $reportReason,
@@ -188,7 +187,8 @@ struct ChatThreadView: View {
                 details: $reportDetails,
                 blockAfterReport: $blockAfterReport,
                 onCancel: { reportingMessage = nil },
-                onSubmit: {
+                onSubmit: { reportedContent in
+                    guard auth.currentUser?.id == reportingAccountId else { return }
                     let userID = auth.currentUser?.id
                     let token = auth.currentToken
                     Task {
@@ -197,7 +197,7 @@ struct ChatThreadView: View {
                             roomId: room.id,
                             reason: reportReason,
                             details: reportDetails,
-                            reportedContent: previewText,
+                            reportedContent: reportedContent,
                             contextCount: reportContextCount,
                             blockAfterReport: blockAfterReport,
                             token: token
@@ -543,6 +543,7 @@ extension ChatThreadView {
                         reportDetails = ""
                         blockAfterReport = false
                         vm.reportErrorText = nil
+                        reportingAccountId = auth.currentUser?.id
                         reportingMessage = message
                     },
                     onVideoTap: { url in

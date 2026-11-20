@@ -12,6 +12,7 @@ final class AuthStoreTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
+        DecryptedMessageTextStore.shared.deactivateAccount()
         tokenStore = MockTokenStore()
         apiClient = MockAPIClient()
         socket = MockSocketManager()
@@ -19,11 +20,66 @@ final class AuthStoreTests: XCTestCase {
     }
 
     override func tearDown() {
+        DecryptedMessageTextStore.shared.deactivateAccount()
         tokenStore = nil
         apiClient = nil
         socket = nil
         offlineSessions = nil
         super.tearDown()
+    }
+
+    func testAuthenticatedAccountChangeClearsDecryptedTextAndRejectsLateWrite() {
+        let auth = makeAuthStore()
+        let cache = DecryptedMessageTextStore.shared
+        auth.replaceCurrentUser(makeUser(id: 71))
+        cache.setText("account 71 private text", for: 900, accountId: 71)
+        XCTAssertEqual(cache.text(for: 900), "account 71 private text")
+
+        auth.replaceCurrentUser(makeUser(id: 71))
+        XCTAssertEqual(cache.text(for: 900), "account 71 private text")
+
+        auth.replaceCurrentUser(makeUser(id: 72))
+        cache.setText("late account 71 text", for: 900, accountId: 71)
+        XCTAssertNil(cache.text(for: 900))
+        cache.setText("account 72 text", for: 900, accountId: 72)
+        XCTAssertEqual(cache.text(for: 900), "account 72 text")
+    }
+
+    func testLogoutAndInvalidSessionClearDecryptedText() {
+        let auth = makeAuthStore()
+        let cache = DecryptedMessageTextStore.shared
+        auth.replaceCurrentUser(makeUser(id: 71))
+        cache.setText("private text", for: 900, accountId: 71)
+        auth.logout()
+        XCTAssertNil(cache.text(for: 900))
+        XCTAssertNil(cache.activeAccountId)
+        XCTAssertEqual(UserDefaults.standard.integer(forKey: "chatforia.currentUserId"), 0)
+
+        auth.replaceCurrentUser(makeUser(id: 71))
+        cache.setText("private text", for: 900, accountId: 71)
+        auth.handleInvalidSession()
+        XCTAssertNil(cache.text(for: 900))
+        XCTAssertNil(cache.activeAccountId)
+    }
+
+    func testAccountSwitchAndLogoutClearPersistedMessageWindow() {
+        let auth = makeAuthStore()
+        let message = MessageDTO(
+            id: 950, rawContent: "synthetic cached text", createdAt: Date(),
+            sender: SenderDTO(id: 9, username: "sender", publicKey: nil, avatarUrl: nil),
+            chatRoomId: 10
+        )
+        auth.replaceCurrentUser(makeUser(id: 71))
+        MessageStore.shared.upsertMessage(message)
+        XCTAssertNotNil(MessageStore.shared.message(withId: 950))
+
+        auth.replaceCurrentUser(makeUser(id: 72))
+        XCTAssertNil(MessageStore.shared.message(withId: 950))
+
+        MessageStore.shared.upsertMessage(message)
+        XCTAssertNotNil(MessageStore.shared.message(withId: 950))
+        auth.logout()
+        XCTAssertNil(MessageStore.shared.message(withId: 950))
     }
 
     func testBootstrapWithoutTokenLogsOutAndMarksAppReady() async {
