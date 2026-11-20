@@ -674,7 +674,7 @@ final class ChatsViewModel: ObservableObject {
             if initialLoadInProgressToken == token {
                 initialLoadInProgressToken = nil
             }
-            if initialLoadToken == token {
+            if initialLoadToken == token && !Task.isCancelled {
                 hasCompletedInitialLoad = true
             }
         }

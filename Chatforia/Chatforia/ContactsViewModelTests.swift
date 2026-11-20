@@ -32,6 +32,11 @@ final class ContactsViewModelTests: XCTestCase {
         let initialCount = await counter.count
         XCTAssertEqual(initialCount, 1)
         XCTAssertEqual(vm.contacts.first?.alias, "Saved")
+        XCTAssertTrue(vm.hasAttemptedInitialLoad)
+        XCTAssertFalse(InitialLoadPresentation.showsLoading(
+            isLoading: vm.isLoading, hasAttemptedLoad: vm.hasAttemptedInitialLoad,
+            hasContent: !vm.contacts.isEmpty, hasError: vm.errorText != nil
+        ))
 
         await vm.loadContacts(token: "account-one")
         let refreshedCount = await counter.count
@@ -41,6 +46,68 @@ final class ContactsViewModelTests: XCTestCase {
         await vm.loadContactsIfNeeded(token: "account-one")
         let resumedCount = await counter.count
         XCTAssertEqual(resumedCount, 3)
+    }
+
+    func testDelayedFirstContactLoadNeverShowsPrematureEmptyState() async {
+        for outcome in 0..<3 {
+            let started = expectation(description: "contact request \(outcome) started")
+            var release: CheckedContinuation<Void, Never>?
+            let vm = ContactsViewModel { _, _ in
+                started.fulfill()
+                await withCheckedContinuation { release = $0 }
+                if outcome == 2 { throw URLError(.notConnectedToInternet) }
+                let items = outcome == 0 ? [makeContact(alias: "Loaded")] : []
+                return ContactsResponseDTO(items: items, nextCursor: nil, count: items.count)
+            }
+            XCTAssertTrue(InitialLoadPresentation.showsLoading(
+                isLoading: vm.isLoading, hasAttemptedLoad: vm.hasAttemptedInitialLoad,
+                hasContent: !vm.contacts.isEmpty, hasError: vm.errorText != nil
+            ))
+            let load = Task { await vm.loadContactsIfNeeded(token: "account-one") }
+            await fulfillment(of: [started], timeout: 2)
+            XCTAssertTrue(vm.isLoading)
+            XCTAssertFalse(vm.hasAttemptedInitialLoad)
+            release?.resume()
+            await load.value
+            XCTAssertTrue(vm.hasAttemptedInitialLoad)
+            XCTAssertFalse(InitialLoadPresentation.showsLoading(
+                isLoading: vm.isLoading, hasAttemptedLoad: vm.hasAttemptedInitialLoad,
+                hasContent: !vm.contacts.isEmpty, hasError: vm.errorText != nil
+            ))
+            XCTAssertEqual(vm.contacts.count, outcome == 0 ? 1 : 0)
+            XCTAssertEqual(vm.errorText != nil, outcome == 2)
+        }
+    }
+
+    func testCancelledFirstLoadRetriesWhenReturningToContacts() async {
+        let started = expectation(description: "first contact request started")
+        let counter = ContactFetchCounter()
+        let vm = ContactsViewModel { _, _ in
+            await counter.record()
+            if await counter.count == 1 {
+                started.fulfill()
+                try await Task.sleep(nanoseconds: 5_000_000_000)
+            }
+            return ContactsResponseDTO(
+                items: [makeContact(alias: "After return")], nextCursor: nil, count: 1
+            )
+        }
+
+        let firstLoad = Task { await vm.loadContactsIfNeeded(token: "account-one") }
+        await fulfillment(of: [started], timeout: 2)
+        firstLoad.cancel() // The user left the tab before the first response.
+        await firstLoad.value
+        XCTAssertFalse(vm.hasAttemptedInitialLoad)
+        XCTAssertTrue(InitialLoadPresentation.showsLoading(
+            isLoading: vm.isLoading, hasAttemptedLoad: vm.hasAttemptedInitialLoad,
+            hasContent: !vm.contacts.isEmpty, hasError: vm.errorText != nil
+        ))
+
+        await vm.loadContactsIfNeeded(token: "account-one")
+        let requestCount = await counter.count
+        XCTAssertEqual(requestCount, 2)
+        XCTAssertTrue(vm.hasAttemptedInitialLoad)
+        XCTAssertEqual(vm.contacts.first?.alias, "After return")
     }
 
     func testSwitchingSessionsClearsContactsAndRejectsLateResponse() async {

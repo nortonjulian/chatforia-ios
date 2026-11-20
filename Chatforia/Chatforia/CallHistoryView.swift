@@ -22,6 +22,7 @@ struct CallHistoryView: View {
     
     @State private var items: [CallRecordDTO] = []
     @State private var isLoading = false
+    @State private var hasAttemptedInitialLoad = false
     @State private var errorMessage: String?
     @State private var lastLoadedToken: String?
     @State private var lastLoadedAt: Date?
@@ -280,7 +281,12 @@ struct CallHistoryView: View {
     @ViewBuilder
     private var recentsContent: some View {
         Group {
-            if isLoading && items.isEmpty {
+            if InitialLoadPresentation.showsLoading(
+                isLoading: isLoading,
+                hasAttemptedLoad: hasAttemptedInitialLoad,
+                hasContent: !items.isEmpty,
+                hasError: errorMessage?.isEmpty == false
+            ) {
                 CompactLoadingStateView(
                     title: appText("calls.loadingCalls", languageCode: appLanguage)
                 )
@@ -599,12 +605,18 @@ private func title(for choice: PendingCallChoice) -> String {
             errorMessage =
             appText("auth.youNeedToBeSignedIn", languageCode: appLanguage)
             items = []
+            hasAttemptedInitialLoad = true
             return
         }
         
         isLoading = true
         errorMessage = nil
-        defer { isLoading = false }
+        defer {
+            isLoading = false
+            if auth.currentToken == token && !Task.isCancelled {
+                hasAttemptedInitialLoad = true
+            }
+        }
         
         do {
             async let fetchedCalls = CallHistoryService.shared.fetchHistory(token: token)
