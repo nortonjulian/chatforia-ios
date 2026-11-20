@@ -37,6 +37,8 @@ struct SimpleMessageRowView: View {
                     if hasVisibleAttachments {
                         MessageAttachmentsView(
                             attachments: visibleAttachments,
+                            messageId: msg.id,
+                            expiresAt: msg.expiresAt,
                             isMe: isMe,
                             maxWidth: maxBubbleWidth,
                             onVideoTap: nil

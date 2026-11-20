@@ -67,11 +67,13 @@ final class AuthStore: NSObject, ObservableObject {
                     ?? UserDefaults.standard.integer(forKey: "chatforia.currentUserId")
                 if cachedAccountId > 0 && cachedAccountId != user.id {
                     MessageStore.shared.clearAll()
+                    PrivateMessageImageCache.shared.clear()
                 }
                 DecryptedMessageTextStore.shared.activateAccount(user.id)
             case .loggedOut, .unavailable:
                 DecryptedMessageTextStore.shared.deactivateAccount()
                 MessageStore.shared.clearAll()
+                PrivateMessageImageCache.shared.clear()
             case .loading:
                 break
             }
@@ -384,6 +386,7 @@ final class AuthStore: NSObject, ObservableObject {
         socket.disconnect()
         DecryptedMessageTextStore.shared.deactivateAccount()
         MessageStore.shared.clearAll()
+        PrivateMessageImageCache.shared.clear()
         UserDefaults.standard.removeObject(forKey: "chatforia.currentUserId")
         state = .loading
         isAppReady = false

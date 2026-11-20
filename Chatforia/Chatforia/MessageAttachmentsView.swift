@@ -3,6 +3,8 @@ import AVKit
 
 struct MessageAttachmentsView: View {
     let attachments: [AttachmentDTO]
+    let messageId: Int
+    let expiresAt: Date?
     let isMe: Bool
     let maxWidth: CGFloat
     let onVideoTap: ((URL) -> Void)?
@@ -85,6 +87,22 @@ struct MessageAttachmentsView: View {
         mediaScope + "/" + String(id) + "/" + variant
     }
 
+    private func imageCacheKey(for original: AttachmentDTO,
+                               authorized: AttachmentDTO) -> PrivateMessageImageCache.Key? {
+        let usesThumbnail = authorized.thumbUrl?.nilIfBlank != nil
+        let preview = usesThumbnail
+            ? original.thumbUrl?.nilIfBlank : original.url?.nilIfBlank
+        guard messageId > 0,
+              let accountId = auth.currentUser?.id, accountId > 0,
+              auth.currentToken?.isEmpty == false,
+              let id = original.id, let preview,
+              isLocalPrivateMedia(preview) else { return nil }
+        return .init(accountId: accountId, messageId: messageId,
+                     attachmentId: id,
+                     variant: usesThumbnail ? "thumb" : "file",
+                     mediaReference: preview)
+    }
+
     private func authorizedAttachment(_ attachment: AttachmentDTO) -> AttachmentDTO {
         let id = attachment.id
         let full = isLocalPrivateMedia(attachment.url)
@@ -141,12 +159,17 @@ struct MessageAttachmentsView: View {
                 continue
             }
             for (variant, original) in [
-                ("file", attachment.url),
-                ("thumb", attachment.thumbUrl)
+                ("thumb", attachment.thumbUrl),
+                ("file", attachment.url)
             ] where isLocalPrivateMedia(original) {
                 let url = await requestMediaGrant(for: id, variant: variant, token: token)
                 guard !Task.isCancelled, mediaScope == scope else { return }
                 grantedMediaURLs[grantKey(for: id, variant: variant)] = url
+                if url == nil, let accountId = auth.currentUser?.id {
+                    PrivateMessageImageCache.shared.removeAttachment(
+                        accountId: accountId, attachmentId: id, variant: variant
+                    )
+                }
             }
         }
     }
@@ -154,7 +177,7 @@ struct MessageAttachmentsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             ForEach(Array(attachments.enumerated()), id: \.offset) { _, attachment in
-                attachmentCard(authorizedAttachment(attachment))
+                attachmentCard(authorizedAttachment(attachment), original: attachment)
             }
         }
         .frame(maxWidth: maxWidth, alignment: isMe ? .trailing : .leading)
@@ -190,7 +213,8 @@ struct MessageAttachmentsView: View {
     }
 
     @ViewBuilder
-    private func attachmentCard(_ attachment: AttachmentDTO) -> some View {
+    private func attachmentCard(_ attachment: AttachmentDTO,
+                                original: AttachmentDTO) -> some View {
         let kind = (attachment.kind ?? "").uppercased()
         let mimeType = (attachment.mimeType ?? "").lowercased()
 
@@ -199,7 +223,8 @@ struct MessageAttachmentsView: View {
         } else {
             switch kind {
             case "IMAGE":
-                imageCard(attachment)
+                imageCard(attachment, cacheKey: imageCacheKey(for: original,
+                                                               authorized: attachment))
             case "AUDIO":
                 audioCard(attachment)
             case "VIDEO":
@@ -291,7 +316,8 @@ struct MessageAttachmentsView: View {
     }
 
     @ViewBuilder
-    private func imageCard(_ attachment: AttachmentDTO) -> some View {
+    private func imageCard(_ attachment: AttachmentDTO,
+                           cacheKey: PrivateMessageImageCache.Key?) -> some View {
         let thumbURLString = attachment.thumbUrl?.nilIfBlank
         let fullURLString = attachment.url?.nilIfBlank
         let previewURLString = thumbURLString ?? fullURLString
@@ -311,7 +337,9 @@ struct MessageAttachmentsView: View {
                         url: url,
                         maxWidth: min(maxWidth, 240),
                         originalWidth: attachment.width,
-                        originalHeight: attachment.height
+                        originalHeight: attachment.height,
+                        cacheKey: cacheKey,
+                        expiresAt: expiresAt
                     )
                     .id(mediaScope + "/" + String(attachment.id ?? -1))
 
@@ -734,6 +762,8 @@ private struct StablePrivateMessageImage: View {
     let maxWidth: CGFloat
     let originalWidth: Int?
     let originalHeight: Int?
+    let cacheKey: PrivateMessageImageCache.Key?
+    let expiresAt: Date?
 
     // Reserve the *same* dimensions before and after private image loading.
     // Without a stable footprint, a late photo download increases the last
@@ -753,9 +783,19 @@ private struct StablePrivateMessageImage: View {
     @State private var image: UIImage?
     @State private var hasFailed = false
 
+    private var displayedImage: UIImage? {
+        guard expiresAt.map({ Date() < $0 }) ?? true else { return nil }
+        guard let cacheKey else { return image }
+        // The parent only constructs this view after a fresh private-media
+        // grant. A denied grant removes the URL and this view from the tree.
+        return PrivateMessageImageCache.shared.image(
+            for: cacheKey, authorizedURL: url, expiresAt: expiresAt
+        ) ?? image
+    }
+
     var body: some View {
         Group {
-            if let image {
+            if let image = displayedImage {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFit()
@@ -779,17 +819,27 @@ private struct StablePrivateMessageImage: View {
         .task(id: url.absoluteString) {
             // A private grant has a new URL every ~40 seconds. Once pixels
             // are decoded, retain them instead of resetting to a spinner.
-            guard image == nil else { return }
-            do {
-                let (data, response) = try await URLSession.shared.data(from: url)
-                guard let http = response as? HTTPURLResponse,
-                      (200...299).contains(http.statusCode),
-                      let decoded = UIImage(data: data),
-                      !Task.isCancelled else { return }
+            guard displayedImage == nil else { return }
+            if let cacheKey {
+                let decoded = await PrivateMessageImageCache.shared.load(
+                    for: cacheKey, authorizedURL: url, expiresAt: expiresAt
+                )
+                guard !Task.isCancelled else { return }
+                guard let decoded else { hasFailed = true; return }
                 image = decoded
                 hasFailed = false
-            } catch {
-                if !Task.isCancelled { hasFailed = true }
+            } else {
+                do {
+                    let (data, response) = try await URLSession.shared.data(from: url)
+                    guard let http = response as? HTTPURLResponse,
+                          (200...299).contains(http.statusCode),
+                          let decoded = UIImage(data: data),
+                          !Task.isCancelled else { return }
+                    image = decoded
+                    hasFailed = false
+                } catch {
+                    if !Task.isCancelled { hasFailed = true }
+                }
             }
         }
     }

@@ -289,6 +289,9 @@ final class MessageStore {
 
     func removeMessages(forRoomId roomId: Int) {
         lock.async(flags: .barrier) {
+            for message in self.messages where message.chatRoomId == roomId {
+                self.invalidateCachedMedia(messageId: message.id)
+            }
             self.messages.removeAll { $0.chatRoomId == roomId }
             self.persistLocked()
             self.postMessagesChanged()
@@ -300,11 +303,22 @@ final class MessageStore {
         with incoming: [MessageDTO]
     ) {
         lock.async(flags: .barrier) {
+            let previous = self.messages.filter { $0.chatRoomId == roomId }
             // Replace this room as one atomic store operation.
             self.messages.removeAll { $0.chatRoomId == roomId }
 
             for message in incoming {
                 self.upsertMessageLocked(message)
+            }
+
+            let current = Dictionary(
+                self.messages.filter { $0.chatRoomId == roomId && $0.id > 0 }
+                    .map { ($0.id, $0) },
+                uniquingKeysWith: { first, _ in first }
+            )
+            for old in previous where old.id > 0 &&
+                self.mediaChanged(from: old, to: current[old.id]) {
+                self.invalidateCachedMedia(messageId: old.id)
             }
 
             // Persist once and notify once.
@@ -415,6 +429,7 @@ final class MessageStore {
 
     private func upsertMessageLocked(_ incoming: MessageDTO) {
         if isExpired(incoming) {
+            invalidateCachedMedia(messageId: incoming.id)
             self.messages.removeAll { $0.id == incoming.id }
             return
         }
@@ -428,6 +443,9 @@ final class MessageStore {
             let updated = self.preferredMessage(current: existing, incoming: incoming)
 
             self.messages[idx] = updated
+            if mediaChanged(from: existing, to: updated) {
+                invalidateCachedMedia(messageId: updated.id)
+            }
         } else {
             self.messages.append(incoming)
         }
@@ -521,6 +539,7 @@ final class MessageStore {
 
     func removeMessage(id: Int) {
         lock.async(flags: .barrier) {
+            self.invalidateCachedMedia(messageId: id)
             if id > 0 {
                 self.oldestRemovedMessageId = max(self.oldestRemovedMessageId ?? 0, id)
             }
@@ -551,6 +570,19 @@ final class MessageStore {
             self.oldestRemovedMessageId = nil
             self.persistLocked()
             self.postMessagesChanged()
+        }
+    }
+
+    private func mediaChanged(from old: MessageDTO, to updated: MessageDTO?) -> Bool {
+        guard let updated else { return true }
+        return updated.deletedForAll == true || updated.deletedAt != nil ||
+            updated.mediaRestricted == true || old.attachments != updated.attachments ||
+            old.expiresAt != updated.expiresAt
+    }
+
+    private func invalidateCachedMedia(messageId: Int) {
+        DispatchQueue.main.async {
+            PrivateMessageImageCache.shared.removeMessage(id: messageId)
         }
     }
 }
