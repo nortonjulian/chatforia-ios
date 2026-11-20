@@ -121,6 +121,10 @@ final class ChatsViewModelTests: XCTestCase {
         XCTAssertTrue(vm.conversations.isEmpty)
         XCTAssertTrue(vm.searchText.isEmpty)
         XCTAssertFalse(vm.hasCompletedInitialLoad)
+        XCTAssertTrue(InitialLoadPresentation.showsLoading(
+            isLoading: vm.isLoading, hasAttemptedLoad: vm.hasCompletedInitialLoad,
+            hasContent: !vm.conversations.isEmpty, hasError: vm.errorText != nil
+        ))
     }
 
     func testSameSessionPreparationKeepsExistingInMemoryChats() {

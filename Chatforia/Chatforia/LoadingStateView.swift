@@ -1,5 +1,15 @@
 import SwiftUI
 
+enum InitialLoadPresentation {
+    /// An empty response is not a verified empty state until the first request
+    /// finishes. Keep populated lists mounted during later refreshes so their
+    /// scroll position and the pinned controls do not reset.
+    static func showsLoading(isLoading: Bool, hasAttemptedLoad: Bool,
+                             hasContent: Bool, hasError: Bool) -> Bool {
+        !hasContent && !hasError && (isLoading || !hasAttemptedLoad)
+    }
+}
+
 // Keep list content aligned immediately below each screen's pinned controls.
 // This changes scroll content inset only; safe areas and row spacing remain native.
 extension View {

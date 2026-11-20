@@ -100,7 +100,12 @@ struct ChatsRootView: View {
                             )
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                        } else if vm.isLoading && vm.conversations.isEmpty {
+                        } else if InitialLoadPresentation.showsLoading(
+                            isLoading: vm.isLoading,
+                            hasAttemptedLoad: vm.hasCompletedInitialLoad,
+                            hasContent: !vm.conversations.isEmpty,
+                            hasError: vm.errorText?.isEmpty == false
+                        ) {
                             CompactLoadingStateView(
                                 title: appText(
                                     "ios.loading_chats",

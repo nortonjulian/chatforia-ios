@@ -287,7 +287,12 @@ struct ContactsRootView: View {
     @ViewBuilder
     private var content: some View {
         Group {
-            if vm.isLoading && vm.contacts.isEmpty {
+            if InitialLoadPresentation.showsLoading(
+                isLoading: vm.isLoading,
+                hasAttemptedLoad: vm.hasAttemptedInitialLoad,
+                hasContent: !vm.contacts.isEmpty,
+                hasError: vm.errorText?.isEmpty == false
+            ) {
                 CompactLoadingStateView(
                     title: appText(
                             "ios.loading_contacts",

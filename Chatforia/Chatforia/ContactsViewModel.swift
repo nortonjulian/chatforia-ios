@@ -17,6 +17,7 @@ enum TabRefreshPolicy {
 final class ContactsViewModel: ObservableObject {
     @Published var contacts: [ContactDTO] = []
     @Published var isLoading = false
+    @Published private(set) var hasAttemptedInitialLoad = false
     @Published var errorText: String?
     @Published var searchText: String = ""
 
@@ -47,6 +48,7 @@ final class ContactsViewModel: ObservableObject {
         contacts = []
         errorText = nil
         isLoading = false
+        hasAttemptedInitialLoad = false
         searchText = ""
     }
 
@@ -82,6 +84,7 @@ final class ContactsViewModel: ObservableObject {
             if loadVersion == version {
                 isLoading = false
                 loadingQuery = nil
+                if !Task.isCancelled { hasAttemptedInitialLoad = true }
             }
         }
 
