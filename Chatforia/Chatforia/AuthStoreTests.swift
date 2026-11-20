@@ -1,5 +1,6 @@
 import XCTest
 import Security
+import UIKit
 @testable import Chatforia
 
 @MainActor
@@ -60,6 +61,25 @@ final class AuthStoreTests: XCTestCase {
         auth.handleInvalidSession()
         XCTAssertNil(cache.text(for: 900))
         XCTAssertNil(cache.activeAccountId)
+    }
+
+    func testAccountSwitchAndLogoutClearPrivateImageCache() {
+        let auth = makeAuthStore()
+        let cache = PrivateMessageImageCache.shared
+        let grant = URL(string: "https://api.chatforia.com/private-media/file?token=synthetic")!
+        let key = PrivateMessageImageCache.Key(
+            accountId: 71, messageId: 900, attachmentId: 901,
+            variant: "thumb", mediaReference: "uploads/u71/photo"
+        )
+        cache.clear()
+        auth.replaceCurrentUser(makeUser(id: 71))
+        cache.storeAuthorized(UIImage(systemName: "photo")!, for: key, expiresAt: nil)
+        auth.replaceCurrentUser(makeUser(id: 72))
+        XCTAssertNil(cache.image(for: key, authorizedURL: grant, expiresAt: nil))
+
+        cache.storeAuthorized(UIImage(systemName: "photo")!, for: key, expiresAt: nil)
+        auth.logout()
+        XCTAssertNil(cache.image(for: key, authorizedURL: grant, expiresAt: nil))
     }
 
     func testAccountSwitchAndLogoutClearPersistedMessageWindow() {

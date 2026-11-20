@@ -61,6 +61,8 @@ struct ChatMessageRowView: View {
                 if hasVisibleAttachments {
                     MessageAttachmentsView(
                         attachments: visibleAttachments,
+                        messageId: msg.id,
+                        expiresAt: msg.expiresAt,
                         isMe: isMe,
                         maxWidth: bubbleMaxWidth,
                         onVideoTap: onVideoTap

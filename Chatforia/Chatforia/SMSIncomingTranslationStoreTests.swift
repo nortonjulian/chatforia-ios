@@ -251,6 +251,42 @@ final class SMSIncomingTranslationStoreTests: XCTestCase {
         XCTAssertEqual(reopened.presentation(for: incoming, context: context(enabled: false)), .original)
     }
 
+    func testSyntheticColdLatencyAndWarmCacheHitOnThreadReopen() async {
+        let cache = SMSIncomingTranslationCache()
+        let current = context()
+        let completed = expectation(description: "mock translation completed")
+        var fetches = 0
+        let cold = SMSIncomingTranslationStore(cache: cache, fetch: { [self] _, _ in
+            fetches += 1
+            try await Task.sleep(nanoseconds: 150_000_000)
+            completed.fulfill()
+            return translated(incoming)
+        })
+        let started = ProcessInfo.processInfo.systemUptime
+        cold.update(messages: [incoming], visibleIds: [501], context: current,
+                    isForeground: true, identityMatches: { true })
+        XCTAssertEqual(cold.presentation(for: incoming, context: current), .pending)
+        await fulfillment(of: [completed], timeout: 3)
+        await settle()
+        let coldMilliseconds = (ProcessInfo.processInfo.systemUptime - started) * 1_000
+        XCTAssertEqual(cold.presentation(for: incoming, context: current), .translated("Hola"))
+        XCTAssertEqual(fetches, 1)
+
+        let reopened = SMSIncomingTranslationStore(cache: cache, fetch: { [self] _, _ in
+            fetches += 1
+            return translated(incoming)
+        })
+        let warmStarted = ProcessInfo.processInfo.systemUptime
+        XCTAssertEqual(reopened.presentation(for: incoming, context: current), .translated("Hola"))
+        reopened.update(messages: [incoming], visibleIds: [501], context: current,
+                        isForeground: true, identityMatches: { true })
+        await settle()
+        let warmMilliseconds = (ProcessInfo.processInfo.systemUptime - warmStarted) * 1_000
+        XCTAssertEqual(fetches, 1, "a warm thread must not request translation again")
+        print(String(format: "SMS_SYNTHETIC_LATENCY cold_ms=%.1f warm_ms=%.1f fetches=%d",
+                     coldMilliseconds, warmMilliseconds, fetches))
+    }
+
     func testPreviewTranslationWithTrimmedBodyReusesCacheInThreadWithExactOriginal() async {
         let cache = SMSIncomingTranslationCache()
         let preview = SMSIncomingTranslationStore(allowTrimmedOriginal: true, cache: cache,
