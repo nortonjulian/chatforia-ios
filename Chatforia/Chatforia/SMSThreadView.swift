@@ -252,7 +252,8 @@ struct SMSThreadView: View {
         .onChange(of: showNumberPicker) { _, isOpen in
             if !isOpen {
                 Task {
-                    await numberVM.loadCurrentNumber(token: auth.currentToken)
+                    await numberVM.loadCurrentNumber(token: auth.currentToken,
+                                                     accountId: auth.currentUser?.id)
                 }
             }
         }
@@ -649,11 +650,15 @@ struct SMSThreadView: View {
         }
         isPreparingVoiceSend = true
         defer { isPreparingVoiceSend = false }
-        await numberVM.loadCurrentNumber(token: token)
+        await numberVM.loadCurrentNumber(token: token, accountId: auth.currentUser?.id)
         guard TokenStore.shared.read() == token, voice.draft != nil else { return }
         guard numberVM.currentNumber != nil else {
-            voice.errorText = appText("sms.chooseNumberBeforeSending", languageCode: appLanguage)
-            showNumberPicker = true
+            if numberVM.canPickNumber {
+                voice.errorText = appText("sms.chooseNumberBeforeSending", languageCode: appLanguage)
+                showNumberPicker = true
+            } else {
+                voice.errorText = appText("phoneNumber.temporarilyUnavailable", languageCode: appLanguage)
+            }
             return
         }
         guard let to = vm.resolvedPhone(fallback: activeConversation.phone) else {
@@ -682,15 +687,15 @@ struct SMSThreadView: View {
               !voice.isSending, !isPreparingVoiceSend else { return }
         let token = TokenStore.shared.read()
         
-        await numberVM.loadCurrentNumber(token: token)
+        await numberVM.loadCurrentNumber(token: token, accountId: auth.currentUser?.id)
 
         if numberVM.currentNumber == nil {
-            vm.errorText =
-            appText(
-                "sms.chooseNumberBeforeSending",
-                languageCode: appLanguage
-            )
-            showNumberPicker = true
+            if numberVM.canPickNumber {
+                vm.errorText = appText("sms.chooseNumberBeforeSending", languageCode: appLanguage)
+                showNumberPicker = true
+            } else {
+                vm.errorText = appText("phoneNumber.temporarilyUnavailable", languageCode: appLanguage)
+            }
             return
         }
 

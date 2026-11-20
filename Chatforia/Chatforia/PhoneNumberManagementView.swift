@@ -11,10 +11,11 @@ struct PhoneNumberManagementView: View {
     var body: some View {
         VStack(spacing: 20) {
 
-            if vm.isLoadingCurrent {
+            if vm.lookupState == .loading {
                 ProgressView()
 
-            } else if let number = vm.currentNumber {
+            } else if vm.lookupState == .verifiedAssigned,
+                      let number = vm.currentNumber {
 
                 VStack(spacing: 12) {
 
@@ -64,7 +65,7 @@ struct PhoneNumberManagementView: View {
                     )
                 }
 
-            } else {
+            } else if vm.canPickNumber {
 
                 Text(
                     appText("phoneNumber.noNumberAssigned", languageCode: appLanguage)
@@ -80,6 +81,23 @@ struct PhoneNumberManagementView: View {
                         showPicker = true
                     }
                 )
+            } else {
+                if let cached = vm.lastKnownNumber {
+                    Text(cached.e164)
+                        .font(.title2.bold())
+                    Text(appText("phoneNumber.lastVerified", languageCode: appLanguage))
+                        .font(.footnote)
+                        .foregroundStyle(themeManager.palette.secondaryText)
+                }
+                Text(appText("phoneNumber.temporarilyUnavailable", languageCode: appLanguage))
+                    .foregroundStyle(themeManager.palette.secondaryText)
+                    .multilineTextAlignment(.center)
+                Button(appText("common.tryAgain", languageCode: appLanguage)) {
+                    Task {
+                        await vm.loadCurrentNumber(token: auth.currentToken,
+                                                   accountId: auth.currentUser?.id)
+                    }
+                }
             }
 
             Spacer()
@@ -88,8 +106,9 @@ struct PhoneNumberManagementView: View {
         .navigationTitle(
             appText("phoneNumber.title", languageCode: appLanguage)
         )
-        .task {
-            await vm.loadCurrentNumber(token: auth.currentToken)
+        .task(id: auth.currentUser?.id) {
+            await vm.loadCurrentNumber(token: auth.currentToken,
+                                       accountId: auth.currentUser?.id)
         }
         .sheet(isPresented: $showPicker) {
             PickNumberSheet(vm: vm)

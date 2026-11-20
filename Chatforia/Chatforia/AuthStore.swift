@@ -420,6 +420,7 @@ final class AuthStore: NSObject, ObservableObject {
         socket.disconnect()
         tokenStore.clear()
         offlineSessionStore.clear()
+        OfflineAssignedNumberStore.shared.clear()
         isOfflineSession = false
         UserDefaults.standard.removeObject(forKey: "chatforia.currentUserId")
 
@@ -479,6 +480,7 @@ final class AuthStore: NSObject, ObservableObject {
         socket.disconnect()
         tokenStore.clear()
         offlineSessionStore.clear()
+        OfflineAssignedNumberStore.shared.clear()
         isOfflineSession = false
         UserDefaults.standard.removeObject(forKey: "chatforia.currentUserId")
         needsOnboarding = false

@@ -366,3 +366,120 @@ final class SMSThreadViewModelTests: XCTestCase {
         XCTAssertNil(phone)
     }
 }
+
+@MainActor
+private final class AssignedNumberSnapshotProbe: AssignedNumberSnapshotStoring {
+    private var values: [String: AssignedNumberDTO] = [:]
+    private func key(_ userId: Int, _ token: String) -> String { "\(userId):\(token)" }
+    func number(userId: Int, token: String) -> AssignedNumberDTO? {
+        values[key(userId, token)]
+    }
+    func save(_ number: AssignedNumberDTO, userId: Int, token: String) {
+        values[key(userId, token)] = number
+    }
+    func clear() { values.removeAll() }
+}
+
+@MainActor
+private final class AssignedNumberFetchProbe {
+    var pending: [String: CheckedContinuation<MyAssignedNumberDTO, Error>] = [:]
+    func fetch(_ token: String?) async throws -> MyAssignedNumberDTO {
+        try await withCheckedThrowingContinuation { continuation in
+            pending[token ?? ""] = continuation
+        }
+    }
+}
+
+@MainActor
+final class PhoneNumberOfflineTests: XCTestCase {
+    private func assigned(_ digits: String) -> AssignedNumberDTO {
+        AssignedNumberDTO(e164: digits, status: "ASSIGNED", capabilities: nil,
+                          keepLocked: true, releaseAfter: nil, holdUntil: nil)
+    }
+
+    func testLastKnownNumberPersistsAcrossStoreInstancesOnlyForSameAccountAndToken() {
+        let service = "com.chatforia.qa.assigned-number.\(UUID().uuidString)"
+        let account = "synthetic-assignment"
+        let first = OfflineAssignedNumberStore(service: service, account: account)
+        defer { first.clear() }
+        first.save(assigned("+15550000001"), userId: 1, token: "account-a")
+        let reopened = OfflineAssignedNumberStore(service: service, account: account)
+        XCTAssertEqual(reopened.number(userId: 1, token: "account-a")?.e164, "+15550000001")
+        XCTAssertNil(reopened.number(userId: 2, token: "account-a"))
+        XCTAssertNil(reopened.number(userId: 1, token: "account-b"))
+    }
+
+    func testOfflineStartupPreservesOnlyMatchingLastKnownNumberWithoutPicker() async {
+        let cache = AssignedNumberSnapshotProbe()
+        cache.save(assigned("+15550000001"), userId: 1, token: "account-a")
+        let vm = PhoneNumberViewModel(
+            fetchNumber: { _ in throw URLError(.notConnectedToInternet) },
+            snapshotStore: cache,
+            accountIsCurrent: { _, _ in true }
+        )
+        await vm.loadCurrentNumber(token: "account-a", accountId: 1)
+        XCTAssertEqual(vm.lookupState, .unavailable)
+        XCTAssertEqual(vm.lastKnownNumber?.e164, "+15550000001")
+        XCTAssertNil(vm.currentNumber)
+        XCTAssertFalse(vm.canPickNumber)
+
+        await vm.loadCurrentNumber(token: "account-b", accountId: 2)
+        XCTAssertEqual(vm.lookupState, .unavailable)
+        XCTAssertNil(vm.lastKnownNumber)
+        XCTAssertFalse(vm.canPickNumber)
+    }
+
+    func testReconnectionVerifiesAssignmentAndOnlyConfirmedNullEnablesPicker() async {
+        let cache = AssignedNumberSnapshotProbe()
+        cache.save(assigned("+15550000001"), userId: 1, token: "account-a")
+        var responses = 0
+        let vm = PhoneNumberViewModel(
+            fetchNumber: { _ in
+                responses += 1
+                if responses == 1 { throw URLError(.notConnectedToInternet) }
+                if responses == 2 { return MyAssignedNumberDTO(number: self.assigned("+15550000001")) }
+                return MyAssignedNumberDTO(number: nil)
+            },
+            snapshotStore: cache,
+            accountIsCurrent: { _, _ in true }
+        )
+        await vm.loadCurrentNumber(token: "account-a", accountId: 1)
+        XCTAssertEqual(vm.lookupState, .unavailable)
+        await vm.loadCurrentNumber(token: "account-a", accountId: 1)
+        XCTAssertEqual(vm.lookupState, .verifiedAssigned)
+        XCTAssertEqual(vm.currentNumber?.e164, "+15550000001")
+        XCTAssertFalse(vm.canPickNumber)
+        await vm.loadCurrentNumber(token: "account-a", accountId: 1)
+        XCTAssertEqual(vm.lookupState, .verifiedUnassigned)
+        XCTAssertNil(vm.currentNumber)
+        XCTAssertNil(cache.number(userId: 1, token: "account-a"))
+        XCTAssertTrue(vm.canPickNumber)
+    }
+
+    func testLateResponseFromPreviousAccountCannotReplaceCurrentNumber() async {
+        let cache = AssignedNumberSnapshotProbe()
+        let fetch = AssignedNumberFetchProbe()
+        var activeToken = "account-a"
+        var activeId = 1
+        let vm = PhoneNumberViewModel(
+            fetchNumber: { try await fetch.fetch($0) },
+            snapshotStore: cache,
+            accountIsCurrent: { token, id in token == activeToken && id == activeId }
+        )
+        let old = Task { await vm.loadCurrentNumber(token: "account-a", accountId: 1) }
+        for _ in 0..<100 where fetch.pending["account-a"] == nil { await Task.yield() }
+        XCTAssertNotNil(fetch.pending["account-a"])
+        activeToken = "account-b"
+        activeId = 2
+        let current = Task { await vm.loadCurrentNumber(token: "account-b", accountId: 2) }
+        for _ in 0..<100 where fetch.pending["account-b"] == nil { await Task.yield() }
+        XCTAssertNotNil(fetch.pending["account-b"])
+        fetch.pending["account-b"]?.resume(returning: MyAssignedNumberDTO(number: assigned("+15550000002")))
+        await current.value
+        fetch.pending["account-a"]?.resume(returning: MyAssignedNumberDTO(number: assigned("+15550000001")))
+        await old.value
+        XCTAssertEqual(vm.currentNumber?.e164, "+15550000002")
+        XCTAssertEqual(vm.lookupState, .verifiedAssigned)
+        XCTAssertNil(cache.number(userId: 1, token: "account-a"))
+    }
+}

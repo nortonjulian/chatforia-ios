@@ -1,5 +1,96 @@
 import Foundation
 import Combine
+import CryptoKit
+import Security
+
+enum AssignedNumberLookupState: Equatable {
+    case loading
+    case verifiedAssigned
+    case verifiedUnassigned
+    case unavailable
+}
+
+@MainActor
+protocol AssignedNumberSnapshotStoring {
+    func number(userId: Int, token: String) -> AssignedNumberDTO?
+    func save(_ number: AssignedNumberDTO, userId: Int, token: String)
+    func clear()
+}
+
+@MainActor
+final class OfflineAssignedNumberStore: AssignedNumberSnapshotStoring {
+    static let shared = OfflineAssignedNumberStore()
+
+    private let service: String
+    private let account: String
+
+    init(
+        service: String = Bundle.main.bundleIdentifier ?? "com.chatforia.ios",
+        account: String = "chatforia.assignedNumber.snapshot"
+    ) {
+        self.service = service
+        self.account = account
+    }
+
+    private struct Snapshot: Codable {
+        let userId: Int
+        let tokenDigest: String
+        let e164: String
+        let status: String?
+        let keepLocked: Bool?
+        let releaseAfter: String?
+        let holdUntil: String?
+
+        func number() -> AssignedNumberDTO {
+            AssignedNumberDTO(e164: e164, status: status, capabilities: nil,
+                              keepLocked: keepLocked, releaseAfter: releaseAfter,
+                              holdUntil: holdUntil)
+        }
+    }
+
+    func number(userId: Int, token: String) -> AssignedNumberDTO? {
+        var query = itemQuery
+        query[kSecReturnData as String] = true
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
+        var item: CFTypeRef?
+        guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
+              let data = item as? Data,
+              let snapshot = try? JSONDecoder().decode(Snapshot.self, from: data),
+              snapshot.userId == userId,
+              snapshot.tokenDigest == digest(token) else { return nil }
+        return snapshot.number()
+    }
+
+    func save(_ number: AssignedNumberDTO, userId: Int, token: String) {
+        let snapshot = Snapshot(userId: userId, tokenDigest: digest(token),
+                                e164: number.e164, status: number.status,
+                                keepLocked: number.keepLocked,
+                                releaseAfter: number.releaseAfter,
+                                holdUntil: number.holdUntil)
+        guard let data = try? JSONEncoder().encode(snapshot) else { return }
+        var attributes = itemQuery
+        SecItemDelete(attributes as CFDictionary)
+        attributes[kSecValueData as String] = data
+        attributes[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        let result = SecItemAdd(attributes as CFDictionary, nil)
+        if result != errSecSuccess { debugLog("Assigned number snapshot save failed:", result) }
+    }
+
+    func clear() {
+        SecItemDelete(itemQuery as CFDictionary)
+    }
+
+    private var itemQuery: [String: Any] {
+        [kSecClass as String: kSecClassGenericPassword,
+         kSecAttrService as String: service,
+         kSecAttrAccount as String: account]
+    }
+
+    private func digest(_ token: String) -> String {
+        SHA256.hash(data: Data(token.utf8))
+            .map { String(format: "%02x", $0) }.joined()
+    }
+}
 
 struct NumberRegulatoryVerificationState {
     let e164: String
@@ -11,6 +102,9 @@ struct NumberRegulatoryVerificationState {
 @MainActor
 final class PhoneNumberViewModel: ObservableObject {
     @Published var currentNumber: AssignedNumberDTO?
+    @Published private(set) var lastKnownNumber: AssignedNumberDTO?
+    @Published private(set) var lookupState: AssignedNumberLookupState = .loading
+    var canPickNumber: Bool { lookupState == .verifiedUnassigned }
     @Published var availableNumbers: [AvailableNumberDTO] = []
 
     @Published var areaCode: String = ""
@@ -23,6 +117,28 @@ final class PhoneNumberViewModel: ObservableObject {
     @Published var isLeasing = false
     @Published var errorText: String?
     @Published var regulatoryVerification: NumberRegulatoryVerificationState?
+
+    private let fetchNumber: (String?) async throws -> MyAssignedNumberDTO
+    private let snapshotStore: AssignedNumberSnapshotStoring
+    private let accountIsCurrent: (String, Int) -> Bool
+    private var activeLookup = UUID()
+    private var activeAccountId: Int?
+    private var activeToken: String?
+
+    init(
+        fetchNumber: @escaping (String?) async throws -> MyAssignedNumberDTO = {
+            try await PhoneNumberPoolService.shared.fetchMyNumber(token: $0)
+        },
+        snapshotStore: AssignedNumberSnapshotStoring = OfflineAssignedNumberStore.shared,
+        accountIsCurrent: @escaping (String, Int) -> Bool = { token, userId in
+            TokenStore.shared.read() == token &&
+            UserDefaults.standard.integer(forKey: "chatforia.currentUserId") == userId
+        }
+    ) {
+        self.fetchNumber = fetchNumber
+        self.snapshotStore = snapshotStore
+        self.accountIsCurrent = accountIsCurrent
+    }
     
     private var appLanguage: String {
         UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
@@ -47,16 +163,48 @@ final class PhoneNumberViewModel: ObservableObject {
         return max(days, 0)
     }
 
-    func loadCurrentNumber(token: String?) async {
+    func loadCurrentNumber(token: String?, accountId: Int?) async {
+        guard let token, !token.isEmpty, let accountId, accountId > 0 else {
+            activeLookup = UUID()
+            currentNumber = nil
+            lastKnownNumber = nil
+            lookupState = .unavailable
+            isLoadingCurrent = false
+            return
+        }
+        if activeAccountId != accountId || activeToken != token {
+            currentNumber = nil
+            lastKnownNumber = nil
+        }
+        activeAccountId = accountId
+        activeToken = token
+        let lookup = UUID()
+        activeLookup = lookup
+        lastKnownNumber = snapshotStore.number(userId: accountId, token: token)
+            ?? currentNumber
+        lookupState = .loading
         isLoadingCurrent = true
         errorText = nil
-        defer { isLoadingCurrent = false }
+        defer { if activeLookup == lookup { isLoadingCurrent = false } }
 
         do {
-            let response = try await PhoneNumberPoolService.shared.fetchMyNumber(token: token)
+            let response = try await fetchNumber(token)
+            guard activeLookup == lookup, accountIsCurrent(token, accountId) else { return }
             currentNumber = response.number
+            if let number = response.number {
+                snapshotStore.save(number, userId: accountId, token: token)
+                lastKnownNumber = nil
+                lookupState = .verifiedAssigned
+            } else {
+                snapshotStore.clear()
+                lastKnownNumber = nil
+                lookupState = .verifiedUnassigned
+            }
         } catch {
-            errorText = error.localizedDescription
+            guard activeLookup == lookup, accountIsCurrent(token, accountId) else { return }
+            currentNumber = nil
+            lookupState = .unavailable
+            errorText = appText("phoneNumber.temporarilyUnavailable", languageCode: appLanguage)
         }
     }
 
@@ -111,6 +259,10 @@ final class PhoneNumberViewModel: ObservableObject {
     }
 
     func retryRegulatoryLease(token: String?) async -> Bool {
+        guard canChangeNumber(token: token) else {
+            errorText = appText("phoneNumber.temporarilyUnavailable", languageCode: appLanguage)
+            return false
+        }
         guard let verification = regulatoryVerification else {
             return false
         }
@@ -138,7 +290,7 @@ final class PhoneNumberViewModel: ObservableObject {
             )
 
             regulatoryVerification = nil
-            await loadCurrentNumber(token: token)
+            await loadCurrentNumber(token: token, accountId: activeAccountId)
             return true
         } catch let error as PhoneNumberLeaseError {
             if let regulatory = error.regulatoryResponse,
@@ -166,6 +318,10 @@ final class PhoneNumberViewModel: ObservableObject {
     }
 
     func lease(_ number: AvailableNumberDTO, token: String?) async -> Bool {
+        guard canChangeNumber(token: token) else {
+            errorText = appText("phoneNumber.temporarilyUnavailable", languageCode: appLanguage)
+            return false
+        }
         guard let e164 = number.e164 ?? number.number else { return false }
 
         let purchaseIntent = mode == .premium
@@ -188,7 +344,7 @@ final class PhoneNumberViewModel: ObservableObject {
             ])
 
             regulatoryVerification = nil
-            await loadCurrentNumber(token: token)
+            await loadCurrentNumber(token: token, accountId: activeAccountId)
             return true
         } catch let error as PhoneNumberLeaseError {
             if let regulatory = error.regulatoryResponse,
@@ -211,5 +367,11 @@ final class PhoneNumberViewModel: ObservableObject {
             errorText = error.localizedDescription
             return false
         }
+    }
+
+    private func canChangeNumber(token: String?) -> Bool {
+        guard let token, let accountId = activeAccountId,
+              accountIsCurrent(token, accountId) else { return false }
+        return lookupState == .verifiedAssigned || lookupState == .verifiedUnassigned
     }
 }
