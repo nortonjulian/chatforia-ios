@@ -16,6 +16,46 @@ private struct ContactBlockMutationResponse: Decodable {
     let success: Bool
 }
 
+struct AccountBlockSession: Equatable {
+    let accountId: Int
+    let token: String
+    let targetUserId: Int?
+
+    init?(accountId: Int?, token: String?, targetUserId: Int? = nil) {
+        guard let accountId, accountId > 0,
+              let token, !token.isEmpty else { return nil }
+        self.accountId = accountId
+        self.token = token
+        self.targetUserId = targetUserId
+    }
+}
+
+struct AccountBlockResponseGate {
+    struct Ticket {
+        fileprivate let session: AccountBlockSession
+        fileprivate let generation: UInt64
+    }
+
+    private var generation: UInt64 = 0
+
+    mutating func begin(for session: AccountBlockSession) -> Ticket {
+        generation &+= 1
+        return Ticket(session: session, generation: generation)
+    }
+
+    mutating func invalidate() {
+        generation &+= 1
+    }
+
+    func accepts(_ ticket: Ticket, current session: AccountBlockSession?) -> Bool {
+        ticket.generation == generation && ticket.session == session
+    }
+
+    func isLatest(_ ticket: Ticket) -> Bool {
+        ticket.generation == generation
+    }
+}
+
 struct ContactAccountReportRequest: Encodable {
     static func path(userId: Int) -> String { "reports/users/\(userId)" }
     let reason: String
@@ -39,9 +79,11 @@ struct ContactDetailView: View {
     @AppStorage("chatforia_language") private var appLanguage = "en"
     @State private var accountBlockKnown = false
     @State private var isAccountBlocked = false
+    @State private var loadedAccountBlockSession: AccountBlockSession?
     @State private var isUpdatingAccountBlock = false
     @State private var confirmAccountBlockChange = false
     @State private var accountBlockError: String?
+    @State private var accountBlockGate = AccountBlockResponseGate()
     @State private var showAccountReport = false
     @State private var accountReportReason: ReportReason = .other
     @State private var accountReportDetails = ""
@@ -70,6 +112,33 @@ struct ContactDetailView: View {
             "ios.unknown_contact",
             languageCode: appLanguage
         )
+    }
+
+    private var accountBlockSession: AccountBlockSession? {
+        guard let targetUserId = contact.user?.id else { return nil }
+        return AccountBlockSession(
+            accountId: auth.currentUser?.id,
+            token: auth.currentToken,
+            targetUserId: targetUserId
+        )
+    }
+
+    private var accountBlockKnownForCurrentSession: Bool {
+        accountBlockKnown && loadedAccountBlockSession == accountBlockSession
+    }
+
+    private var isAccountBlockedForCurrentSession: Bool {
+        accountBlockKnownForCurrentSession && isAccountBlocked
+    }
+
+    private func clearAccountBlockState() {
+        accountBlockGate.invalidate()
+        accountBlockKnown = false
+        isAccountBlocked = false
+        loadedAccountBlockSession = nil
+        isUpdatingAccountBlock = false
+        confirmAccountBlockChange = false
+        accountBlockError = nil
     }
 
     private var subtitle: String {
@@ -149,16 +218,16 @@ struct ContactDetailView: View {
                             confirmAccountBlockChange = true
                         } label: {
                             actionRow(
-                                title: isAccountBlocked
+                                title: isAccountBlockedForCurrentSession
                                     ? "Unblock Chatforia account"
                                     : "Block Chatforia account",
-                                systemImage: isAccountBlocked
+                                systemImage: isAccountBlockedForCurrentSession
                                     ? "hand.raised.slash"
                                     : "hand.raised.fill"
                             )
                         }
                         .buttonStyle(.plain)
-                        .disabled(!accountBlockKnown || isUpdatingAccountBlock)
+                        .disabled(!accountBlockKnownForCurrentSession || isUpdatingAccountBlock)
 
                         Button {
                             accountReportReason = .other
@@ -228,8 +297,12 @@ struct ContactDetailView: View {
             .foregroundStyle(themeManager.palette.accent)
         }
     }
-    .task(id: contact.user?.id) {
+    .task {
         await loadAccountBlockState()
+    }
+    .onChange(of: accountBlockSession) { _, _ in
+        clearAccountBlockState()
+        Task { await loadAccountBlockState() }
     }
     .onChange(of: auth.currentUser?.id) { _, _ in showAccountReport = false }
     .sheet(isPresented: $showAccountReport) {
@@ -266,16 +339,16 @@ struct ContactDetailView: View {
         Button(appText("common.done", languageCode: appLanguage), role: .cancel) {}
     }
     .confirmationDialog(
-        isAccountBlocked ? "Unblock this Chatforia account?" : "Block this Chatforia account?",
+        isAccountBlockedForCurrentSession ? "Unblock this Chatforia account?" : "Block this Chatforia account?",
         isPresented: $confirmAccountBlockChange,
         titleVisibility: .visible
     ) {
-        Button(isAccountBlocked ? "Unblock account" : "Block account") {
+        Button(isAccountBlockedForCurrentSession ? "Unblock account" : "Block account") {
             Task { await updateAccountBlock() }
         }
         Button("Cancel", role: .cancel) {}
     } message: {
-        Text(isAccountBlocked
+        Text(isAccountBlockedForCurrentSession
              ? "This account will be able to contact you again unless they blocked you."
              : "This account will no longer be able to directly message or call you. Your message history will remain.")
     }
@@ -320,30 +393,45 @@ struct ContactDetailView: View {
     }
 
     private func loadAccountBlockState() async {
-        accountBlockKnown = false
-        guard let userId = contact.user?.id else { return }
-        guard let token = TokenStore.shared.read() else {
-            accountBlockError = "Sign in to manage blocked accounts."
+        guard !isUpdatingAccountBlock else { return }
+        clearAccountBlockState()
+        guard let session = accountBlockSession,
+              let targetUserId = session.targetUserId else {
+            if contact.user?.id != nil {
+                accountBlockError = "Sign in to manage blocked accounts."
+            }
             return
         }
+        let ticket = accountBlockGate.begin(for: session)
         do {
             let response: ContactBlockedAccountsResponse = try await APIClient.shared.send(
                 APIRequest(path: "blocks", method: .GET, requiresAuth: true),
-                token: token
+                token: session.token
             )
-            isAccountBlocked = response.items.contains { $0.userId == userId }
+            guard accountBlockGate.accepts(ticket, current: accountBlockSession) else { return }
+            isAccountBlocked = response.items.contains { $0.userId == targetUserId }
             accountBlockKnown = true
+            loadedAccountBlockSession = session
         } catch {
+            guard accountBlockGate.accepts(ticket, current: accountBlockSession) else { return }
             accountBlockError = "Could not load this account's blocking status."
         }
     }
 
     private func updateAccountBlock() async {
-        guard !isUpdatingAccountBlock,
-              let userId = contact.user?.id,
-              let token = TokenStore.shared.read() else { return }
+        guard !isUpdatingAccountBlock, accountBlockKnownForCurrentSession,
+              let session = accountBlockSession,
+              let userId = session.targetUserId else { return }
+        let ticket = accountBlockGate.begin(for: session)
         isUpdatingAccountBlock = true
-        defer { isUpdatingAccountBlock = false }
+        accountBlockError = nil
+        defer {
+            if accountBlockGate.isLatest(ticket), accountBlockSession != session {
+                clearAccountBlockState()
+            } else if accountBlockGate.accepts(ticket, current: accountBlockSession) {
+                isUpdatingAccountBlock = false
+            }
+        }
         do {
             let currentlyBlocked = isAccountBlocked
             let body: Data?
@@ -359,15 +447,18 @@ struct ContactDetailView: View {
                     body: body,
                     requiresAuth: true
                 ),
-                token: token
+                token: session.token
             )
+            guard accountBlockGate.accepts(ticket, current: accountBlockSession) else { return }
             guard response.success else {
                 accountBlockError = "Account blocking could not be updated."
                 return
             }
             isAccountBlocked = !currentlyBlocked
             accountBlockKnown = true
+            loadedAccountBlockSession = session
         } catch {
+            guard accountBlockGate.accepts(ticket, current: accountBlockSession) else { return }
             accountBlockError = "Could not update account blocking. Try again."
         }
     }
