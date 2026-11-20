@@ -85,6 +85,73 @@ final class ThemeManagerTests: XCTestCase {
         }
     }
 
+    func testSearchTextHintAndNavigationTitleContrastAcrossThemes() {
+        func luminance(_ color: Color) -> Double {
+            var red: CGFloat = 0
+            var green: CGFloat = 0
+            var blue: CGFloat = 0
+            var alpha: CGFloat = 0
+            XCTAssertTrue(UIColor(color).getRed(&red, green: &green, blue: &blue, alpha: &alpha))
+            let channels = [red, green, blue].map { value -> Double in
+                let channel = Double(value)
+                return channel <= 0.04045 ? channel / 12.92 : pow((channel + 0.055) / 1.055, 2.4)
+            }
+            return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+        }
+
+        func contrast(_ first: Color, _ second: Color) -> Double {
+            let values = [luminance(first), luminance(second)].sorted()
+            return (values[1] + 0.05) / (values[0] + 0.05)
+        }
+
+        let manager = ThemeManager()
+        for option in AppThemes.all {
+            manager.apply(code: option.code)
+            let palette = manager.palette
+            let systemTitle: Color = manager.navigationColorScheme == .dark ? .white : .black
+            XCTAssertGreaterThanOrEqual(
+                contrast(palette.primaryText, palette.cardBackground), 4.5,
+                "Typed search text in \(option.code)"
+            )
+            XCTAssertGreaterThanOrEqual(
+                contrast(manager.searchHintText, palette.cardBackground), 4.5,
+                "Search prompt and icons in \(option.code)"
+            )
+            XCTAssertGreaterThanOrEqual(
+                contrast(systemTitle, palette.screenBackground), 4.5,
+                "Navigation title in \(option.code)"
+            )
+        }
+    }
+
+    func testPinnedSearchRendersWithBothSystemAppearancesAndThemeChanges() {
+        let manager = ThemeManager()
+        for option in AppThemes.all {
+            manager.apply(code: option.code)
+            for appearance in [ColorScheme.light, .dark] {
+                let field = ThemedPinnedSearchField(
+                    text: .constant("Synthetic search"),
+                    placeholder: "Search Chats",
+                    clearAccessibilityLabel: "Clear chat search"
+                )
+                let host = UIHostingController(rootView:
+                    NavigationStack {
+                        field
+                            .navigationTitle("Chats")
+                            .toolbarBackground(manager.palette.screenBackground, for: .navigationBar)
+                            .toolbarBackground(.visible, for: .navigationBar)
+                            .toolbarColorScheme(manager.navigationColorScheme, for: .navigationBar)
+                    }
+                    .environmentObject(manager)
+                    .environment(\.colorScheme, appearance)
+                )
+                let size = host.sizeThatFits(in: CGSize(width: 390, height: 844))
+                XCTAssertGreaterThan(size.width, 0, "\(option.code), \(appearance)")
+                XCTAssertGreaterThan(size.height, 0, "\(option.code), \(appearance)")
+            }
+        }
+    }
+
     func testSharedAvatarInitialsMeetNormalTextContrastInEveryTheme() {
         func rgb(_ color: Color) -> [Double] {
             var red: CGFloat = 0
