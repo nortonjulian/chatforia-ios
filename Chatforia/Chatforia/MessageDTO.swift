@@ -1,5 +1,11 @@
 import Foundation
 
+extension CodingUserInfoKey {
+    static let persistedMessageReferenceDates = CodingUserInfoKey(
+        rawValue: "chatforia.persistedMessageReferenceDates"
+    )!
+}
+
 extension MessageDTO {
     static func merged(current: MessageDTO, incoming: MessageDTO) -> MessageDTO {
         let encryption = preferredEncryption(
@@ -207,33 +213,60 @@ extension MessageDTO {
         return f
     }()
 
+    private static func encodedTimestamp(_ date: Date) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter.string(from: date)
+    }
+
     private static func decodeFlexibleDate(
         from container: KeyedDecodingContainer<CodingKeys>,
-        forKey key: CodingKeys
+        forKey key: CodingKeys,
+        referenceDateNumbers: Bool
     ) throws -> Date? {
-        if let str = try? container.decode(String.self, forKey: key) {
-            if let d = iso8601Fractional.date(from: str) ?? iso8601Plain.date(from: str) {
-                return d
+        guard container.contains(key), !(try container.decodeNil(forKey: key)) else {
+            return nil
+        }
+        let date: Date
+        if let str = try? container.decode(String.self, forKey: key),
+           let parsed = iso8601Fractional.date(from: str) ?? iso8601Plain.date(from: str) {
+            date = parsed
+        } else if let number = try? container.decode(Double.self, forKey: key),
+                  number.isFinite {
+            if referenceDateNumbers {
+                // JSONEncoder's old default cache format used Apple's 2001 epoch.
+                date = Date(timeIntervalSinceReferenceDate: number)
+            } else {
+                // API timestamps may be Unix seconds or Unix milliseconds.
+                let seconds = abs(number) >= 100_000_000_000 ? number / 1_000 : number
+                date = Date(timeIntervalSince1970: seconds)
             }
+        } else {
+            throw DecodingError.dataCorruptedError(
+                forKey: key, in: container, debugDescription: "Invalid message timestamp"
+            )
         }
-
-        if let seconds = try? container.decode(Double.self, forKey: key) {
-            return Date(timeIntervalSince1970: seconds)
+        let earliest = Date(timeIntervalSince1970: 946_684_800) // 2000-01-01 UTC
+        let latest = key == .expiresAt
+            ? Date(timeIntervalSince1970: 4_102_444_800) // 2100-01-01 UTC
+            : Date().addingTimeInterval(2 * 86_400)
+        guard date >= earliest, date <= latest else {
+            throw DecodingError.dataCorruptedError(
+                forKey: key, in: container, debugDescription: "Implausible message timestamp"
+            )
         }
-
-        if let millis = try? container.decode(Int64.self, forKey: key) {
-            return Date(timeIntervalSince1970: TimeInterval(millis) / 1000.0)
-        }
-
-        return nil
+        return date
     }
 
     private static func decodeFlexibleDateIfPresent(
         from container: KeyedDecodingContainer<CodingKeys>,
-        forKey key: CodingKeys
+        forKey key: CodingKeys,
+        referenceDateNumbers: Bool
     ) throws -> Date? {
-        guard container.contains(key) else { return nil }
-        return try decodeFlexibleDate(from: container, forKey: key)
+        try decodeFlexibleDate(
+            from: container, forKey: key,
+            referenceDateNumbers: referenceDateNumbers
+        )
     }
 }
 
@@ -434,6 +467,7 @@ struct MessageDTO: Codable, Identifiable, Equatable {
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
+        let referenceDateNumbers = decoder.userInfo[.persistedMessageReferenceDates] as? Bool == true
 
         id = try c.decode(Int.self, forKey: .id)
         contentCiphertext = try c.decodeIfPresent(String.self, forKey: .contentCiphertext)
@@ -466,10 +500,21 @@ struct MessageDTO: Codable, Identifiable, Equatable {
 
         isExplicit = try c.decodeIfPresent(Bool.self, forKey: .isExplicit)
 
-        createdAt = try Self.decodeFlexibleDate(from: c, forKey: .createdAt) ?? Date()
-        expiresAt = try Self.decodeFlexibleDateIfPresent(from: c, forKey: .expiresAt)
-        editedAt = try Self.decodeFlexibleDateIfPresent(from: c, forKey: .editedAt)
-        deletedAt = try Self.decodeFlexibleDateIfPresent(from: c, forKey: .deletedAt)
+        guard let timestamp = try Self.decodeFlexibleDate(
+            from: c, forKey: .createdAt, referenceDateNumbers: referenceDateNumbers
+        ) else {
+            throw DecodingError.keyNotFound(
+                CodingKeys.createdAt,
+                .init(codingPath: decoder.codingPath, debugDescription: "Message timestamp is required")
+            )
+        }
+        createdAt = timestamp
+        expiresAt = try Self.decodeFlexibleDateIfPresent(from: c, forKey: .expiresAt,
+                                                         referenceDateNumbers: referenceDateNumbers)
+        editedAt = try Self.decodeFlexibleDateIfPresent(from: c, forKey: .editedAt,
+                                                        referenceDateNumbers: referenceDateNumbers)
+        deletedAt = try Self.decodeFlexibleDateIfPresent(from: c, forKey: .deletedAt,
+                                                         referenceDateNumbers: referenceDateNumbers)
 
         deletedBySender = try c.decodeIfPresent(Bool.self, forKey: .deletedBySender)
         deletedForAll = try c.decodeIfPresent(Bool.self, forKey: .deletedForAll)
@@ -511,13 +556,13 @@ struct MessageDTO: Codable, Identifiable, Equatable {
 
         try c.encodeIfPresent(isExplicit, forKey: .isExplicit)
 
-        try c.encode(createdAt, forKey: .createdAt)
-        try c.encodeIfPresent(expiresAt, forKey: .expiresAt)
-        try c.encodeIfPresent(editedAt, forKey: .editedAt)
+        try c.encode(Self.encodedTimestamp(createdAt), forKey: .createdAt)
+        if let expiresAt { try c.encode(Self.encodedTimestamp(expiresAt), forKey: .expiresAt) }
+        if let editedAt { try c.encode(Self.encodedTimestamp(editedAt), forKey: .editedAt) }
 
         try c.encodeIfPresent(deletedBySender, forKey: .deletedBySender)
         try c.encodeIfPresent(deletedForAll, forKey: .deletedForAll)
-        try c.encodeIfPresent(deletedAt, forKey: .deletedAt)
+        if let deletedAt { try c.encode(Self.encodedTimestamp(deletedAt), forKey: .deletedAt) }
         try c.encodeIfPresent(deletedById, forKey: .deletedById)
 
         try c.encode(sender, forKey: .sender)

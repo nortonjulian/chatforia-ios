@@ -61,17 +61,38 @@ final class MessageStore {
 
             do {
                 let messageData = try Data(contentsOf: self.messagesFileURL)
-                self.messages = try JSONDecoder().decode([MessageDTO].self, from: messageData)
+                self.messages = try Self.decodePersistedMessages(messageData)
                 let beforeExpiry = self.messages.count
                 self.messages.removeAll { self.isExpired($0) }
                 self.sortMessagesLocked()
                 self.messages = self.dedupeMessages(self.messages)
                 self.capInMemoryMessagesLocked(limit: self.inMemoryMax)
-                if self.messages.count != beforeExpiry { self.persistLocked() }
+                // Rewrite valid legacy numeric dates once as unambiguous ISO dates.
+                // Corrupt cached rows are discarded locally; the server window
+                // replaces them when connectivity returns.
+                if self.messages.count != beforeExpiry || !self.messages.isEmpty {
+                    self.persistLocked()
+                }
             } catch {
                 self.messages = []
             }
         }
+    }
+
+    static func decodePersistedMessages(_ data: Data) throws -> [MessageDTO] {
+        guard let objects = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
+            throw NSError(domain: "Chatforia.MessageStore", code: 1)
+        }
+        let decoder = JSONDecoder()
+        decoder.userInfo[.persistedMessageReferenceDates] = true
+        return objects.compactMap { object in
+            guard let bytes = try? JSONSerialization.data(withJSONObject: object) else { return nil }
+            return try? decoder.decode(MessageDTO.self, from: bytes)
+        }
+    }
+
+    static func encodePersistedMessages(_ messages: [MessageDTO]) throws -> Data {
+        try JSONEncoder().encode(messages)
     }
 
     private func persistLocked() {
@@ -83,7 +104,7 @@ final class MessageStore {
         }
 
         do {
-            let messageData = try JSONEncoder().encode(messages)
+            let messageData = try Self.encodePersistedMessages(messages)
             try messageData.write(to: messagesFileURL, options: .atomic)
         } catch {
             debugLog("❌ MessageStore persist messages failed:", error)

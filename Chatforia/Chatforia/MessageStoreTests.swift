@@ -242,6 +242,76 @@ final class MessageStoreTests: XCTestCase {
 
         XCTAssertEqual(MessageStore.shared.serverBeforeIdForPaging(), 5)
     }
+
+    func testPersistedDatesStayStableAcrossOfflineReloads() throws {
+        let original = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-10-22T12:00:00Z"))
+        let expiry = original.addingTimeInterval(3_600)
+        var data = try MessageStore.encodePersistedMessages([
+            makeMessage(id: 81, roomId: 2, text: "cached", createdAt: original,
+                        expiresAt: expiry)
+        ])
+        for _ in 0..<12 {
+            let decoded = try MessageStore.decodePersistedMessages(data)
+            XCTAssertEqual(decoded.count, 1)
+            XCTAssertEqual(decoded[0].createdAt, original)
+            XCTAssertEqual(decoded[0].expiresAt, expiry)
+            data = try MessageStore.encodePersistedMessages(decoded)
+        }
+        XCTAssertTrue(String(decoding: data, as: UTF8.self).contains("2026-10-22"))
+    }
+
+    func testLegacyReferenceDateCacheMigratesWithoutChangingValidHistory() throws {
+        let original = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-10-22T12:00:00Z"))
+        let legacy = ["id": 82, "createdAt": original.timeIntervalSinceReferenceDate,
+                      "sender": ["id": 1], "chatRoomId": 2] as [String: Any]
+        let data = try JSONSerialization.data(withJSONObject: [legacy])
+        let decoded = try MessageStore.decodePersistedMessages(data)
+        XCTAssertEqual(decoded.map(\.id), [82])
+        XCTAssertEqual(decoded[0].createdAt, original)
+        let migrated = try MessageStore.encodePersistedMessages(decoded)
+        XCTAssertEqual(try MessageStore.decodePersistedMessages(migrated)[0].createdAt, original)
+    }
+
+    func testCorruptCachedDateIsDroppedAndServerDateRestoresHistory() throws {
+        let valid = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-10-22T12:00:00Z"))
+        let rows: [[String: Any]] = [
+            ["id": 83, "createdAt": "1685-10-22T12:00:00Z", "sender": ["id": 1], "chatRoomId": 2],
+            ["id": 84, "createdAt": valid.timeIntervalSinceReferenceDate,
+             "sender": ["id": 1], "chatRoomId": 2]
+        ]
+        let cached = try MessageStore.decodePersistedMessages(
+            JSONSerialization.data(withJSONObject: rows)
+        )
+        XCTAssertEqual(cached.map(\.id), [84])
+        MessageStore.shared.replaceMessages(forRoomId: 2, with: [
+            makeMessage(id: 83, roomId: 2, text: "restored", createdAt: valid)
+        ])
+        waitForAsyncStoreWrite()
+        XCTAssertEqual(MessageStore.shared.message(withId: 83)?.createdAt, valid)
+    }
+
+    func testServerUnixSecondsMillisecondsAndInvalidDates() throws {
+        let original = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-10-22T12:00:00Z"))
+        for value in [original.timeIntervalSince1970,
+                      original.timeIntervalSince1970 * 1_000] {
+            let data = try JSONSerialization.data(withJSONObject: [
+                "id": 85, "createdAt": value, "sender": ["id": 1]
+            ])
+            let decoded = try JSONDecoder().decode(MessageDTO.self, from: data)
+            XCTAssertEqual(decoded.createdAt.timeIntervalSince1970,
+                           original.timeIntervalSince1970, accuracy: 0.001)
+        }
+        let invalidValues: [Any] = [NSNull(), "not-a-date", "1685-10-22T12:00:00Z",
+                                    12_345_678_901_234 as Double]
+        for value in invalidValues {
+            let data = try JSONSerialization.data(withJSONObject: [
+                "id": 86, "createdAt": value, "sender": ["id": 1]
+            ])
+            XCTAssertThrowsError(try JSONDecoder().decode(MessageDTO.self, from: data))
+        }
+        XCTAssertThrowsError(try JSONDecoder().decode(MessageDTO.self,
+            from: Data(#"{"id":87,"sender":{"id":1}}"#.utf8)))
+    }
 }
 
 // MARK: - Helpers
