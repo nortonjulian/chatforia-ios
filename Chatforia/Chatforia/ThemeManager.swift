@@ -347,6 +347,24 @@ final class ThemeManager: ObservableObject {
         ThemeCatalog.palette(for: currentCode)
     }
 
+    // Sunset and Solarized secondary text is suitable for icons but too faint
+    // for a search placeholder on their card surfaces. Reuse primary text there.
+    var searchHintText: Color {
+        switch currentCode {
+        case "sunset", "solarized": palette.primaryText
+        default: palette.secondaryText
+        }
+    }
+
+    // Navigation titles use system foregrounds, so match their appearance to
+    // the app palette even when the device's appearance differs.
+    var navigationColorScheme: ColorScheme {
+        switch currentCode {
+        case "midnight", "amoled", "aurora", "neon", "velvet": .dark
+        default: .light
+        }
+    }
+
     func apply(code: String) {
         let normalized = Self.normalize(code)
         currentCode = normalized

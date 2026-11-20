@@ -39,38 +39,11 @@ struct ContactsRootView: View {
     }
 
     private var pinnedSearch: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
-                .accessibilityHidden(true)
-
-            TextField(
-                appText("ios.search_contacts", languageCode: appLanguage),
-                text: $vm.searchText
-            )
-            .textInputAutocapitalization(.never)
-            .autocorrectionDisabled()
-            .submitLabel(.search)
-            .accessibilityLabel(appText("ios.search_contacts", languageCode: appLanguage))
-
-            if !vm.searchText.isEmpty {
-                Button {
-                    vm.searchText = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                }
-                .accessibilityLabel("Clear contact search")
-            }
-        }
-        .font(.body)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .background(themeManager.palette.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .padding(.horizontal, 16)
-        .padding(.top, 8)
-        .padding(.bottom, 8)
+        ThemedPinnedSearchField(
+            text: $vm.searchText,
+            placeholder: appText("ios.search_contacts", languageCode: appLanguage),
+            clearAccessibilityLabel: "Clear contact search"
+        )
     }
 
     var body: some View {
@@ -127,6 +100,7 @@ struct ContactsRootView: View {
                     languageCode: appLanguage
                 )
             )
+            .modifier(ThemedNavigationBar())
             .navigationBarTitleDisplayMode(.inline)
             .onChange(of: vm.searchText) { _, _ in
                 pendingSearch?.cancel()
