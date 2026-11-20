@@ -506,6 +506,104 @@ final class AuthStoreTests: XCTestCase {
         XCTAssertEqual(user.normalizedPlan, "PREMIUM")
     }
 
+    func testAccountBlockGateRejectsPreviousAccountTargetAndRapidActionResults() {
+        var gate = AccountBlockResponseGate()
+        let first = AccountBlockSession(accountId: 71, token: "token-a", targetUserId: 90)!
+        let otherAccount = AccountBlockSession(accountId: 72, token: "token-b", targetUserId: 90)!
+        let otherContact = AccountBlockSession(accountId: 71, token: "token-a", targetUserId: 91)!
+        let firstTicket = gate.begin(for: first)
+        XCTAssertFalse(gate.accepts(firstTicket, current: otherAccount))
+        XCTAssertFalse(gate.accepts(firstTicket, current: otherContact))
+        XCTAssertFalse(gate.accepts(firstTicket, current: nil))
+
+        let newerTicket = gate.begin(for: first)
+        XCTAssertFalse(gate.accepts(firstTicket, current: first))
+        XCTAssertTrue(gate.accepts(newerTicket, current: first))
+        gate.invalidate()
+        XCTAssertFalse(gate.accepts(newerTicket, current: first))
+    }
+
+    func testBlockedAccountListRejectsDelayedPreviousAccountLoad() async throws {
+        let auth = makeAuthStore()
+        let client = DelayedBlockAPIClient()
+        let model = BlockedChatforiaAccountsViewModel(apiClient: client)
+        tokenStore.savedToken = "token-a"
+        auth.replaceCurrentUser(makeUser(id: 71))
+        client.set(path: "blocks", token: "token-a", json: """
+            {"items":[{"id":1,"userId":90,"username":"account-a"}]}
+            """, delay: 200_000_000)
+        client.set(path: "blocks", token: "token-b", json: """
+            {"items":[{"id":2,"userId":91,"username":"account-b"}]}
+            """)
+
+        let oldLoad = Task { await model.load(auth: auth) }
+        await client.waitForRequest(path: "blocks", token: "token-a")
+        tokenStore.savedToken = "token-b"
+        auth.replaceCurrentUser(makeUser(id: 72))
+        XCTAssertTrue(model.visibleItems(for: AccountBlockSession(accountId: 72, token: "token-b")).isEmpty)
+        model.invalidateForAccountChange()
+        await model.load(auth: auth)
+        await oldLoad.value
+
+        XCTAssertEqual(model.items.map(\.userId), [91])
+        XCTAssertEqual(
+            model.visibleItems(for: AccountBlockSession(accountId: 72, token: "token-b")).map(\.userId),
+            [91]
+        )
+        XCTAssertNil(model.errorText)
+        XCTAssertFalse(model.isLoading)
+        XCTAssertEqual(client.count(path: "blocks", token: "token-a"), 1)
+        XCTAssertEqual(client.count(path: "blocks", token: "token-b"), 1)
+    }
+
+    func testBlockedAccountListRejectsDelayedUnblockAfterSwitchAndLogout() async throws {
+        let auth = makeAuthStore()
+        let client = DelayedBlockAPIClient()
+        let model = BlockedChatforiaAccountsViewModel(apiClient: client)
+        tokenStore.savedToken = "token-a"
+        auth.replaceCurrentUser(makeUser(id: 71))
+        client.set(path: "blocks", token: "token-a", json: """
+            {"items":[{"id":1,"userId":90,"username":"account-a"}]}
+            """)
+        client.set(path: "blocks/90", token: "token-a", json: #"{"success":true}"#, delay: 200_000_000)
+        await model.load(auth: auth)
+        let item = try XCTUnwrap(model.items.first)
+
+        let oldUnblock = Task { await model.unblock(item, auth: auth) }
+        await client.waitForRequest(path: "blocks/90", token: "token-a")
+        let duplicate = await model.unblock(item, auth: auth)
+        XCTAssertFalse(duplicate)
+        XCTAssertEqual(client.count(path: "blocks/90", token: "token-a"), 1)
+
+        tokenStore.savedToken = "token-b"
+        auth.replaceCurrentUser(makeUser(id: 72))
+        let staleItemUnblockedForNewAccount = await model.unblock(item, auth: auth)
+        XCTAssertFalse(staleItemUnblockedForNewAccount)
+        XCTAssertEqual(client.count(path: "blocks/90", token: "token-b"), 0)
+        model.invalidateForAccountChange()
+        client.set(path: "blocks", token: "token-b", json: """
+            {"items":[{"id":2,"userId":91,"username":"account-b"}]}
+            """)
+        await model.load(auth: auth)
+        let staleUnblockSucceeded = await oldUnblock.value
+        XCTAssertFalse(staleUnblockSucceeded)
+        XCTAssertEqual(model.items.map(\.userId), [91])
+
+        auth.logout()
+        model.invalidateForAccountChange()
+        XCTAssertTrue(model.items.isEmpty)
+        XCTAssertNil(model.unblockingID)
+    }
+
+    func testReportDetailsEditorUsesLocalizedExplicitAccessibilityLabel() {
+        for language in ["en", "es", "ar"] {
+            let label = ReportMessageSheet.additionalDetailsAccessibilityLabel(languageCode: language)
+            XCTAssertEqual(label, appText("common.additionalDetails", languageCode: language))
+            XCTAssertFalse(label.isEmpty)
+            XCTAssertFalse(label.hasPrefix("common."))
+        }
+    }
+
     private func makeAuthStore() -> AuthStore {
         AuthStore(
             tokenStore: tokenStore,
@@ -612,6 +710,38 @@ private final class MockAPIClient: APIClientSending {
         }
 
         return result
+    }
+}
+
+@MainActor
+private final class DelayedBlockAPIClient: APIClientSending {
+    private var responses: [String: (data: Data, delay: UInt64)] = [:]
+    private var requests: [String: Int] = [:]
+
+    private func key(path: String, token: String) -> String { "\(token):\(path)" }
+
+    func set(path: String, token: String, json: String, delay: UInt64 = 0) {
+        responses[key(path: path, token: token)] = (Data(json.utf8), delay)
+    }
+
+    func count(path: String, token: String) -> Int {
+        requests[key(path: path, token: token), default: 0]
+    }
+
+    func waitForRequest(path: String, token: String) async {
+        for _ in 0..<1_000 {
+            if count(path: path, token: token) > 0 { return }
+            await Task.yield()
+        }
+        XCTFail("Expected synthetic \(path) request")
+    }
+
+    func send<T: Decodable>(_ request: APIRequest, token: String?) async throws -> T {
+        let requestKey = key(path: request.path, token: token ?? "")
+        requests[requestKey, default: 0] += 1
+        guard let response = responses[requestKey] else { throw MockAPIError.missingResult }
+        if response.delay > 0 { try await Task.sleep(nanoseconds: response.delay) }
+        return try JSONDecoder().decode(T.self, from: response.data)
     }
 }
 

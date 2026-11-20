@@ -1014,6 +1014,7 @@ struct ProfileRootView: View {
                 NavigationLink {
                     BlockedChatforiaAccountsView()
                         .environmentObject(themeManager)
+                        .environmentObject(auth)
                 } label: {
                     HStack(spacing: 12) {
                         Image(systemName: "person.crop.circle.badge.xmark")
@@ -2278,7 +2279,7 @@ private struct BlockedPSTNNumbersView: View {
 
 
 // Chatforia account blocks use /blocks and are independent of SMS number blocks.
-private struct BlockedChatforiaAccountRow: Decodable, Identifiable {
+struct BlockedChatforiaAccountRow: Decodable, Identifiable {
     let id: Int
     let userId: Int
     let username: String?
@@ -2294,53 +2295,103 @@ private struct BlockedChatforiaAccountRow: Decodable, Identifiable {
     }
 }
 
-private struct BlockedChatforiaAccountsResponse: Decodable {
+struct BlockedChatforiaAccountsResponse: Decodable {
     let items: [BlockedChatforiaAccountRow]
 }
 
-private struct UnblockChatforiaAccountResponse: Decodable {
+struct UnblockChatforiaAccountResponse: Decodable {
     let success: Bool
 }
 
 @MainActor
-private final class BlockedChatforiaAccountsViewModel: ObservableObject {
+final class BlockedChatforiaAccountsViewModel: ObservableObject {
     @Published var items: [BlockedChatforiaAccountRow] = []
     @Published var isLoading = false
     @Published var unblockingID: Int?
     @Published var errorText: String?
+    private let apiClient: APIClientSending
+    private var gate = AccountBlockResponseGate()
+    private var loadedSession: AccountBlockSession?
 
-    func load() async {
-        guard let token = TokenStore.shared.read() else {
+    init(apiClient: APIClientSending = APIClient.shared) {
+        self.apiClient = apiClient
+    }
+
+    func invalidateForAccountChange() {
+        gate.invalidate()
+        loadedSession = nil
+        items = []
+        isLoading = false
+        unblockingID = nil
+        errorText = nil
+    }
+
+    private func session(for auth: AuthStore) -> AccountBlockSession? {
+        AccountBlockSession(accountId: auth.currentUser?.id, token: auth.currentToken)
+    }
+
+    func visibleItems(for session: AccountBlockSession?) -> [BlockedChatforiaAccountRow] {
+        loadedSession == session && session != nil ? items : []
+    }
+
+    func load(auth: AuthStore) async {
+        guard let session = session(for: auth) else {
+            invalidateForAccountChange()
             errorText = "Sign in to manage blocked accounts."
             return
         }
+        if let loadedSession, loadedSession != session { invalidateForAccountChange() }
+        guard !isLoading, unblockingID == nil else { return }
+        let ticket = gate.begin(for: session)
         isLoading = true
         errorText = nil
-        defer { isLoading = false }
+        defer {
+            if gate.isLatest(ticket), self.session(for: auth) != session {
+                invalidateForAccountChange()
+            } else if gate.accepts(ticket, current: self.session(for: auth)) {
+                isLoading = false
+            }
+        }
         do {
-            let response: BlockedChatforiaAccountsResponse = try await APIClient.shared.send(
+            let response: BlockedChatforiaAccountsResponse = try await apiClient.send(
                 APIRequest(path: "blocks", method: .GET, requiresAuth: true),
-                token: token
+                token: session.token
             )
+            guard gate.accepts(ticket, current: self.session(for: auth)) else { return }
             items = response.items
+            loadedSession = session
         } catch {
+            guard gate.accepts(ticket, current: self.session(for: auth)) else { return }
             errorText = "Could not load blocked Chatforia accounts."
         }
     }
 
-    func unblock(_ item: BlockedChatforiaAccountRow) async -> Bool {
-        guard let token = TokenStore.shared.read() else {
+    func unblock(_ item: BlockedChatforiaAccountRow, auth: AuthStore) async -> Bool {
+        guard let session = session(for: auth) else {
+            invalidateForAccountChange()
             errorText = "Sign in to unblock accounts."
             return false
         }
+        guard loadedSession == session, unblockingID == nil,
+              items.contains(where: { $0.userId == item.userId }) else {
+            return false
+        }
+        let ticket = gate.begin(for: session)
         unblockingID = item.userId
         errorText = nil
-        defer { unblockingID = nil }
+        defer {
+            if gate.isLatest(ticket), self.session(for: auth) != session {
+                invalidateForAccountChange()
+            } else if gate.accepts(ticket, current: self.session(for: auth)) {
+                unblockingID = nil
+            }
+        }
         do {
-            let response: UnblockChatforiaAccountResponse = try await APIClient.shared.send(
+            let response: UnblockChatforiaAccountResponse = try await apiClient.send(
                 APIRequest(path: "blocks/\(item.userId)", method: .DELETE, requiresAuth: true),
-                token: token
+                token: session.token
             )
+            guard gate.accepts(ticket, current: self.session(for: auth)) else { return false }
             guard response.success else {
                 errorText = "Unblocking was unsuccessful."
                 return false
@@ -2348,6 +2399,7 @@ private final class BlockedChatforiaAccountsViewModel: ObservableObject {
             items.removeAll { $0.userId == item.userId }
             return true
         } catch {
+            guard gate.accepts(ticket, current: self.session(for: auth)) else { return false }
             errorText = "Could not unblock this account."
             return false
         }
@@ -2356,15 +2408,24 @@ private final class BlockedChatforiaAccountsViewModel: ObservableObject {
 
 private struct BlockedChatforiaAccountsView: View {
     @EnvironmentObject private var themeManager: ThemeManager
+    @EnvironmentObject private var auth: AuthStore
     @StateObject private var viewModel = BlockedChatforiaAccountsViewModel()
     @State private var pendingUnblock: BlockedChatforiaAccountRow?
 
+    private var accountSession: AccountBlockSession? {
+        AccountBlockSession(accountId: auth.currentUser?.id, token: auth.currentToken)
+    }
+
+    private var visibleItems: [BlockedChatforiaAccountRow] {
+        viewModel.visibleItems(for: accountSession)
+    }
+
     var body: some View {
         Group {
-            if viewModel.isLoading && viewModel.items.isEmpty {
+            if viewModel.isLoading && visibleItems.isEmpty {
                 ProgressView("Loading blocked accounts…")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if viewModel.items.isEmpty && viewModel.errorText == nil {
+            } else if visibleItems.isEmpty && viewModel.errorText == nil {
                 VStack(spacing: 12) {
                     Image(systemName: "hand.raised")
                         .font(.system(size: 36))
@@ -2382,7 +2443,7 @@ private struct BlockedChatforiaAccountsView: View {
             } else {
                 ScrollView {
                     LazyVStack(spacing: 12) {
-                        ForEach(viewModel.items) { item in
+                        ForEach(visibleItems) { item in
                             HStack(spacing: 12) {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(item.title)
@@ -2410,7 +2471,7 @@ private struct BlockedChatforiaAccountsView: View {
                     }
                     .padding(16)
                 }
-                .refreshable { await viewModel.load() }
+                .refreshable { await viewModel.load(auth: auth) }
             }
         }
         .background(themeManager.palette.screenBackground.ignoresSafeArea())
@@ -2418,11 +2479,16 @@ private struct BlockedChatforiaAccountsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Refresh") { Task { await viewModel.load() } }
+                Button("Refresh") { Task { await viewModel.load(auth: auth) } }
                     .foregroundStyle(themeManager.palette.accent)
             }
         }
-        .task { await viewModel.load() }
+        .task { await viewModel.load(auth: auth) }
+        .onChange(of: accountSession) { _, _ in
+            pendingUnblock = nil
+            viewModel.invalidateForAccountChange()
+            Task { await viewModel.load(auth: auth) }
+        }
         .overlay(alignment: .bottom) {
             if let errorText = viewModel.errorText {
                 Text(errorText)
@@ -2443,9 +2509,12 @@ private struct BlockedChatforiaAccountsView: View {
         ) {
             Button("Unblock") {
                 guard let item = pendingUnblock else { return }
+                let session = accountSession
                 Task {
-                    _ = await viewModel.unblock(item)
-                    pendingUnblock = nil
+                    _ = await viewModel.unblock(item, auth: auth)
+                    if accountSession == session {
+                        pendingUnblock = nil
+                    }
                 }
             }
             Button("Cancel", role: .cancel) { pendingUnblock = nil }

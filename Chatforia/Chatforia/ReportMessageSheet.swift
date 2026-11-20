@@ -93,6 +93,10 @@ struct ReportMessagePreview {
 }
 
 struct ReportMessageSheet: View {
+    static func additionalDetailsAccessibilityLabel(languageCode: String) -> String {
+        appText("common.additionalDetails", languageCode: languageCode)
+    }
+
     let targetMessage: MessageDTO
     let accountId: Int
     let senderName: String
@@ -157,6 +161,9 @@ struct ReportMessageSheet: View {
                 Section(appText("common.additionalDetails", languageCode: appLanguage)) {
                     TextEditor(text: $details)
                         .frame(minHeight: 120)
+                        .accessibilityLabel(
+                            Self.additionalDetailsAccessibilityLabel(languageCode: appLanguage)
+                        )
                 }
 
                 Section {
