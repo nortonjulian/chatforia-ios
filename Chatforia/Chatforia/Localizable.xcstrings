@@ -1593864,6 +1593864,17 @@
         }
       }
     },
+    "phoneNumber.lastVerified" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last verified number"
+          }
+        }
+      }
+    },
     "phoneNumber.noNumberAssigned" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1603090,6 +1603101,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "SMS + Izwi"
+          }
+        }
+      }
+    },
+    "phoneNumber.temporarilyUnavailable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "We can't verify your Chatforia number right now. Try again."
           }
         }
       }

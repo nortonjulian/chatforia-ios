@@ -400,6 +400,7 @@ final class AuthStore: NSObject, ObservableObject {
         socket.disconnect()
         tokenStore.clear()
         offlineSessionStore.clear()
+        OfflineAssignedNumberStore.shared.clear()
         isOfflineSession = false
 
         // Explicit logout is a privacy boundary. Do not repopulate the
@@ -458,6 +459,7 @@ final class AuthStore: NSObject, ObservableObject {
         socket.disconnect()
         tokenStore.clear()
         offlineSessionStore.clear()
+        OfflineAssignedNumberStore.shared.clear()
         isOfflineSession = false
         needsOnboarding = false
         needsKeyRestore = false
