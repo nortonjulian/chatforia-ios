@@ -93,6 +93,7 @@ final class ContactsViewModelTests: XCTestCase {
             )
         }
 
+        vm.prepareForSession(token: "account-one")
         vm.searchText = "old"
         let oldLoad = Task { await vm.loadContacts(token: "account-one") }
         await fulfillment(of: [firstRequestStarted], timeout: 2)
