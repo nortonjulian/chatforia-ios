@@ -58,7 +58,7 @@ struct CallHistoryView: View {
             .pickerStyle(.segmented)
             .padding(.horizontal, 16)
             .padding(.top, 8)
-            .padding(.bottom, 12)
+            .padding(.bottom, 20)
             
             ZStack {
                 themeManager.palette.screenBackground
