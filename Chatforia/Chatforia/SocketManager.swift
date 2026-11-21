@@ -3,6 +3,30 @@ import Combine
 import SocketIO
 import UIKit
 
+struct RandomResumeRequestGate {
+    private(set) var pendingRequestId: String?
+
+    mutating func begin() -> String {
+        let id = UUID().uuidString
+        pendingRequestId = id
+        return id
+    }
+
+    mutating func invalidate() { pendingRequestId = nil }
+
+    mutating func acceptNone(_ requestId: String?) -> Bool {
+        guard let requestId, requestId == pendingRequestId else { return false }
+        invalidate()
+        return true
+    }
+
+    mutating func acceptResumed(_ requestId: String?) -> Bool {
+        guard let requestId, requestId == pendingRequestId else { return false }
+        invalidate()
+        return true
+    }
+}
+
 extension Notification.Name {
     static let socketMessageExpired = Notification.Name("socketMessageExpired")
     static let socketMessageEdited = Notification.Name("socketMessageEdited")
@@ -24,6 +48,7 @@ extension Notification.Name {
 @MainActor
 final class SocketManager: ObservableObject {
     static let shared = SocketManager()
+    static let randomChatProtocol = 2
 
     @Published private(set) var isConnected: Bool = false
 
@@ -37,6 +62,7 @@ final class SocketManager: ObservableObject {
     private var currentToken: String?
     private var joinedRoomIds = Set<Int>()
     private var isInRandomQueue = false
+    private var randomResumeGate = RandomResumeRequestGate()
     
     
     private init() {}
@@ -160,6 +186,7 @@ final class SocketManager: ObservableObject {
         isConnected = false
         joinedRoomIds.removeAll()
         isInRandomQueue = false
+        randomResumeGate.invalidate()
     }
 
     private func rebuild(token: String?) {
@@ -208,6 +235,10 @@ final class SocketManager: ObservableObject {
                     socket.emit("joinRoom", ["roomId": roomId])
                     debugLog("[SocketManager] rejoined room \(roomId)")
                 }
+
+                // The authenticated server decides whether this user has a
+                // recoverable Random Chat. No room ID is trusted from the app.
+                self.resumeRandomChat()
 
                 NotificationCenter.default.post(name: .socketDidReconnect, object: nil)
             }
@@ -483,7 +514,8 @@ func joinRandomQueue(topic: String? = nil, region: String? = nil) {
         return
     }
 
-    var payload: [String: Any] = [:]
+    var payload: [String: Any] = ["randomChatProtocol": Self.randomChatProtocol]
+    payload["requestId"] = randomResumeGate.begin()
     if let topic { payload["topic"] = topic }
     if let region { payload["region"] = region }
 
@@ -493,6 +525,7 @@ func joinRandomQueue(topic: String? = nil, region: String? = nil) {
 }
 
 func leaveRandomQueue() {
+    guard isInRandomQueue else { return }
     guard let socket else {
         debugLog("[RandomChat][iOS] leaveRandomQueue skipped: socket is nil")
         isInRandomQueue = false
@@ -510,7 +543,33 @@ func leaveRandomQueue() {
     isInRandomQueue = false
 }
 
+func resumeRandomChat() {
+    guard let socket, socket.status == .connected else { return }
+    socket.emit("random:resume", [
+        "requestId": randomResumeGate.begin(),
+        "randomChatProtocol": Self.randomChatProtocol
+    ])
+}
+
+func acceptRandomUpdateRequired(_ payload: [String: Any]) -> Bool {
+    guard payload["code"] as? String == "UPDATE_REQUIRED" else { return false }
+    let accepted = randomResumeGate.acceptNone(payload["requestId"] as? String)
+    if accepted { isInRandomQueue = false }
+    return accepted
+}
+
+func acceptRandomNone(_ payload: [String: Any]?) -> Bool {
+    randomResumeGate.acceptNone(payload?["requestId"] as? String)
+}
+
+func acceptRandomResumed(_ payload: [String: Any]) -> Bool {
+    randomResumeGate.acceptResumed(payload["requestId"] as? String)
+}
+
+func invalidateRandomResume() { randomResumeGate.invalidate() }
+
 func skipRandomChat(roomId: Int?) {
+    randomResumeGate.invalidate()
     var payload: [String: Any] = [:]
 
     if let roomId {
