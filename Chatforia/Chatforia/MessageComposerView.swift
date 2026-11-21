@@ -234,18 +234,9 @@ struct MessageComposerView: View {
                 onSend()
             } label: {
                 ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    themeManager.palette.composerButtonStart,
-                                    themeManager.palette.composerButtonEnd
-                                ],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
+                    ThemedGradientFill(role: .composer, startPoint: .leading, endPoint: .trailing)
                         .frame(width: 36, height: 36)
+                        .clipShape(Circle())
                         .shadow(
                             color: themeManager.palette.composerButtonEnd.opacity(0.35),
                             radius: 8,
@@ -255,12 +246,12 @@ struct MessageComposerView: View {
 
                     if isSending {
                         ProgressView()
-                            .tint(themeManager.palette.composerButtonForeground)
+                            .tint(themeManager.gradientForeground(for: .composer))
                             .scaleEffect(0.85)
                     } else {
                         Image(systemName: "arrow.up")
                             .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(themeManager.palette.composerButtonForeground)
+                            .foregroundStyle(themeManager.gradientForeground(for: .composer))
                     }
                 }
                 .opacity(isTextSendDisabled ? 0.6 : 1)
@@ -384,21 +375,12 @@ struct MessageComposerView: View {
                     languageCode: appLanguage
                 ))
                     .font(.subheadline.weight(.bold))
-                    .foregroundStyle(themeManager.palette.composerButtonForeground)
+                    .foregroundStyle(themeManager.gradientForeground(for: .composer))
                     .padding(.horizontal, 14)
                     .padding(.vertical, 9)
                     .background(
-                        Capsule()
-                            .fill(
-                                LinearGradient(
-                                    colors: [
-                                        themeManager.palette.composerButtonStart,
-                                        themeManager.palette.composerButtonEnd
-                                    ],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
+                        ThemedGradientFill(role: .composer, startPoint: .leading, endPoint: .trailing)
+                            .clipShape(Capsule())
                     )
             }
             .buttonStyle(.plain)
@@ -416,18 +398,9 @@ struct MessageComposerView: View {
 
     private func actionCircle(systemName: String) -> some View {
         ZStack {
-            Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            themeManager.palette.composerButtonStart,
-                            themeManager.palette.composerButtonEnd
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
+            ThemedGradientFill(role: .composer, startPoint: .leading, endPoint: .trailing)
                 .frame(width: 36, height: 36)
+                .clipShape(Circle())
                 .shadow(
                     color: themeManager.palette.composerButtonEnd.opacity(0.35),
                     radius: 8,
@@ -437,7 +410,7 @@ struct MessageComposerView: View {
 
             Image(systemName: systemName)
                 .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(themeManager.palette.composerButtonForeground)
+                .foregroundStyle(themeManager.gradientForeground(for: .composer))
         }
     }
 }

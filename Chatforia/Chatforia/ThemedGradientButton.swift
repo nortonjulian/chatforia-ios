@@ -16,19 +16,13 @@ struct ThemedGradientButton: View {
         Button(action: action) {
             Text(appText(title, languageCode: appLanguage))
                 .font(font)
-                .foregroundStyle(themeManager.palette.buttonForeground.opacity(isDisabled ? 0.7 : 1))
+                .foregroundStyle(themeManager.gradientForeground(for: .button).opacity(isDisabled ? 0.7 : 1))
                 .frame(maxWidth: isFullWidth ? .infinity : nil)
                 .padding(.horizontal, horizontalPadding)
                 .padding(.vertical, verticalPadding)
                 .background(
-                    LinearGradient(
-                        colors: [
-                            themeManager.palette.buttonStart.opacity(isDisabled ? 0.6 : 1),
-                            themeManager.palette.buttonEnd.opacity(isDisabled ? 0.6 : 1)
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
+                    ThemedGradientFill(role: .button, startPoint: .leading, endPoint: .trailing)
+                        .opacity(isDisabled ? 0.6 : 1)
                 )
                 .clipShape(Capsule())
                 .overlay(

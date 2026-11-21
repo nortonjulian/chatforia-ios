@@ -64,18 +64,11 @@ struct RiaChatView: View {
 
                                     Text(msg.content)
                                         .font(.body)
-                                        .foregroundStyle(themeManager.palette.composerButtonForeground)
+                                        .foregroundStyle(themeManager.gradientForeground(for: .composer))
                                         .padding(.horizontal, 14)
                                         .padding(.vertical, 10)
                                         .background(
-                                            LinearGradient(
-                                                colors: [
-                                                    themeManager.palette.composerButtonStart,
-                                                    themeManager.palette.composerButtonEnd
-                                                ],
-                                                startPoint: .leading,
-                                                endPoint: .trailing
-                                            )
+                                            ThemedGradientFill(role: .composer, startPoint: .leading, endPoint: .trailing)
                                         )
                                         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                                 }
@@ -198,27 +191,18 @@ struct RiaChatView: View {
                 }
             } label: {
                 ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    themeManager.palette.composerButtonStart,
-                                    themeManager.palette.composerButtonEnd
-                                ],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
+                    ThemedGradientFill(role: .composer, startPoint: .leading, endPoint: .trailing)
                         .frame(width: 36, height: 36)
+                        .clipShape(Circle())
 
                     if vm.isLoading {
                         ProgressView()
-                            .tint(themeManager.palette.composerButtonForeground)
+                            .tint(themeManager.gradientForeground(for: .composer))
                             .scaleEffect(0.85)
                     } else {
                         Image(systemName: "arrow.up")
                             .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(themeManager.palette.composerButtonForeground)
+                            .foregroundStyle(themeManager.gradientForeground(for: .composer))
                     }
                 }
                 .opacity(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.6 : 1)

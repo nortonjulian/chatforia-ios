@@ -9,18 +9,11 @@ struct UnreadBadgeView: View {
         if count > 0 {
             Text(count > 99 ? "99+" : "\(count)")
                 .font(.caption2.weight(.bold))
-                .foregroundStyle(themeManager.palette.buttonForeground)
+                .foregroundStyle(themeManager.gradientForeground(for: .button))
                 .padding(.horizontal, 8)
                 .padding(.vertical, 5)
                 .background(
-                    LinearGradient(
-                        colors: [
-                            themeManager.palette.buttonStart,
-                            themeManager.palette.buttonEnd
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
+                    ThemedGradientFill(role: .button, startPoint: .leading, endPoint: .trailing)
                 )
                 .clipShape(Capsule())
         }

@@ -170,20 +170,16 @@ struct UpgradeView: View {
             HStack {
                 Label(badge, systemImage: icon)
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(highlighted ? themeManager.palette.buttonForeground : themeManager.palette.accent)
+                    .foregroundStyle(highlighted ? themeManager.gradientForeground(for: .button) : themeManager.palette.accent)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
-                    .background(
-                        highlighted
-                        ? AnyShapeStyle(
-                            LinearGradient(
-                                colors: [themeManager.palette.buttonStart, themeManager.palette.buttonEnd],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        : AnyShapeStyle(themeManager.palette.accent.opacity(0.12))
-                    )
+                    .background {
+                        if highlighted {
+                            ThemedGradientFill(role: .button, startPoint: .leading, endPoint: .trailing)
+                        } else {
+                            themeManager.palette.accent.opacity(0.12)
+                        }
+                    }
                     .clipShape(Capsule())
 
                 Spacer()

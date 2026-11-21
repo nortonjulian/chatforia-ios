@@ -1291,38 +1291,13 @@ private struct SMSMessageRowView: View {
                         .font(.body)
                         .foregroundStyle(
                             msg.isOutgoing
-                                ? themeManager.palette.bubbleOutgoingText
+                                ? themeManager.gradientForeground(for: .outgoingBubble)
                                 : themeManager.palette.bubbleIncomingText
                         )
                         .multilineTextAlignment(.leading)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
-                        .background(
-                            ChatBubbleShape(
-                                isMe: msg.isOutgoing,
-                                groupedWithPrevious: false,
-                                groupedWithNext: false
-                            )
-                            .fill(
-                                msg.isOutgoing
-                                    ? LinearGradient(
-                                        colors: [
-                                            themeManager.palette.bubbleOutgoingStart,
-                                            themeManager.palette.bubbleOutgoingEnd
-                                        ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                    : LinearGradient(
-                                        colors: [
-                                            themeManager.palette.bubbleIncoming,
-                                            themeManager.palette.bubbleIncoming
-                                        ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                            )
-                        )
+                        .background(bubbleFill.clipShape(bubbleShape))
                         .overlay {
                             ChatBubbleShape(
                                 isMe: msg.isOutgoing,
@@ -1346,37 +1321,12 @@ private struct SMSMessageRowView: View {
                         .font(.body)
                         .foregroundStyle(
                             msg.isOutgoing
-                                ? themeManager.palette.bubbleOutgoingText
+                                ? themeManager.gradientForeground(for: .outgoingBubble)
                                 : themeManager.palette.bubbleIncomingText
                         )
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
-                        .background(
-                            ChatBubbleShape(
-                                isMe: msg.isOutgoing,
-                                groupedWithPrevious: false,
-                                groupedWithNext: false
-                            )
-                            .fill(
-                                msg.isOutgoing
-                                    ? LinearGradient(
-                                        colors: [
-                                            themeManager.palette.bubbleOutgoingStart,
-                                            themeManager.palette.bubbleOutgoingEnd
-                                        ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                    : LinearGradient(
-                                        colors: [
-                                            themeManager.palette.bubbleIncoming,
-                                            themeManager.palette.bubbleIncoming
-                                        ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                            )
-                        )
+                        .background(bubbleFill.clipShape(bubbleShape))
                         .overlay {
                             ChatBubbleShape(
                                 isMe: msg.isOutgoing,
@@ -1482,6 +1432,23 @@ private struct SMSMessageRowView: View {
 
     private var locallyRestrictedVisualMedia: Bool {
         auth.currentUser?.ageBand == "TEEN_13_17" && msg.media.count != msg.mediaVisibleToTeen.count
+    }
+
+    private var bubbleShape: ChatBubbleShape {
+        ChatBubbleShape(isMe: msg.isOutgoing, groupedWithPrevious: false, groupedWithNext: false)
+    }
+
+    @ViewBuilder
+    private var bubbleFill: some View {
+        if msg.isOutgoing {
+            ThemedGradientFill(role: .outgoingBubble, startPoint: .topLeading, endPoint: .bottomTrailing)
+        } else {
+            LinearGradient(
+                colors: [themeManager.palette.bubbleIncoming, themeManager.palette.bubbleIncoming],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
     }
 
     private var visibleMessage: SMSMessageDTO {

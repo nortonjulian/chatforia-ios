@@ -37,6 +37,35 @@ struct AppThemePalette {
     let highlightedSurface: Color
 }
 
+enum ThemeGradientRole: Equatable {
+    case button
+    case composer
+    case outgoingBubble
+}
+
+/// Preserves the palette's two stops and adds only the approved, shape-clipped
+/// contrast lift needed under foreground content in Moon and Solarized.
+struct ThemedGradientFill: View {
+    @EnvironmentObject private var themeManager: ThemeManager
+    let role: ThemeGradientRole
+    let startPoint: UnitPoint
+    let endPoint: UnitPoint
+
+    var body: some View {
+        let stops = themeManager.gradientStops(for: role)
+        LinearGradient(colors: [stops.0, stops.1], startPoint: startPoint, endPoint: endPoint)
+            .overlay {
+                if let lift = themeManager.gradientContrastLift(for: role) {
+                    LinearGradient(
+                        colors: [.white.opacity(lift.0), .white.opacity(lift.1)],
+                        startPoint: startPoint,
+                        endPoint: endPoint
+                    )
+                }
+            }
+    }
+}
+
 enum ThemeCatalog {
     static func palette(for code: String) -> AppThemePalette {
         switch code.lowercased() {
@@ -362,6 +391,48 @@ final class ThemeManager: ObservableObject {
 
     var accentControlForeground: Color {
         controlForeground(on: palette.accent, preferred: palette.buttonForeground)
+    }
+
+    func gradientStops(for role: ThemeGradientRole) -> (Color, Color) {
+        switch role {
+        case .button: (palette.buttonStart, palette.buttonEnd)
+        case .composer: (palette.composerButtonStart, palette.composerButtonEnd)
+        case .outgoingBubble: (palette.bubbleOutgoingStart, palette.bubbleOutgoingEnd)
+        }
+    }
+
+    func gradientForeground(for role: ThemeGradientRole) -> Color {
+        switch currentCode {
+        case "midnight", "aurora", "velvet": palette.screenBackground
+        case "solarized": .black
+        case "sunset" where role == .composer: palette.buttonForeground
+        default:
+            switch role {
+            case .button: palette.buttonForeground
+            case .composer: palette.composerButtonForeground
+            case .outgoingBubble: palette.bubbleOutgoingText
+            }
+        }
+    }
+
+    // Transparent at the safe stop. Neon is intentionally unchanged pending
+    // its separate cross-platform redesign.
+    func gradientContrastLift(for role: ThemeGradientRole) -> (Double, Double)? {
+        switch currentCode {
+        case "midnight":
+            return role == .composer ? (0, 0.25) : (0.25, 0)
+        case "solarized": return (0, 0.05)
+        default: return nil
+        }
+    }
+
+    var outgoingBubbleSecondaryForeground: Color {
+        switch currentCode {
+        case "midnight", "amoled", "aurora", "solarized", "velvet":
+            gradientForeground(for: .outgoingBubble)
+        default:
+            palette.bubbleOutgoingText.opacity(0.82)
+        }
     }
 
     func controlForeground(on fill: Color, preferred: Color) -> Color {

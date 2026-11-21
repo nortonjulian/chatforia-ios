@@ -743,21 +743,12 @@ extension ChatThreadView {
                             languageCode: appLanguage
                         ))
                             .font(.subheadline.weight(.bold))
-                            .foregroundStyle(themeManager.palette.composerButtonForeground)
+                            .foregroundStyle(themeManager.gradientForeground(for: .composer))
                             .padding(.horizontal, 14)
                             .padding(.vertical, 9)
                             .background(
-                                Capsule()
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [
-                                                themeManager.palette.composerButtonStart,
-                                                themeManager.palette.composerButtonEnd
-                                            ],
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
+                                ThemedGradientFill(role: .composer, startPoint: .leading, endPoint: .trailing)
+                                    .clipShape(Capsule())
                             )
                     }
                     .buttonStyle(.plain)
