@@ -180,6 +180,65 @@ final class ThemeManagerTests: XCTestCase {
         }
     }
 
+    func testNavigationBackButtonResolvedTintAcrossThemes() {
+        func findBar(in view: UIView) -> UINavigationBar? {
+            if let bar = view as? UINavigationBar { return bar }
+            return view.subviews.lazy.compactMap { findBar(in: $0) }.first
+        }
+
+        func luminance(_ color: UIColor) -> Double {
+            var red: CGFloat = 0
+            var green: CGFloat = 0
+            var blue: CGFloat = 0
+            var alpha: CGFloat = 0
+            XCTAssertTrue(color.getRed(&red, green: &green, blue: &blue, alpha: &alpha))
+            let channels = [red, green, blue].map { value -> Double in
+                let channel = Double(value)
+                return channel <= 0.04045 ? channel / 12.92 : pow((channel + 0.055) / 1.055, 2.4)
+            }
+            return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+        }
+
+        let manager = ThemeManager()
+        for option in AppThemes.all {
+            manager.apply(code: option.code)
+            for appearance in [ColorScheme.light, .dark] {
+                let host = UIHostingController(rootView:
+                    NavigationStack(path: .constant([1])) {
+                        Text("Root")
+                            .navigationDestination(for: Int.self) { _ in
+                                Text("Detail")
+                                    .navigationTitle("Detail")
+                                    .modifier(ThemedNavigationBar())
+                            }
+                    }
+                    .environmentObject(manager)
+                    .tint(manager.palette.accent)
+                    .environment(\.colorScheme, appearance)
+                )
+                let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+                window.rootViewController = host
+                window.makeKeyAndVisible()
+                RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+                host.view.layoutIfNeeded()
+                guard let bar = findBar(in: host.view) else {
+                    XCTFail("Missing rendered navigation bar in \(option.code), \(appearance)")
+                    window.isHidden = true
+                    continue
+                }
+                XCTAssertGreaterThan(bar.items?.count ?? 0, 1,
+                                     "Expected a pushed screen with a back button in \(option.code)")
+                let tint = bar.tintColor ?? .clear
+                let surface = UIColor(manager.palette.screenBackground)
+                let light = max(luminance(tint), luminance(surface))
+                let dark = min(luminance(tint), luminance(surface))
+                XCTAssertGreaterThanOrEqual((light + 0.05) / (dark + 0.05), 3,
+                                            "Resolved back-button tint in \(option.code), \(appearance)")
+                window.isHidden = true
+            }
+        }
+    }
+
     func testPinnedSearchRendersWithBothSystemAppearancesAndThemeChanges() {
         let manager = ThemeManager()
         for option in AppThemes.all {
