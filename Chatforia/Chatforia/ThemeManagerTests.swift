@@ -219,7 +219,8 @@ final class ThemeManagerTests: XCTestCase {
                         named: "\(option.code) \(role) \(appearance) minimum \(String(format: "%.2f", minimum)):1"
                     ) { _ in }
                     if option.code == "neon" {
-                        XCTAssertNil(manager.gradientContrastLift(for: role))
+                        XCTAssertEqual(manager.gradientContrastLift(for: role)?.0, 0.03)
+                        XCTAssertEqual(manager.gradientContrastLift(for: role)?.1, 0.03)
                         let original: Color
                         switch role {
                         case .button: original = manager.palette.buttonForeground
@@ -371,6 +372,45 @@ final class ThemeManagerTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(contrast(manager.gradientDisabledForeground, manager.gradientDisabledFill), 4.5)
         XCTAssertGreaterThanOrEqual(contrast(manager.toolbarIconForeground, neon.screenBackground), 3)
         XCTAssertEqual(components(manager.outgoingBubbleSecondaryForeground), components(neon.bubbleOutgoingText))
+    }
+
+    func testNeonCobaltGradientStopsAndInkAreScopedToNeon() {
+        func rgb(_ color: Color) -> [Int] {
+            var red: CGFloat = 0
+            var green: CGFloat = 0
+            var blue: CGFloat = 0
+            var alpha: CGFloat = 0
+            XCTAssertTrue(UIColor(color).getRed(&red, green: &green, blue: &blue, alpha: &alpha))
+            return [red, green, blue].map { Int(($0 * 255).rounded()) }
+        }
+
+        let manager = ThemeManager()
+        manager.apply(code: "neon")
+        XCTAssertEqual(rgb(manager.palette.accent), [0x77, 0x72, 0xF8])
+        XCTAssertEqual(rgb(manager.palette.screenBackground), [0x0D, 0x0A, 0x22])
+        XCTAssertEqual(rgb(manager.palette.cardBackground), [0x21, 0x1A, 0x3D])
+        XCTAssertEqual(rgb(manager.palette.bubbleIncoming), [0x29, 0x20, 0x4B])
+        for role in [ThemeGradientRole.button, .composer, .outgoingBubble] {
+            let stops = manager.gradientFillStops(for: role)
+            XCTAssertEqual(stops.map(\.location), [0, 0.58, 0.86, 1])
+            XCTAssertEqual(stops.map { rgb($0.color) }, [
+                [0x46, 0x67, 0xF5], [0x46, 0x67, 0xF5],
+                [0x77, 0x72, 0xF8], [0xB2, 0xC7, 0xFF]
+            ])
+            XCTAssertEqual(rgb(manager.gradientForeground(for: role)), [0, 0, 0])
+        }
+
+        for code in AppThemes.all.map(\.code).filter({ $0 != "neon" }) {
+            manager.apply(code: code)
+            for role in [ThemeGradientRole.button, .composer, .outgoingBubble] {
+                let stops = manager.gradientFillStops(for: role)
+                let endpoints = manager.gradientStops(for: role)
+                XCTAssertEqual(stops.count, 2, code)
+                XCTAssertEqual(stops.map(\.location), [0, 1], code)
+                XCTAssertEqual(rgb(stops[0].color), rgb(endpoints.0), code)
+                XCTAssertEqual(rgb(stops[1].color), rgb(endpoints.1), code)
+            }
+        }
     }
 
     func testSearchTextHintAndNavigationTitleContrastAcrossThemes() {
