@@ -128,18 +128,11 @@ struct ESIMActivationView: View {
             } label: {
                 Text(viewModel.installButtonTitle)
                     .font(.headline)
-                    .foregroundStyle(themeManager.palette.buttonForeground)
+                    .foregroundStyle(themeManager.gradientForeground(for: .button))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                     .background(
-                        LinearGradient(
-                            colors: [
-                                themeManager.palette.buttonStart,
-                                themeManager.palette.buttonEnd
-                            ],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
+                        ThemedGradientFill(role: .button, startPoint: .leading, endPoint: .trailing)
                     )
                     .clipShape(
                         RoundedRectangle(

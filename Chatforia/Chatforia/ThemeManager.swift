@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import UIKit
 
 struct AppThemePalette {
     let accent: Color
@@ -34,6 +35,35 @@ struct AppThemePalette {
     let tabUnselected: Color
 
     let highlightedSurface: Color
+}
+
+enum ThemeGradientRole: Equatable {
+    case button
+    case composer
+    case outgoingBubble
+}
+
+/// Preserves the palette's two stops and adds only the approved, shape-clipped
+/// contrast lift needed under foreground content in Moon and Solarized.
+struct ThemedGradientFill: View {
+    @EnvironmentObject private var themeManager: ThemeManager
+    let role: ThemeGradientRole
+    let startPoint: UnitPoint
+    let endPoint: UnitPoint
+
+    var body: some View {
+        let stops = themeManager.gradientStops(for: role)
+        LinearGradient(colors: [stops.0, stops.1], startPoint: startPoint, endPoint: endPoint)
+            .overlay {
+                if let lift = themeManager.gradientContrastLift(for: role) {
+                    LinearGradient(
+                        colors: [.white.opacity(lift.0), .white.opacity(lift.1)],
+                        startPoint: startPoint,
+                        endPoint: endPoint
+                    )
+                }
+            }
+    }
 }
 
 enum ThemeCatalog {
@@ -347,6 +377,75 @@ final class ThemeManager: ObservableObject {
         ThemeCatalog.palette(for: currentCode)
     }
 
+    // Keep routine actions legible on the selected theme rather than relying
+    // on the device appearance or assuming the accent works on every surface.
+    var toolbarIconForeground: Color {
+        ThemeContrast.ratio(palette.accent, palette.screenBackground) >= 3
+            ? palette.accent : palette.primaryText
+    }
+
+    var toolbarTextForeground: Color {
+        ThemeContrast.ratio(palette.accent, palette.screenBackground) >= 4.5
+            ? palette.accent : palette.primaryText
+    }
+
+    var accentControlForeground: Color {
+        controlForeground(on: palette.accent, preferred: palette.buttonForeground)
+    }
+
+    func gradientStops(for role: ThemeGradientRole) -> (Color, Color) {
+        switch role {
+        case .button: (palette.buttonStart, palette.buttonEnd)
+        case .composer: (palette.composerButtonStart, palette.composerButtonEnd)
+        case .outgoingBubble: (palette.bubbleOutgoingStart, palette.bubbleOutgoingEnd)
+        }
+    }
+
+    func gradientForeground(for role: ThemeGradientRole) -> Color {
+        switch currentCode {
+        case "midnight", "aurora", "velvet": palette.screenBackground
+        case "solarized": .black
+        case "sunset" where role == .composer: palette.buttonForeground
+        default:
+            switch role {
+            case .button: palette.buttonForeground
+            case .composer: palette.composerButtonForeground
+            case .outgoingBubble: palette.bubbleOutgoingText
+            }
+        }
+    }
+
+    // Transparent at the safe stop. Neon is intentionally unchanged pending
+    // its separate cross-platform redesign.
+    func gradientContrastLift(for role: ThemeGradientRole) -> (Double, Double)? {
+        switch currentCode {
+        case "midnight":
+            return role == .composer ? (0, 0.25) : (0.25, 0)
+        case "solarized": return (0, 0.05)
+        default: return nil
+        }
+    }
+
+    var outgoingBubbleSecondaryForeground: Color {
+        switch currentCode {
+        case "midnight", "amoled", "aurora", "solarized", "velvet":
+            gradientForeground(for: .outgoingBubble)
+        default:
+            palette.bubbleOutgoingText.opacity(0.82)
+        }
+    }
+
+    func controlForeground(on fill: Color, preferred: Color) -> Color {
+        if ThemeContrast.ratio(preferred, fill) >= 3 { return preferred }
+        return ThemeContrast.ratio(palette.screenBackground, fill) >= 3
+            ? palette.screenBackground : palette.primaryText
+    }
+
+    func accessoryForeground(on surface: Color) -> Color {
+        ThemeContrast.ratio(palette.accent, surface) >= 3
+            ? palette.accent : palette.primaryText
+    }
+
     // Sunset and Solarized secondary text is suitable for icons but too faint
     // for a search placeholder on their card surfaces. Reuse primary text there.
     var searchHintText: Color {
@@ -384,6 +483,28 @@ final class ThemeManager: ObservableObject {
         let value = code.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let allowed = ["dawn", "midnight", "amoled", "aurora", "neon", "sunset", "solarized", "velvet"]
         return allowed.contains(value) ? value : "dawn"
+    }
+}
+
+private enum ThemeContrast {
+    static func ratio(_ first: Color, _ second: Color) -> Double {
+        let values = [luminance(first), luminance(second)].sorted()
+        return (values[1] + 0.05) / (values[0] + 0.05)
+    }
+
+    private static func luminance(_ color: Color) -> Double {
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+        guard UIColor(color).getRed(&red, green: &green, blue: &blue, alpha: &alpha) else {
+            return 0
+        }
+        let channels = [red, green, blue].map { value -> Double in
+            let channel = Double(value)
+            return channel <= 0.04045 ? channel / 12.92 : pow((channel + 0.055) / 1.055, 2.4)
+        }
+        return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
     }
 }
 

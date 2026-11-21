@@ -165,6 +165,7 @@ struct CallHistoryView: View {
                             }
                         }
                     }
+                    .foregroundStyle(themeManager.toolbarTextForeground)
                     .disabled(isDeletingHistory)
                 }
             }
@@ -175,6 +176,7 @@ struct CallHistoryView: View {
                         showDialer = true
                     } label: {
                         Image(systemName: "circle.grid.3x3.fill")
+                            .foregroundStyle(themeManager.toolbarIconForeground)
                     }
                     .accessibilityLabel(
                         Text(appText("dialer.openDialPad", languageCode: appLanguage))
@@ -864,7 +866,7 @@ private func title(for choice: PendingCallChoice) -> String {
                         Button(action: onVideo) {
                             Image(systemName: "video.fill")
                                 .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(themeManager.palette.buttonForeground)
+                                .foregroundStyle(themeManager.accentControlForeground)
                                 .frame(width: 36, height: 36)
                                 .background(themeManager.palette.accent)
                                 .clipShape(Circle())
@@ -876,7 +878,7 @@ private func title(for choice: PendingCallChoice) -> String {
                     Button(action: onRedial) {
                         Image(systemName: "phone.fill")
                             .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(themeManager.palette.buttonForeground)
+                            .foregroundStyle(themeManager.accentControlForeground)
                             .frame(width: 36, height: 36)
                             .background(themeManager.palette.accent)
                             .clipShape(Circle())

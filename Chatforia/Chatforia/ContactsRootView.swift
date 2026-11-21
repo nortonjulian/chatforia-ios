@@ -158,7 +158,7 @@ struct ContactsRootView: View {
                         }
                     } label: {
                         Image(systemName: "plus")
-                            .foregroundStyle(themeManager.palette.accent)
+                            .foregroundStyle(themeManager.toolbarIconForeground)
                     }
 
                     Button {
@@ -166,7 +166,7 @@ struct ContactsRootView: View {
                     } label: {
                         Image(systemName: "arrow.clockwise")
                     }
-                    .foregroundStyle(themeManager.palette.accent)
+                    .foregroundStyle(themeManager.toolbarIconForeground)
                 }
             }
             .sheet(isPresented: $showingStartChat) {

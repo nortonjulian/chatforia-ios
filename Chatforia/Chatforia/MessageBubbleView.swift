@@ -24,10 +24,10 @@ struct MessageBubbleView: View {
             .id(contentRenderKey)
             .task(id: originalLoadKey) { loadOriginal() }
             .font(.body)
-            .foregroundStyle(isMe ? themeManager.palette.bubbleOutgoingText : themeManager.palette.bubbleIncomingText)
+            .foregroundStyle(isMe ? themeManager.gradientForeground(for: .outgoingBubble) : themeManager.palette.bubbleIncomingText)
             .tint(
                 isMe
-                    ? themeManager.palette.bubbleOutgoingText
+                    ? themeManager.gradientForeground(for: .outgoingBubble)
                     : themeManager.palette.bubbleIncomingText
             )
             .multilineTextAlignment(.leading)
@@ -35,10 +35,7 @@ struct MessageBubbleView: View {
             .animation(.easeInOut(duration: 0.18), value: contentRenderKey)
             .padding(.horizontal, 14)
             .padding(.vertical, 9)
-            .background(
-                bubbleShape
-                    .fill(bubbleFill)
-            )
+            .background(bubbleFill.clipShape(bubbleShape))
             .overlay {
                 bubbleShape
                     .stroke(
@@ -172,18 +169,12 @@ struct MessageBubbleView: View {
         )
     }
     
-    private var bubbleFill: LinearGradient {
+    @ViewBuilder
+    private var bubbleFill: some View {
         if isMe {
-            return LinearGradient(
-                colors: [
-                    themeManager.palette.bubbleOutgoingStart,
-                    themeManager.palette.bubbleOutgoingEnd
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            ThemedGradientFill(role: .outgoingBubble, startPoint: .topLeading, endPoint: .bottomTrailing)
         } else {
-            return LinearGradient(
+            LinearGradient(
                 colors: [
                     themeManager.palette.bubbleIncoming,
                     themeManager.palette.bubbleIncoming
@@ -251,7 +242,7 @@ struct MessageBubbleView: View {
             .italic()
             .foregroundStyle(
                 isMe
-                    ? themeManager.palette.bubbleOutgoingText.opacity(0.82)
+                    ? themeManager.outgoingBubbleSecondaryForeground
                     : themeManager.palette.secondaryText
             )
 
@@ -270,7 +261,7 @@ struct MessageBubbleView: View {
             DecryptMessageTextView(
                 msg: msg,
                 fallbackColor: isMe
-                    ? themeManager.palette.bubbleOutgoingText.opacity(0.82)
+                    ? themeManager.outgoingBubbleSecondaryForeground
                     : themeManager.palette.secondaryText
             )
 
@@ -291,7 +282,7 @@ struct MessageBubbleView: View {
             DecryptMessageTextView(
                 msg: msg,
                 fallbackColor: isMe
-                    ? themeManager.palette.bubbleOutgoingText.opacity(0.82)
+                    ? themeManager.outgoingBubbleSecondaryForeground
                     : themeManager.palette.secondaryText
             )
 
@@ -308,7 +299,7 @@ struct MessageBubbleView: View {
             .italic()
             .foregroundStyle(
                 isMe
-                    ? themeManager.palette.bubbleOutgoingText.opacity(0.82)
+                    ? themeManager.outgoingBubbleSecondaryForeground
                     : themeManager.palette.secondaryText
             )
         }

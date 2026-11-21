@@ -259,14 +259,13 @@ struct AudioAttachmentCardView: View {
 
     private var primaryText: Color {
         isMe
-            ? themeManager.palette.bubbleOutgoingText
+            ? themeManager.gradientForeground(for: .outgoingBubble)
             : themeManager.palette.primaryText
     }
 
     private var secondaryText: Color {
         isMe
-            ? themeManager.palette.bubbleOutgoingText
-                .opacity(0.8)
+            ? themeManager.outgoingBubbleSecondaryForeground
             : themeManager.palette.secondaryText
     }
 
@@ -278,8 +277,11 @@ struct AudioAttachmentCardView: View {
 
     private var buttonForeground: Color {
         isMe
-            ? themeManager.palette.bubbleOutgoingText
-            : themeManager.palette.composerButtonForeground
+            ? themeManager.controlForeground(
+                on: themeManager.palette.bubbleOutgoingStart,
+                preferred: themeManager.palette.bubbleOutgoingText
+            )
+            : themeManager.accentControlForeground
     }
 
     private var cardBackground: Color {

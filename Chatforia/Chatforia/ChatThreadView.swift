@@ -743,21 +743,12 @@ extension ChatThreadView {
                             languageCode: appLanguage
                         ))
                             .font(.subheadline.weight(.bold))
-                            .foregroundStyle(themeManager.palette.composerButtonForeground)
+                            .foregroundStyle(themeManager.gradientForeground(for: .composer))
                             .padding(.horizontal, 14)
                             .padding(.vertical, 9)
                             .background(
-                                Capsule()
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [
-                                                themeManager.palette.composerButtonStart,
-                                                themeManager.palette.composerButtonEnd
-                                            ],
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
+                                ThemedGradientFill(role: .composer, startPoint: .leading, endPoint: .trailing)
+                                    .clipShape(Capsule())
                             )
                     }
                     .buttonStyle(.plain)
@@ -932,6 +923,7 @@ extension ChatThreadView {
                 showSearchSheet = true
             } label: {
                 Image(systemName: "magnifyingglass")
+                    .foregroundStyle(themeManager.toolbarIconForeground)
             }
 
             // Personal consent only; never enables room-wide or production Group Ria.
@@ -940,6 +932,7 @@ extension ChatThreadView {
                     showGroupRiaConsent = true
                 } label: {
                     Image(systemName: "hand.raised")
+                        .foregroundStyle(themeManager.toolbarIconForeground)
                 }
                 .accessibilityLabel("Group Ria privacy")
             }
@@ -949,12 +942,14 @@ extension ChatThreadView {
                     startCall()
                 } label: {
                     Image(systemName: "phone.fill")
+                        .foregroundStyle(themeManager.toolbarIconForeground)
                 }
 
                 Button {
                     startVideoCall()
                 } label: {
                     Image(systemName: "video.fill")
+                        .foregroundStyle(themeManager.toolbarIconForeground)
                 }
             }
         }

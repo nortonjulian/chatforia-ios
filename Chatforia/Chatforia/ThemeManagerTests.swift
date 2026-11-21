@@ -85,6 +85,176 @@ final class ThemeManagerTests: XCTestCase {
         }
     }
 
+    func testNavigationAndFilledControlSemanticColorsMeetContrastAcrossThemes() {
+        func luminance(_ color: Color) -> Double {
+            var red: CGFloat = 0
+            var green: CGFloat = 0
+            var blue: CGFloat = 0
+            var alpha: CGFloat = 0
+            XCTAssertTrue(UIColor(color).getRed(&red, green: &green, blue: &blue, alpha: &alpha))
+            let channels = [red, green, blue].map { value -> Double in
+                let channel = Double(value)
+                return channel <= 0.04045 ? channel / 12.92 : pow((channel + 0.055) / 1.055, 2.4)
+            }
+            return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+        }
+
+        func contrast(_ first: Color, _ second: Color) -> Double {
+            let values = [luminance(first), luminance(second)].sorted()
+            return (values[1] + 0.05) / (values[0] + 0.05)
+        }
+
+        let manager = ThemeManager()
+        for option in AppThemes.all {
+            manager.apply(code: option.code)
+            let palette = manager.palette
+            XCTAssertGreaterThanOrEqual(
+                contrast(manager.toolbarIconForeground, palette.screenBackground), 3,
+                "Toolbar icons in \(option.code)"
+            )
+            XCTAssertGreaterThanOrEqual(
+                contrast(manager.toolbarTextForeground, palette.screenBackground), 4.5,
+                "Edit and Done in \(option.code)"
+            )
+            XCTAssertGreaterThanOrEqual(
+                contrast(manager.accentControlForeground, palette.accent), 3,
+                "Call and playback symbols in \(option.code)"
+            )
+            XCTAssertGreaterThanOrEqual(
+                contrast(
+                    manager.controlForeground(
+                        on: palette.bubbleOutgoingStart,
+                        preferred: palette.bubbleOutgoingText
+                    ),
+                    palette.bubbleOutgoingStart
+                ), 3,
+                "Outgoing audio control in \(option.code)"
+            )
+            for surface in [palette.cardBackground, palette.composerFieldBackground] {
+                XCTAssertGreaterThanOrEqual(
+                    contrast(manager.accessoryForeground(on: surface), surface), 3,
+                    "Composer accessories in \(option.code)"
+                )
+            }
+        }
+    }
+
+    func testRenderedGradientForegroundContrastAcrossThemesAndAppearances() {
+        func luminance(_ components: [CGFloat]) -> Double {
+            let channels = components.prefix(3).map { value -> Double in
+                let channel = Double(value)
+                return channel <= 0.04045 ? channel / 12.92 : pow((channel + 0.055) / 1.055, 2.4)
+            }
+            return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+        }
+
+        func contrast(_ first: [CGFloat], _ second: [CGFloat]) -> Double {
+            let values = [luminance(first), luminance(second)].sorted()
+            return (values[1] + 0.05) / (values[0] + 0.05)
+        }
+
+        func components(_ color: Color) -> [CGFloat] {
+            var red: CGFloat = 0
+            var green: CGFloat = 0
+            var blue: CGFloat = 0
+            var alpha: CGFloat = 0
+            XCTAssertTrue(UIColor(color).getRed(&red, green: &green, blue: &blue, alpha: &alpha))
+            return [red, green, blue]
+        }
+
+        let manager = ThemeManager()
+        let width = 256
+        for option in AppThemes.all {
+            manager.apply(code: option.code)
+            for appearance in [ColorScheme.light, .dark] {
+                for role in [ThemeGradientRole.button, .composer, .outgoingBubble] {
+                    let isBubble = role == .outgoingBubble
+                    let height = isBubble ? 256 : 64
+                    let renderer = ImageRenderer(content:
+                        ThemedGradientFill(
+                            role: role,
+                            startPoint: isBubble ? .topLeading : .leading,
+                            endPoint: isBubble ? .bottomTrailing : .trailing
+                        )
+                            .environmentObject(manager)
+                            .environment(\.colorScheme, appearance)
+                            .frame(width: CGFloat(width), height: CGFloat(height))
+                    )
+                    renderer.scale = 1
+                    guard let image = renderer.uiImage?.cgImage else {
+                        XCTFail("Could not render \(option.code), \(role), \(appearance)")
+                        continue
+                    }
+
+                    var pixels = [UInt8](repeating: 0, count: width * height * 4)
+                    let drewImage = pixels.withUnsafeMutableBytes { buffer -> Bool in
+                        guard let context = CGContext(
+                            data: buffer.baseAddress,
+                            width: width,
+                            height: height,
+                            bitsPerComponent: 8,
+                            bytesPerRow: width * 4,
+                            space: CGColorSpaceCreateDeviceRGB(),
+                            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+                        ) else { return false }
+                        context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+                        return true
+                    }
+                    XCTAssertTrue(drewImage)
+                    guard drewImage else { continue }
+
+                    let foreground = components(manager.gradientForeground(for: role))
+                    var minimum = Double.infinity
+                    let rows = isBubble
+                        ? Array(stride(from: 2, to: height - 2, by: 2))
+                        : [height / 2]
+                    for y in rows {
+                        for x in 2..<(width - 2) {
+                            let offset = (y * width + x) * 4
+                            let background = (0..<3).map { CGFloat(pixels[offset + $0]) / 255 }
+                            minimum = min(minimum, contrast(foreground, background))
+                        }
+                    }
+                    XCTContext.runActivity(
+                        named: "\(option.code) \(role) \(appearance) minimum \(String(format: "%.2f", minimum)):1"
+                    ) { _ in }
+                    if option.code == "neon" {
+                        // Neon is unchanged pending its separately approved redesign.
+                        XCTAssertNil(manager.gradientContrastLift(for: role))
+                        let original: Color
+                        switch role {
+                        case .button: original = manager.palette.buttonForeground
+                        case .composer: original = manager.palette.composerButtonForeground
+                        case .outgoingBubble: original = manager.palette.bubbleOutgoingText
+                        }
+                        XCTAssertEqual(components(manager.gradientForeground(for: role)), components(original))
+                    } else {
+                        XCTAssertGreaterThanOrEqual(
+                            minimum, 4.5,
+                            "Rendered \(option.code), \(role), \(appearance): \(minimum)"
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    func testOutgoingFallbackTextIsOpaqueWhereGradientRequiresIt() {
+        let manager = ThemeManager()
+        for option in AppThemes.all {
+            manager.apply(code: option.code)
+            var red: CGFloat = 0
+            var green: CGFloat = 0
+            var blue: CGFloat = 0
+            var alpha: CGFloat = 0
+            XCTAssertTrue(UIColor(manager.outgoingBubbleSecondaryForeground)
+                .getRed(&red, green: &green, blue: &blue, alpha: &alpha))
+            let needsFullOpacity = ["midnight", "amoled", "aurora", "solarized", "velvet"]
+                .contains(option.code)
+            XCTAssertEqual(alpha, needsFullOpacity ? 1 : 0.82, accuracy: 0.01, option.code)
+        }
+    }
+
     func testSearchTextHintAndNavigationTitleContrastAcrossThemes() {
         func luminance(_ color: Color) -> Double {
             var red: CGFloat = 0
