@@ -138,7 +138,7 @@ struct MessageComposerView: View {
             } label: {
                 Image(systemName: "plus")
                     .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(themeManager.palette.accent)
+                    .foregroundStyle(themeManager.accessoryForeground(on: themeManager.palette.cardBackground))
                     .frame(width: 30, height: 30)
                     .background(themeManager.palette.cardBackground)
                     .overlay(
@@ -157,7 +157,7 @@ struct MessageComposerView: View {
                     } label: {
                         Image(systemName: "sparkles")
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(themeManager.palette.accent)
+                            .foregroundStyle(themeManager.accessoryForeground(on: themeManager.palette.composerFieldBackground))
                             .frame(width: 28, height: 28)
                     }
                     .buttonStyle(.plain)
@@ -332,7 +332,7 @@ struct MessageComposerView: View {
             } label: {
                 Image(systemName: isPlayingVoiceDraft ? "pause.fill" : "play.fill")
                     .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(themeManager.palette.accent)
+                    .foregroundStyle(themeManager.accessoryForeground(on: themeManager.palette.cardBackground))
                     .frame(width: 32, height: 32)
                     .background(themeManager.palette.cardBackground)
                     .overlay(

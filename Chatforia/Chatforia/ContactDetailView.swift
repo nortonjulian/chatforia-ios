@@ -287,6 +287,7 @@ struct ContactDetailView: View {
         appText("contacts.contact", languageCode: appLanguage)
     )
     .navigationBarTitleDisplayMode(.inline)
+    .modifier(ThemedNavigationBar())
     .toolbar {
         ToolbarItem(placement: .topBarTrailing) {
             Button(
@@ -294,7 +295,7 @@ struct ContactDetailView: View {
             ) {
                 onEdit()
             }
-            .foregroundStyle(themeManager.palette.accent)
+            .foregroundStyle(themeManager.toolbarTextForeground)
         }
     }
     .task {

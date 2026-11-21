@@ -327,6 +327,7 @@ struct ChatsRootView: View {
                     } label: {
                         Text(isEditingConversations ? "Done" : "Edit")
                     }
+                    .foregroundStyle(themeManager.toolbarTextForeground)
                     .disabled(isDeletingConversations)
                 }
 
@@ -368,7 +369,7 @@ struct ChatsRootView: View {
                             }
                         } label: {
                             Image(systemName: "ellipsis.circle")
-                                .foregroundStyle(themeManager.palette.accent)
+                                .foregroundStyle(themeManager.toolbarIconForeground)
                         }
                         .accessibilityLabel("Chat actions")
                     }
@@ -379,28 +380,28 @@ struct ChatsRootView: View {
                     } label: {
                         Image(systemName: "plus")
                     }
-                    .foregroundStyle(themeManager.palette.accent)
+                    .foregroundStyle(themeManager.toolbarIconForeground)
 
                     Button {
                         Task { await reload() }
                     } label: {
                         Image(systemName: "arrow.clockwise")
                     }
-                    .foregroundStyle(themeManager.palette.accent)
+                    .foregroundStyle(themeManager.toolbarIconForeground)
 
                     Button {
                         showRiaChat = true
                     } label: {
                         Image(systemName: "sparkles")
                     }
-                    .foregroundStyle(themeManager.palette.accent)
+                    .foregroundStyle(themeManager.toolbarIconForeground)
 
                     Button {
                         startRandomChat()
                     } label: {
                         Image(systemName: "shuffle")
                     }
-                    .foregroundStyle(themeManager.palette.accent)
+                    .foregroundStyle(themeManager.toolbarIconForeground)
                 }
                 }
             }

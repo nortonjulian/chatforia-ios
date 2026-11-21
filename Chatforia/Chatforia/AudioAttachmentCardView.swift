@@ -278,8 +278,11 @@ struct AudioAttachmentCardView: View {
 
     private var buttonForeground: Color {
         isMe
-            ? themeManager.palette.bubbleOutgoingText
-            : themeManager.palette.composerButtonForeground
+            ? themeManager.controlForeground(
+                on: themeManager.palette.bubbleOutgoingStart,
+                preferred: themeManager.palette.bubbleOutgoingText
+            )
+            : themeManager.accentControlForeground
     }
 
     private var cardBackground: Color {

@@ -83,7 +83,7 @@ struct DialerView: View {
                 dismiss()
             }
             .font(.headline.weight(.semibold))
-            .foregroundStyle(themeManager.palette.accent)
+            .foregroundStyle(themeManager.toolbarTextForeground)
         }
     }
     
@@ -195,7 +195,7 @@ struct DialerView: View {
                     } label: {
                         Image(systemName: "phone.fill")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(themeManager.palette.buttonForeground)
+                            .foregroundStyle(themeManager.accentControlForeground)
                             .frame(width: 38, height: 38)
                             .background(themeManager.palette.accent)
                             .clipShape(Circle())

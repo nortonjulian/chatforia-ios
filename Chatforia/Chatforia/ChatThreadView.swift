@@ -932,6 +932,7 @@ extension ChatThreadView {
                 showSearchSheet = true
             } label: {
                 Image(systemName: "magnifyingglass")
+                    .foregroundStyle(themeManager.toolbarIconForeground)
             }
 
             // Personal consent only; never enables room-wide or production Group Ria.
@@ -940,6 +941,7 @@ extension ChatThreadView {
                     showGroupRiaConsent = true
                 } label: {
                     Image(systemName: "hand.raised")
+                        .foregroundStyle(themeManager.toolbarIconForeground)
                 }
                 .accessibilityLabel("Group Ria privacy")
             }
@@ -949,12 +951,14 @@ extension ChatThreadView {
                     startCall()
                 } label: {
                     Image(systemName: "phone.fill")
+                        .foregroundStyle(themeManager.toolbarIconForeground)
                 }
 
                 Button {
                     startVideoCall()
                 } label: {
                     Image(systemName: "video.fill")
+                        .foregroundStyle(themeManager.toolbarIconForeground)
                 }
             }
         }

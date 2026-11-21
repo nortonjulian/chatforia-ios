@@ -134,12 +134,14 @@ struct SMSThreadView: View {
                     showSearchSheet = true
                 } label: {
                     Image(systemName: "magnifyingglass")
+                        .foregroundStyle(themeManager.toolbarIconForeground)
                 }
 
                 Button {
                     startPhoneCall()
                 } label: {
                     Image(systemName: "phone.fill")
+                        .foregroundStyle(themeManager.toolbarIconForeground)
                 }
                 .accessibilityLabel(
                     appText("common.call", languageCode: appLanguage)
@@ -149,12 +151,14 @@ struct SMSThreadView: View {
                     showingAddContact = true
                 } label: {
                     Image(systemName: "person.crop.circle.badge.plus")
+                        .foregroundStyle(themeManager.toolbarIconForeground)
                 }
 
                 Button {
                     Task { await reload() }
                 } label: {
                     Image(systemName: "arrow.clockwise")
+                        .foregroundStyle(themeManager.toolbarIconForeground)
                 }
                 .disabled(activeConversation.id == nil)
             }
@@ -1652,6 +1656,7 @@ private struct SMSAuthenticatedImageCard: View {
     let title: String
     let maxWidth: CGFloat
 
+    @EnvironmentObject private var themeManager: ThemeManager
     @AppStorage("chatforia_language") private var appLanguage = "en"
     @State private var image: UIImage?
     @State private var isLoading = false
@@ -1666,7 +1671,7 @@ private struct SMSAuthenticatedImageCard: View {
         } label: {
             ZStack {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color(uiColor: .secondarySystemBackground))
+                    .fill(themeManager.palette.cardBackground)
 
                 if let image {
                     Image(uiImage: image)
@@ -1681,7 +1686,7 @@ private struct SMSAuthenticatedImageCard: View {
                     VStack(spacing: 10) {
                         Image(systemName: failed ? "exclamationmark.triangle" : "photo")
                             .font(.system(size: 28))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(themeManager.screenSecondaryText)
 
                         Text(
                             failed
@@ -1692,7 +1697,7 @@ private struct SMSAuthenticatedImageCard: View {
                                 : title
                         )
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(themeManager.screenSecondaryText)
                     }
                 }
             }
@@ -1807,6 +1812,7 @@ private struct SMSAuthenticatedVideoCard: View {
     let maxWidth: CGFloat
 
     @EnvironmentObject private var auth: AuthStore
+    @EnvironmentObject private var themeManager: ThemeManager
     @State private var isLoading = false
     @State private var isPreviewLoading = false
     @State private var errorText: String?
@@ -1831,7 +1837,7 @@ private struct SMSAuthenticatedVideoCard: View {
             } label: {
                 ZStack {
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(Color(uiColor: .secondarySystemBackground))
+                        .fill(themeManager.palette.cardBackground)
 
                     if let thumbnail {
                         Image(uiImage: thumbnail)
@@ -1842,7 +1848,7 @@ private struct SMSAuthenticatedVideoCard: View {
                     } else {
                         Image(systemName: "film")
                             .font(.system(size: 38, weight: .light))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(themeManager.screenSecondaryText)
                     }
 
                     Circle()
@@ -2115,6 +2121,7 @@ private struct SMSAudioAttachmentCard: View {
     let mediaIndex: Int
     let maxWidth: CGFloat
     @EnvironmentObject private var auth: AuthStore
+    @EnvironmentObject private var themeManager: ThemeManager
     @AppStorage("chatforia_language") private var appLanguage = "en"
     @StateObject private var playback = SMSAttachmentPlayback.shared
     @State private var knownDuration: Double = 0
@@ -2141,14 +2148,14 @@ private struct SMSAudioAttachmentCard: View {
                 } label: {
                     ZStack {
                         Circle()
-                            .fill(Color.accentColor)
+                            .fill(themeManager.palette.accent)
                             .frame(width: 44, height: 44)
                         if active && playback.isLoading {
-                            ProgressView().tint(.white)
+                            ProgressView().tint(themeManager.accentControlForeground)
                         } else {
                             Image(systemName: active && playback.isPlaying ? "pause.fill" : "play.fill")
                                 .font(.system(size: 17, weight: .semibold))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(themeManager.accentControlForeground)
                                 .offset(x: active && playback.isPlaying ? 0 : 1)
                         }
                     }
@@ -2161,18 +2168,18 @@ private struct SMSAudioAttachmentCard: View {
                 VStack(alignment: .leading, spacing: 7) {
                     Text(appText("composer.voiceNote", languageCode: appLanguage, fallback: "Voice note"))
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(themeManager.palette.primaryText)
                         .lineLimit(1)
                     ProgressView(value: elapsed, total: max(total, 1))
                         .progressViewStyle(.linear)
-                        .tint(Color.accentColor)
+                        .tint(themeManager.palette.accent)
                     HStack {
                         Text(AudioAttachmentCardView.formatTime(elapsed))
                         Spacer(minLength: 8)
                         Text(total > 0 ? AudioAttachmentCardView.formatTime(total) : "—:—")
                     }
                     .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(themeManager.palette.secondaryText)
                     .monospacedDigit()
                 }
             }
@@ -2182,7 +2189,7 @@ private struct SMSAudioAttachmentCard: View {
         }
         .padding(12)
         .frame(maxWidth: min(maxWidth, 280), alignment: .leading)
-        .background(Color(uiColor: .secondarySystemBackground))
+        .background(themeManager.palette.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .onChange(of: playback.duration) { _, value in
             if active, value.isFinite, value > 0 { knownDuration = value }

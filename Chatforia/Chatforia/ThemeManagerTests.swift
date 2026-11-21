@@ -85,6 +85,60 @@ final class ThemeManagerTests: XCTestCase {
         }
     }
 
+    func testNavigationAndFilledControlSemanticColorsMeetContrastAcrossThemes() {
+        func luminance(_ color: Color) -> Double {
+            var red: CGFloat = 0
+            var green: CGFloat = 0
+            var blue: CGFloat = 0
+            var alpha: CGFloat = 0
+            XCTAssertTrue(UIColor(color).getRed(&red, green: &green, blue: &blue, alpha: &alpha))
+            let channels = [red, green, blue].map { value -> Double in
+                let channel = Double(value)
+                return channel <= 0.04045 ? channel / 12.92 : pow((channel + 0.055) / 1.055, 2.4)
+            }
+            return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+        }
+
+        func contrast(_ first: Color, _ second: Color) -> Double {
+            let values = [luminance(first), luminance(second)].sorted()
+            return (values[1] + 0.05) / (values[0] + 0.05)
+        }
+
+        let manager = ThemeManager()
+        for option in AppThemes.all {
+            manager.apply(code: option.code)
+            let palette = manager.palette
+            XCTAssertGreaterThanOrEqual(
+                contrast(manager.toolbarIconForeground, palette.screenBackground), 3,
+                "Toolbar icons in \(option.code)"
+            )
+            XCTAssertGreaterThanOrEqual(
+                contrast(manager.toolbarTextForeground, palette.screenBackground), 4.5,
+                "Edit and Done in \(option.code)"
+            )
+            XCTAssertGreaterThanOrEqual(
+                contrast(manager.accentControlForeground, palette.accent), 3,
+                "Call and playback symbols in \(option.code)"
+            )
+            XCTAssertGreaterThanOrEqual(
+                contrast(
+                    manager.controlForeground(
+                        on: palette.bubbleOutgoingStart,
+                        preferred: palette.bubbleOutgoingText
+                    ),
+                    palette.bubbleOutgoingStart
+                ), 3,
+                "Outgoing audio control in \(option.code)"
+            )
+            for surface in [palette.cardBackground, palette.composerFieldBackground] {
+                XCTAssertGreaterThanOrEqual(
+                    contrast(manager.accessoryForeground(on: surface), surface), 3,
+                    "Composer accessories in \(option.code)"
+                )
+            }
+        }
+    }
+
     func testSearchTextHintAndNavigationTitleContrastAcrossThemes() {
         func luminance(_ color: Color) -> Double {
             var red: CGFloat = 0

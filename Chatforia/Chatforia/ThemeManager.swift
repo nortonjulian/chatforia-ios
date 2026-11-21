@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import UIKit
 
 struct AppThemePalette {
     let accent: Color
@@ -347,6 +348,33 @@ final class ThemeManager: ObservableObject {
         ThemeCatalog.palette(for: currentCode)
     }
 
+    // Keep routine actions legible on the selected theme rather than relying
+    // on the device appearance or assuming the accent works on every surface.
+    var toolbarIconForeground: Color {
+        ThemeContrast.ratio(palette.accent, palette.screenBackground) >= 3
+            ? palette.accent : palette.primaryText
+    }
+
+    var toolbarTextForeground: Color {
+        ThemeContrast.ratio(palette.accent, palette.screenBackground) >= 4.5
+            ? palette.accent : palette.primaryText
+    }
+
+    var accentControlForeground: Color {
+        controlForeground(on: palette.accent, preferred: palette.buttonForeground)
+    }
+
+    func controlForeground(on fill: Color, preferred: Color) -> Color {
+        if ThemeContrast.ratio(preferred, fill) >= 3 { return preferred }
+        return ThemeContrast.ratio(palette.screenBackground, fill) >= 3
+            ? palette.screenBackground : palette.primaryText
+    }
+
+    func accessoryForeground(on surface: Color) -> Color {
+        ThemeContrast.ratio(palette.accent, surface) >= 3
+            ? palette.accent : palette.primaryText
+    }
+
     // Sunset and Solarized secondary text is suitable for icons but too faint
     // for a search placeholder on their card surfaces. Reuse primary text there.
     var searchHintText: Color {
@@ -384,6 +412,28 @@ final class ThemeManager: ObservableObject {
         let value = code.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let allowed = ["dawn", "midnight", "amoled", "aurora", "neon", "sunset", "solarized", "velvet"]
         return allowed.contains(value) ? value : "dawn"
+    }
+}
+
+private enum ThemeContrast {
+    static func ratio(_ first: Color, _ second: Color) -> Double {
+        let values = [luminance(first), luminance(second)].sorted()
+        return (values[1] + 0.05) / (values[0] + 0.05)
+    }
+
+    private static func luminance(_ color: Color) -> Double {
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+        guard UIColor(color).getRed(&red, green: &green, blue: &blue, alpha: &alpha) else {
+            return 0
+        }
+        let channels = [red, green, blue].map { value -> Double in
+            let channel = Double(value)
+            return channel <= 0.04045 ? channel / 12.92 : pow((channel + 0.055) / 1.055, 2.4)
+        }
+        return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
     }
 }
 
