@@ -120,7 +120,7 @@ struct VoicemailDetailView: View {
                     systemImage: "phone.fill"
                 )
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Color.black)
+                .foregroundStyle(themeManager.textOnAccent)
                 .padding(.horizontal, 28)
                 .padding(.vertical, 12)
                 .background(themeManager.palette.accent)

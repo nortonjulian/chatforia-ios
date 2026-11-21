@@ -72,7 +72,7 @@ struct WirelessHomeView: View {
                 if let purchaseErrorMessage {
                     Text(purchaseErrorMessage)
                         .font(.footnote)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(themeManager.statusTextForeground(.red, on: themeManager.palette.screenBackground))
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
@@ -84,7 +84,7 @@ struct WirelessHomeView: View {
             }
             .padding()
         }
-        .background(themeManager.palette.screenBackground)
+        .background(themeManager.palette.screenBackground.ignoresSafeArea())
         .onAppear {
             checkoutReturn.setWirelessVisible(true)
         }
@@ -93,6 +93,7 @@ struct WirelessHomeView: View {
         }
         .navigationTitle(appText("ios.wireless", languageCode: appLanguage))
         .navigationBarTitleDisplayMode(.inline)
+        .modifier(ThemedNavigationBar())
         .task(id: selectedScope) {
             guard shouldLoadRemoteData else { return }
             await loadQuotes()
@@ -381,12 +382,13 @@ struct WirelessHomeView: View {
                     HStack {
                         Text(appText("esim.unlimited", languageCode: appLanguage))
                             .font(.title2.weight(.bold))
+                            .foregroundStyle(themeManager.palette.primaryText)
                         Spacer()
                         statusBadge(status.state)
                     }
                     Text(appText("esim.purchase.speedTerms", languageCode: appLanguage))
                         .font(.footnote)
-                        .foregroundStyle(themeManager.palette.secondaryText)
+                        .foregroundStyle(themeManager.cardSecondaryText)
                     infoPill(
                         title: appText("ios.expires", languageCode: appLanguage),
                         value: expirationText(from: source)
@@ -395,7 +397,7 @@ struct WirelessHomeView: View {
                        !queuedPacks.isEmpty {
                         Text(queuedCountText(queuedPacks.count))
                             .font(.footnote)
-                            .foregroundStyle(themeManager.palette.secondaryText)
+                            .foregroundStyle(themeManager.cardSecondaryText)
                     }
                 } else if let status = wirelessStatus,
                 let source = status.source,
@@ -421,7 +423,7 @@ struct WirelessHomeView: View {
                                 Text(remainingText(totalMb: totalMb))
                                 .font(.footnote)
                                 .foregroundStyle(
-                                    themeManager.palette.secondaryText
+                                    themeManager.cardSecondaryText
                                 )
                             }
 
@@ -431,7 +433,7 @@ struct WirelessHomeView: View {
                         }
 
                         ProgressView(value: progress)
-                            .tint(statusColor(status.state))
+                            .tint(themeManager.controlIconForeground(statusColor(status.state), on: themeManager.palette.cardBackground))
 
                         HStack {
                             infoPill(
@@ -493,20 +495,20 @@ struct WirelessHomeView: View {
 
                                 Text("Queued")
                                     .font(.caption.weight(.semibold))
-                                    .foregroundStyle(.orange)
+                                    .foregroundStyle(themeManager.statusTextForeground(.orange, on: themeManager.palette.cardBackground))
                             }
 
                             Text("Ready after your current pack")
                                 .font(.footnote)
                                 .foregroundStyle(
-                                    themeManager.palette.secondaryText
+                                    themeManager.cardSecondaryText
                                 )
 
                             if queuedPacks.count > 1 {
                                 Text(queuedCountText(queuedPacks.count))
                                 .font(.caption)
                                 .foregroundStyle(
-                                    themeManager.palette.secondaryText
+                                    themeManager.cardSecondaryText
                                 )
                             }
                         }
@@ -534,7 +536,7 @@ struct WirelessHomeView: View {
                                     )
                                     .font(.footnote)
                                     .foregroundStyle(
-                                        themeManager.palette.secondaryText
+                                        themeManager.cardSecondaryText
                                     )
                                 }
 
@@ -563,7 +565,7 @@ struct WirelessHomeView: View {
                 } else if let statusErrorMessage {
                     Text(statusErrorMessage)
                         .font(.footnote)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(themeManager.statusTextForeground(.red, on: themeManager.palette.cardBackground))
                         .padding(.vertical, 8)
 
                 } else if isLoadingStatus {
@@ -578,7 +580,7 @@ struct WirelessHomeView: View {
                         )
                         .font(.footnote)
                         .foregroundStyle(
-                            themeManager.palette.secondaryText
+                            themeManager.cardSecondaryText
                         )
                     }
                     .padding(.vertical, 8)
@@ -591,7 +593,7 @@ struct WirelessHomeView: View {
                         )
                     )
                     .font(.footnote)
-                    .foregroundStyle(themeManager.palette.secondaryText)
+                    .foregroundStyle(themeManager.cardSecondaryText)
                     .padding(.vertical, 8)
                 }
             }
@@ -606,7 +608,7 @@ struct WirelessHomeView: View {
             )
         )
         .font(.footnote)
-        .foregroundStyle(themeManager.palette.secondaryText)
+        .foregroundStyle(themeManager.cardSecondaryText)
         .padding(.vertical, 8)
     }
 
@@ -683,6 +685,7 @@ struct WirelessHomeView: View {
                     handleManageWirelessTapped()
                 }
                 .font(.subheadline.weight(.semibold))
+                .foregroundStyle(themeManager.cardActionText)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.bottom, 8)
             }
@@ -692,7 +695,7 @@ struct WirelessHomeView: View {
     private func statusBadge(_ state: String) -> some View {
         Text(stateLabel(state))
             .font(.caption.weight(.semibold))
-            .foregroundStyle(statusColor(state))
+            .foregroundStyle(themeManager.palette.primaryText)
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
             .background(statusColor(state).opacity(0.12))
@@ -703,7 +706,7 @@ struct WirelessHomeView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(.caption)
-                .foregroundStyle(themeManager.palette.secondaryText)
+                .foregroundStyle(themeManager.cardSecondaryText)
 
             Text(value)
                 .font(.subheadline.weight(.semibold))
@@ -883,6 +886,7 @@ struct WirelessHomeView: View {
                 } else if activationPayload != nil {
                     Text(appText("esim.transfer.title", languageCode: appLanguage))
                         .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(themeManager.palette.primaryText)
                     Text(purchasedPackages == nil
                          ? appText("esim.transfer.packagesUnavailable", languageCode: appLanguage)
                          : localizedEsimReplacementReason(
@@ -890,13 +894,13 @@ struct WirelessHomeView: View {
                             languageCode: appLanguage
                          ))
                         .font(.footnote)
-                        .foregroundStyle(themeManager.palette.secondaryText)
+                        .foregroundStyle(themeManager.cardSecondaryText)
                 }
 
                 if let replacementErrorMessage {
                     Text(replacementErrorMessage)
                         .font(.footnote)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(themeManager.statusTextForeground(.red, on: themeManager.palette.cardBackground))
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
@@ -940,7 +944,7 @@ struct WirelessHomeView: View {
                     )
                 )
                 .font(.footnote)
-                .foregroundStyle(themeManager.palette.secondaryText)
+                .foregroundStyle(themeManager.cardSecondaryText)
             }
             .padding(.vertical, 8)
         }
@@ -963,12 +967,13 @@ struct WirelessHomeView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+                .environment(\.colorScheme, themeManager.navigationColorScheme)
 
                 Text(
                     selectedScope.subtitle(languageCode: appLanguage)
                 )
                     .font(.footnote)
-                    .foregroundStyle(themeManager.palette.secondaryText)
+                    .foregroundStyle(themeManager.cardSecondaryText)
 
                 Text(
                     appText(
@@ -977,7 +982,7 @@ struct WirelessHomeView: View {
                     )
                 )
                 .font(.footnote)
-                .foregroundStyle(themeManager.palette.secondaryText)
+                .foregroundStyle(themeManager.cardSecondaryText)
             }
             .padding(.vertical, 8)
         }
@@ -1010,7 +1015,7 @@ struct WirelessHomeView: View {
                     pack.description(languageCode: appLanguage)
                 )
                     .font(.footnote)
-                    .foregroundStyle(themeManager.palette.secondaryText)
+                    .foregroundStyle(themeManager.cardSecondaryText)
 
                 VStack(alignment: .leading, spacing: 10) {
                     featureRow(
@@ -1075,6 +1080,7 @@ struct WirelessHomeView: View {
                     .padding(.vertical, 12)
                     .background(
                         ThemedGradientFill(role: .button, startPoint: .leading, endPoint: .trailing)
+                            .opacity(themeManager.currentCode == "neon" || !isPurchasingPack ? 1 : 0.75)
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                     .shadow(
@@ -1086,7 +1092,6 @@ struct WirelessHomeView: View {
                 }
                 .modifier(ThemedGradientButtonStyle())
                 .disabled(isPurchasingPack)
-                .opacity(themeManager.currentCode == "neon" ? 1 : (isPurchasingPack ? 0.7 : 1))
             }
             .padding(.vertical, 8)
         }
@@ -1102,7 +1107,7 @@ struct WirelessHomeView: View {
                 if let plan = activationPayload?.planName, !plan.isEmpty {
                     Text(plan)
                         .font(.footnote)
-                        .foregroundStyle(themeManager.palette.secondaryText)
+                        .foregroundStyle(themeManager.cardSecondaryText)
                 }
 
                 ThemedGradientButton(
@@ -1413,6 +1418,7 @@ private struct WirelessPurchaseHistoryView: View {
                     Label(appText("ios.manage_wireless", languageCode: appLanguage),
                           systemImage: "arrow.up.right.square")
                 }
+                .foregroundStyle(themeManager.toolbarTextForeground)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .padding()
@@ -1420,6 +1426,7 @@ private struct WirelessPurchaseHistoryView: View {
         .background(themeManager.palette.screenBackground)
         .navigationTitle(appText("esim.purchase.historyTitle", languageCode: appLanguage))
         .navigationBarTitleDisplayMode(.inline)
+        .modifier(ThemedNavigationBar())
     }
 }
 

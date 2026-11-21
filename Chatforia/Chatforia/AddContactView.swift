@@ -45,6 +45,7 @@ struct AddContactView: View {
                             }
                         }
                         .pickerStyle(.segmented)
+                        .environment(\.colorScheme, themeManager.navigationColorScheme)
                         .onChange(of: vm.mode) { _, _ in
                             vm.errorText = nil
                             vm.successText = nil
@@ -69,7 +70,7 @@ struct AddContactView: View {
                                     if !vm.username.isEmpty && vm.username.count < 3 {
                                         Text("Enter at least 3 characters to search people.")
                                             .font(.footnote)
-                                            .foregroundStyle(themeManager.palette.secondaryText)
+                                            .foregroundStyle(themeManager.cardSecondaryText)
                                             .frame(maxWidth: .infinity, alignment: .leading)
                                     }
 
@@ -99,7 +100,7 @@ struct AddContactView: View {
                                                     if let username = person.username {
                                                         Text("@\(username)")
                                                             .font(.footnote)
-                                                            .foregroundStyle(themeManager.palette.secondaryText)
+                                                            .foregroundStyle(themeManager.screenSecondaryText)
                                                     }
                                                 }
                                                 Spacer()
@@ -139,7 +140,7 @@ struct AddContactView: View {
                             if let errorText = vm.errorText, !errorText.isEmpty {
                                 Text(errorText)
                                     .font(.footnote)
-                                    .foregroundStyle(.red)
+                                    .foregroundStyle(themeManager.statusTextForeground(.red, on: themeManager.palette.cardBackground))
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }
                         }
@@ -165,12 +166,13 @@ struct AddContactView: View {
             }
             .navigationTitle(appText("contacts.addContact", languageCode: appLanguage))
             .navigationBarTitleDisplayMode(.inline)
+            .modifier(ThemedNavigationBar())
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button(appText("button_cancel", languageCode: appLanguage)) {
                         dismiss()
                     }
-                    .foregroundStyle(themeManager.palette.accent)
+                    .foregroundStyle(themeManager.toolbarTextForeground)
                 }
             }
         }
@@ -195,14 +197,14 @@ struct AddContactView: View {
                 if let username = person.username {
                     Text("@\(username)")
                         .font(.footnote)
-                        .foregroundStyle(themeManager.palette.secondaryText)
+                        .foregroundStyle(themeManager.screenSecondaryText)
                 }
             }
             Spacer()
             Button("Change") {
                 vm.clearSelectedUser()
             }
-            .foregroundStyle(themeManager.palette.accent)
+            .foregroundStyle(themeManager.toolbarTextForeground)
         }
         .padding(12)
         .background(themeManager.palette.screenBackground)

@@ -37,16 +37,20 @@ struct ThemedToggleRow: View {
                 Button(action: onAction) {
                     Text(appText(actionTitle, languageCode: appLanguage))
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(themeManager.palette.accent)
+                        .foregroundStyle(themeManager.cardActionText)
                 }
                 .buttonStyle(.plain)
             }
 
             Toggle("", isOn: $isOn)
                 .labelsHidden()
+                .accessibilityLabel(appText(title, languageCode: appLanguage))
                 .disabled(!isEnabled)
                 .opacity(isEnabled ? 1 : 0.55)
-                .tint(themeManager.palette.accent)
+                .tint(themeManager.controlIconForeground(
+                    themeManager.palette.accent,
+                    on: themeManager.palette.cardBackground
+                ))
         }
         .padding(.vertical, 4)
     }

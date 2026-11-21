@@ -49,9 +49,11 @@ final class ESIMActivationViewModelTests: XCTestCase {
         let list = PurchasedDataPackagesList(
             packages: packages, errorMessage: nil, presentation: .recent
         )
-        let regular = UIHostingController(rootView: list.environment(\.dynamicTypeSize, .large))
+        let regular = UIHostingController(rootView:
+            list.environmentObject(ThemeManager()).environment(\.dynamicTypeSize, .large)
+        )
         let accessibility = UIHostingController(
-            rootView: list.environment(\.dynamicTypeSize, .accessibility3)
+            rootView: list.environmentObject(ThemeManager()).environment(\.dynamicTypeSize, .accessibility3)
         )
         let width: CGFloat = 320
         let regularHeight = regular.sizeThatFits(in: CGSize(width: width, height: 10_000)).height
