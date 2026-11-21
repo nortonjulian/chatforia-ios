@@ -99,8 +99,7 @@ struct ThemedGradientForeground: ViewModifier {
     }
 }
 
-/// Preserves the palette's two stops and adds only the approved, shape-clipped
-/// contrast lift needed under foreground content in Moon and Solarized.
+/// Uses the theme's stops and applies a shape-clipped contrast lift where needed.
 struct ThemedGradientFill: View {
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.isEnabled) private var isEnabled
@@ -122,11 +121,10 @@ struct ThemedGradientFill: View {
         if resolvedState == .disabled {
             themeManager.gradientDisabledFill
         } else {
-            let stops = themeManager.gradientStops(for: role)
-            LinearGradient(colors: [stops.0, stops.1], startPoint: startPoint, endPoint: endPoint)
+            LinearGradient(stops: themeManager.gradientFillStops(for: role), startPoint: startPoint, endPoint: endPoint)
                 .overlay {
                     if resolvedState == .pressed {
-                        themeManager.gradientForeground(for: role).opacity(0.06)
+                        Color.white.opacity(0.06)
                     } else if let lift = themeManager.gradientContrastLift(for: role) {
                         LinearGradient(
                             colors: [.white.opacity(lift.0), .white.opacity(lift.1)],
@@ -288,7 +286,7 @@ enum ThemeCatalog {
 
         case "neon":
             return .init(
-                accent: Color(hex: "#28D7C8"),
+                accent: Color(hex: "#7772F8"),
                 titleAccent: Color(hex: "#F4F1FF"),
 
                 screenBackground: Color(hex: "#0D0A22"),
@@ -298,13 +296,13 @@ enum ThemeCatalog {
                 primaryText: Color(hex: "#F4F1FF"),
                 secondaryText: Color(hex: "#B9B2D5"),
 
-                buttonStart: Color(hex: "#9275EC"),
-                buttonEnd: Color(hex: "#25D8C6"),
-                buttonForeground: Color(hex: "#0A0B20"),
+                buttonStart: Color(hex: "#4667F5"),
+                buttonEnd: Color(hex: "#B2C7FF"),
+                buttonForeground: .black,
 
-                bubbleOutgoingStart: Color(hex: "#9275EC"),
-                bubbleOutgoingEnd: Color(hex: "#25D8C6"),
-                bubbleOutgoingText: Color(hex: "#0A0B20"),
+                bubbleOutgoingStart: Color(hex: "#4667F5"),
+                bubbleOutgoingEnd: Color(hex: "#B2C7FF"),
+                bubbleOutgoingText: .black,
 
                 bubbleIncoming: Color(hex: "#29204B"),
                 bubbleIncomingText: Color(hex: "#F4F1FF"),
@@ -312,11 +310,11 @@ enum ThemeCatalog {
                 composerBackground: Color(hex: "#0D0A22"),
                 composerFieldBackground: Color(hex: "#241D42"),
                 composerBorder: Color(hex: "#756BA5"),
-                composerButtonStart: Color(hex: "#25D8C6"),
-                composerButtonEnd: Color(hex: "#9275EC"),
-                composerButtonForeground: Color(hex: "#0A0B20"),
+                composerButtonStart: Color(hex: "#4667F5"),
+                composerButtonEnd: Color(hex: "#B2C7FF"),
+                composerButtonForeground: .black,
 
-                tabSelected: Color(hex: "#28D7C8"),
+                tabSelected: Color(hex: "#7772F8"),
                 tabUnselected: Color(hex: "#AAA3C4"),
 
                 highlightedSurface: Color(hex: "#322957")
@@ -474,6 +472,20 @@ final class ThemeManager: ObservableObject {
         }
     }
 
+    func gradientFillStops(for role: ThemeGradientRole) -> [Gradient.Stop] {
+        let endpoints = gradientStops(for: role)
+        guard currentCode == "neon" else {
+            return [.init(color: endpoints.0, location: 0), .init(color: endpoints.1, location: 1)]
+        }
+        // Keep cobalt dominant, then move briefly through ultraviolet to icy blue.
+        return [
+            .init(color: endpoints.0, location: 0),
+            .init(color: endpoints.0, location: 0.58),
+            .init(color: Color(hex: "#7772F8"), location: 0.86),
+            .init(color: endpoints.1, location: 1)
+        ]
+    }
+
     func gradientForeground(for role: ThemeGradientRole) -> Color {
         switch currentCode {
         case "midnight", "aurora", "velvet": palette.screenBackground
@@ -488,12 +500,14 @@ final class ThemeManager: ObservableObject {
         }
     }
 
-    // Transparent at the safe stop. Neon instead uses its own ink foreground.
+    // Transparent at the safe stop. Neon's small uniform lift compensates for
+    // rendered color rounding at its exact cobalt stop.
     func gradientContrastLift(for role: ThemeGradientRole) -> (Double, Double)? {
         switch currentCode {
         case "midnight":
             return role == .composer ? (0, 0.25) : (0.25, 0)
         case "solarized": return (0, 0.05)
+        case "neon": return (0.03, 0.03)
         default: return nil
         }
     }
