@@ -12,6 +12,26 @@ private enum PendingCallChoice: Identifiable {
     }
 }
 
+struct CallsSegmentSelector: View {
+    @Binding var selection: CallsSegment
+    @EnvironmentObject private var themeManager: ThemeManager
+    @AppStorage("chatforia_language") private var appLanguage = "en"
+
+    var body: some View {
+        Picker("calls.section", selection: $selection) {
+            ForEach(CallsSegment.allCases) { segment in
+                Text(appText(segment.titleKey, languageCode: appLanguage))
+                    .tag(segment)
+            }
+        }
+        .pickerStyle(.segmented)
+        .environment(\.colorScheme, themeManager.navigationColorScheme)
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 20)
+    }
+}
+
 struct CallHistoryView: View {
     var voicemailLink: VoicemailLinkRequest? = nil
     @EnvironmentObject private var auth: AuthStore
@@ -50,16 +70,7 @@ struct CallHistoryView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            Picker("calls.section", selection: $selectedSegment) {
-                ForEach(CallsSegment.allCases) { segment in
-                    Text(appText(segment.titleKey, languageCode: appLanguage))
-                        .tag(segment)
-                }
-            }
-            .pickerStyle(.segmented)
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .padding(.bottom, 20)
+            CallsSegmentSelector(selection: $selectedSegment)
             
             ZStack {
                 themeManager.palette.screenBackground
@@ -126,6 +137,7 @@ struct CallHistoryView: View {
                 .background(themeManager.palette.cardBackground)
             }
         }
+        .background(themeManager.palette.screenBackground.ignoresSafeArea())
         .task(id: voicemailLink?.id) {
             guard voicemailLink != nil else { return }
             isEditingRecents = false
@@ -140,6 +152,7 @@ struct CallHistoryView: View {
             appText("tab_calls", languageCode: appLanguage)
         )
         .navigationBarTitleDisplayMode(.inline)
+        .modifier(ThemedNavigationBar())
         .toolbar {
             if selectedSegment == .recents && !items.isEmpty {
                 ToolbarItem(placement: .topBarLeading) {

@@ -107,8 +107,9 @@ struct ChatListRowView: View {
 }
 
 // Kept in an existing compiled file so no Xcode project membership changes
-// are required. Transport names are explicit and do not rely on theme color.
+// are required. Transport names are explicit and use the selected theme.
 struct ConversationTransportTitle: View {
+    @EnvironmentObject private var themeManager: ThemeManager
     let title: String
     let isSMS: Bool
 
@@ -117,9 +118,10 @@ struct ConversationTransportTitle: View {
             Text(verbatim: title)
                 .font(.headline)
                 .lineLimit(1)
+                .foregroundStyle(themeManager.palette.primaryText)
             Text(verbatim: isSMS ? "SMS" : "Chatforia")
                 .font(.caption2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(themeManager.screenSecondaryText)
         }
         .accessibilityElement(children: .combine)
     }

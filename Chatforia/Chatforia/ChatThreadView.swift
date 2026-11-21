@@ -147,6 +147,7 @@ struct ChatThreadView: View {
         .background(themeManager.palette.screenBackground.ignoresSafeArea())
         .navigationTitle(roomDisplayTitle)
         .navigationBarTitleDisplayMode(.inline)
+        .modifier(ThemedNavigationBar())
         .toolbar { toolbarContent }
         .task {
             guard !didLoad else { return }

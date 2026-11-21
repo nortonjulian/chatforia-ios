@@ -124,6 +124,121 @@ final class ThemeManagerTests: XCTestCase {
         }
     }
 
+    func testCallAndConversationLabelsContrastAcrossThemes() {
+        func luminance(_ color: Color) -> Double {
+            var red: CGFloat = 0
+            var green: CGFloat = 0
+            var blue: CGFloat = 0
+            var alpha: CGFloat = 0
+            XCTAssertTrue(UIColor(color).getRed(&red, green: &green, blue: &blue, alpha: &alpha))
+            let channels = [red, green, blue].map { value -> Double in
+                let channel = Double(value)
+                return channel <= 0.04045 ? channel / 12.92 : pow((channel + 0.055) / 1.055, 2.4)
+            }
+            return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+        }
+
+        func contrast(_ first: Color, _ second: Color) -> Double {
+            let values = [luminance(first), luminance(second)].sorted()
+            return (values[1] + 0.05) / (values[0] + 0.05)
+        }
+
+        let manager = ThemeManager()
+        for option in AppThemes.all {
+            manager.apply(code: option.code)
+            let palette = manager.palette
+            for surface in [palette.screenBackground, palette.cardBackground] {
+                XCTAssertGreaterThanOrEqual(
+                    contrast(palette.primaryText, surface), 4.5,
+                    "Call controls and contact names in \(option.code)"
+                )
+                XCTAssertGreaterThanOrEqual(
+                    contrast(manager.screenSecondaryText, surface), 4.5,
+                    "Call state and SMS/Chatforia label in \(option.code)"
+                )
+            }
+            for appearance in [ColorScheme.light, .dark] {
+                for isSMS in [false, true] {
+                    let host = UIHostingController(rootView:
+                        NavigationStack {
+                            Color.clear
+                                .navigationBarTitleDisplayMode(.inline)
+                                .modifier(ThemedNavigationBar())
+                                .toolbar {
+                                    ToolbarItem(placement: .principal) {
+                                        ConversationTransportTitle(title: "Sample contact", isSMS: isSMS)
+                                    }
+                                }
+                        }
+                        .environmentObject(manager)
+                        .environment(\.colorScheme, appearance)
+                    )
+                    let size = host.sizeThatFits(in: CGSize(width: 390, height: 844))
+                    XCTAssertGreaterThan(size.width, 0, "\(option.code), \(appearance), SMS \(isSMS)")
+                }
+            }
+        }
+    }
+
+    func testNavigationBackButtonResolvedTintAcrossThemes() {
+        func findBar(in view: UIView) -> UINavigationBar? {
+            if let bar = view as? UINavigationBar { return bar }
+            return view.subviews.lazy.compactMap { findBar(in: $0) }.first
+        }
+
+        func luminance(_ color: UIColor) -> Double {
+            var red: CGFloat = 0
+            var green: CGFloat = 0
+            var blue: CGFloat = 0
+            var alpha: CGFloat = 0
+            XCTAssertTrue(color.getRed(&red, green: &green, blue: &blue, alpha: &alpha))
+            let channels = [red, green, blue].map { value -> Double in
+                let channel = Double(value)
+                return channel <= 0.04045 ? channel / 12.92 : pow((channel + 0.055) / 1.055, 2.4)
+            }
+            return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+        }
+
+        let manager = ThemeManager()
+        for option in AppThemes.all {
+            manager.apply(code: option.code)
+            for appearance in [ColorScheme.light, .dark] {
+                let host = UIHostingController(rootView:
+                    NavigationStack(path: .constant([1])) {
+                        Text("Root")
+                            .navigationDestination(for: Int.self) { _ in
+                                Text("Detail")
+                                    .navigationTitle("Detail")
+                                    .modifier(ThemedNavigationBar())
+                            }
+                    }
+                    .environmentObject(manager)
+                    .tint(manager.palette.accent)
+                    .environment(\.colorScheme, appearance)
+                )
+                let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+                window.rootViewController = host
+                window.makeKeyAndVisible()
+                RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+                host.view.layoutIfNeeded()
+                guard let bar = findBar(in: host.view) else {
+                    XCTFail("Missing rendered navigation bar in \(option.code), \(appearance)")
+                    window.isHidden = true
+                    continue
+                }
+                XCTAssertGreaterThan(bar.items?.count ?? 0, 1,
+                                     "Expected a pushed screen with a back button in \(option.code)")
+                let tint = bar.tintColor ?? .clear
+                let surface = UIColor(manager.palette.screenBackground)
+                let light = max(luminance(tint), luminance(surface))
+                let dark = min(luminance(tint), luminance(surface))
+                XCTAssertGreaterThanOrEqual((light + 0.05) / (dark + 0.05), 3,
+                                            "Resolved back-button tint in \(option.code), \(appearance)")
+                window.isHidden = true
+            }
+        }
+    }
+
     func testPinnedSearchRendersWithBothSystemAppearancesAndThemeChanges() {
         let manager = ThemeManager()
         for option in AppThemes.all {
@@ -150,6 +265,112 @@ final class ThemeManagerTests: XCTestCase {
                 XCTAssertGreaterThan(size.height, 0, "\(option.code), \(appearance)")
             }
         }
+    }
+
+    func testCallsSelectorUsesThemeAppearanceAcrossSystemModes() {
+        let manager = ThemeManager()
+        for option in AppThemes.all {
+            manager.apply(code: option.code)
+            for systemStyle in [UIUserInterfaceStyle.light, .dark] {
+                for selected in CallsSegment.allCases {
+                    let host = UIHostingController(rootView:
+                        CallsSegmentSelector(selection: .constant(selected))
+                            .environmentObject(manager)
+                    )
+                    let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+                    window.overrideUserInterfaceStyle = systemStyle
+                    window.rootViewController = host
+                    window.makeKeyAndVisible()
+                    host.view.layoutIfNeeded()
+
+                    guard let selector = segmentedControl(in: host.view) else {
+                        XCTFail("Missing Calls selector in \(option.code), \(systemStyle)")
+                        window.isHidden = true
+                        continue
+                    }
+                    let expected: UIUserInterfaceStyle =
+                        manager.navigationColorScheme == .dark ? .dark : .light
+                    XCTAssertEqual(selector.traitCollection.userInterfaceStyle, expected)
+                    XCTAssertEqual(selector.numberOfSegments, 2)
+                    XCTAssertEqual(selector.selectedSegmentIndex, selected == .recents ? 0 : 1)
+                    let language = UserDefaults.standard.string(forKey: "chatforia_language") ?? "en"
+                    XCTAssertEqual(
+                        selector.titleForSegment(at: 0),
+                        appText(CallsSegment.recents.titleKey, languageCode: language)
+                    )
+                    XCTAssertEqual(
+                        selector.titleForSegment(at: 1),
+                        appText(CallsSegment.voicemail.titleKey, languageCode: language)
+                    )
+                    window.isHidden = true
+                }
+            }
+        }
+    }
+
+    func testCallsHeaderRendersAcrossThemesAndSystemAppearances() {
+        let manager = ThemeManager()
+        let auth = AuthStore(
+            tokenStore: CallsThemeNoTokenStore(),
+            refreshEntitlements: {},
+            ensureLocalKeys: { _, _ in false },
+            finishLoginNotifications: {}
+        )
+        for option in AppThemes.all {
+            manager.apply(code: option.code)
+            for appearance in [ColorScheme.light, .dark] {
+                let host = UIHostingController(rootView:
+                    NavigationStack { CallHistoryView() }
+                        .environmentObject(auth)
+                        .environmentObject(manager)
+                        .environmentObject(CallManager.shared)
+                        .environment(\.colorScheme, appearance)
+                )
+                let size = host.sizeThatFits(in: CGSize(width: 390, height: 844))
+                XCTAssertGreaterThan(size.width, 0, "\(option.code), \(appearance)")
+                XCTAssertGreaterThan(size.height, 0, "\(option.code), \(appearance)")
+            }
+        }
+    }
+
+    func testCallsSelectorUpdatesWhenThemeChangesWithoutChangingSelection() {
+        let manager = ThemeManager()
+        manager.apply(code: "midnight")
+        let host = UIHostingController(rootView:
+            CallsSegmentSelector(selection: .constant(.voicemail))
+                .environmentObject(manager)
+        )
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+        window.overrideUserInterfaceStyle = .light
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+        defer { window.isHidden = true }
+
+        host.view.layoutIfNeeded()
+        guard let initial = segmentedControl(in: host.view) else {
+            XCTFail("Missing Calls selector")
+            return
+        }
+        XCTAssertEqual(initial.traitCollection.userInterfaceStyle, .dark)
+        XCTAssertEqual(initial.selectedSegmentIndex, 1)
+
+        manager.apply(code: "dawn")
+        RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+        host.view.layoutIfNeeded()
+        guard let updated = segmentedControl(in: host.view) else {
+            XCTFail("Missing Calls selector after theme change")
+            return
+        }
+        XCTAssertEqual(updated.traitCollection.userInterfaceStyle, .light)
+        XCTAssertEqual(updated.selectedSegmentIndex, 1)
+    }
+
+    private func segmentedControl(in root: UIView) -> UISegmentedControl? {
+        if let control = root as? UISegmentedControl { return control }
+        for subview in root.subviews {
+            if let control = segmentedControl(in: subview) { return control }
+        }
+        return nil
     }
 
     func testSharedAvatarInitialsMeetNormalTextContrastInEveryTheme() {
@@ -183,4 +404,11 @@ final class ThemeManagerTests: XCTestCase {
                                         "Avatar initials need readable contrast in \(option.code)")
         }
     }
+}
+
+@MainActor
+private final class CallsThemeNoTokenStore: TokenStoring {
+    func read() -> String? { nil }
+    func save(_ token: String) { }
+    func clear() { }
 }
