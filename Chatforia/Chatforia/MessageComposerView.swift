@@ -217,7 +217,7 @@ struct MessageComposerView: View {
             } label: {
                 actionCircle(systemName: "arrow.up")
             }
-            .buttonStyle(.plain)
+            .modifier(ThemedGradientButtonStyle())
             .disabled(isSending || isSendingVoice)
         } else if isCaptioningPendingMedia {
             EmptyView()
@@ -227,7 +227,7 @@ struct MessageComposerView: View {
             } label: {
                 actionCircle(systemName: "mic.fill")
             }
-            .buttonStyle(.plain)
+            .modifier(ThemedGradientButtonStyle())
             .disabled(isSending || isSendingVoice || isRecordingVoice)
         } else {
             Button {
@@ -238,7 +238,9 @@ struct MessageComposerView: View {
                         .frame(width: 36, height: 36)
                         .clipShape(Circle())
                         .shadow(
-                            color: themeManager.palette.composerButtonEnd.opacity(0.35),
+                            color: themeManager.palette.composerButtonEnd.opacity(
+                                themeManager.currentCode == "neon" ? (isTextSendDisabled ? 0 : 0.12) : 0.35
+                            ),
                             radius: 8,
                             x: 0,
                             y: 3
@@ -246,19 +248,22 @@ struct MessageComposerView: View {
 
                     if isSending {
                         ProgressView()
-                            .tint(themeManager.gradientForeground(for: .composer))
+                            .tint(themeManager.gradientForeground(
+                                for: .composer,
+                                state: isTextSendDisabled ? .disabled : .normal
+                            ))
                             .scaleEffect(0.85)
                     } else {
                         Image(systemName: "arrow.up")
                             .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(themeManager.gradientForeground(for: .composer))
+                            .modifier(ThemedGradientForeground(role: .composer))
                     }
                 }
-                .opacity(isTextSendDisabled ? 0.6 : 1)
+                .opacity(themeManager.currentCode == "neon" ? 1 : (isTextSendDisabled ? 0.6 : 1))
                 .scaleEffect(isTextSendDisabled ? 0.95 : 1)
                 .animation(.easeInOut(duration: 0.15), value: isTextSendDisabled)
             }
-            .buttonStyle(.plain)
+            .modifier(ThemedGradientButtonStyle())
             .disabled(isTextSendDisabled)
         }
     }
@@ -375,7 +380,7 @@ struct MessageComposerView: View {
                     languageCode: appLanguage
                 ))
                     .font(.subheadline.weight(.bold))
-                    .foregroundStyle(themeManager.gradientForeground(for: .composer))
+                    .modifier(ThemedGradientForeground(role: .composer))
                     .padding(.horizontal, 14)
                     .padding(.vertical, 9)
                     .background(
@@ -383,7 +388,7 @@ struct MessageComposerView: View {
                             .clipShape(Capsule())
                     )
             }
-            .buttonStyle(.plain)
+            .modifier(ThemedGradientButtonStyle())
             .disabled(isSending || isSendingVoice)
         }
         .padding(.horizontal, 12)
@@ -402,7 +407,9 @@ struct MessageComposerView: View {
                 .frame(width: 36, height: 36)
                 .clipShape(Circle())
                 .shadow(
-                    color: themeManager.palette.composerButtonEnd.opacity(0.35),
+                    color: themeManager.palette.composerButtonEnd.opacity(
+                        themeManager.currentCode == "neon" ? 0.12 : 0.35
+                    ),
                     radius: 8,
                     x: 0,
                     y: 3
@@ -410,7 +417,7 @@ struct MessageComposerView: View {
 
             Image(systemName: systemName)
                 .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(themeManager.gradientForeground(for: .composer))
+                .modifier(ThemedGradientForeground(role: .composer))
         }
     }
 }

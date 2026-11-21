@@ -375,7 +375,7 @@ struct LinkedDevicesView: View {
         Button(action: action) {
             Text(text)
                 .font(.body.weight(.bold))
-                .foregroundStyle(themeManager.gradientForeground(for: .button))
+                .modifier(ThemedGradientForeground(role: .button))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
                 .background(
@@ -383,5 +383,6 @@ struct LinkedDevicesView: View {
                 )
                 .clipShape(Capsule())
         }
+        .modifier(ThemedGradientButtonStyle(plainFallback: false))
     }
 }

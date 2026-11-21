@@ -128,7 +128,7 @@ struct ESIMActivationView: View {
             } label: {
                 Text(viewModel.installButtonTitle)
                     .font(.headline)
-                    .foregroundStyle(themeManager.gradientForeground(for: .button))
+                    .modifier(ThemedGradientForeground(role: .button))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                     .background(
@@ -141,16 +141,16 @@ struct ESIMActivationView: View {
                         )
                     )
             }
-            .buttonStyle(.plain)
+            .modifier(ThemedGradientButtonStyle())
             .disabled(
                 !viewModel.canInstall
                 || viewModel.isActive
                 || viewModel.isInstalling
             )
             .opacity(
-                (!viewModel.canInstall || viewModel.isActive)
-                ? 0.55
-                : 1
+                themeManager.currentCode == "neon"
+                    ? 1
+                    : ((!viewModel.canInstall || viewModel.isActive) ? 0.55 : 1)
             )
 
             if !viewModel.canInstall {

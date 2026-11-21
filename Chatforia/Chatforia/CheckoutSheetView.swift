@@ -81,7 +81,7 @@ struct CheckoutSheetView: View {
                     )
                 )
                     .font(.headline)
-                    .foregroundStyle(themeManager.gradientForeground(for: .button))
+                    .modifier(ThemedGradientForeground(role: .button))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
                     .background(
@@ -89,7 +89,7 @@ struct CheckoutSheetView: View {
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
-            .buttonStyle(.plain)
+            .modifier(ThemedGradientButtonStyle())
 
             Button(appText("button_cancel", languageCode: appLanguage)) {
                 dismiss()

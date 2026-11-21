@@ -1057,7 +1057,10 @@ struct WirelessHomeView: View {
                     HStack {
                         if purchasingPackProduct == pack.product {
                             ProgressView()
-                                .tint(themeManager.gradientForeground(for: .button))
+                                .tint(themeManager.gradientForeground(
+                                    for: .button,
+                                    state: isPurchasingPack ? .disabled : .normal
+                                ))
                         }
 
                         Text(
@@ -1066,7 +1069,7 @@ struct WirelessHomeView: View {
                             : appText("ios.choose_this_pack", languageCode: appLanguage)
                         )
                         .font(.headline)
-                        .foregroundStyle(themeManager.gradientForeground(for: .button))
+                        .modifier(ThemedGradientForeground(role: .button))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
@@ -1081,9 +1084,9 @@ struct WirelessHomeView: View {
                         y: 4
                     )
                 }
-                .buttonStyle(.plain)
+                .modifier(ThemedGradientButtonStyle())
                 .disabled(isPurchasingPack)
-                .opacity(isPurchasingPack ? 0.7 : 1)
+                .opacity(themeManager.currentCode == "neon" ? 1 : (isPurchasingPack ? 0.7 : 1))
             }
             .padding(.vertical, 8)
         }

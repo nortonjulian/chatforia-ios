@@ -43,26 +43,99 @@ enum ThemeGradientRole: Equatable {
     case outgoingBubble
 }
 
+enum ThemeGradientState: Equatable {
+    case normal
+    case pressed
+    case disabled
+}
+
+private struct ThemeGradientPressedKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+private extension EnvironmentValues {
+    var themeGradientPressed: Bool {
+        get { self[ThemeGradientPressedKey.self] }
+        set { self[ThemeGradientPressedKey.self] = newValue }
+    }
+}
+
+/// Keeps the existing plain-button appearance outside Neon.
+struct ThemedGradientButtonStyle: ViewModifier {
+    @EnvironmentObject private var themeManager: ThemeManager
+    var plainFallback = true
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if themeManager.currentCode == "neon" {
+            content.buttonStyle(NeonGradientPressStyle())
+        } else if plainFallback {
+            content.buttonStyle(.plain)
+        } else {
+            content
+        }
+    }
+}
+
+private struct NeonGradientPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .environment(\.themeGradientPressed, configuration.isPressed)
+    }
+}
+
+struct ThemedGradientForeground: ViewModifier {
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.isEnabled) private var isEnabled
+    let role: ThemeGradientRole
+
+    func body(content: Content) -> some View {
+        content.foregroundStyle(
+            themeManager.gradientForeground(
+                for: role,
+                state: isEnabled ? .normal : .disabled
+            )
+        )
+    }
+}
+
 /// Preserves the palette's two stops and adds only the approved, shape-clipped
 /// contrast lift needed under foreground content in Moon and Solarized.
 struct ThemedGradientFill: View {
     @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.themeGradientPressed) private var isPressed
     let role: ThemeGradientRole
     let startPoint: UnitPoint
     let endPoint: UnitPoint
+    var state: ThemeGradientState = .normal
 
+    private var resolvedState: ThemeGradientState {
+        guard themeManager.currentCode == "neon" else { return .normal }
+        if state == .disabled || !isEnabled { return .disabled }
+        if state == .pressed || isPressed { return .pressed }
+        return .normal
+    }
+
+    @ViewBuilder
     var body: some View {
-        let stops = themeManager.gradientStops(for: role)
-        LinearGradient(colors: [stops.0, stops.1], startPoint: startPoint, endPoint: endPoint)
-            .overlay {
-                if let lift = themeManager.gradientContrastLift(for: role) {
-                    LinearGradient(
-                        colors: [.white.opacity(lift.0), .white.opacity(lift.1)],
-                        startPoint: startPoint,
-                        endPoint: endPoint
-                    )
+        if resolvedState == .disabled {
+            themeManager.gradientDisabledFill
+        } else {
+            let stops = themeManager.gradientStops(for: role)
+            LinearGradient(colors: [stops.0, stops.1], startPoint: startPoint, endPoint: endPoint)
+                .overlay {
+                    if resolvedState == .pressed {
+                        themeManager.gradientForeground(for: role).opacity(0.06)
+                    } else if let lift = themeManager.gradientContrastLift(for: role) {
+                        LinearGradient(
+                            colors: [.white.opacity(lift.0), .white.opacity(lift.1)],
+                            startPoint: startPoint,
+                            endPoint: endPoint
+                        )
+                    }
                 }
-            }
+        }
     }
 }
 
@@ -215,38 +288,38 @@ enum ThemeCatalog {
 
         case "neon":
             return .init(
-                accent: Color(hex: "#3CF9FF"),
-                titleAccent: Color(hex: "#EAF2FF"),
+                accent: Color(hex: "#28D7C8"),
+                titleAccent: Color(hex: "#F4F1FF"),
 
-                screenBackground: Color(hex: "#060A16"),
-                cardBackground: Color(hex: "#0E1426"),
-                border: Color(hex: "#1A2540"),
+                screenBackground: Color(hex: "#0D0A22"),
+                cardBackground: Color(hex: "#211A3D"),
+                border: Color(hex: "#4A3C70"),
 
-                primaryText: Color(hex: "#EAF2FF"),
-                secondaryText: Color(hex: "#9FB3D1"),
+                primaryText: Color(hex: "#F4F1FF"),
+                secondaryText: Color(hex: "#B9B2D5"),
 
-                buttonStart: Color(hex: "#3CF9FF"),
-                buttonEnd: Color(hex: "#7C3AED"),
-                buttonForeground: .white,
+                buttonStart: Color(hex: "#9275EC"),
+                buttonEnd: Color(hex: "#25D8C6"),
+                buttonForeground: Color(hex: "#0A0B20"),
 
-                bubbleOutgoingStart: Color(hex: "#3CF9FF"),
-                bubbleOutgoingEnd: Color(hex: "#6A3CC1"),
-                bubbleOutgoingText: .white,
+                bubbleOutgoingStart: Color(hex: "#9275EC"),
+                bubbleOutgoingEnd: Color(hex: "#25D8C6"),
+                bubbleOutgoingText: Color(hex: "#0A0B20"),
 
-                bubbleIncoming: Color(hex: "#18243A"),
-                bubbleIncomingText: Color(hex: "#EAF2FF"),
+                bubbleIncoming: Color(hex: "#29204B"),
+                bubbleIncomingText: Color(hex: "#F4F1FF"),
 
-                composerBackground: Color(hex: "#060A16"),
-                composerFieldBackground: Color(hex: "#0F141D"),
-                composerBorder: Color(hex: "#171821"),
-                composerButtonStart: Color(hex: "#3CF9FF"),
-                composerButtonEnd: Color(hex: "#7C3AED"),
-                composerButtonForeground: .white,
+                composerBackground: Color(hex: "#0D0A22"),
+                composerFieldBackground: Color(hex: "#241D42"),
+                composerBorder: Color(hex: "#756BA5"),
+                composerButtonStart: Color(hex: "#25D8C6"),
+                composerButtonEnd: Color(hex: "#9275EC"),
+                composerButtonForeground: Color(hex: "#0A0B20"),
 
-                tabSelected: Color(hex: "#3CF9FF"),
-                tabUnselected: Color(hex: "#7487A8"),
+                tabSelected: Color(hex: "#28D7C8"),
+                tabUnselected: Color(hex: "#AAA3C4"),
 
-                highlightedSurface: Color(hex: "#22344C")
+                highlightedSurface: Color(hex: "#322957")
             )
 
         case "sunset":
@@ -415,8 +488,7 @@ final class ThemeManager: ObservableObject {
         }
     }
 
-    // Transparent at the safe stop. Neon is intentionally unchanged pending
-    // its separate cross-platform redesign.
+    // Transparent at the safe stop. Neon instead uses its own ink foreground.
     func gradientContrastLift(for role: ThemeGradientRole) -> (Double, Double)? {
         switch currentCode {
         case "midnight":
@@ -428,11 +500,24 @@ final class ThemeManager: ObservableObject {
 
     var outgoingBubbleSecondaryForeground: Color {
         switch currentCode {
-        case "midnight", "amoled", "aurora", "solarized", "velvet":
+        case "midnight", "amoled", "aurora", "neon", "solarized", "velvet":
             gradientForeground(for: .outgoingBubble)
         default:
             palette.bubbleOutgoingText.opacity(0.82)
         }
+    }
+
+    var gradientDisabledFill: Color {
+        currentCode == "neon" ? Color(hex: "#302A4A") : palette.buttonStart
+    }
+
+    var gradientDisabledForeground: Color {
+        currentCode == "neon" ? Color(hex: "#AFA7CA") : palette.buttonForeground
+    }
+
+    func gradientForeground(for role: ThemeGradientRole, state: ThemeGradientState) -> Color {
+        currentCode == "neon" && state == .disabled
+            ? gradientDisabledForeground : gradientForeground(for: role)
     }
 
     func controlForeground(on fill: Color, preferred: Color) -> Color {
