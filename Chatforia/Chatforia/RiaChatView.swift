@@ -21,7 +21,7 @@ struct RiaChatView: View {
             if let aiDisabledReason = vm.aiDisabledReason, !aiDisabledReason.isEmpty {
                 Text(aiDisabledReason)
                     .font(.footnote)
-                    .foregroundStyle(themeManager.palette.secondaryText)
+                    .foregroundStyle(themeManager.cardSecondaryText)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
@@ -106,6 +106,7 @@ struct RiaChatView: View {
         .background(themeManager.palette.screenBackground.ignoresSafeArea())
         .navigationTitle(appText("ios.ria", languageCode: appLanguage))
         .navigationBarTitleDisplayMode(.inline)
+        .modifier(ThemedNavigationBar())
         .onAppear {
             if let user = auth.currentUser {
                 settingsVM.load(from: user)
@@ -133,7 +134,7 @@ struct RiaChatView: View {
 
             Text(appText("ios.chat_with_ria_anytime_separate_from_random_human_matching", languageCode: appLanguage))
                 .font(.subheadline)
-                .foregroundStyle(themeManager.palette.secondaryText)
+                .foregroundStyle(themeManager.cardSecondaryText)
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -149,7 +150,7 @@ struct RiaChatView: View {
     private var systemIntroPill: some View {
         Text(appText("ios.you_re_now_chatting_with_ria", languageCode: appLanguage))
             .font(.caption2.weight(.semibold))
-            .foregroundStyle(themeManager.palette.secondaryText.opacity(0.85))
+            .foregroundStyle(themeManager.cardSecondaryText)
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
             .background(themeManager.palette.cardBackground)
@@ -161,12 +162,19 @@ struct RiaChatView: View {
     private var composer: some View {
         HStack(alignment: .bottom, spacing: 10) {
             TextField(
-                appText("messages.messageRia", languageCode: appLanguage),
+                "",
                 text: $draft,
+                prompt: Text(appText("messages.messageRia", languageCode: appLanguage))
+                    .foregroundColor(themeManager.composerPlaceholderText),
                 axis: .vertical
             )
             .textFieldStyle(.plain)
             .foregroundStyle(themeManager.palette.primaryText)
+            .tint(themeManager.controlIconForeground(
+                themeManager.palette.accent,
+                on: themeManager.palette.composerFieldBackground
+            ))
+            .accessibilityLabel(appText("messages.messageRia", languageCode: appLanguage))
             .lineLimit(1...5)
             .padding(.vertical, 11)
             .padding(.horizontal, 12)
@@ -214,6 +222,7 @@ struct RiaChatView: View {
             }
             .modifier(ThemedGradientButtonStyle())
             .disabled(vm.isLoading || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .accessibilityLabel(appText("common.send", languageCode: appLanguage))
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)

@@ -20,7 +20,7 @@ struct ThemedGradientButton: View {
                     themeManager.gradientForeground(
                         for: .button,
                         state: isDisabled ? .disabled : .normal
-                    ).opacity(themeManager.currentCode == "neon" ? 1 : (isDisabled ? 0.7 : 1))
+                    )
                 )
                 .frame(maxWidth: isFullWidth ? .infinity : nil)
                 .padding(.horizontal, horizontalPadding)
@@ -32,7 +32,7 @@ struct ThemedGradientButton: View {
                         endPoint: .trailing,
                         state: isDisabled ? .disabled : .normal
                     )
-                        .opacity(themeManager.currentCode == "neon" ? 1 : (isDisabled ? 0.6 : 1))
+                        .opacity(themeManager.currentCode == "neon" ? 1 : (isDisabled ? 0.75 : 1))
                 )
                 .clipShape(Capsule())
                 .overlay(

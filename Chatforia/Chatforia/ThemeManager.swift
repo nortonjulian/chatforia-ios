@@ -460,6 +460,42 @@ final class ThemeManager: ObservableObject {
             ? palette.accent : palette.primaryText
     }
 
+    // Text in themed cards must follow the app theme, not the device appearance.
+    // Sunset and Solarized secondary colors are too faint on their card surfaces.
+    var cardSecondaryText: Color {
+        switch currentCode {
+        case "sunset", "solarized": palette.primaryText
+        default: palette.secondaryText
+        }
+    }
+
+    var composerPlaceholderText: Color {
+        ThemeContrast.ratio(palette.secondaryText, palette.composerFieldBackground) >= 4.5
+            ? palette.secondaryText : palette.primaryText
+    }
+
+    var cardActionText: Color {
+        ThemeContrast.ratio(palette.accent, palette.cardBackground) >= 4.5
+            ? palette.accent : palette.primaryText
+    }
+
+    var textOnAccent: Color {
+        let candidates: [Color] = [palette.buttonForeground, palette.screenBackground, .black, .white]
+        return candidates.max {
+            ThemeContrast.ratio($0, palette.accent) < ThemeContrast.ratio($1, palette.accent)
+        } ?? palette.buttonForeground
+    }
+
+    func statusTextForeground(_ candidate: Color, on surface: Color) -> Color {
+        ThemeContrast.ratio(candidate, surface) >= 4.5
+            ? candidate : palette.primaryText
+    }
+
+    func controlIconForeground(_ candidate: Color, on surface: Color) -> Color {
+        ThemeContrast.ratio(candidate, surface) >= 3
+            ? candidate : palette.primaryText
+    }
+
     var accentControlForeground: Color {
         controlForeground(on: palette.accent, preferred: palette.buttonForeground)
     }

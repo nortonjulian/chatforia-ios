@@ -12,8 +12,10 @@ struct ThemedTextField: View {
 
     var body: some View {
         TextField(
-            appText(title, languageCode: appLanguage),
-            text: $text
+            "",
+            text: $text,
+            prompt: Text(appText(title, languageCode: appLanguage))
+                .foregroundColor(themeManager.cardSecondaryText)
         )
         .keyboardType(keyboard)
         .textInputAutocapitalization(.never)
@@ -28,5 +30,7 @@ struct ThemedTextField: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .foregroundStyle(themeManager.palette.primaryText)
+        .tint(themeManager.cardActionText)
+        .accessibilityLabel(appText(title, languageCode: appLanguage))
     }
 }

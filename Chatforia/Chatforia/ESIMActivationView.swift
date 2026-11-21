@@ -36,6 +36,7 @@ struct ESIMActivationView: View {
         .background(themeManager.palette.screenBackground.ignoresSafeArea())
         .navigationTitle(appText("esim.title", languageCode: appLanguage))
         .navigationBarTitleDisplayMode(.inline)
+        .modifier(ThemedNavigationBar())
         .sheet(isPresented: $showingInstallationOptions) {
             installationOptionsSheet
         }
@@ -70,7 +71,7 @@ struct ESIMActivationView: View {
 
             Text(viewModel.subtitleText)
                 .font(.body)
-                .foregroundStyle(themeManager.palette.secondaryText)
+                .foregroundStyle(themeManager.screenSecondaryText)
                 .multilineTextAlignment(.center)
         }
     }
@@ -88,11 +89,10 @@ struct ESIMActivationView: View {
                         ? "checkmark.circle.fill"
                         : "clock.badge.checkmark.fill"
                 )
-                .foregroundStyle(
-                    viewModel.isActive
-                    ? themeManager.palette.accent
-                    : themeManager.palette.buttonEnd
-                )
+                .foregroundStyle(themeManager.controlIconForeground(
+                    viewModel.isActive ? themeManager.palette.accent : themeManager.palette.buttonEnd,
+                    on: themeManager.palette.cardBackground
+                ))
 
                 Text(
                     viewModel.isActive
@@ -121,7 +121,7 @@ struct ESIMActivationView: View {
 
             Text(appText("esim.installDirectlyOrUseDetails", languageCode: appLanguage))
                 .font(.footnote)
-                .foregroundStyle(themeManager.palette.secondaryText)
+                .foregroundStyle(themeManager.cardSecondaryText)
 
             Button {
                 showingInstallationOptions = true
@@ -133,6 +133,8 @@ struct ESIMActivationView: View {
                     .padding(.vertical, 12)
                     .background(
                         ThemedGradientFill(role: .button, startPoint: .leading, endPoint: .trailing)
+                            .opacity(themeManager.currentCode == "neon" ||
+                                     (viewModel.canInstall && !viewModel.isActive && !viewModel.isInstalling) ? 1 : 0.75)
                     )
                     .clipShape(
                         RoundedRectangle(
@@ -147,16 +149,11 @@ struct ESIMActivationView: View {
                 || viewModel.isActive
                 || viewModel.isInstalling
             )
-            .opacity(
-                themeManager.currentCode == "neon"
-                    ? 1
-                    : ((!viewModel.canInstall || viewModel.isActive) ? 0.55 : 1)
-            )
 
             if !viewModel.canInstall {
                 Text(appText("esim.noValidInstallLink", languageCode: appLanguage))
                     .font(.caption)
-                    .foregroundStyle(themeManager.palette.secondaryText)
+                    .foregroundStyle(themeManager.cardSecondaryText)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -176,13 +173,14 @@ struct ESIMActivationView: View {
                     if viewModel.showsProvisioningDetails {
                         Text("Install your Chatforia eSIM")
                             .font(.title2.weight(.bold))
+                            .foregroundStyle(themeManager.palette.primaryText)
 
                         Text(
                             "Use the QR code to install this eSIM on another supported device, "
                             + "or use the manual activation details below."
                         )
                         .font(.body)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(themeManager.screenSecondaryText)
 
                         if let payload = qrPayload,
                            let image = makeQRCode(from: payload) {
@@ -206,7 +204,7 @@ struct ESIMActivationView: View {
                                     + "from that device's eSIM setup screen."
                                 )
                                 .font(.footnote)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(themeManager.screenSecondaryText)
                                 .multilineTextAlignment(.center)
                             }
                             .frame(maxWidth: .infinity)
@@ -217,13 +215,14 @@ struct ESIMActivationView: View {
                         VStack(alignment: .leading, spacing: 14) {
                             Text("Manual setup")
                                 .font(.headline)
+                                .foregroundStyle(themeManager.palette.primaryText)
 
                             Text(
                                 "On this iPhone, open Settings → Cellular → Add eSIM "
                                 + "and choose the option to enter the details manually."
                             )
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(themeManager.screenSecondaryText)
 
                             activationDetail(
                                 title: "SM-DP+ Address",
@@ -243,18 +242,21 @@ struct ESIMActivationView: View {
                     } else {
                         Text("This eSIM is already active.")
                             .font(.body)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(themeManager.screenSecondaryText)
                     }
                 }
                 .padding()
             }
+            .background(themeManager.palette.screenBackground.ignoresSafeArea())
             .navigationTitle("eSIM Installation")
             .navigationBarTitleDisplayMode(.inline)
+            .modifier(ThemedNavigationBar())
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
                         showingInstallationOptions = false
                     }
+                    .foregroundStyle(themeManager.toolbarTextForeground)
                 }
             }
         }
@@ -393,10 +395,11 @@ struct ESIMActivationView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(themeManager.screenSecondaryText)
 
                 Text(value)
                     .font(.body)
+                    .foregroundStyle(themeManager.palette.primaryText)
                     .textSelection(.enabled)
             }
         }
@@ -453,6 +456,7 @@ struct ESIMActivationView: View {
             Button(appText("esim.transfer.request", languageCode: appLanguage)) {
                 showingReplacementConfirmation = true
             }
+            .foregroundStyle(themeManager.cardActionText)
             .disabled(
                 purchasedPackages?.replacementEligibility.eligible != true ||
                 onRequestReplacement == nil
@@ -472,11 +476,11 @@ struct ESIMActivationView: View {
             if let reason = purchasedPackages?.replacementEligibility.reason {
                 Text(localizedEsimReplacementReason(reason, languageCode: appLanguage))
                     .font(.footnote)
-                    .foregroundStyle(themeManager.palette.secondaryText)
+                    .foregroundStyle(themeManager.cardSecondaryText)
             } else if purchasedPackages == nil {
                 Text(appText("esim.transfer.packagesUnavailable", languageCode: appLanguage))
                     .font(.footnote)
-                    .foregroundStyle(themeManager.palette.secondaryText)
+                    .foregroundStyle(themeManager.cardSecondaryText)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -492,7 +496,7 @@ struct ESIMActivationView: View {
             Text(appText("esim.install.troubleshootingIos", languageCode: appLanguage))
         }
         .font(.caption)
-        .foregroundStyle(themeManager.palette.secondaryText)
+        .foregroundStyle(themeManager.screenSecondaryText)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
@@ -502,7 +506,7 @@ struct ESIMActivationView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(appText(title, languageCode: appLanguage))
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(themeManager.palette.secondaryText)
+                    .foregroundStyle(themeManager.cardSecondaryText)
 
                 Text(value)
                     .font(.body)
@@ -533,6 +537,7 @@ struct PurchasedDataPackagesList: View {
     let packages: [WirelessPurchasedPackageDTO]?
     let errorMessage: String?
     var presentation: Presentation = .complete
+    @EnvironmentObject private var themeManager: ThemeManager
     @AppStorage("chatforia_language") private var appLanguage = "en"
 
     var body: some View {
@@ -540,7 +545,7 @@ struct PurchasedDataPackagesList: View {
             if let packages {
                 if packages.isEmpty {
                     Text(appText("esim.purchase.none", languageCode: appLanguage))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(themeManager.cardSecondaryText)
                 } else {
                     let visible = Self.visiblePackages(packages, presentation: presentation)
                     ForEach(visible) { package in
@@ -548,9 +553,13 @@ struct PurchasedDataPackagesList: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(name(for: package))
                                     .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(themeManager.palette.primaryText)
                                 Text(label(for: package.state))
                                     .font(.caption.weight(.semibold))
-                                    .foregroundStyle(package.state == "ACTIVE" ? .green : .orange)
+                                    .foregroundStyle(themeManager.statusTextForeground(
+                                        package.state == "ACTIVE" ? .green : .orange,
+                                        on: themeManager.palette.cardBackground
+                                    ))
                             }
 
                             Text(package.unlimited
@@ -570,7 +579,7 @@ struct PurchasedDataPackagesList: View {
                                     formatGB(recorded),
                                     formatGB(provider)
                                 ))
-                                    .foregroundStyle(.orange)
+                                    .foregroundStyle(themeManager.statusTextForeground(.orange, on: themeManager.palette.cardBackground))
                             }
 
                             if presentation == .complete, let purchasedAt = package.purchasedAt {
@@ -593,14 +602,14 @@ struct PurchasedDataPackagesList: View {
 
                             if presentation == .complete, package.state == "EXPIRY_NEEDS_REVIEW" {
                                 Text(appText("esim.purchase.expiryConflict", languageCode: appLanguage))
-                                    .foregroundStyle(.orange)
+                                    .foregroundStyle(themeManager.statusTextForeground(.orange, on: themeManager.palette.cardBackground))
                             } else if presentation == .complete, package.state == "EXPIRED" {
                                 Text(appText("esim.purchase.expiredExplanation", languageCode: appLanguage))
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(themeManager.cardSecondaryText)
                             }
                         }
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(themeManager.cardSecondaryText)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .accessibilityElement(children: .combine)
                         .accessibilityIdentifier("esim.package.\(package.id)")
@@ -613,7 +622,7 @@ struct PurchasedDataPackagesList: View {
             } else {
                 Text(errorMessage ?? appText("esim.purchase.loading", languageCode: appLanguage))
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(themeManager.cardSecondaryText)
             }
         }
     }

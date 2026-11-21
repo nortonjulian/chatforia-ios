@@ -21,12 +21,15 @@ struct SectionCardView<Content: View>: View {
                 ).localizedUppercase
             )
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(themeManager.palette.secondaryText)
+                .foregroundStyle(themeManager.cardSecondaryText)
                 .tracking(0.8)
 
             VStack(spacing: 0) {
                 content
             }
+            // Native controls resolve their default text against the selected
+            // theme's card, while explicitly styled children keep their colors.
+            .environment(\.colorScheme, themeManager.navigationColorScheme)
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
             .background(

@@ -701,6 +701,211 @@ final class ThemeManagerTests: XCTestCase {
         return nil
     }
 
+    func testSecondaryScreenSemanticTextMeetsContrastInEveryThemeAndSystemAppearance() {
+        let manager = ThemeManager()
+        for option in AppThemes.all {
+            manager.apply(code: option.code)
+            let palette = manager.palette
+            for appearance in [UIUserInterfaceStyle.light, .dark] {
+                XCTAssertGreaterThanOrEqual(
+                    secondaryAuditContrast(manager.cardSecondaryText, palette.cardBackground), 4.5,
+                    "Card explanation in \(option.code), \(appearance)"
+                )
+                XCTAssertGreaterThanOrEqual(
+                    secondaryAuditContrast(
+                        manager.cardSecondaryText,
+                        secondaryAuditBlend(palette.accent, over: palette.cardBackground, opacity: 0.06)
+                    ), 4.5,
+                    "Card explanation at tinted corner in \(option.code), \(appearance)"
+                )
+                XCTAssertGreaterThanOrEqual(
+                    secondaryAuditContrast(manager.composerPlaceholderText, palette.composerFieldBackground), 4.5,
+                    "Ria placeholder in \(option.code), \(appearance)"
+                )
+                XCTAssertGreaterThanOrEqual(
+                    secondaryAuditContrast(palette.primaryText, palette.composerFieldBackground), 4.5,
+                    "Ria entered text in \(option.code), \(appearance)"
+                )
+                XCTAssertGreaterThanOrEqual(
+                    secondaryAuditContrast(manager.cardActionText, palette.cardBackground), 4.5,
+                    "Wireless action in \(option.code), \(appearance)"
+                )
+                XCTAssertGreaterThanOrEqual(
+                    secondaryAuditContrast(manager.textOnAccent, palette.accent), 4.5,
+                    "Voicemail callback in \(option.code), \(appearance)"
+                )
+                for status in [Color.red, .green, .orange] {
+                    XCTAssertGreaterThanOrEqual(
+                        secondaryAuditContrast(
+                            manager.statusTextForeground(status, on: palette.cardBackground),
+                            palette.cardBackground
+                        ), 4.5,
+                        "Package and validation status in \(option.code), \(appearance)"
+                    )
+                }
+                XCTAssertGreaterThanOrEqual(
+                    secondaryAuditContrast(manager.toolbarTextForeground, palette.screenBackground), 4.5,
+                    "Add Contact Cancel in \(option.code), \(appearance)"
+                )
+                XCTAssertGreaterThanOrEqual(
+                    secondaryAuditContrast(
+                        manager.controlIconForeground(palette.accent, on: palette.cardBackground),
+                        palette.cardBackground
+                    ), 3,
+                    "Selected toggle in \(option.code), \(appearance)"
+                )
+            }
+        }
+    }
+
+    func testAddContactSelectorFollowsSelectedThemeInBothSystemAppearances() {
+        let manager = ThemeManager()
+        let auth = AuthStore()
+        for option in AppThemes.all {
+            manager.apply(code: option.code)
+            for systemStyle in [UIUserInterfaceStyle.light, .dark] {
+                let host = UIHostingController(rootView:
+                    AddContactView(onSaved: { _ in })
+                        .environmentObject(auth)
+                        .environmentObject(manager)
+                )
+                let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+                window.overrideUserInterfaceStyle = systemStyle
+                window.rootViewController = host
+                window.makeKeyAndVisible()
+                host.view.layoutIfNeeded()
+                guard let selector = segmentedControl(in: host.view) else {
+                    XCTFail("Missing Add Contact selector in \(option.code), \(systemStyle)")
+                    window.isHidden = true
+                    continue
+                }
+                XCTAssertEqual(
+                    selector.traitCollection.userInterfaceStyle,
+                    manager.navigationColorScheme == .dark ? .dark : .light
+                )
+                XCTAssertEqual(selector.numberOfSegments, 2)
+                window.isHidden = true
+            }
+        }
+    }
+
+    func testDisabledGradientButtonTextRemainsUsableAcrossThemes() {
+        let manager = ThemeManager()
+        for option in AppThemes.all {
+            manager.apply(code: option.code)
+            if option.code == "neon" {
+                XCTAssertGreaterThanOrEqual(
+                    secondaryAuditContrast(manager.gradientDisabledForeground, manager.gradientDisabledFill), 3,
+                    "Neon disabled action"
+                )
+                continue
+            }
+            let stops = manager.gradientStops(for: .button)
+            let lift = manager.gradientContrastLift(for: .button) ?? (0, 0)
+            for surface in [manager.palette.screenBackground, manager.palette.cardBackground] {
+                for (stop, whiteLift) in [(stops.0, lift.0), (stops.1, lift.1)] {
+                    let lifted = secondaryAuditBlend(.white, over: stop, opacity: CGFloat(whiteLift))
+                    let disabledFill = secondaryAuditBlend(lifted, over: surface, opacity: 0.75)
+                    XCTAssertGreaterThanOrEqual(
+                        secondaryAuditContrast(manager.gradientForeground(for: .button, state: .disabled), disabledFill), 3,
+                        "Disabled gradient action in \(option.code)"
+                    )
+                }
+            }
+        }
+    }
+
+    func testSecondaryScreenLayoutsWithSelectedThemeAndLargeTextWithoutNetwork() {
+        let manager = ThemeManager()
+        let auth = AuthStore()
+        let settings = SettingsViewModel()
+        let checkoutReturn = CheckoutReturnCoordinator()
+        let payload = ESIMActivationDTO(
+            smdpAddress: nil, activationCode: nil, iccid: "89012345678901234567",
+            confirmationCode: nil, planName: nil, status: "ACTIVE",
+            qrCodeURL: nil, lpaUri: nil
+        )
+
+        // All remote operations are disabled or injected as local failures.
+        let screens: [(String, AnyView)] = [
+            ("Forwarding", AnyView(ForwardingSettingsView(
+                fetchSettings: { _ in throw URLError(.notConnectedToInternet) },
+                saveSettings: { settings, _ in settings }
+            ))),
+            ("Wireless", AnyView(WirelessHomeView(
+                activationForPreview: payload, shouldLoadRemoteData: false
+            ))),
+            ("eSIM details", AnyView(ESIMActivationView(
+                viewModel: ESIMActivationViewModel(payload: payload),
+                purchasedPackages: nil, purchasesErrorMessage: nil,
+                onRequestReplacement: nil
+            ))),
+            ("Add Contact", AnyView(AddContactView(onSaved: { _ in }))),
+            ("Ria", AnyView(RiaChatView())),
+            ("Accessibility settings", AnyView(AccessibilitySettingsView(vm: settings))),
+            ("Plan", AnyView(PlanView()))
+        ]
+
+        for option in AppThemes.all {
+            manager.apply(code: option.code)
+            for appearance in [ColorScheme.light, .dark] {
+                for textSize in [DynamicTypeSize.large, .accessibility3] {
+                    for (name, screen) in screens {
+                        let content = NavigationStack { screen }
+                            .environmentObject(auth)
+                            .environmentObject(manager)
+                            .environmentObject(checkoutReturn)
+                            .environmentObject(settings)
+                            .environment(\.colorScheme, appearance)
+                            .environment(\.dynamicTypeSize, textSize)
+                            .frame(width: 390, height: 844)
+                        let host = UIHostingController(rootView: content)
+                        let size = host.sizeThatFits(in: CGSize(width: 390, height: 844))
+                        XCTAssertGreaterThan(size.width, 0,
+                                             "\(name) width in \(option.code), \(appearance), \(textSize)")
+                        XCTAssertGreaterThan(size.height, 0,
+                                             "\(name) height in \(option.code), \(appearance), \(textSize)")
+                    }
+                }
+            }
+        }
+    }
+
+    private func secondaryAuditContrast(_ first: Color, _ second: Color) -> Double {
+        func luminance(_ color: Color) -> Double {
+            var red: CGFloat = 0
+            var green: CGFloat = 0
+            var blue: CGFloat = 0
+            var alpha: CGFloat = 0
+            XCTAssertTrue(UIColor(color).getRed(&red, green: &green, blue: &blue, alpha: &alpha))
+            let channels = [red, green, blue].map { value -> Double in
+                let component = Double(value)
+                return component <= 0.04045 ? component / 12.92 : pow((component + 0.055) / 1.055, 2.4)
+            }
+            return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+        }
+        let values = [luminance(first), luminance(second)].sorted()
+        return (values[1] + 0.05) / (values[0] + 0.05)
+    }
+
+    private func secondaryAuditBlend(_ foreground: Color, over background: Color, opacity: CGFloat) -> Color {
+        func components(_ color: Color) -> (CGFloat, CGFloat, CGFloat) {
+            var red: CGFloat = 0
+            var green: CGFloat = 0
+            var blue: CGFloat = 0
+            var alpha: CGFloat = 0
+            XCTAssertTrue(UIColor(color).getRed(&red, green: &green, blue: &blue, alpha: &alpha))
+            return (red, green, blue)
+        }
+        let top = components(foreground)
+        let bottom = components(background)
+        return Color(
+            red: Double(top.0 * opacity + bottom.0 * (1 - opacity)),
+            green: Double(top.1 * opacity + bottom.1 * (1 - opacity)),
+            blue: Double(top.2 * opacity + bottom.2 * (1 - opacity))
+        )
+    }
+
     func testSharedAvatarInitialsMeetNormalTextContrastInEveryTheme() {
         func rgb(_ color: Color) -> [Double] {
             var red: CGFloat = 0
