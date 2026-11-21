@@ -356,6 +356,15 @@ final class ThemeManager: ObservableObject {
         }
     }
 
+    // Secondary labels on the full-screen call and conversation surfaces.
+    // Sunset and Solarized secondary colors are too faint on the card surface.
+    var screenSecondaryText: Color {
+        switch currentCode {
+        case "sunset", "solarized": palette.primaryText
+        default: palette.secondaryText
+        }
+    }
+
     // Navigation titles use system foregrounds, so match their appearance to
     // the app palette even when the device's appearance differs.
     var navigationColorScheme: ColorScheme {

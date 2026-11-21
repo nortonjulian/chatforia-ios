@@ -100,7 +100,7 @@ struct ActiveCallView: View {
 
                     Text(stateLabel)
                         .font(.headline)
-                        .foregroundStyle(themeManager.palette.secondaryText)
+                        .foregroundStyle(themeManager.screenSecondaryText)
                 }
 
                 Spacer()
@@ -186,6 +186,7 @@ struct ActiveCallView: View {
 }
 
 private struct CallControlButton: View {
+    @EnvironmentObject private var themeManager: ThemeManager
     let systemName: String
     let title: String
     var isActive: Bool = false
@@ -205,7 +206,7 @@ private struct CallControlButton: View {
 
             Text(title)
                 .font(.footnote)
-                .foregroundStyle(.primary)
+                .foregroundStyle(themeManager.palette.primaryText)
         }
     }
 
@@ -275,7 +276,7 @@ private struct InCallOptionsSheet: View {
 
                 Text(subtitle)
                     .font(.footnote)
-                    .foregroundStyle(themeManager.palette.secondaryText)
+                    .foregroundStyle(themeManager.screenSecondaryText)
             }
 
             Spacer()
@@ -318,6 +319,7 @@ private struct InCallOptionsSheet: View {
                 }
                 .navigationTitle("Add Participant")
                 .navigationBarTitleDisplayMode(.inline)
+                .modifier(ThemedNavigationBar())
                 .searchable(text: $vm.searchText)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
@@ -374,7 +376,7 @@ private struct InCallKeypadSheet: View {
                 .font(.system(size: 30, weight: .medium, design: .rounded))
                 .foregroundStyle(
                     digits.isEmpty
-                    ? themeManager.palette.secondaryText.opacity(0.55)
+                    ? themeManager.screenSecondaryText
                     : themeManager.palette.primaryText
                 )
                 .lineLimit(1)
@@ -417,7 +419,7 @@ private struct InCallKeypadSheet: View {
                     Text(letters)
                         .font(.system(size: 10, weight: .medium, design: .rounded))
                         .tracking(1.1)
-                        .foregroundStyle(themeManager.palette.secondaryText)
+                        .foregroundStyle(themeManager.screenSecondaryText)
                 } else {
                     Text(" ")
                         .font(.system(size: 10))

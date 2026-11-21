@@ -118,6 +118,7 @@ struct SMSThreadView: View {
             )
         )
         .navigationBarTitleDisplayMode(.inline)
+        .modifier(ThemedNavigationBar())
         .toolbar {
             ToolbarItem(placement: .principal) {
                 ConversationTransportTitle(
