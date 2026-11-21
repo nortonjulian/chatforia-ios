@@ -219,7 +219,6 @@ final class ThemeManagerTests: XCTestCase {
                         named: "\(option.code) \(role) \(appearance) minimum \(String(format: "%.2f", minimum)):1"
                     ) { _ in }
                     if option.code == "neon" {
-                        // Neon is unchanged pending its separately approved redesign.
                         XCTAssertNil(manager.gradientContrastLift(for: role))
                         let original: Color
                         switch role {
@@ -228,12 +227,11 @@ final class ThemeManagerTests: XCTestCase {
                         case .outgoingBubble: original = manager.palette.bubbleOutgoingText
                         }
                         XCTAssertEqual(components(manager.gradientForeground(for: role)), components(original))
-                    } else {
-                        XCTAssertGreaterThanOrEqual(
-                            minimum, 4.5,
-                            "Rendered \(option.code), \(role), \(appearance): \(minimum)"
-                        )
                     }
+                    XCTAssertGreaterThanOrEqual(
+                        minimum, 4.5,
+                        "Rendered \(option.code), \(role), \(appearance): \(minimum)"
+                    )
                 }
             }
         }
@@ -249,10 +247,130 @@ final class ThemeManagerTests: XCTestCase {
             var alpha: CGFloat = 0
             XCTAssertTrue(UIColor(manager.outgoingBubbleSecondaryForeground)
                 .getRed(&red, green: &green, blue: &blue, alpha: &alpha))
-            let needsFullOpacity = ["midnight", "amoled", "aurora", "solarized", "velvet"]
+            let needsFullOpacity = ["midnight", "amoled", "aurora", "neon", "solarized", "velvet"]
                 .contains(option.code)
             XCTAssertEqual(alpha, needsFullOpacity ? 1 : 0.82, accuracy: 0.01, option.code)
         }
+    }
+
+    func testNeonPressedAndDisabledGradientsRemainReadable() {
+        func luminance(_ values: [CGFloat]) -> Double {
+            let channels = values.prefix(3).map { value -> Double in
+                let channel = Double(value)
+                return channel <= 0.04045 ? channel / 12.92 : pow((channel + 0.055) / 1.055, 2.4)
+            }
+            return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+        }
+
+        func contrast(_ first: [CGFloat], _ second: [CGFloat]) -> Double {
+            let values = [luminance(first), luminance(second)].sorted()
+            return (values[1] + 0.05) / (values[0] + 0.05)
+        }
+
+        func components(_ color: Color) -> [CGFloat] {
+            var red: CGFloat = 0
+            var green: CGFloat = 0
+            var blue: CGFloat = 0
+            var alpha: CGFloat = 0
+            XCTAssertTrue(UIColor(color).getRed(&red, green: &green, blue: &blue, alpha: &alpha))
+            return [red, green, blue]
+        }
+
+        let manager = ThemeManager()
+        manager.apply(code: "neon")
+        let width = 256
+        let height = 64
+        for appearance in [ColorScheme.light, .dark] {
+            for role in [ThemeGradientRole.button, .composer, .outgoingBubble] {
+                for state in [ThemeGradientState.pressed, .disabled] {
+                    let renderer = ImageRenderer(content:
+                        ThemedGradientFill(
+                            role: role,
+                            startPoint: .leading,
+                            endPoint: .trailing,
+                            state: state
+                        )
+                            .environmentObject(manager)
+                            .environment(\.colorScheme, appearance)
+                            .frame(width: CGFloat(width), height: CGFloat(height))
+                    )
+                    renderer.scale = 1
+                    guard let image = renderer.uiImage?.cgImage else {
+                        XCTFail("Could not render Neon \(role), \(state), \(appearance)")
+                        continue
+                    }
+                    var pixels = [UInt8](repeating: 0, count: width * height * 4)
+                    let drewImage = pixels.withUnsafeMutableBytes { buffer -> Bool in
+                        guard let context = CGContext(
+                            data: buffer.baseAddress,
+                            width: width,
+                            height: height,
+                            bitsPerComponent: 8,
+                            bytesPerRow: width * 4,
+                            space: CGColorSpaceCreateDeviceRGB(),
+                            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+                        ) else { return false }
+                        context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+                        return true
+                    }
+                    XCTAssertTrue(drewImage)
+                    guard drewImage else { continue }
+
+                    let foreground = components(manager.gradientForeground(for: role, state: state))
+                    var minimum = Double.infinity
+                    for x in 2..<(width - 2) {
+                        let offset = ((height / 2) * width + x) * 4
+                        let background = (0..<3).map { CGFloat(pixels[offset + $0]) / 255 }
+                        minimum = min(minimum, contrast(foreground, background))
+                    }
+                    XCTContext.runActivity(named: "neon \(role) \(state) \(appearance) minimum \(String(format: "%.2f", minimum)):1") { _ in }
+                    XCTAssertGreaterThanOrEqual(minimum, 4.5)
+                }
+            }
+        }
+    }
+
+    func testNeonSurfacesAndControlRolesAreDistinctFromMidnight() {
+        func components(_ color: Color) -> [CGFloat] {
+            var red: CGFloat = 0
+            var green: CGFloat = 0
+            var blue: CGFloat = 0
+            var alpha: CGFloat = 0
+            XCTAssertTrue(UIColor(color).getRed(&red, green: &green, blue: &blue, alpha: &alpha))
+            return [red, green, blue]
+        }
+
+        func luminance(_ color: Color) -> Double {
+            let channels = components(color).map { value -> Double in
+                let channel = Double(value)
+                return channel <= 0.04045 ? channel / 12.92 : pow((channel + 0.055) / 1.055, 2.4)
+            }
+            return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+        }
+
+        func contrast(_ first: Color, _ second: Color) -> Double {
+            let values = [luminance(first), luminance(second)].sorted()
+            return (values[1] + 0.05) / (values[0] + 0.05)
+        }
+
+        let manager = ThemeManager()
+        manager.apply(code: "neon")
+        let neon = manager.palette
+        let midnight = ThemeCatalog.palette(for: "midnight")
+        XCTAssertNotEqual(components(neon.screenBackground), components(midnight.screenBackground))
+        XCTAssertNotEqual(components(neon.cardBackground), components(midnight.cardBackground))
+        XCTAssertNotEqual(components(neon.buttonStart), components(midnight.buttonStart))
+        XCTAssertGreaterThanOrEqual(contrast(neon.primaryText, neon.screenBackground), 4.5)
+        XCTAssertGreaterThanOrEqual(contrast(neon.primaryText, neon.cardBackground), 4.5)
+        XCTAssertGreaterThanOrEqual(contrast(neon.secondaryText, neon.screenBackground), 4.5)
+        XCTAssertGreaterThanOrEqual(contrast(neon.secondaryText, neon.cardBackground), 4.5)
+        XCTAssertGreaterThanOrEqual(contrast(neon.bubbleIncomingText, neon.bubbleIncoming), 4.5)
+        XCTAssertGreaterThanOrEqual(contrast(neon.tabUnselected, neon.screenBackground), 3)
+        XCTAssertGreaterThanOrEqual(contrast(manager.accentControlForeground, neon.accent), 4.5)
+        XCTAssertGreaterThanOrEqual(contrast(neon.composerBorder, neon.composerFieldBackground), 3)
+        XCTAssertGreaterThanOrEqual(contrast(manager.gradientDisabledForeground, manager.gradientDisabledFill), 4.5)
+        XCTAssertGreaterThanOrEqual(contrast(manager.toolbarIconForeground, neon.screenBackground), 3)
+        XCTAssertEqual(components(manager.outgoingBubbleSecondaryForeground), components(neon.bubbleOutgoingText))
     }
 
     func testSearchTextHintAndNavigationTitleContrastAcrossThemes() {

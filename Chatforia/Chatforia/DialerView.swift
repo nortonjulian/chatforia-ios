@@ -398,7 +398,7 @@ struct DialerView: View {
                     )
                 }
                 .font(.headline.weight(.semibold))
-                .foregroundStyle(themeManager.gradientForeground(for: .button))
+                .modifier(ThemedGradientForeground(role: .button))
                 .frame(width: buttonWidth, height: buttonHeight)
                 .background(
                     ThemedGradientFill(role: .button, startPoint: .leading, endPoint: .trailing)
@@ -415,9 +415,11 @@ struct DialerView: View {
                     y: 4
                 )
             }
-            .buttonStyle(.plain)
+            .modifier(ThemedGradientButtonStyle())
             .disabled(digits.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            .opacity(digits.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.65 : 1.0)
+            .opacity(themeManager.currentCode == "neon" ? 1 : (
+                digits.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.65 : 1.0
+            ))
             
             Spacer()
         }

@@ -197,17 +197,22 @@ struct RiaChatView: View {
 
                     if vm.isLoading {
                         ProgressView()
-                            .tint(themeManager.gradientForeground(for: .composer))
+                            .tint(themeManager.gradientForeground(
+                                for: .composer,
+                                state: vm.isLoading ? .disabled : .normal
+                            ))
                             .scaleEffect(0.85)
                     } else {
                         Image(systemName: "arrow.up")
                             .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(themeManager.gradientForeground(for: .composer))
+                            .modifier(ThemedGradientForeground(role: .composer))
                     }
                 }
-                .opacity(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.6 : 1)
+                .opacity(themeManager.currentCode == "neon" ? 1 : (
+                    draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.6 : 1
+                ))
             }
-            .buttonStyle(.plain)
+            .modifier(ThemedGradientButtonStyle())
             .disabled(vm.isLoading || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
         .padding(.horizontal, 10)

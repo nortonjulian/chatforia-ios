@@ -743,7 +743,7 @@ extension ChatThreadView {
                             languageCode: appLanguage
                         ))
                             .font(.subheadline.weight(.bold))
-                            .foregroundStyle(themeManager.gradientForeground(for: .composer))
+                            .modifier(ThemedGradientForeground(role: .composer))
                             .padding(.horizontal, 14)
                             .padding(.vertical, 9)
                             .background(
@@ -751,7 +751,7 @@ extension ChatThreadView {
                                     .clipShape(Capsule())
                             )
                     }
-                    .buttonStyle(.plain)
+                    .modifier(ThemedGradientButtonStyle())
                     .disabled(vm.isSendingImage || isProcessingVideo || auth.currentToken == nil)
                 }
                 .padding(.horizontal, 12)

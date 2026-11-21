@@ -16,13 +16,23 @@ struct ThemedGradientButton: View {
         Button(action: action) {
             Text(appText(title, languageCode: appLanguage))
                 .font(font)
-                .foregroundStyle(themeManager.gradientForeground(for: .button).opacity(isDisabled ? 0.7 : 1))
+                .foregroundStyle(
+                    themeManager.gradientForeground(
+                        for: .button,
+                        state: isDisabled ? .disabled : .normal
+                    ).opacity(themeManager.currentCode == "neon" ? 1 : (isDisabled ? 0.7 : 1))
+                )
                 .frame(maxWidth: isFullWidth ? .infinity : nil)
                 .padding(.horizontal, horizontalPadding)
                 .padding(.vertical, verticalPadding)
                 .background(
-                    ThemedGradientFill(role: .button, startPoint: .leading, endPoint: .trailing)
-                        .opacity(isDisabled ? 0.6 : 1)
+                    ThemedGradientFill(
+                        role: .button,
+                        startPoint: .leading,
+                        endPoint: .trailing,
+                        state: isDisabled ? .disabled : .normal
+                    )
+                        .opacity(themeManager.currentCode == "neon" ? 1 : (isDisabled ? 0.6 : 1))
                 )
                 .clipShape(Capsule())
                 .overlay(
@@ -30,13 +40,17 @@ struct ThemedGradientButton: View {
                         .stroke(.white.opacity(isDisabled ? 0.08 : 0.16), lineWidth: 1)
                 )
                 .shadow(
-                    color: themeManager.palette.buttonEnd.opacity(isDisabled ? 0.10 : 0.20),
+                    color: themeManager.palette.buttonEnd.opacity(
+                        themeManager.currentCode == "neon"
+                            ? (isDisabled ? 0 : 0.12)
+                            : (isDisabled ? 0.10 : 0.20)
+                    ),
                     radius: 10,
                     x: 0,
                     y: 4
                 )
         }
-        .buttonStyle(.plain)
+        .modifier(ThemedGradientButtonStyle())
         .disabled(isDisabled)
     }
 }

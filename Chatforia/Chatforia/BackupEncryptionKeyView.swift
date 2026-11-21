@@ -173,7 +173,10 @@ struct BackupEncryptionKeyView: View {
 
                     if isSaving {
                         ProgressView()
-                            .tint(themeManager.gradientForeground(for: .button))
+                            .tint(themeManager.gradientForeground(
+                                for: .button,
+                                state: isSaving || saveDisabled ? .disabled : .normal
+                            ))
                     }
 
                     Text(
@@ -189,7 +192,7 @@ struct BackupEncryptionKeyView: View {
                 .background(
                     ThemedGradientFill(role: .button, startPoint: .leading, endPoint: .trailing)
                 )
-                .foregroundStyle(themeManager.gradientForeground(for: .button))
+                .modifier(ThemedGradientForeground(role: .button))
                 .clipShape(
                     RoundedRectangle(
                         cornerRadius: 16,
@@ -197,9 +200,9 @@ struct BackupEncryptionKeyView: View {
                     )
                 )
             }
-            .buttonStyle(.plain)
+            .modifier(ThemedGradientButtonStyle())
             .disabled(isSaving || saveDisabled)
-            .opacity(isSaving || saveDisabled ? 0.65 : 1)
+            .opacity(themeManager.currentCode == "neon" ? 1 : (isSaving || saveDisabled ? 0.65 : 1))
         }
         .padding(16)
         .background(themeManager.palette.cardBackground)
