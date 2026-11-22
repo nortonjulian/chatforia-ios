@@ -54,6 +54,7 @@ final class SMSConversationSnapshotCache {
     }
 
     private var activeAccountId: Int?
+    private(set) var mutationEpoch = 0
     private var entries: [Key: Entry] = [:]
     private var order: [Key] = []
     private let maxThreads = 8
@@ -67,12 +68,14 @@ final class SMSConversationSnapshotCache {
     }
 
     func clear() {
+        mutationEpoch += 1
         activeAccountId = nil
         entries.removeAll()
         order.removeAll()
     }
 
     func remove(accountId: Int, threadId: Int) {
+        mutationEpoch += 1
         let key = Key(accountId: accountId, threadId: threadId)
         entries.removeValue(forKey: key)
         order.removeAll { $0 == key }
@@ -155,6 +158,7 @@ final class SMSThreadViewModel: ObservableObject {
     private var requestedThreadId: Int?
     private var acceptedOptimisticIds: Set<Int> = []
     private let fetchThread: (Int, String) async throws -> SMSThreadDTO
+    private let deleteMessageRequest: (Int, String) async throws -> Bool
     private let postRead: (Int, [Int], String) async throws -> Void
     private let refreshBadge: () async -> Void
     private let currentIdentity: @MainActor () -> (accountId: Int, token: String?)
@@ -177,6 +181,14 @@ final class SMSThreadViewModel: ObservableObject {
                 token: token
             )
         },
+        deleteMessageRequest: @escaping (Int, String) async throws -> Bool = { messageId, token in
+            let response: DeleteSMSMessageResponse = try await APIClient.shared.send(
+                APIRequest(path: "sms/messages/\(messageId)", method: .DELETE,
+                           requiresAuth: true),
+                token: token
+            )
+            return response.ok
+        },
         postRead: @escaping (Int, [Int], String) async throws -> Void = { threadId, ids, token in
             let response: SMSReadResponse = try await APIClient.shared.send(
                 SMSThreadViewModel.readAPIRequest(threadId: threadId, ids: ids),
@@ -194,6 +206,7 @@ final class SMSThreadViewModel: ObservableObject {
         }
     ) {
         self.fetchThread = fetchThread
+        self.deleteMessageRequest = deleteMessageRequest
         self.postRead = postRead
         self.refreshBadge = refreshBadge
         self.snapshotCache = snapshotCache ?? .shared
@@ -352,6 +365,7 @@ final class SMSThreadViewModel: ObservableObject {
             thread = cached.thread
             messages = cached.messages
         }
+        let cacheEpoch = snapshotCache.mutationEpoch
         // A cached empty thread is a real snapshot, not an initial loading state.
         isLoading = thread == nil
         refreshingVersion = requestVersion
@@ -375,6 +389,12 @@ final class SMSThreadViewModel: ObservableObject {
             guard requestVersion == refreshVersion, !Task.isCancelled,
                   currentIdentity().token == token,
                   currentIdentity().accountId == accountId else { return }
+            guard snapshotCache.mutationEpoch == cacheEpoch else {
+                // Another view invalidated the shared snapshot while this
+                // request was in flight. Revalidate before showing its data.
+                Task { await self.loadThread(threadId: threadId, token: token) }
+                return
+            }
             guard fetched.id == threadId,
                   fetched.userId == nil || fetched.userId == accountId else {
                 clearUnauthorizedThread(accountId: accountId, threadId: threadId)
@@ -616,21 +636,22 @@ final class SMSThreadViewModel: ObservableObject {
         errorText = nil
 
         do {
-            let _: DeleteSMSMessageResponse =
-                try await APIClient.shared.send(
-                    APIRequest(
-                        path: "sms/messages/\(messageId)",
-                        method: .DELETE,
-                        requiresAuth: true
-                    ),
-                    token: token
-                )
+            guard try await deleteMessageRequest(messageId, token) else {
+                throw URLError(.badServerResponse)
+            }
 
             guard currentIdentity().token == token,
                   currentIdentity().accountId == displayedAccountId else { return }
+            // A GET started before DELETE can finish later with the old row.
+            // Fence it before changing local state or starting a new request.
+            refreshVersion += 1
+            refreshingVersion = nil
+            needsSocketRefresh = false
+            isLoading = false
             messages.removeAll { $0.id == messageId }
-            if let thread, let accountId = displayedAccountId {
-                snapshotCache.removeMessage(messageId, accountId: accountId, threadId: thread.id)
+            let threadId = thread?.id ?? requestedThreadId
+            if let threadId, let accountId = displayedAccountId {
+                snapshotCache.removeMessage(messageId, accountId: accountId, threadId: threadId)
             }
 
             AnalyticsManager.shared.capture(
@@ -639,6 +660,9 @@ final class SMSThreadViewModel: ObservableObject {
                     "messageId": messageId
                 ]
             )
+            if let threadId, requestedThreadId == threadId {
+                await loadThread(threadId: threadId, token: token)
+            }
         } catch {
             errorText = friendlyErrorMessage(error)
         }

@@ -588,6 +588,118 @@ final class SMSThreadViewModelTests: XCTestCase {
         XCTAssertNotNil(cache.snapshot(accountId: 1, threadId: 76))
     }
 
+    func testSuccessfulDeleteFencesOlderHistoryResponseAndRefreshes() async throws {
+        let probe = ReadProbe()
+        let cache = SMSConversationSnapshotCache()
+        cache.activateAccount(1)
+        let initial = try fixtureThread()
+        cache.store(thread: initial, messages: initial.sortedMessages, accountId: 1)
+        let afterDelete = withMessages(initial, initial.messages.filter { $0.id != 501 })
+        var oldGet: CheckedContinuation<SMSThreadDTO, Error>?
+        var fetchCount = 0
+        var deletedIds: [Int] = []
+        let vm = SMSThreadViewModel(
+            fetchThread: { _, _ in
+                fetchCount += 1
+                if fetchCount == 1 {
+                    return try await withCheckedThrowingContinuation { oldGet = $0 }
+                }
+                return afterDelete
+            },
+            deleteMessageRequest: { id, _ in deletedIds.append(id); return true },
+            snapshotCache: cache,
+            currentIdentity: { (probe.accountId, probe.token) }
+        )
+        let refresh = Task { await vm.loadThread(threadId: 67, token: probe.token) }
+        for _ in 0..<1_000 where oldGet == nil { await Task.yield() }
+        XCTAssertNotNil(oldGet)
+        XCTAssertTrue(vm.messages.contains { $0.id == 501 })
+
+        await vm.deleteMessage(messageId: 501, token: probe.token)
+        XCTAssertEqual(deletedIds, [501])
+        XCTAssertEqual(fetchCount, 2)
+        XCTAssertFalse(vm.messages.contains { $0.id == 501 })
+        XCTAssertFalse(cache.snapshot(accountId: 1, threadId: 67)?.messages.contains {
+            $0.id == 501
+        } ?? true)
+
+        oldGet?.resume(returning: initial)
+        await refresh.value
+        XCTAssertFalse(vm.messages.contains { $0.id == 501 })
+        XCTAssertFalse(cache.snapshot(accountId: 1, threadId: 67)?.messages.contains {
+            $0.id == 501
+        } ?? true)
+    }
+
+    func testRejectedDeleteKeepsMessageAndCachedSnapshot() async throws {
+        let probe = ReadProbe()
+        let cache = SMSConversationSnapshotCache()
+        cache.activateAccount(1)
+        let initial = try fixtureThread()
+        var fetchCount = 0
+        let vm = SMSThreadViewModel(
+            fetchThread: { _, _ in fetchCount += 1; return initial },
+            deleteMessageRequest: { _, _ in false },
+            snapshotCache: cache,
+            currentIdentity: { (probe.accountId, probe.token) }
+        )
+        await vm.loadThread(threadId: 67, token: probe.token)
+        await vm.deleteMessage(messageId: 501, token: probe.token)
+        XCTAssertEqual(fetchCount, 1)
+        XCTAssertTrue(vm.messages.contains { $0.id == 501 })
+        XCTAssertTrue(cache.snapshot(accountId: 1, threadId: 67)?.messages.contains {
+            $0.id == 501
+        } ?? false)
+        XCTAssertNotNil(vm.errorText)
+    }
+
+    func testDeleteInvalidatesOlderGetFromAnotherViewModel() async throws {
+        let probe = ReadProbe()
+        let cache = SMSConversationSnapshotCache()
+        cache.activateAccount(1)
+        let initial = try fixtureThread()
+        let afterDelete = withMessages(initial, initial.messages.filter { $0.id != 501 })
+        cache.store(thread: initial, messages: initial.sortedMessages, accountId: 1)
+        var oldGet: CheckedContinuation<SMSThreadDTO, Error>?
+        var firstFetchCount = 0
+        let first = SMSThreadViewModel(
+            fetchThread: { _, _ in
+                firstFetchCount += 1
+                if firstFetchCount == 1 {
+                    return try await withCheckedThrowingContinuation { oldGet = $0 }
+                }
+                return afterDelete
+            }, snapshotCache: cache,
+            currentIdentity: { (probe.accountId, probe.token) }
+        )
+        let firstLoad = Task { await first.loadThread(threadId: 67, token: probe.token) }
+        for _ in 0..<1_000 where oldGet == nil { await Task.yield() }
+        XCTAssertNotNil(oldGet)
+
+        var secondFetchCount = 0
+        let second = SMSThreadViewModel(
+            fetchThread: { _, _ in
+                secondFetchCount += 1
+                return secondFetchCount == 1 ? initial : afterDelete
+            },
+            deleteMessageRequest: { _, _ in true }, snapshotCache: cache,
+            currentIdentity: { (probe.accountId, probe.token) }
+        )
+        await second.loadThread(threadId: 67, token: probe.token)
+        await second.deleteMessage(messageId: 501, token: probe.token)
+        oldGet?.resume(returning: initial)
+        await firstLoad.value
+        for _ in 0..<1_000 where firstFetchCount < 2 { await Task.yield() }
+        XCTAssertEqual(firstFetchCount, 2)
+        XCTAssertFalse(cache.snapshot(accountId: 1, threadId: 67)?.messages.contains {
+            $0.id == 501
+        } ?? true)
+        for _ in 0..<1_000 where first.messages.contains(where: { $0.id == 501 }) {
+            await Task.yield()
+        }
+        XCTAssertFalse(first.messages.contains { $0.id == 501 })
+    }
+
     func testReadRequestUsesExactAuthenticatedPostContract() throws {
         let request = try SMSThreadViewModel.readAPIRequest(threadId: 67, ids: [501, 502])
         XCTAssertEqual(request.path, "sms/threads/67/read")
