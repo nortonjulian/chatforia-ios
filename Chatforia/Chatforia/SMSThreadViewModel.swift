@@ -32,6 +32,105 @@ private struct SMSReadRequest: Encodable {
     let messageIds: [Int]
 }
 
+/// A short-lived display window, never written to disk. SMS records must not
+/// share the encrypted Chatforia message store or its room identifiers.
+@MainActor
+final class SMSConversationSnapshotCache {
+    static let shared = SMSConversationSnapshotCache()
+
+    struct Snapshot {
+        let thread: SMSThreadDTO
+        let messages: [SMSMessageDTO]
+    }
+
+    private struct Key: Hashable {
+        let accountId: Int
+        let threadId: Int
+    }
+
+    private struct Entry {
+        var snapshot: Snapshot
+        var storedAt: Date
+    }
+
+    private var activeAccountId: Int?
+    private(set) var mutationEpoch = 0
+    private var entries: [Key: Entry] = [:]
+    private var order: [Key] = []
+    private let maxThreads = 8
+    private let maxMessagesPerThread = 200
+    private let lifetime: TimeInterval = 20 * 60
+
+    func activateAccount(_ accountId: Int) {
+        guard accountId > 0 else { clear(); return }
+        if activeAccountId != accountId { clear() }
+        activeAccountId = accountId
+    }
+
+    func clear() {
+        mutationEpoch += 1
+        activeAccountId = nil
+        entries.removeAll()
+        order.removeAll()
+    }
+
+    func remove(accountId: Int, threadId: Int) {
+        mutationEpoch += 1
+        let key = Key(accountId: accountId, threadId: threadId)
+        entries.removeValue(forKey: key)
+        order.removeAll { $0 == key }
+    }
+
+    func snapshot(accountId: Int, threadId: Int, now: Date = Date()) -> Snapshot? {
+        guard activeAccountId == accountId else { return nil }
+        let key = Key(accountId: accountId, threadId: threadId)
+        guard let entry = entries[key] else { return nil }
+        guard now.timeIntervalSince(entry.storedAt) < lifetime else {
+            remove(accountId: accountId, threadId: threadId)
+            return nil
+        }
+        return entry.snapshot
+    }
+
+    func removeMessage(_ messageId: Int, accountId: Int, threadId: Int) {
+        guard activeAccountId == accountId else { return }
+        // A locally deleted row could still be present in an older history
+        // response. Discard the snapshot instead of retaining unbounded IDs.
+        remove(accountId: accountId, threadId: threadId)
+    }
+
+    func store(thread: SMSThreadDTO, messages: [SMSMessageDTO], accountId: Int,
+               now: Date = Date()) {
+        guard activeAccountId == accountId, thread.id > 0,
+              thread.userId == nil || thread.userId == accountId else { return }
+        let key = Key(accountId: accountId, threadId: thread.id)
+        let sorted = messages.filter {
+            $0.id > 0 &&
+            ($0.threadId == nil || $0.threadId == thread.id)
+        }
+            .sorted { $0.createdAt == $1.createdAt ? $0.id < $1.id : $0.createdAt < $1.createdAt }
+        var unique: [Int: SMSMessageDTO] = [:]
+        for message in sorted { unique[message.id] = message }
+        let window = unique.values.sorted {
+            $0.createdAt == $1.createdAt ? $0.id < $1.id : $0.createdAt < $1.createdAt
+        }.suffix(maxMessagesPerThread)
+        let metadata = SMSThreadDTO(
+            id: thread.id, userId: thread.userId, createdAt: thread.createdAt,
+            updatedAt: thread.updatedAt, archivedAt: thread.archivedAt,
+            contactPhone: thread.contactPhone, displayName: thread.displayName,
+            contactName: thread.contactName, participants: thread.participants, messages: []
+        )
+        entries[key] = Entry(snapshot: Snapshot(thread: metadata, messages: Array(window)),
+                             storedAt: now)
+        order.removeAll { $0 == key }
+        order.append(key)
+        while order.count > maxThreads {
+            entries.removeValue(forKey: order.removeFirst())
+        }
+    }
+
+}
+
 @MainActor
 final class SMSThreadViewModel: ObservableObject {
     private struct ReadContext: Equatable {
@@ -52,10 +151,18 @@ final class SMSThreadViewModel: ObservableObject {
 
     private var observers: [NSObjectProtocol] = []
     private var refreshVersion = 0
+    private var refreshingVersion: Int?
+    private var needsSocketRefresh = false
+    private var displayedAccountId: Int?
+    private var displayedToken: String?
+    private var requestedThreadId: Int?
+    private var acceptedOptimisticIds: Set<Int> = []
     private let fetchThread: (Int, String) async throws -> SMSThreadDTO
+    private let deleteMessageRequest: (Int, String) async throws -> Bool
     private let postRead: (Int, [Int], String) async throws -> Void
     private let refreshBadge: () async -> Void
     private let currentIdentity: @MainActor () -> (accountId: Int, token: String?)
+    private let snapshotCache: SMSConversationSnapshotCache
     private var readContext: ReadContext?
     private var visibleMessageIds: Set<Int> = []
     private var acknowledgedMessageIds: Set<Int> = []
@@ -74,6 +181,14 @@ final class SMSThreadViewModel: ObservableObject {
                 token: token
             )
         },
+        deleteMessageRequest: @escaping (Int, String) async throws -> Bool = { messageId, token in
+            let response: DeleteSMSMessageResponse = try await APIClient.shared.send(
+                APIRequest(path: "sms/messages/\(messageId)", method: .DELETE,
+                           requiresAuth: true),
+                token: token
+            )
+            return response.ok
+        },
         postRead: @escaping (Int, [Int], String) async throws -> Void = { threadId, ids, token in
             let response: SMSReadResponse = try await APIClient.shared.send(
                 SMSThreadViewModel.readAPIRequest(threadId: threadId, ids: ids),
@@ -84,14 +199,17 @@ final class SMSThreadViewModel: ObservableObject {
         refreshBadge: @escaping () async -> Void = {
             await NotificationCoordinator.shared.refreshBadgeState()
         },
+        snapshotCache: SMSConversationSnapshotCache? = nil,
         currentIdentity: @escaping @MainActor () -> (accountId: Int, token: String?) = {
             (UserDefaults.standard.integer(forKey: "chatforia.currentUserId"),
              TokenStore.shared.read())
         }
     ) {
         self.fetchThread = fetchThread
+        self.deleteMessageRequest = deleteMessageRequest
         self.postRead = postRead
         self.refreshBadge = refreshBadge
+        self.snapshotCache = snapshotCache ?? .shared
         self.currentIdentity = currentIdentity
         let observer = NotificationCenter.default.addObserver(
             forName: .socketSMSMessageNew,
@@ -110,24 +228,33 @@ final class SMSThreadViewModel: ObservableObject {
                     let message = try? JSONDecoder.tolerantISO8601Decoder().decode(SMSMessageDTO.self, from: data)
                 else { return }
 
-                guard self.thread?.id == threadId,
-                      self.thread?.userId == nil ||
-                      self.thread?.userId == self.currentIdentity().accountId else { return }
+                let identity = self.currentIdentity()
+                guard self.requestedThreadId == threadId,
+                      self.displayedAccountId == identity.accountId,
+                      self.displayedToken == identity.token,
+                      message.id > 0,
+                      message.threadId == nil || message.threadId == threadId else { return }
 
-                if let index = self.messages.firstIndex(where: { $0.id == message.id }) {
-                    self.messages[index] = message
-                } else {
-                    self.messages.append(message)
-                }
-
-                self.messages.sort {
-                    if $0.createdAt != $1.createdAt { return $0.createdAt < $1.createdAt }
-                    return $0.id < $1.id
+                // Socket events can be delayed across account switches or
+                // deletion. Only authenticated history may admit their rows.
+                if self.refreshingVersion != nil {
+                    self.needsSocketRefresh = true
+                } else if self.thread?.id == threadId {
+                    Task { await self.loadThread(threadId: threadId, token: identity.token) }
                 }
             }
         }
 
         observers.append(observer)
+    }
+
+    private static func preferredMessage(current: SMSMessageDTO,
+                                         incoming: SMSMessageDTO) -> SMSMessageDTO {
+        if current.mediaRestricted && !incoming.mediaRestricted { return current }
+        if incoming.mediaRestricted && !current.mediaRestricted { return incoming }
+        let currentRevision = current.editedAt ?? current.createdAt
+        let incomingRevision = incoming.editedAt ?? incoming.createdAt
+        return incomingRevision > currentRevision ? incoming : current
     }
 
     deinit {
@@ -196,12 +323,17 @@ final class SMSThreadViewModel: ObservableObject {
         }
     }
     
-    func loadThread(threadId: Int, token: String?) async {
+    func loadThread(threadId: Int, token: String?,
+                    acceptedOptimisticId: Int? = nil) async {
         refreshVersion += 1
         let requestVersion = refreshVersion
-        let accountId = currentIdentity().accountId
-        guard let token else {
+        let identity = currentIdentity()
+        let accountId = identity.accountId
+        guard let token, !token.isEmpty, accountId > 0,
+              identity.token == token else {
             isLoading = false
+            thread = nil
+            messages = []
             errorText = appText(
                 "ios.missing_auth_token",
                 languageCode: appLanguage
@@ -209,12 +341,46 @@ final class SMSThreadViewModel: ObservableObject {
             return
         }
 
-        // Show loading only before this thread has first loaded.
-        // Refreshes should keep empty conversations and messages visible.
-        isLoading = thread?.id != threadId
+        if displayedAccountId != accountId || displayedToken != token ||
+            requestedThreadId != threadId {
+            let acceptedRow = acceptedOptimisticId.flatMap { id in
+                messages.first { $0.id == id && id < 0 }
+            }
+            thread = nil
+            messages = acceptedRow.map { [$0] } ?? []
+            acceptedOptimisticIds = []
+            needsSocketRefresh = false
+            readContext = nil
+            visibleMessageIds = []
+            acknowledgedMessageIds = []
+        }
+        if let acceptedOptimisticId {
+            acceptedOptimisticIds.insert(acceptedOptimisticId)
+        }
+        displayedAccountId = accountId
+        displayedToken = token
+        requestedThreadId = threadId
+        let cached = snapshotCache.snapshot(accountId: accountId, threadId: threadId)
+        if thread == nil, let cached {
+            thread = cached.thread
+            messages = cached.messages
+        }
+        let cacheEpoch = snapshotCache.mutationEpoch
+        // A cached empty thread is a real snapshot, not an initial loading state.
+        isLoading = thread == nil
+        refreshingVersion = requestVersion
         errorText = nil
         defer {
-            if requestVersion == refreshVersion { isLoading = false }
+            if requestVersion == refreshVersion {
+                refreshingVersion = nil
+                isLoading = false
+                if needsSocketRefresh, requestedThreadId == threadId,
+                   currentIdentity().accountId == accountId,
+                   currentIdentity().token == token {
+                    needsSocketRefresh = false
+                    Task { await self.loadThread(threadId: threadId, token: token) }
+                }
+            }
         }
 
         do {
@@ -222,12 +388,39 @@ final class SMSThreadViewModel: ObservableObject {
 
             guard requestVersion == refreshVersion, !Task.isCancelled,
                   currentIdentity().token == token,
-                  currentIdentity().accountId == accountId,
-                  fetched.id == threadId,
-                  fetched.userId == nil || fetched.userId == accountId else { return }
+                  currentIdentity().accountId == accountId else { return }
+            guard snapshotCache.mutationEpoch == cacheEpoch else {
+                // Another view invalidated the shared snapshot while this
+                // request was in flight. Revalidate before showing its data.
+                Task { await self.loadThread(threadId: threadId, token: token) }
+                return
+            }
+            guard fetched.id == threadId,
+                  fetched.userId == nil || fetched.userId == accountId else {
+                clearUnauthorizedThread(accountId: accountId, threadId: threadId)
+                return
+            }
 
             thread = fetched
-            messages = fetched.sortedMessages
+            var byId: [Int: SMSMessageDTO] = [:]
+            for message in fetched.sortedMessages { byId[message.id] = message }
+            // A server window can lag a revision already delivered by the
+            // socket. Keep newer fields for IDs the server still authorizes;
+            // rows omitted by the server are never retained from the cache.
+            for previous in messages where previous.id > 0 {
+                if let server = byId[previous.id] {
+                    byId[previous.id] = Self.preferredMessage(current: server,
+                                                               incoming: previous)
+                }
+            }
+            let pending = messages.filter {
+                $0.id <= 0 && $0.threadId == threadId &&
+                !acceptedOptimisticIds.contains($0.id)
+            }
+            messages = (Array(byId.values) + pending)
+                .sorted { $0.createdAt == $1.createdAt ? $0.id < $1.id : $0.createdAt < $1.createdAt }
+            acceptedOptimisticIds.removeAll()
+            cacheCurrentMessages()
             errorText = nil
 
             // A GET is read-only. Only IDs reported by the foreground scroll
@@ -239,7 +432,10 @@ final class SMSThreadViewModel: ObservableObject {
                   currentIdentity().accountId == accountId,
                   !isCancelledRefresh(error) else { return }
 
-            if messages.isEmpty {
+            if isAuthorizationFailure(error) {
+                clearUnauthorizedThread(accountId: accountId, threadId: threadId)
+                errorText = friendlyErrorMessage(error)
+            } else if messages.isEmpty {
                 errorText = friendlyErrorMessage(error)
             } else {
                 errorText = appText(
@@ -248,6 +444,35 @@ final class SMSThreadViewModel: ObservableObject {
                 )
             }
 
+        }
+    }
+
+    private func clearUnauthorizedThread(accountId: Int, threadId: Int) {
+        snapshotCache.remove(accountId: accountId, threadId: threadId)
+        thread = nil
+        messages = []
+        requestedThreadId = nil
+        readContext = nil
+        visibleMessageIds = []
+        acknowledgedMessageIds = []
+        acceptedOptimisticIds = []
+        needsSocketRefresh = false
+    }
+
+    private func cacheCurrentMessages() {
+        guard let thread, let accountId = displayedAccountId,
+              requestedThreadId == thread.id,
+              currentIdentity().accountId == accountId,
+              currentIdentity().token == displayedToken else { return }
+        snapshotCache.store(thread: thread, messages: messages, accountId: accountId)
+    }
+
+    private func isAuthorizationFailure(_ error: Error) -> Bool {
+        guard let apiError = error as? APIError else { return false }
+        switch apiError {
+        case .unauthorized: return true
+        case .server(let status, _, _, _): return status == 401 || status == 403
+        default: return false
         }
     }
 
@@ -279,6 +504,8 @@ final class SMSThreadViewModel: ObservableObject {
             )
             return nil
         }
+
+        let sendAccountId = currentIdentity().accountId
 
         isSending = true
         errorText = nil
@@ -312,12 +539,21 @@ final class SMSThreadViewModel: ObservableObject {
             )
 
             isSending = false
+
+            // An accepted send is represented by the canonical server row on
+            // the next successful history response. Keep the local row only
+            // while that response is unavailable.
+            let identity = currentIdentity()
+            guard identity.token == token,
+                  identity.accountId == sendAccountId,
+                  identity.accountId > 0 else { return nil }
             
             AnalyticsManager.shared.capture("sms_sent", properties: [
                 "type": "text"
             ])
             
-            await loadThread(threadId: response.threadId, token: token)
+            await loadThread(threadId: response.threadId, token: token,
+                             acceptedOptimisticId: optimistic.id)
             return response.threadId
         } catch {
             isSending = false
@@ -400,17 +636,23 @@ final class SMSThreadViewModel: ObservableObject {
         errorText = nil
 
         do {
-            let _: DeleteSMSMessageResponse =
-                try await APIClient.shared.send(
-                    APIRequest(
-                        path: "sms/messages/\(messageId)",
-                        method: .DELETE,
-                        requiresAuth: true
-                    ),
-                    token: token
-                )
+            guard try await deleteMessageRequest(messageId, token) else {
+                throw URLError(.badServerResponse)
+            }
 
+            guard currentIdentity().token == token,
+                  currentIdentity().accountId == displayedAccountId else { return }
+            // A GET started before DELETE can finish later with the old row.
+            // Fence it before changing local state or starting a new request.
+            refreshVersion += 1
+            refreshingVersion = nil
+            needsSocketRefresh = false
+            isLoading = false
             messages.removeAll { $0.id == messageId }
+            let threadId = thread?.id ?? requestedThreadId
+            if let threadId, let accountId = displayedAccountId {
+                snapshotCache.removeMessage(messageId, accountId: accountId, threadId: threadId)
+            }
 
             AnalyticsManager.shared.capture(
                 "sms_message_deleted_for_me",
@@ -418,6 +660,9 @@ final class SMSThreadViewModel: ObservableObject {
                     "messageId": messageId
                 ]
             )
+            if let threadId, requestedThreadId == threadId {
+                await loadThread(threadId: threadId, token: token)
+            }
         } catch {
             errorText = friendlyErrorMessage(error)
         }

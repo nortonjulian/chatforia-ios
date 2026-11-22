@@ -46,15 +46,658 @@ final class SMSThreadViewModelTests: XCTestCase {
     }
 
     private func readModel(_ probe: ReadProbe, thread: SMSThreadDTO) -> SMSThreadViewModel {
-        SMSThreadViewModel(
+        let cache = SMSConversationSnapshotCache()
+        cache.activateAccount(probe.accountId)
+        return SMSThreadViewModel(
             fetchThread: { _, _ in thread },
             postRead: { _, ids, _ in
                 probe.posts.append(ids)
                 if probe.failPost { throw URLError(.notConnectedToInternet) }
             },
             refreshBadge: { probe.badgeRefreshes += 1 },
+            snapshotCache: cache,
             currentIdentity: { (probe.accountId, probe.token) }
         )
+    }
+
+    private func withMessages(_ thread: SMSThreadDTO,
+                              _ messages: [SMSMessageDTO]) -> SMSThreadDTO {
+        SMSThreadDTO(
+            id: thread.id, userId: thread.userId, createdAt: thread.createdAt,
+            updatedAt: thread.updatedAt, archivedAt: thread.archivedAt,
+            contactPhone: thread.contactPhone, displayName: thread.displayName,
+            contactName: thread.contactName, participants: thread.participants,
+            messages: messages
+        )
+    }
+
+    func testReopenShowsCachedHistoryBeforeDelayedOnlineRefresh() async throws {
+        let probe = ReadProbe()
+        let cache = SMSConversationSnapshotCache()
+        cache.activateAccount(1)
+        let initial = try fixtureThread()
+        let first = SMSThreadViewModel(fetchThread: { _, _ in initial },
+                                       snapshotCache: cache,
+                                       currentIdentity: { (probe.accountId, probe.token) })
+        await first.loadThread(threadId: 67, token: probe.token)
+
+        var completion: CheckedContinuation<SMSThreadDTO, Error>?
+        let reopened = SMSThreadViewModel(
+            fetchThread: { _, _ in
+                try await withCheckedThrowingContinuation { completion = $0 }
+            }, snapshotCache: cache,
+            currentIdentity: { (probe.accountId, probe.token) }
+        )
+        let refresh = Task { await reopened.loadThread(threadId: 67, token: probe.token) }
+        for _ in 0..<1_000 where completion == nil { await Task.yield() }
+        XCTAssertNotNil(completion)
+        XCTAssertEqual(reopened.messages.map(\.id), [499, 501, 500])
+        XCTAssertFalse(reopened.isLoading)
+        let newest = SMSMessageDTO(id: 502, threadId: 67, direction: "in", body: "new",
+                                   createdAt: initial.messages[1].createdAt.addingTimeInterval(60))
+        completion?.resume(returning: withMessages(initial, initial.messages + [newest]))
+        await refresh.value
+        XCTAssertEqual(Set(reopened.messages.map(\.id)), Set([499, 500, 501, 502]))
+    }
+
+    func testOfflineRefreshRetainsCachedHistoryAndAccountSwitchClearsIt() async throws {
+        let probe = ReadProbe()
+        let cache = SMSConversationSnapshotCache()
+        cache.activateAccount(1)
+        let initial = try fixtureThread()
+        let first = SMSThreadViewModel(fetchThread: { _, _ in initial },
+                                       snapshotCache: cache,
+                                       currentIdentity: { (probe.accountId, probe.token) })
+        await first.loadThread(threadId: 67, token: probe.token)
+        let reopened = SMSThreadViewModel(
+            fetchThread: { _, _ in throw URLError(.notConnectedToInternet) },
+            snapshotCache: cache,
+            currentIdentity: { (probe.accountId, probe.token) }
+        )
+        await reopened.loadThread(threadId: 67, token: probe.token)
+        XCTAssertEqual(reopened.messages.count, 3)
+        XCTAssertNotNil(reopened.errorText)
+        probe.accountId = 2
+        probe.token = "other-account"
+        cache.activateAccount(2)
+        XCTAssertNil(cache.snapshot(accountId: 1, threadId: 67))
+        await reopened.loadThread(threadId: 67, token: probe.token)
+        XCTAssertTrue(reopened.messages.isEmpty)
+        cache.clear()
+        XCTAssertNil(cache.snapshot(accountId: 2, threadId: 67))
+    }
+
+    func testAuthorizationFailurePurgesCachedHistoryAndVisibleRows() async throws {
+        let probe = ReadProbe()
+        let cache = SMSConversationSnapshotCache()
+        cache.activateAccount(1)
+        let initial = try fixtureThread()
+        let first = SMSThreadViewModel(fetchThread: { _, _ in initial },
+                                       snapshotCache: cache,
+                                       currentIdentity: { (probe.accountId, probe.token) })
+        await first.loadThread(threadId: 67, token: probe.token)
+        let reopened = SMSThreadViewModel(
+            fetchThread: { _, _ in throw APIError.unauthorized },
+            snapshotCache: cache,
+            currentIdentity: { (probe.accountId, probe.token) }
+        )
+        await reopened.loadThread(threadId: 67, token: probe.token)
+        XCTAssertTrue(reopened.messages.isEmpty)
+        XCTAssertNil(reopened.thread)
+        XCTAssertNil(cache.snapshot(accountId: 1, threadId: 67))
+    }
+
+    func testForbiddenRefreshAlsoPurgesPreviouslyVisibleSnapshot() async throws {
+        let probe = ReadProbe()
+        let cache = SMSConversationSnapshotCache()
+        cache.activateAccount(1)
+        let initial = try fixtureThread()
+        cache.store(thread: initial, messages: initial.sortedMessages, accountId: 1)
+        let vm = SMSThreadViewModel(
+            fetchThread: { _, _ in
+                throw APIError.server(status: 403, code: nil, message: nil, body: nil)
+            }, snapshotCache: cache,
+            currentIdentity: { (probe.accountId, probe.token) }
+        )
+        await vm.loadThread(threadId: 67, token: probe.token)
+        XCTAssertTrue(vm.messages.isEmpty)
+        XCTAssertNil(cache.snapshot(accountId: 1, threadId: 67))
+    }
+
+    func testSwitchingThreadNeverDisplaysPriorThreadOnOfflineFailure() async throws {
+        let probe = ReadProbe()
+        let cache = SMSConversationSnapshotCache()
+        cache.activateAccount(1)
+        let initial = try fixtureThread()
+        let vm = SMSThreadViewModel(
+            fetchThread: { id, _ in
+                if id == 67 { return initial }
+                throw URLError(.notConnectedToInternet)
+            }, snapshotCache: cache,
+            currentIdentity: { (probe.accountId, probe.token) }
+        )
+        await vm.loadThread(threadId: 67, token: probe.token)
+        XCTAssertEqual(vm.messages.count, 3)
+        await vm.loadThread(threadId: 68, token: probe.token)
+        XCTAssertTrue(vm.messages.isEmpty)
+        XCTAssertNil(vm.thread)
+        XCTAssertNotNil(cache.snapshot(accountId: 1, threadId: 67))
+    }
+
+    func testPreviousAccountDelayedResponseCannotRepopulateClearedCache() async throws {
+        let probe = ReadProbe()
+        let cache = SMSConversationSnapshotCache()
+        cache.activateAccount(1)
+        var completion: CheckedContinuation<SMSThreadDTO, Error>?
+        let vm = SMSThreadViewModel(
+            fetchThread: { _, _ in
+                try await withCheckedThrowingContinuation { completion = $0 }
+            }, snapshotCache: cache,
+            currentIdentity: { (probe.accountId, probe.token) }
+        )
+        let load = Task { await vm.loadThread(threadId: 67, token: probe.token) }
+        for _ in 0..<1_000 where completion == nil { await Task.yield() }
+        XCTAssertNotNil(completion)
+        probe.accountId = 2
+        probe.token = "other-account"
+        cache.activateAccount(2)
+        completion?.resume(returning: try fixtureThread())
+        await load.value
+        XCTAssertTrue(vm.messages.isEmpty)
+        XCTAssertNil(cache.snapshot(accountId: 1, threadId: 67))
+        XCTAssertNil(cache.snapshot(accountId: 2, threadId: 67))
+    }
+
+    func testSocketBeforeFirstAuthorizationWaitsForVerifiedHistory() async throws {
+        let probe = ReadProbe()
+        let cache = SMSConversationSnapshotCache()
+        cache.activateAccount(1)
+        let initial = try fixtureThread()
+        let arrival = SMSMessageDTO(id: 503, threadId: 67, direction: "in",
+                                    body: "authorized arrival",
+                                    createdAt: initial.messages[1].createdAt.addingTimeInterval(120))
+        var completion: CheckedContinuation<SMSThreadDTO, Error>?
+        var fetchCount = 0
+        let vm = SMSThreadViewModel(
+            fetchThread: { _, _ in
+                fetchCount += 1
+                if fetchCount == 1 {
+                    return try await withCheckedThrowingContinuation { completion = $0 }
+                }
+                return self.withMessages(initial, initial.messages + [arrival])
+            }, snapshotCache: cache,
+            currentIdentity: { (probe.accountId, probe.token) }
+        )
+        let load = Task { await vm.loadThread(threadId: 67, token: probe.token) }
+        for _ in 0..<1_000 where completion == nil { await Task.yield() }
+        XCTAssertNotNil(completion)
+        NotificationCenter.default.post(name: .socketSMSMessageNew, object: nil,
+                                        userInfo: ["threadId": 67, "message": [
+                                            "id": 503, "threadId": 67, "direction": "in",
+                                            "body": "authorized arrival",
+                                            "createdAt": "2026-11-15T12:03:00Z"
+                                        ]])
+        for _ in 0..<100 { await Task.yield() }
+        XCTAssertTrue(vm.messages.isEmpty)
+        XCTAssertNil(cache.snapshot(accountId: 1, threadId: 67))
+        completion?.resume(returning: initial)
+        await load.value
+        for _ in 0..<1_000 where !vm.messages.contains(where: { $0.id == 503 }) {
+            await Task.yield()
+        }
+        XCTAssertEqual(fetchCount, 2)
+        XCTAssertEqual(vm.messages.filter { $0.id == 503 }.count, 1)
+    }
+
+    func testSocketBeforeDeniedAuthorizationNeverDisplaysOrCaches() async throws {
+        let probe = ReadProbe()
+        let cache = SMSConversationSnapshotCache()
+        cache.activateAccount(1)
+        var completion: CheckedContinuation<SMSThreadDTO, Error>?
+        var fetchCount = 0
+        let vm = SMSThreadViewModel(
+            fetchThread: { _, _ in
+                fetchCount += 1
+                return try await withCheckedThrowingContinuation { completion = $0 }
+            }, snapshotCache: cache,
+            currentIdentity: { (probe.accountId, probe.token) }
+        )
+        let load = Task { await vm.loadThread(threadId: 67, token: probe.token) }
+        for _ in 0..<1_000 where completion == nil { await Task.yield() }
+        XCTAssertNotNil(completion)
+        NotificationCenter.default.post(name: .socketSMSMessageNew, object: nil,
+                                        userInfo: ["threadId": 67, "message": [
+                                            "id": 503, "threadId": 67, "direction": "in",
+                                            "body": "must remain private",
+                                            "createdAt": "2026-11-15T12:03:00Z"
+                                        ]])
+        for _ in 0..<100 { await Task.yield() }
+        XCTAssertTrue(vm.messages.isEmpty)
+        completion?.resume(throwing: APIError.server(status: 403, code: nil,
+                                                       message: nil, body: nil))
+        await load.value
+        for _ in 0..<100 { await Task.yield() }
+        XCTAssertEqual(fetchCount, 1)
+        XCTAssertTrue(vm.messages.isEmpty)
+        XCTAssertNil(cache.snapshot(accountId: 1, threadId: 67))
+    }
+
+    func testAccountSwitchWhileSocketAwaitsAuthorizationCannotStartFollowup() async throws {
+        let probe = ReadProbe()
+        let cache = SMSConversationSnapshotCache()
+        cache.activateAccount(1)
+        var completion: CheckedContinuation<SMSThreadDTO, Error>?
+        var fetchCount = 0
+        let vm = SMSThreadViewModel(
+            fetchThread: { _, _ in
+                fetchCount += 1
+                return try await withCheckedThrowingContinuation { completion = $0 }
+            }, snapshotCache: cache,
+            currentIdentity: { (probe.accountId, probe.token) }
+        )
+        let load = Task { await vm.loadThread(threadId: 67, token: probe.token) }
+        for _ in 0..<1_000 where completion == nil { await Task.yield() }
+        XCTAssertNotNil(completion)
+        NotificationCenter.default.post(name: .socketSMSMessageNew, object: nil,
+                                        userInfo: ["threadId": 67, "message": [
+                                            "id": 503, "threadId": 67, "direction": "in",
+                                            "body": "old account",
+                                            "createdAt": "2026-11-15T12:03:00Z"
+                                        ]])
+        for _ in 0..<100 { await Task.yield() }
+        probe.accountId = 2
+        probe.token = "account-two"
+        cache.activateAccount(2)
+        completion?.resume(returning: try fixtureThread())
+        await load.value
+        for _ in 0..<100 { await Task.yield() }
+        XCTAssertEqual(fetchCount, 1)
+        XCTAssertTrue(vm.messages.isEmpty)
+        XCTAssertNil(cache.snapshot(accountId: 1, threadId: 67))
+        XCTAssertNil(cache.snapshot(accountId: 2, threadId: 67))
+    }
+
+    func testIncomingDuringRefreshSurvivesOlderServerWindowWithoutDuplicates() async throws {
+        let probe = ReadProbe()
+        let cache = SMSConversationSnapshotCache()
+        cache.activateAccount(1)
+        let initial = try fixtureThread()
+        let first = SMSThreadViewModel(fetchThread: { _, _ in initial },
+                                       snapshotCache: cache,
+                                       currentIdentity: { (probe.accountId, probe.token) })
+        await first.loadThread(threadId: 67, token: probe.token)
+        var completion: CheckedContinuation<SMSThreadDTO, Error>?
+        var fetchCount = 0
+        let arrival = SMSMessageDTO(id: 503, threadId: 67, direction: "in",
+                                    body: "during refresh",
+                                    createdAt: initial.messages[1].createdAt.addingTimeInterval(120))
+        let reopened = SMSThreadViewModel(
+            fetchThread: { _, _ in
+                fetchCount += 1
+                if fetchCount == 1 {
+                    return try await withCheckedThrowingContinuation { completion = $0 }
+                }
+                return self.withMessages(initial, initial.messages + [arrival])
+            }, snapshotCache: cache,
+            currentIdentity: { (probe.accountId, probe.token) }
+        )
+        let refresh = Task { await reopened.loadThread(threadId: 67, token: probe.token) }
+        for _ in 0..<1_000 where completion == nil { await Task.yield() }
+        XCTAssertNotNil(completion)
+        let payload: [String: Any] = [
+            "id": 503, "threadId": 67, "direction": "in", "body": "during refresh",
+            "createdAt": "2026-11-15T12:03:00Z"
+        ]
+        NotificationCenter.default.post(name: .socketSMSMessageNew, object: nil,
+                                        userInfo: ["threadId": 67, "message": payload])
+        XCTAssertFalse(reopened.messages.contains { $0.id == 503 })
+        completion?.resume(returning: initial)
+        await refresh.value
+        for _ in 0..<1_000 where !reopened.messages.contains(where: { $0.id == 503 }) {
+            await Task.yield()
+        }
+        XCTAssertEqual(fetchCount, 2)
+        XCTAssertEqual(reopened.messages.filter { $0.id == 503 }.count, 1)
+        XCTAssertEqual(reopened.messages.map(\.id), [499, 501, 500, 503])
+        XCTAssertEqual(cache.snapshot(accountId: 1, threadId: 67)?.messages.map(\.id),
+                       [499, 501, 500, 503])
+    }
+
+    func testStaleSocketEventDuringRefreshCannotRestoreServerOmittedRow() async throws {
+        let probe = ReadProbe()
+        let cache = SMSConversationSnapshotCache()
+        cache.activateAccount(1)
+        let initial = try fixtureThread()
+        cache.store(thread: initial, messages: initial.sortedMessages, accountId: 1)
+        var completion: CheckedContinuation<SMSThreadDTO, Error>?
+        var fetchCount = 0
+        let withoutRemoved = withMessages(initial, initial.messages.filter { $0.id != 499 })
+        let vm = SMSThreadViewModel(
+            fetchThread: { _, _ in
+                fetchCount += 1
+                if fetchCount == 1 {
+                    return try await withCheckedThrowingContinuation { completion = $0 }
+                }
+                return withoutRemoved
+            }, snapshotCache: cache,
+            currentIdentity: { (probe.accountId, probe.token) }
+        )
+        let refresh = Task { await vm.loadThread(threadId: 67, token: probe.token) }
+        for _ in 0..<1_000 where completion == nil { await Task.yield() }
+        XCTAssertNotNil(completion)
+        NotificationCenter.default.post(name: .socketSMSMessageNew, object: nil,
+                                        userInfo: ["threadId": 67, "message": [
+                                            "id": 499, "threadId": 67, "direction": "in",
+                                            "body": "stale event",
+                                            "createdAt": "2026-11-15T11:59:00Z"
+                                        ]])
+        XCTAssertNotEqual(vm.messages.first(where: { $0.id == 499 })?.body, "stale event")
+        completion?.resume(returning: withoutRemoved)
+        await refresh.value
+        for _ in 0..<1_000 where fetchCount < 2 { await Task.yield() }
+        XCTAssertFalse(vm.messages.contains { $0.id == 499 })
+        XCTAssertFalse(cache.snapshot(accountId: 1, threadId: 67)?.messages.contains {
+            $0.id == 499
+        } ?? true)
+        NotificationCenter.default.post(name: .socketSMSMessageNew, object: nil,
+                                        userInfo: ["threadId": 67, "message": [
+                                            "id": 499, "threadId": 67, "direction": "in",
+                                            "body": "late stale event",
+                                            "createdAt": "2026-11-15T11:59:00Z"
+                                        ]])
+        for _ in 0..<1_000 where fetchCount < 3 { await Task.yield() }
+        XCTAssertEqual(fetchCount, 3)
+        XCTAssertFalse(vm.messages.contains { $0.id == 499 })
+    }
+
+    func testServerOmissionRemovesCachedRowAndOlderRevisionCannotUndoEdit() async throws {
+        let probe = ReadProbe()
+        let cache = SMSConversationSnapshotCache()
+        cache.activateAccount(1)
+        let initial = try fixtureThread()
+        let original = try XCTUnwrap(initial.messages.first { $0.id == 501 })
+        let edited = SMSMessageDTO(
+            id: original.id, threadId: 67, direction: "in", body: "newer edit",
+            createdAt: original.createdAt,
+            editedAt: original.createdAt.addingTimeInterval(120)
+        )
+        cache.store(thread: initial,
+                    messages: initial.messages.map { $0.id == 501 ? edited : $0 },
+                    accountId: 1)
+        let vm = SMSThreadViewModel(fetchThread: { _, _ in initial },
+                                    snapshotCache: cache,
+                                    currentIdentity: { (probe.accountId, probe.token) })
+        await vm.loadThread(threadId: 67, token: probe.token)
+        XCTAssertEqual(vm.messages.first(where: { $0.id == 501 })?.body, "newer edit")
+
+        let withoutRemoved = withMessages(initial, initial.messages.filter { $0.id != 499 })
+        let later = SMSThreadViewModel(fetchThread: { _, _ in withoutRemoved },
+                                       snapshotCache: cache,
+                                       currentIdentity: { (probe.accountId, probe.token) })
+        await later.loadThread(threadId: 67, token: probe.token)
+        XCTAssertFalse(later.messages.contains { $0.id == 499 })
+        XCTAssertFalse(cache.snapshot(accountId: 1, threadId: 67)?.messages.contains {
+            $0.id == 499
+        } ?? true)
+    }
+
+    func testAcceptedOptimisticSendIsKeptOnRefreshFailureThenReplacedOnce() async throws {
+        let probe = ReadProbe()
+        let cache = SMSConversationSnapshotCache()
+        cache.activateAccount(1)
+        let initial = try fixtureThread()
+        let canonical = SMSMessageDTO(
+            id: 504, threadId: 67, direction: "out", body: "sent while offline",
+            providerMessageId: "SM504",
+            createdAt: Date()
+        )
+        var failRefresh = true
+        let vm = SMSThreadViewModel(
+            fetchThread: { _, _ in
+                if failRefresh { throw URLError(.notConnectedToInternet) }
+                return self.withMessages(initial, initial.messages + [canonical])
+            }, snapshotCache: cache,
+            currentIdentity: { (probe.accountId, probe.token) }
+        )
+        let optimistic = SMSMessageDTO.optimisticOutgoing(
+            threadId: -1, to: "+15550000000", body: "sent while offline"
+        )
+        vm.messages = [optimistic]
+        await vm.loadThread(threadId: 67, token: probe.token,
+                            acceptedOptimisticId: optimistic.id)
+        XCTAssertEqual(vm.messages.map(\.id), [optimistic.id])
+
+        NotificationCenter.default.post(name: .socketSMSMessageNew, object: nil,
+                                        userInfo: ["threadId": 67, "message": [
+                                            "id": 504, "threadId": 67, "direction": "out",
+                                            "body": "sent while offline", "providerMessageId": "SM504",
+                                            "createdAt": "2026-11-22T12:00:00Z"
+                                        ]])
+        for _ in 0..<100 { await Task.yield() }
+        XCTAssertEqual(vm.messages.map(\.id), [optimistic.id])
+
+        failRefresh = false
+        await vm.loadThread(threadId: 67, token: probe.token)
+        XCTAssertEqual(vm.messages.filter { $0.id == 504 }.count, 1)
+        XCTAssertFalse(vm.messages.contains { $0.id == optimistic.id })
+        XCTAssertEqual(cache.snapshot(accountId: 1, threadId: 67)?.messages.filter {
+            $0.id == 504
+        }.count, 1)
+    }
+
+    func testAcceptedOptimisticSendIsRemovedWhenCanonicalHistoryArrives() async throws {
+        let probe = ReadProbe()
+        let cache = SMSConversationSnapshotCache()
+        cache.activateAccount(1)
+        let initial = try fixtureThread()
+        let canonical = SMSMessageDTO(id: 504, threadId: 67, direction: "out",
+                                      body: "sent", createdAt: Date())
+        let vm = SMSThreadViewModel(
+            fetchThread: { _, _ in self.withMessages(initial, initial.messages + [canonical]) },
+            snapshotCache: cache,
+            currentIdentity: { (probe.accountId, probe.token) }
+        )
+        let optimistic = SMSMessageDTO.optimisticOutgoing(
+            threadId: 67, to: "+15550000000", body: "sent"
+        )
+        vm.messages = [optimistic]
+        await vm.loadThread(threadId: 67, token: probe.token,
+                            acceptedOptimisticId: optimistic.id)
+        XCTAssertEqual(vm.messages.filter { $0.id == 504 }.count, 1)
+        XCTAssertFalse(vm.messages.contains { $0.id == optimistic.id })
+    }
+
+    func testOutOfOrderSocketEventCannotReplaceNewerCachedEdit() async throws {
+        let probe = ReadProbe()
+        let cache = SMSConversationSnapshotCache()
+        cache.activateAccount(1)
+        let initial = try fixtureThread()
+        var serverThread = initial
+        let vm = SMSThreadViewModel(fetchThread: { _, _ in serverThread },
+                                    snapshotCache: cache,
+                                    currentIdentity: { (probe.accountId, probe.token) })
+        await vm.loadThread(threadId: 67, token: probe.token)
+        let original = try XCTUnwrap(initial.messages.first { $0.id == 501 })
+        let edited = SMSMessageDTO(id: 501, threadId: 67, direction: "in",
+                                   body: "newer edit", createdAt: original.createdAt,
+                                   editedAt: original.createdAt.addingTimeInterval(300))
+        serverThread = withMessages(initial,
+            initial.messages.map { $0.id == 501 ? edited : $0 })
+        let newer: [String: Any] = [
+            "id": 501, "threadId": 67, "direction": "in", "body": "newer edit",
+            "createdAt": "2026-11-15T12:00:00Z", "editedAt": "2026-11-15T12:05:00Z"
+        ]
+        let stale: [String: Any] = [
+            "id": 501, "threadId": 67, "direction": "in", "body": "older edit",
+            "createdAt": "2026-11-15T12:00:00Z", "editedAt": "2026-11-15T12:03:00Z"
+        ]
+        for payload in [newer, stale] {
+            NotificationCenter.default.post(name: .socketSMSMessageNew, object: nil,
+                                            userInfo: ["threadId": 67, "message": payload])
+            for _ in 0..<1_000 where vm.messages.first(where: { $0.id == 501 })?.body !=
+                "newer edit" { await Task.yield() }
+        }
+        XCTAssertEqual(vm.messages.first(where: { $0.id == 501 })?.body, "newer edit")
+        XCTAssertEqual(cache.snapshot(accountId: 1, threadId: 67)?.messages.first {
+            $0.id == 501
+        }?.body, "newer edit")
+    }
+
+    func testSnapshotBoundedAndLocalDeletionCannotResurrect() throws {
+        let cache = SMSConversationSnapshotCache()
+        cache.activateAccount(1)
+        let thread = try fixtureThread()
+        cache.store(thread: thread, messages: thread.sortedMessages, accountId: 1,
+                    now: Date(timeIntervalSince1970: 1_000))
+        XCTAssertNil(cache.snapshot(accountId: 1, threadId: 67,
+                                    now: Date(timeIntervalSince1970: 1_000 + 1_201)))
+        cache.store(thread: thread, messages: thread.sortedMessages, accountId: 1)
+        cache.removeMessage(501, accountId: 1, threadId: 67)
+        XCTAssertNil(cache.snapshot(accountId: 1, threadId: 67))
+        cache.store(thread: thread, messages: thread.sortedMessages.filter { $0.id != 501 },
+                    accountId: 1)
+        XCTAssertEqual(cache.snapshot(accountId: 1, threadId: 67)?.messages.map(\.id), [499, 500])
+
+        let rows = (1...205).map { index in
+            SMSMessageDTO(id: index, threadId: 67, direction: "in", body: "row",
+                          createdAt: Date(timeIntervalSince1970: Double(index)))
+        }
+        cache.store(thread: thread, messages: rows, accountId: 1)
+        XCTAssertEqual(cache.snapshot(accountId: 1, threadId: 67)?.messages.count, 200)
+        XCTAssertEqual(cache.snapshot(accountId: 1, threadId: 67)?.messages.first?.id, 6)
+
+        // Repeated refresh/delete cycles cannot accumulate tombstone metadata.
+        for id in 1...300 {
+            cache.removeMessage(id, accountId: 1, threadId: 67)
+            XCTAssertNil(cache.snapshot(accountId: 1, threadId: 67))
+            cache.store(thread: thread, messages: rows.filter { $0.id != id }, accountId: 1)
+            XCTAssertLessThanOrEqual(cache.snapshot(accountId: 1, threadId: 67)?.messages.count ?? 0,
+                                     200)
+        }
+
+        for threadId in 68...76 {
+            let another = SMSThreadDTO(
+                id: threadId, userId: 1, createdAt: nil, updatedAt: nil, archivedAt: nil,
+                contactPhone: nil, displayName: nil, contactName: nil,
+                participants: [], messages: []
+            )
+            cache.store(thread: another, messages: [], accountId: 1)
+        }
+        XCTAssertNil(cache.snapshot(accountId: 1, threadId: 67))
+        XCTAssertNil(cache.snapshot(accountId: 1, threadId: 68))
+        XCTAssertNotNil(cache.snapshot(accountId: 1, threadId: 76))
+    }
+
+    func testSuccessfulDeleteFencesOlderHistoryResponseAndRefreshes() async throws {
+        let probe = ReadProbe()
+        let cache = SMSConversationSnapshotCache()
+        cache.activateAccount(1)
+        let initial = try fixtureThread()
+        cache.store(thread: initial, messages: initial.sortedMessages, accountId: 1)
+        let afterDelete = withMessages(initial, initial.messages.filter { $0.id != 501 })
+        var oldGet: CheckedContinuation<SMSThreadDTO, Error>?
+        var fetchCount = 0
+        var deletedIds: [Int] = []
+        let vm = SMSThreadViewModel(
+            fetchThread: { _, _ in
+                fetchCount += 1
+                if fetchCount == 1 {
+                    return try await withCheckedThrowingContinuation { oldGet = $0 }
+                }
+                return afterDelete
+            },
+            deleteMessageRequest: { id, _ in deletedIds.append(id); return true },
+            snapshotCache: cache,
+            currentIdentity: { (probe.accountId, probe.token) }
+        )
+        let refresh = Task { await vm.loadThread(threadId: 67, token: probe.token) }
+        for _ in 0..<1_000 where oldGet == nil { await Task.yield() }
+        XCTAssertNotNil(oldGet)
+        XCTAssertTrue(vm.messages.contains { $0.id == 501 })
+
+        await vm.deleteMessage(messageId: 501, token: probe.token)
+        XCTAssertEqual(deletedIds, [501])
+        XCTAssertEqual(fetchCount, 2)
+        XCTAssertFalse(vm.messages.contains { $0.id == 501 })
+        XCTAssertFalse(cache.snapshot(accountId: 1, threadId: 67)?.messages.contains {
+            $0.id == 501
+        } ?? true)
+
+        oldGet?.resume(returning: initial)
+        await refresh.value
+        XCTAssertFalse(vm.messages.contains { $0.id == 501 })
+        XCTAssertFalse(cache.snapshot(accountId: 1, threadId: 67)?.messages.contains {
+            $0.id == 501
+        } ?? true)
+    }
+
+    func testRejectedDeleteKeepsMessageAndCachedSnapshot() async throws {
+        let probe = ReadProbe()
+        let cache = SMSConversationSnapshotCache()
+        cache.activateAccount(1)
+        let initial = try fixtureThread()
+        var fetchCount = 0
+        let vm = SMSThreadViewModel(
+            fetchThread: { _, _ in fetchCount += 1; return initial },
+            deleteMessageRequest: { _, _ in false },
+            snapshotCache: cache,
+            currentIdentity: { (probe.accountId, probe.token) }
+        )
+        await vm.loadThread(threadId: 67, token: probe.token)
+        await vm.deleteMessage(messageId: 501, token: probe.token)
+        XCTAssertEqual(fetchCount, 1)
+        XCTAssertTrue(vm.messages.contains { $0.id == 501 })
+        XCTAssertTrue(cache.snapshot(accountId: 1, threadId: 67)?.messages.contains {
+            $0.id == 501
+        } ?? false)
+        XCTAssertNotNil(vm.errorText)
+    }
+
+    func testDeleteInvalidatesOlderGetFromAnotherViewModel() async throws {
+        let probe = ReadProbe()
+        let cache = SMSConversationSnapshotCache()
+        cache.activateAccount(1)
+        let initial = try fixtureThread()
+        let afterDelete = withMessages(initial, initial.messages.filter { $0.id != 501 })
+        cache.store(thread: initial, messages: initial.sortedMessages, accountId: 1)
+        var oldGet: CheckedContinuation<SMSThreadDTO, Error>?
+        var firstFetchCount = 0
+        let first = SMSThreadViewModel(
+            fetchThread: { _, _ in
+                firstFetchCount += 1
+                if firstFetchCount == 1 {
+                    return try await withCheckedThrowingContinuation { oldGet = $0 }
+                }
+                return afterDelete
+            }, snapshotCache: cache,
+            currentIdentity: { (probe.accountId, probe.token) }
+        )
+        let firstLoad = Task { await first.loadThread(threadId: 67, token: probe.token) }
+        for _ in 0..<1_000 where oldGet == nil { await Task.yield() }
+        XCTAssertNotNil(oldGet)
+
+        var secondFetchCount = 0
+        let second = SMSThreadViewModel(
+            fetchThread: { _, _ in
+                secondFetchCount += 1
+                return secondFetchCount == 1 ? initial : afterDelete
+            },
+            deleteMessageRequest: { _, _ in true }, snapshotCache: cache,
+            currentIdentity: { (probe.accountId, probe.token) }
+        )
+        await second.loadThread(threadId: 67, token: probe.token)
+        await second.deleteMessage(messageId: 501, token: probe.token)
+        oldGet?.resume(returning: initial)
+        await firstLoad.value
+        for _ in 0..<1_000 where firstFetchCount < 2 { await Task.yield() }
+        XCTAssertEqual(firstFetchCount, 2)
+        XCTAssertFalse(cache.snapshot(accountId: 1, threadId: 67)?.messages.contains {
+            $0.id == 501
+        } ?? true)
+        for _ in 0..<1_000 where first.messages.contains(where: { $0.id == 501 }) {
+            await Task.yield()
+        }
+        XCTAssertFalse(first.messages.contains { $0.id == 501 })
     }
 
     func testReadRequestUsesExactAuthenticatedPostContract() throws {
@@ -221,7 +864,15 @@ final class SMSThreadViewModelTests: XCTestCase {
 
     func testSocketMessageCannotPopulateWrongThreadOrSwitchedAccount() async throws {
         let probe = ReadProbe()
-        let vm = readModel(probe, thread: try fixtureThread())
+        let initial = try fixtureThread()
+        var serverThread = initial
+        let vm = SMSThreadViewModel(fetchThread: { _, _ in serverThread },
+                                    snapshotCache: {
+                                        let cache = SMSConversationSnapshotCache()
+                                        cache.activateAccount(1)
+                                        return cache
+                                    }(),
+                                    currentIdentity: { (probe.accountId, probe.token) })
         await vm.loadThread(threadId: 67, token: probe.token)
         let message: [String: Any] = [
             "id": 503, "threadId": 67, "direction": "in",
@@ -241,8 +892,14 @@ final class SMSThreadViewModelTests: XCTestCase {
         XCTAssertFalse(vm.messages.contains(where: { $0.id == 503 }))
 
         probe.accountId = 1
+        serverThread = withMessages(initial, initial.messages + [
+            SMSMessageDTO(id: 503, threadId: 67, direction: "in",
+                          body: "synthetic socket message", createdAt: Date())
+        ])
         send(67)
-        try await Task.sleep(nanoseconds: 30_000_000)
+        for _ in 0..<1_000 where !vm.messages.contains(where: { $0.id == 503 }) {
+            await Task.yield()
+        }
         XCTAssertTrue(vm.messages.contains(where: { $0.id == 503 }))
     }
 
