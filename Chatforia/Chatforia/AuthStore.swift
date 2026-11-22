@@ -69,8 +69,10 @@ final class AuthStore: NSObject, ObservableObject {
                     MessageStore.shared.clearAll()
                     PrivateMessageImageCache.shared.clear()
                 }
+                SMSConversationSnapshotCache.shared.activateAccount(user.id)
                 DecryptedMessageTextStore.shared.activateAccount(user.id)
             case .loggedOut, .unavailable:
+                SMSConversationSnapshotCache.shared.clear()
                 DecryptedMessageTextStore.shared.deactivateAccount()
                 MessageStore.shared.clearAll()
                 PrivateMessageImageCache.shared.clear()
@@ -387,6 +389,7 @@ final class AuthStore: NSObject, ObservableObject {
         DecryptedMessageTextStore.shared.deactivateAccount()
         MessageStore.shared.clearAll()
         PrivateMessageImageCache.shared.clear()
+        SMSConversationSnapshotCache.shared.clear()
         UserDefaults.standard.removeObject(forKey: "chatforia.currentUserId")
         state = .loading
         isAppReady = false
