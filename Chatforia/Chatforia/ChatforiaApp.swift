@@ -252,20 +252,7 @@ struct ChatforiaApp: App {
                 value: notificationCoordinator.accessibilityVisualAlertMessage
             )
             .onReceive(
-                NotificationCenter.default.publisher(for: .socketMessageUpsert)
-            ) { notification in
-                guard accessibilityVisualAlertsEnabled,
-                      scenePhase == .active,
-                      notification.userInfo?["isNewIncomingMessage"] as? Bool == true,
-                      let senderId = notification.userInfo?["senderId"] as? Int,
-                      senderId != auth.currentUser?.id else {
-                    return
-                }
-
-                notificationCoordinator.showAccessibilityVisualAlert()
-            }
-            .onReceive(
-                NotificationCenter.default.publisher(for: .foregroundMessageNotification)
+                NotificationCenter.default.publisher(for: .foregroundMessageVisualAlert)
             ) { _ in
                 guard accessibilityVisualAlertsEnabled,
                       scenePhase == .active else {
@@ -274,17 +261,8 @@ struct ChatforiaApp: App {
 
                 notificationCoordinator.showAccessibilityVisualAlert()
             }
-            .onReceive(
-                NotificationCenter.default.publisher(for: .socketSMSMessageNew)
-            ) { notification in
-                guard accessibilityVisualAlertsEnabled,
-                      scenePhase == .active,
-                      let senderId = notification.userInfo?["senderId"] as? Int,
-                      senderId != auth.currentUser?.id else {
-                    return
-                }
-
-                notificationCoordinator.showAccessibilityVisualAlert()
+            .onChange(of: auth.currentUser?.id, initial: true) { _, accountId in
+                notificationCoordinator.beginForegroundSession(accountId: accountId)
             }
             .modifier(ChatforiaDynamicTypeModifier(chatforiaSize: accessibilityDynamicTypeSize))
             .onAppear {
@@ -508,6 +486,9 @@ struct ChatforiaApp: App {
                     ?? "Your plan allows one active device. Choose the existing device to replace."
                 )
             }
+        }
+        .onChange(of: scenePhase, initial: true) { _, newPhase in
+            notificationCoordinator.setForegroundActive(newPhase == .active)
         }
         .onChange(of: scenePhase) { _, newPhase in
             guard newPhase == .active else { return }

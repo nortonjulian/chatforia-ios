@@ -57,6 +57,7 @@ struct ChatThreadView: View {
     @State private var editingMessage: MessageDTO? = nil
     @State private var editDraft: String = ""
     @State private var didLoad = false
+    @State private var notificationVisibleAccountId: Int?
 
     @State private var editPendingGIFURL: URL? = nil
     @State private var showEditGIFPicker = false
@@ -154,7 +155,21 @@ struct ChatThreadView: View {
             didLoad = true
             await onLoad()
         }
+        .onAppear {
+            notificationVisibleAccountId = auth.currentUser?.id
+            if let accountId = notificationVisibleAccountId {
+                NotificationCoordinator.shared.setVisibleConversation(
+                    channel: .chat, id: room.id, accountId: accountId
+                )
+            }
+        }
         .onDisappear {
+            if let accountId = notificationVisibleAccountId {
+                NotificationCoordinator.shared.clearVisibleConversation(
+                    channel: .chat, id: room.id, accountId: accountId
+                )
+            }
+            notificationVisibleAccountId = nil
             #if !DISAPPEARING_QA
             vm.stopSocket(roomId: room.id)
             vm.stopTypingNow(roomId: room.id)
@@ -167,6 +182,7 @@ struct ChatThreadView: View {
             FullscreenVideoView(url: item.url)
         }
         .onChange(of: auth.currentUser?.id) { _, _ in
+            notificationVisibleAccountId = nil
             selectedVideoURL = nil
             reportingMessage = nil
             reportingAccountId = nil
