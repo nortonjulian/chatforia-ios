@@ -1108,8 +1108,6 @@ extension ChatThreadView {
             return
         }
         #endif
-        SocketManager.shared.suppressMessageTonesForOpeningThread(seconds: 8)
-
         guard !auth.needsKeyRestore else {
             vm.errorText = auth.keyRestoreMessage
                 ?? "Enter your Secure Messages Passcode to view secure messages."
@@ -1135,8 +1133,6 @@ extension ChatThreadView {
         await reload()
 
         vm.startExpiryLoop()
-
-        SocketManager.shared.suppressMessageTonesForOpeningThread(seconds: 4)
 
         vm.startSocket(
             roomId: room.id,

@@ -220,8 +220,6 @@ final class SocketManager: ObservableObject {
             let senderId = self?.extractSenderId(payload)
             let currentUserId = UserDefaults.standard.integer(forKey: "chatforia.currentUserId")
 
-            let shouldSuppressTone = Date() < (self?.suppressMessageToneUntil ?? .distantPast)
-
             if self?.incomingSMSTones.claim(
                 payload: payload,
                 userId: currentUserId,
@@ -232,8 +230,8 @@ final class SocketManager: ObservableObject {
                    let messageId = Int(String(describing: rawID)), messageId > 0 {
                     NotificationCoordinator.shared.receiveSocketMessage(
                         channel: .sms, messageId: messageId,
-                        accountId: currentUserId,
-                        eligibleForTone: !shouldSuppressTone
+                        conversationId: NotificationCoordinator.positiveID(payload["threadId"]),
+                        accountId: currentUserId
                     )
                 }
             }
@@ -320,8 +318,6 @@ final class SocketManager: ObservableObject {
             let currentUserId = UserDefaults.standard.integer(forKey: "chatforia.currentUserId")
             let messageId = message["id"] as? Int
 
-            let shouldSuppressTone = Date() < self.suppressMessageToneUntil
-
             let isNewIncomingMessage =
                 messageId.map { !self.hasAlreadySounded(messageId: $0, accountId: currentUserId) } == true &&
                 senderId != nil &&
@@ -333,8 +329,9 @@ final class SocketManager: ObservableObject {
 
                 NotificationCoordinator.shared.receiveSocketMessage(
                     channel: .chat, messageId: messageId,
-                    accountId: currentUserId,
-                    eligibleForTone: !shouldSuppressTone
+                    conversationId: NotificationCoordinator.positiveID(payload["roomId"])
+                        ?? NotificationCoordinator.positiveID(message["chatRoomId"]),
+                    accountId: currentUserId
                 )
             }
 
@@ -539,12 +536,6 @@ func markRandomMatchCompleted() {
 
     // MARK: - Helpers
     
-   private var suppressMessageToneUntil: Date = .distantPast
-
-    func suppressMessageTonesForOpeningThread(seconds: TimeInterval = 8.0) {
-        suppressMessageToneUntil = Date().addingTimeInterval(seconds)
-    }
-
     static func soundedMessageIdsKey(for accountId: Int) -> String {
         "chatforia.soundedMessageIds.\(accountId)"
     }

@@ -208,7 +208,9 @@ struct ChatforiaApp: App {
                 ContentView()
                 CallOverlayHostView()
 
-                if let message = notificationCoordinator.accessibilityVisualAlertMessage {
+                if let message = notificationCoordinator.accessibilityVisualAlertMessage
+                    ?? (notificationCoordinator.foregroundFallbackBanner == nil
+                        ? nil : appText("common.message", languageCode: appLanguage)) {
                     HStack(spacing: 12) {
                         Image(systemName: "message.fill")
                             .font(.title3)
@@ -244,12 +246,17 @@ struct ChatforiaApp: App {
                     .accessibilityLabel("\(message), Chatforia")
                     .onTapGesture {
                         notificationCoordinator.dismissAccessibilityVisualAlert()
+                        notificationCoordinator.dismissForegroundFallbackBanner()
                     }
                 }
             }
             .animation(
                 .easeInOut(duration: 0.2),
                 value: notificationCoordinator.accessibilityVisualAlertMessage
+            )
+            .animation(
+                .easeInOut(duration: 0.2),
+                value: notificationCoordinator.foregroundFallbackBanner
             )
             .onReceive(
                 NotificationCenter.default.publisher(for: .foregroundMessageVisualAlert)
@@ -263,6 +270,9 @@ struct ChatforiaApp: App {
             }
             .onChange(of: auth.currentUser?.id, initial: true) { _, accountId in
                 notificationCoordinator.beginForegroundSession(accountId: accountId)
+            }
+            .onChange(of: accessibilityVisualAlertsEnabled, initial: true) { _, enabled in
+                notificationCoordinator.setAccessibilityVisualAlertsEnabled(enabled)
             }
             .modifier(ChatforiaDynamicTypeModifier(chatforiaSize: accessibilityDynamicTypeSize))
             .onAppear {

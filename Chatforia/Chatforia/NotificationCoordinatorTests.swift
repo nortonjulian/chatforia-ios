@@ -9,36 +9,63 @@ final class NotificationCoordinatorTests: XCTestCase {
         IncomingNotificationKey(accountId: account, channel: channel, messageId: id)
     }
 
-    func testSocketThenAPNsProducesOneSoundAndOneVisualAlert() {
+    func testSocketThenAPNsUsesNativeSoundAndOneVisualAlert() {
         var ledger = IncomingNotificationLedger()
-        let first = ledger.socket(key(), eligibleForTone: true)
-        XCTAssertTrue(first.sound)
+        let first = ledger.socket(key())
+        XCTAssertFalse(first.sound)
         XCTAssertTrue(first.visualAlert)
+        XCTAssertTrue(first.scheduleFallbackBanner)
         let push = ledger.apns(key(), bannerEligible: true)
         XCTAssertTrue(push.sound)
         XCTAssertFalse(push.visualAlert)
         XCTAssertTrue(push.banner)
-        XCTAssertFalse(ledger.fireFallback(key()))
+        XCTAssertFalse(ledger.fireFallbackBanner(key(), bannerEligible: true))
         XCTAssertFalse(ledger.apns(key()).sound)
         XCTAssertFalse(ledger.apns(key(), bannerEligible: true).banner)
     }
 
-    func testAPNsThenSocketProducesOneSoundAndOneVisualAlert() {
+    func testAPNsThenSocketNeverSchedulesFallback() {
         var ledger = IncomingNotificationLedger()
         let push = ledger.apns(key(), bannerEligible: true)
         XCTAssertTrue(push.sound)
         XCTAssertTrue(push.visualAlert)
         XCTAssertTrue(push.banner)
-        let socket = ledger.socket(key(), eligibleForTone: true)
+        let socket = ledger.socket(key())
         XCTAssertFalse(socket.sound)
         XCTAssertFalse(socket.visualAlert)
+        XCTAssertFalse(socket.scheduleFallbackBanner)
     }
 
-    func testSocketFallbackThenLateAPNsCannotSoundTwice() {
+    func testSocketOnlyBannerThenLateAPNsHasOneBannerAndOneNativeSound() {
         var ledger = IncomingNotificationLedger()
-        XCTAssertTrue(ledger.socket(key(), eligibleForTone: true).sound)
-        XCTAssertTrue(ledger.fireFallback(key()))
-        XCTAssertFalse(ledger.apns(key()).sound)
+        XCTAssertTrue(ledger.socket(key()).scheduleFallbackBanner)
+        XCTAssertTrue(ledger.fireFallbackBanner(key(), bannerEligible: true))
+        let latePush = ledger.apns(key(), bannerEligible: true)
+        XCTAssertFalse(latePush.banner)
+        XCTAssertTrue(latePush.sound)
+        XCTAssertFalse(latePush.visualAlert)
+        XCTAssertFalse(ledger.apns(key(), bannerEligible: true).sound)
+        XCTAssertFalse(ledger.socket(key()).scheduleFallbackBanner)
+    }
+
+    func testSocketOnlyOnChatsListOrReceivingThreadDoesNotShowFallbackBanner() {
+        var ledger = IncomingNotificationLedger()
+        var screen = ForegroundMessageScreen()
+        screen.selectedTab = 0
+        screen.chatsListVisible = true
+        XCTAssertTrue(ledger.socket(key()).scheduleFallbackBanner)
+        XCTAssertFalse(ledger.fireFallbackBanner(
+            key(), bannerEligible: screen.showsBanner(channel: .sms, conversationId: 10)
+        ))
+        XCTAssertTrue(ledger.apns(key(), bannerEligible: false).sound)
+
+        screen.chatsListVisible = false
+        screen.visibleChannel = .sms
+        screen.visibleConversationId = 10
+        XCTAssertTrue(ledger.socket(key(43)).scheduleFallbackBanner)
+        XCTAssertFalse(ledger.fireFallbackBanner(
+            key(43), bannerEligible: screen.showsBanner(channel: .sms, conversationId: 10)
+        ))
     }
 
     func testDuplicateAPNsCannotShowAnotherBannerAfterScreenChanges() {
@@ -50,11 +77,14 @@ final class NotificationCoordinatorTests: XCTestCase {
 
     func testDuplicateEventsAndSeparateMessagesChannelsAndAccounts() {
         var ledger = IncomingNotificationLedger()
-        XCTAssertTrue(ledger.socket(key(), eligibleForTone: true).sound)
-        XCTAssertFalse(ledger.socket(key(), eligibleForTone: true).sound)
-        XCTAssertTrue(ledger.socket(key(43), eligibleForTone: true).sound)
-        XCTAssertTrue(ledger.socket(key(channel: .chat), eligibleForTone: true).sound)
-        XCTAssertTrue(ledger.socket(key(account: 8), eligibleForTone: true).sound)
+        XCTAssertTrue(ledger.socket(key()).scheduleFallbackBanner)
+        XCTAssertFalse(ledger.socket(key()).scheduleFallbackBanner)
+        XCTAssertTrue(ledger.socket(key(43)).scheduleFallbackBanner)
+        XCTAssertTrue(ledger.socket(key(channel: .chat)).scheduleFallbackBanner)
+        XCTAssertTrue(ledger.socket(key(account: 8)).scheduleFallbackBanner)
+        XCTAssertTrue(ledger.apns(key(43)).sound)
+        XCTAssertTrue(ledger.apns(key(channel: .chat)).sound)
+        XCTAssertTrue(ledger.apns(key(account: 8)).sound)
     }
 
     func testPersistedChatSoundGateIsAccountScoped() {
@@ -64,21 +94,20 @@ final class NotificationCoordinatorTests: XCTestCase {
 
     func testBackgroundCancellationAndAccountResetPreventFallback() {
         var ledger = IncomingNotificationLedger()
-        XCTAssertTrue(ledger.socket(key(), eligibleForTone: true).sound)
-        ledger.cancelFallbacks()
-        XCTAssertFalse(ledger.fireFallback(key()))
-        XCTAssertFalse(ledger.socket(key(), eligibleForTone: true).sound)
+        XCTAssertTrue(ledger.socket(key()).scheduleFallbackBanner)
+        ledger.cancelFallbackBanners()
+        XCTAssertFalse(ledger.fireFallbackBanner(key(), bannerEligible: true))
         ledger.reset()
         XCTAssertEqual(ledger.count, 0)
-        XCTAssertFalse(ledger.fireFallback(key()))
+        XCTAssertFalse(ledger.fireFallbackBanner(key(), bannerEligible: true))
     }
 
-    func testSilentSocketDeliveryStillDeduplicatesVisualAlert() {
+    func testSocketDeliveryNeverClaimsAudioAndDeduplicatesVisualAlert() {
         var ledger = IncomingNotificationLedger()
-        let socket = ledger.socket(key(), eligibleForTone: false)
+        let socket = ledger.socket(key())
         XCTAssertFalse(socket.sound)
         XCTAssertTrue(socket.visualAlert)
-        XCTAssertFalse(ledger.socket(key(), eligibleForTone: false).visualAlert)
+        XCTAssertFalse(ledger.socket(key()).visualAlert)
         XCTAssertTrue(ledger.apns(key()).sound)
     }
 
@@ -97,7 +126,10 @@ final class NotificationCoordinatorTests: XCTestCase {
         var screen = ForegroundMessageScreen()
         XCTAssertTrue(screen.showsBanner(channel: .sms, conversationId: 10))
         screen.selectedTab = 0
+        XCTAssertTrue(screen.showsBanner(channel: .sms, conversationId: 10))
+        screen.chatsListVisible = true
         XCTAssertFalse(screen.showsBanner(channel: .sms, conversationId: 10))
+        screen.chatsListVisible = false
         screen.visibleChannel = .sms
         screen.visibleConversationId = 10
         XCTAssertFalse(screen.showsBanner(channel: .sms, conversationId: 10))
@@ -111,6 +143,30 @@ final class NotificationCoordinatorTests: XCTestCase {
         XCTAssertTrue(screen.showsBanner(channel: .sms, conversationId: 10))
     }
 
+    func testRiaAndOtherChatsChildrenAreNotTheChatsList() {
+        XCTAssertTrue(ChatsListPresentation.isVisible(
+            room: false, sms: false, ria: false, startChat: false,
+            matching: false, modal: false
+        ))
+        XCTAssertFalse(ChatsListPresentation.isVisible(
+            room: false, sms: false, ria: true, startChat: false,
+            matching: false, modal: false
+        ))
+        XCTAssertFalse(ChatsListPresentation.isVisible(
+            room: true, sms: false, ria: false, startChat: false,
+            matching: false, modal: false
+        ))
+        XCTAssertFalse(ChatsListPresentation.isVisible(
+            room: false, sms: false, ria: false, startChat: true,
+            matching: false, modal: false
+        ))
+        var screen = ForegroundMessageScreen()
+        screen.selectedTab = 0
+        screen.chatsListVisible = false // Ria Chat is open.
+        XCTAssertTrue(screen.showsBanner(channel: .sms, conversationId: 10))
+        XCTAssertTrue(screen.showsBanner(channel: .chat, conversationId: 20))
+    }
+
     func testNotificationMessageIDParsesNewAndLegacyPayloadsSafely() {
         XCTAssertEqual(NotificationCoordinator.positiveID("700"), 700)
         XCTAssertEqual(NotificationCoordinator.positiveID(700), 700)
@@ -120,23 +176,9 @@ final class NotificationCoordinatorTests: XCTestCase {
         XCTAssertNil(NotificationCoordinator.positiveID(true))
     }
 
-    func testSocketFallbackUsesExistingNativeCustomToneAssets() {
-        let expected = [
-            "Default.mp3": "Chatforia_Default.caf",
-            "Vibrate.mp3": "Chatforia_Vibrate.caf",
-            "Dreamer.mp3": "Chatforia_Dreamer.caf",
-            "Happy Message.mp3": "Chatforia_HappyMessage.caf",
-            "Notify.mp3": "Chatforia_Notify.caf",
-            "Pop.mp3": "Chatforia_Pop.caf",
-            "Pulsating Sound.mp3": "Chatforia_PulsatingSound.caf",
-            "Text Message.mp3": "Chatforia_TextMessage.caf",
-            "Xylophone.mp3": "Chatforia_Xylophone.caf",
-        ]
-        for (code, asset) in expected {
-            XCTAssertEqual(ForegroundNotificationSound.fileName(for: code), asset)
-        }
-        XCTAssertEqual(ForegroundNotificationSound.fileName(for: nil),
-                       "Chatforia_Default.caf")
+    func testForegroundFallbackUsesExistingLocalizedGenericMessageLabel() {
+        XCTAssertEqual(appText("common.message", languageCode: "en"), "Message")
+        XCTAssertNotEqual(appText("common.message", languageCode: "es"), "common.message")
     }
 
     override func setUp() {
