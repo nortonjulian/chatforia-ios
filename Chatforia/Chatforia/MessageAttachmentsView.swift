@@ -11,6 +11,7 @@ struct MessageAttachmentsView: View {
 
     @AppStorage("chatforia_language") private var appLanguage = "en"
     @EnvironmentObject private var auth: AuthStore
+    @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.suspendInlineVideoPlayback) private var suspendInlineVideoPlayback
     @State private var selectedImageURL: IdentifiableURL?
     // Scoped by account, session, attachment and media variant. A URL from
@@ -454,12 +455,12 @@ struct MessageAttachmentsView: View {
                 } label: {
                     ZStack {
                         Circle()
-                            .fill(Color.accentColor)
+                            .fill(themeManager.palette.accent)
                             .frame(width: 44, height: 44)
 
                         if isCurrent && audioPlayback.isLoading {
                             ProgressView()
-                                .tint(.white)
+                                .tint(themeManager.accentControlForeground)
                         } else {
                             Image(
                                 systemName:
@@ -468,7 +469,7 @@ struct MessageAttachmentsView: View {
                                     : "play.fill"
                             )
                             .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(themeManager.accentControlForeground)
                             .offset(
                                 x: isCurrent && audioPlayback.isPlaying
                                     ? 0
@@ -478,11 +479,14 @@ struct MessageAttachmentsView: View {
                     }
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(isCurrent && audioPlayback.isPlaying
+                    ? String(localized: "audio.pause", defaultValue: "Pause voice note")
+                    : String(localized: "audio.play", defaultValue: "Play voice note"))
 
                 VStack(alignment: .leading, spacing: 7) {
                     Text(title)
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(themeManager.palette.primaryText)
                         .lineLimit(1)
 
                     if isCurrent, displayedDuration > 0 {
@@ -501,12 +505,14 @@ struct MessageAttachmentsView: View {
                             in: 0...displayedDuration
                         )
                         .controlSize(.small)
+                        .tint(themeManager.palette.accent)
                     } else {
                         ProgressView(
                             value: displayedCurrentTime,
                             total: max(displayedDuration, 1)
                         )
                         .progressViewStyle(.linear)
+                        .tint(themeManager.palette.accent)
                     }
 
                     HStack {
@@ -525,14 +531,16 @@ struct MessageAttachmentsView: View {
                         )
                     }
                     .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(themeManager.cardSecondaryText)
                     .monospacedDigit()
                 }
             }
             .padding(12)
             .frame(maxWidth: min(maxWidth, 280))
-            .background(
-                Color(uiColor: .secondarySystemBackground)
+            .background(themeManager.palette.cardBackground)
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(themeManager.palette.border, lineWidth: 1)
             )
             .clipShape(
                 RoundedRectangle(
@@ -569,17 +577,17 @@ struct MessageAttachmentsView: View {
         HStack(spacing: 10) {
             Image(systemName: systemImage)
                 .font(.title3)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(themeManager.cardSecondaryText)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(themeManager.palette.primaryText)
                     .lineLimit(1)
 
                 Text(subtitle)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(themeManager.cardSecondaryText)
                     .lineLimit(1)
             }
 
@@ -587,10 +595,10 @@ struct MessageAttachmentsView: View {
 
             Image(systemName: "arrow.up.right.square")
                 .font(.caption)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(themeManager.cardActionText)
         }
         .padding(12)
-        .background(Color(uiColor: .secondarySystemBackground))
+        .background(themeManager.palette.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 

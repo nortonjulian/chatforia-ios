@@ -57,6 +57,7 @@ struct UpgradeView: View {
             )
         )
         .navigationBarTitleDisplayMode(.inline)
+        .modifier(ThemedNavigationBar())
         .task {
             retryCount = 0
             await refreshPurchaseStatus(autoRetry: true)
@@ -300,10 +301,6 @@ struct UpgradeView: View {
                 .foregroundStyle(themeManager.palette.primaryText)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            Text(appText("upgrade.bestValueAnnual", languageCode: appLanguage))
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(themeManager.palette.accent)
-
             SubscriptionStoreView(groupID: subscriptionGroupID) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(appText("common.upgradeWithApple", languageCode: appLanguage))
@@ -318,9 +315,12 @@ struct UpgradeView: View {
                 .padding(.bottom, 4)
             }
             .subscriptionStoreControlStyle(.prominentPicker)
+            .subscriptionStoreControlBackground(themeManager.palette.highlightedSurface)
             .subscriptionStoreButtonLabel(.multiline)
             .storeButton(.visible, for: .restorePurchases)
             .storeButton(.visible, for: .redeemCode)
+            .environment(\.colorScheme, themeManager.navigationColorScheme)
+            .tint(themeManager.palette.accent)
             .background(themeManager.palette.cardBackground)
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .overlay(
