@@ -236,12 +236,12 @@ final class DeviceRegistrationService {
             )
     }
 
-    func registerPushToken(_ pushToken: String, token: String) async throws {
-        try await registerPushToken(pushToken, provider: "apns", token: token)
+    func registerPushToken(_ pushToken: String, token: String, userId: Int) async throws {
+        try await registerPushToken(pushToken, provider: "apns", token: token, userId: userId)
     }
 
-    func registerVoIPPushToken(_ pushToken: String, token: String) async throws {
-        try await registerPushToken(pushToken, provider: "apns_voip", token: token)
+    func registerVoIPPushToken(_ pushToken: String, token: String, userId: Int) async throws {
+        try await registerPushToken(pushToken, provider: "apns_voip", token: token, userId: userId)
     }
     
     func fetchPendingPairingDevices(token: String) async throws -> [DeviceDTO] {
@@ -367,54 +367,12 @@ final class DeviceRegistrationService {
         return string
     }
 
-    private func registerPushToken(_ pushToken: String, provider: String, token: String) async throws {
-        struct RegisterPushTokenRequest: Encodable {
-            let deviceId: String
-            let pushToken: String
-            let pushProvider: String
-            let pushEnvironment: String
-            let publicKey: String
-            let keyAlgorithm: String
-            let keyVersion: Int
-            let platform: String
-            let name: String
-        }
-
-        struct RegisterPushTokenResponse: Decodable {
-            let success: Bool?
-            let device: DeviceDTO?
-        }
-
-        let keyManager = DeviceKeyManager.shared
-
-        #if DEBUG
-        let pushEnvironment = "sandbox"
-        #else
-        let pushEnvironment = "production"
-        #endif
-
-        let body = try JSONEncoder().encode(
-            RegisterPushTokenRequest(
-                deviceId: keyManager.getOrCreateDeviceId(),
-                pushToken: pushToken,
-                pushProvider: provider,
-                pushEnvironment: pushEnvironment,
-                publicKey: try keyManager.publicKeyBase64(),
-                keyAlgorithm: "curve25519",
-                keyVersion: 1,
-                platform: keyManager.currentPlatform(),
-                name: keyManager.currentDeviceName()
-            )
-        )
-
-        let _: RegisterPushTokenResponse = try await APIClient.shared.send(
-            APIRequest(
-                path: "devices/push-token",
-                method: .POST,
-                body: body,
-                requiresAuth: true
-            ),
-            token: token
+    private func registerPushToken(
+        _ pushToken: String, provider: String, token: String, userId: Int
+    ) async throws {
+        try await PushSessionAuthority.shared.register(
+            provider: provider, pushToken: pushToken, accountId: userId,
+            authToken: token, deviceId: DeviceKeyManager.shared.getOrCreateDeviceId()
         )
     }
 }

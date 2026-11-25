@@ -395,9 +395,17 @@ final class NotificationCoordinator: NSObject, ObservableObject, UNUserNotificat
                 token: authToken
             )
 
+            guard TokenStore.shared.read() == authToken,
+                  UserDefaults.standard.integer(forKey: "chatforia.currentUserId") == currentUserId,
+                  UserDefaults.standard.string(forKey: apnsTokenDefaultsKey) == pushToken else {
+                pushRegistrationRetryRequested = true
+                return
+            }
+
             try await DeviceRegistrationService.shared.registerPushToken(
                 pushToken,
-                token: authToken
+                token: authToken,
+                userId: currentUserId
             )
 
             // Login/account changes can occur while the network calls are in flight.

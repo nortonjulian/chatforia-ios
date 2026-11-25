@@ -193,6 +193,7 @@ final class AuthStore: NSObject, ObservableObject {
         if case .loading = state { isAppReady = false }
 
         guard let token = startingToken, !token.isEmpty else {
+            Task { await PushSessionAuthority.shared.cleanupAfterMissingSession() }
             socket.disconnect()
             offlineSessionStore.clear()
             isOfflineSession = false
@@ -384,6 +385,11 @@ final class AuthStore: NSObject, ObservableObject {
     }
 
     func setTokenAndLoadUser(_ token: String) async {
+        if tokenStore.read() != token {
+            do { _ = try PushSessionAuthority.shared.endCurrentSession() }
+            catch { debugLog("Push authority account handoff could not be saved:", error) }
+            Task { await PushSessionAuthority.shared.retryPendingCleanup() }
+        }
         activeBootstrap = nil
         socket.disconnect()
         DecryptedMessageTextStore.shared.deactivateAccount()
@@ -417,6 +423,12 @@ final class AuthStore: NSObject, ObservableObject {
         let logoutToken = tokenStore.read()
         let logoutDeviceId =
             DeviceKeyManager.shared.getOrCreateDeviceId()
+        let cleanupGrant: PushCleanupGrant?
+        do { cleanupGrant = try PushSessionAuthority.shared.endCurrentSession() }
+        catch {
+            debugLog("Push authority logout cleanup could not be saved:", error)
+            cleanupGrant = nil
+        }
 
         isAppReady = true
 
@@ -443,42 +455,32 @@ final class AuthStore: NSObject, ObservableObject {
         subscriptionPlan = .free
         state = .loggedOut
 
-        guard
-            let logoutToken,
-            !logoutToken.isEmpty
-        else {
-            return
-        }
-
-        // Local logout has completed. Server cleanup is best-effort.
+        // Local logout has completed. Confirm server cleanup only after an
+        // authenticated full-session response; retain the capability otherwise.
         Task {
-            do {
-                let body = try JSONEncoder().encode(
-                    DeviceLogoutRequest(
-                        deviceId: logoutDeviceId
+            if let logoutToken, PushSessionAuthority.isFullSession(logoutToken) {
+                do {
+                    let body = try JSONEncoder().encode(
+                        DeviceLogoutRequest(deviceId: logoutDeviceId)
                     )
-                )
-
-                let _: DeviceLogoutResponse =
-                    try await apiClient.send(
-                        APIRequest(
-                            path: "devices/logout",
-                            method: .POST,
-                            body: body,
-                            requiresAuth: true
-                        ),
-                        token: logoutToken
+                    let _: DeviceLogoutResponse = try await apiClient.send(
+                        APIRequest(path: "devices/logout", method: .POST,
+                                   body: body, requiresAuth: true), token: logoutToken
                     )
-            } catch {
-                debugLog(
-                    "⚠️ device notification cleanup failed during logout:",
-                    error
-                )
+                    try PushSessionAuthority.shared.confirmAuthenticatedLogout(cleanupGrant)
+                    return
+                } catch {
+                    debugLog("Device notification cleanup remains pending:", error)
+                }
             }
+            await PushSessionAuthority.shared.retryPendingCleanup()
         }
     }
 
     func handleInvalidSession() {
+        do { _ = try PushSessionAuthority.shared.endCurrentSession() }
+        catch { debugLog("Push authority invalid-session cleanup could not be saved:", error) }
+        Task { await PushSessionAuthority.shared.retryPendingCleanup() }
         activeBootstrap = nil
         isAppReady = true
         AnalyticsManager.shared.reset()

@@ -7,6 +7,7 @@ struct APIRequest {
     let method: HTTPMethod
     let body: Data?
     let requiresAuth: Bool
+    let isolatedSession: Bool
     let headers: [String: String]
     let timeout: TimeInterval?
 
@@ -15,6 +16,7 @@ struct APIRequest {
         method: HTTPMethod,
         body: Data? = nil,
         requiresAuth: Bool = true,
+        isolatedSession: Bool = false,
         headers: [String: String] = [:],
         timeout: TimeInterval? = nil
     ) {
@@ -22,6 +24,7 @@ struct APIRequest {
         self.method = method
         self.body = body
         self.requiresAuth = requiresAuth
+        self.isolatedSession = isolatedSession
         self.headers = headers
         self.timeout = timeout
     }
@@ -128,7 +131,7 @@ final class APIClient {
 
     // Internal for regression tests; no caller should mutate the session.
     func session(for request: APIRequest) -> URLSession {
-        request.requiresAuth ? bearerSession : .shared
+        (request.requiresAuth || request.isolatedSession) ? bearerSession : .shared
     }
 
     private var appLanguage: String {

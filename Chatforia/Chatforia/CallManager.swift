@@ -1777,16 +1777,35 @@ final class CallManager: ObservableObject {
                         token: authToken
                     )
 
+                guard TokenStore.shared.read() == authToken,
+                      self.currentUserId == currentUserId else {
+                    self.isVoIPRegistrationInFlight = false
+                    return
+                }
+
                 try await DeviceRegistrationService.shared
                     .registerVoIPPushToken(
                         voipToken,
-                        token: authToken
+                        token: authToken,
+                        userId: currentUserId
                     )
+
+                guard TokenStore.shared.read() == authToken,
+                      self.currentUserId == currentUserId else {
+                    self.isVoIPRegistrationInFlight = false
+                    return
+                }
 
                 let voiceTokenResponse =
                     try await twilioService.fetchToken(
                         authToken: authToken
                     )
+
+                guard TokenStore.shared.read() == authToken,
+                      self.currentUserId == currentUserId else {
+                    self.isVoIPRegistrationInFlight = false
+                    return
+                }
 
             TwilioVoiceSDK.register(
                 accessToken: voiceTokenResponse.token,
@@ -1809,6 +1828,12 @@ final class CallManager: ObservableObject {
                     }
 
                     NSLog("✅ Twilio VoIP registration succeeded")
+
+                    guard TokenStore.shared.read() == authToken,
+                          self.currentUserId == currentUserId else {
+                        self.isVoIPRegistrationInFlight = false
+                        return
+                    }
 
                     do {
                         try await DeviceRegistrationService.shared

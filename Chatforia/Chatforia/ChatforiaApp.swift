@@ -293,6 +293,7 @@ struct ChatforiaApp: App {
                 Locale(identifier: appLanguage)
             )
             .task {
+                await PushSessionAuthority.shared.retryPendingCleanup()
                 await auth.bootstrap()
 
                 if let user = auth.currentUser {
@@ -444,6 +445,7 @@ struct ChatforiaApp: App {
             }
             .onChange(of: startupConnectivity.isConnected) { _, connected in
                 guard connected else { return }
+                Task { await PushSessionAuthority.shared.retryPendingCleanup() }
                 recoverOfflineStartupIfNeeded()
             }
             .onChange(of: auth.recoveryRevision) { _, _ in
@@ -502,6 +504,8 @@ struct ChatforiaApp: App {
         }
         .onChange(of: scenePhase) { _, newPhase in
             guard newPhase == .active else { return }
+
+            Task { await PushSessionAuthority.shared.retryPendingCleanup() }
 
             AppEnvironment.configureSendQueueHandlersIfNeeded()
             if auth.currentUser != nil && !auth.isOfflineSession &&
