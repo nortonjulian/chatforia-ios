@@ -41,7 +41,8 @@ private final class MockPushAuthorityTransport: PushAuthorityTransport {
 @MainActor
 final class PushSessionAuthorityTests: XCTestCase {
     private func fullToken(_ id: Int) -> String {
-        let data = try! JSONSerialization.data(withJSONObject: ["typ": "session", "id": id])
+        let data = try! JSONSerialization.data(withJSONObject: ["typ": "session", "id": id],
+                                               options: [.sortedKeys])
         return "header.\(data.base64EncodedString()).signature"
     }
 
@@ -116,9 +117,13 @@ final class PushSessionAuthorityTests: XCTestCase {
         let oldToken = fullToken(1)
         let newToken = fullToken(2)
         var releaseOld: CheckedContinuation<PushActivationResponse, Never>?
+        let oldActivationStarted = expectation(description: "old activation started")
         transport.activationHandler = { _ in
             if transport.activations.count == 1 {
-                return await withCheckedContinuation { releaseOld = $0 }
+                return await withCheckedContinuation {
+                    releaseOld = $0
+                    oldActivationStarted.fulfill()
+                }
             }
             return PushActivationResponse(generation: "2", expiresAt: Date().addingTimeInterval(3_600),
                                           cleanupCapability: "new-cap")
@@ -127,7 +132,7 @@ final class PushSessionAuthorityTests: XCTestCase {
             try await authority.register(provider: "apns", pushToken: "old", accountId: 1,
                                          authToken: oldToken, deviceId: "device")
         }
-        while releaseOld == nil { await Task.yield() }
+        await fulfillment(of: [oldActivationStarted], timeout: 5)
         setAccount(2, newToken)
         try await authority.register(provider: "apns", pushToken: "new", accountId: 2,
                                      authToken: newToken, deviceId: "device")
@@ -138,7 +143,10 @@ final class PushSessionAuthorityTests: XCTestCase {
         XCTAssertEqual(store.value.current?.accountId, 2)
         XCTAssertEqual(store.value.current?.cleanupCapability, "new-cap")
         XCTAssertFalse(store.value.pending.contains { $0.accountId == 2 })
-        XCTAssertTrue(store.value.pending.contains { $0.accountId == 1 })
+        // Cleanup may already have completed by the time the stale callback
+        // returns. Either a retained retry or a completed cleanup is safe.
+        XCTAssertTrue(store.value.pending.contains { $0.accountId == 1 } ||
+                      transport.cleanups.contains { $0.accountId == 1 })
     }
 
     func testRevokedRegistrationClearsOnlyMatchingGrant() async throws {
@@ -183,14 +191,18 @@ final class PushSessionAuthorityTests: XCTestCase {
     func testDelayedOldRegistrationCannotClearNewAccountGrant() async throws {
         let (authority, store, transport, setAccount) = fixture()
         var releaseOld: CheckedContinuation<Void, Never>?
+        let oldRegistrationStarted = expectation(description: "old registration started")
         transport.registrationHandler = { _ in
-            await withCheckedContinuation { releaseOld = $0 }
+            await withCheckedContinuation {
+                releaseOld = $0
+                oldRegistrationStarted.fulfill()
+            }
         }
         let old = Task {
             try await authority.register(provider: "apns", pushToken: "old", accountId: 1,
                                          authToken: fullToken(1), deviceId: "device")
         }
-        while releaseOld == nil { await Task.yield() }
+        await fulfillment(of: [oldRegistrationStarted], timeout: 5)
         _ = try authority.endCurrentSession()
         setAccount(2, fullToken(2))
         transport.registrationHandler = nil
