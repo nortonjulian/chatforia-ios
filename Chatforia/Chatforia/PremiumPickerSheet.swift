@@ -8,6 +8,19 @@ struct PremiumSelectableOption: Identifiable, Hashable {
 }
 
 struct PremiumPickerSheet: View {
+    static func requirementText(_ template: String, planName: String) -> String {
+        if template.contains("{plan}") {
+            return template.replacingOccurrences(of: "{plan}", with: planName)
+        }
+        if template.contains("%@") {
+            return template.replacingOccurrences(of: "%@", with: planName)
+        }
+        if template.contains("٪@") {
+            return template.replacingOccurrences(of: "٪@", with: planName)
+        }
+        return planName + " · " + template
+    }
+
     let title: String
     let subtitle: String
     let selectedCode: String
@@ -55,6 +68,7 @@ struct PremiumPickerSheet: View {
             }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
+            .modifier(ThemedNavigationBar())
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(appText("common.done", languageCode: appLanguage)) {
@@ -133,20 +147,21 @@ struct PremiumPickerSheet: View {
                                     .font(.body.weight(.medium))
                                     .foregroundStyle(
                                         locked
-                                        ? themeManager.palette.secondaryText.opacity(0.75)
+                                        ? themeManager.cardSecondaryText
                                         : themeManager.palette.primaryText
                                     )
 
                                 Text(
                                     locked
-                                        ? String(
-                                            format: appText("premium.requiresPlan", languageCode: appLanguage),
-                                            item.requiredPlan.displayName
+                                        ? Self.requirementText(
+                                            appText("premium.requiresPlan", languageCode: appLanguage),
+                                            planName: appText(item.requiredPlan.localizationKey,
+                                                              languageCode: appLanguage)
                                         )
                                         : appText("common.availableNow", languageCode: appLanguage)
                                 )
                                 .font(.caption)
-                                .foregroundStyle(themeManager.palette.secondaryText)
+                                .foregroundStyle(themeManager.cardSecondaryText)
                             }
 
                             Spacer()

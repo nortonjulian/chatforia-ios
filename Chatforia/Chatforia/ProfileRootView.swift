@@ -163,6 +163,7 @@ struct ProfileRootView: View {
                 appText("screen_profile", languageCode: appLanguage)
             )
             .navigationBarTitleDisplayMode(.inline)
+            .modifier(ThemedNavigationBar())
             
             .navigationDestination(isPresented: $showInviterChat) {
                 if let room = inviterRoom {
@@ -1192,6 +1193,7 @@ struct ProfileRootView: View {
                     )
                     .keyboardType(.numberPad)
                     .textFieldStyle(.roundedBorder)
+                    .environment(\.colorScheme, themeManager.navigationColorScheme)
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
@@ -1229,6 +1231,7 @@ struct ProfileRootView: View {
                     .textInputAutocapitalization(.never)
                     .keyboardType(.emailAddress)
                     .textFieldStyle(.roundedBorder)
+                    .environment(\.colorScheme, themeManager.navigationColorScheme)
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
@@ -1249,6 +1252,7 @@ struct ProfileRootView: View {
                     )
                     .lineLimit(3...5)
                     .textFieldStyle(.roundedBorder)
+                    .environment(\.colorScheme, themeManager.navigationColorScheme)
                 }
             }
         }

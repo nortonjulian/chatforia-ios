@@ -52,6 +52,7 @@ struct VoicemailDetailView: View {
             appText("voicemail.title", languageCode: appLanguage)
         )
         .navigationBarTitleDisplayMode(.inline)
+        .modifier(ThemedNavigationBar())
         .task {
             markReadIfNeeded()
         }

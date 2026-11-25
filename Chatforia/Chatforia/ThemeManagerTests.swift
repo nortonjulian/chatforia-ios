@@ -121,6 +121,14 @@ final class ThemeManagerTests: XCTestCase {
                 "Call and playback symbols in \(option.code)"
             )
             XCTAssertGreaterThanOrEqual(
+                contrast(palette.primaryText, palette.cardBackground), 4.5,
+                "Voice-note title on card in \(option.code)"
+            )
+            XCTAssertGreaterThanOrEqual(
+                contrast(manager.cardSecondaryText, palette.cardBackground), 4.5,
+                "Voice-note timing on card in \(option.code)"
+            )
+            XCTAssertGreaterThanOrEqual(
                 contrast(
                     manager.controlForeground(
                         on: palette.bubbleOutgoingStart,

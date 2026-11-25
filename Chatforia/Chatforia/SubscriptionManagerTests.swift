@@ -4,6 +4,25 @@ import XCTest
 @MainActor
 final class SubscriptionManagerTests: XCTestCase {
 
+    func testPremiumRequirementInterpolatesExistingLocalizedFormats() {
+        XCTAssertEqual(
+            PremiumPickerSheet.requirementText("Requires {plan}", planName: "Premium"),
+            "Requires Premium"
+        )
+        XCTAssertEqual(
+            PremiumPickerSheet.requirementText("Requires %@", planName: "Premium"),
+            "Requires Premium"
+        )
+        XCTAssertEqual(
+            PremiumPickerSheet.requirementText("يتطلب ٪@", planName: "Premium"),
+            "يتطلب Premium"
+        )
+        XCTAssertEqual(
+            PremiumPickerSheet.requirementText("が必要です。", planName: "Premium"),
+            "Premium · が必要です。"
+        )
+    }
+
     func testPlanInfoForPlusMonthly() {
         let result = SubscriptionManager.shared.planInfo(for: "plus.monthly")
 
