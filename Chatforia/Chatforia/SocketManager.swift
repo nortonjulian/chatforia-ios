@@ -17,6 +17,7 @@ extension Notification.Name {
     static let socketCallCaption = Notification.Name("socketCallCaption")
     static let socketSMSMessageNew = Notification.Name("socketSMSMessageNew")
     static let foregroundMessageNotification = Notification.Name("foregroundMessageNotification")
+    static let foregroundMessageVisualAlert = Notification.Name("foregroundMessageVisualAlert")
     static let socketVideoIncoming = Notification.Name("socketVideoIncoming")
     static let socketVideoEnded = Notification.Name("socketVideoEnded")
 }
@@ -219,14 +220,20 @@ final class SocketManager: ObservableObject {
             let senderId = self?.extractSenderId(payload)
             let currentUserId = UserDefaults.standard.integer(forKey: "chatforia.currentUserId")
 
-            let shouldSuppressTone = Date() < (self?.suppressMessageToneUntil ?? .distantPast)
-
             if self?.incomingSMSTones.claim(
                 payload: payload,
                 userId: currentUserId,
-                suppressed: shouldSuppressTone
+                suppressed: false
             ) == true {
-                AudioPlayerService.shared.playCurrentMessageTone()
+                let message = payload["message"] as? [String: Any]
+                if let rawID = message?["id"],
+                   let messageId = Int(String(describing: rawID)), messageId > 0 {
+                    NotificationCoordinator.shared.receiveSocketMessage(
+                        channel: .sms, messageId: messageId,
+                        conversationId: NotificationCoordinator.positiveID(payload["threadId"]),
+                        accountId: currentUserId
+                    )
+                }
             }
 
             var notificationUserInfo = payload
@@ -311,22 +318,21 @@ final class SocketManager: ObservableObject {
             let currentUserId = UserDefaults.standard.integer(forKey: "chatforia.currentUserId")
             let messageId = message["id"] as? Int
 
-            let shouldSuppressTone = Date() < self.suppressMessageToneUntil
-
             let isNewIncomingMessage =
-                messageId.map { !self.hasAlreadySounded(messageId: $0) } == true &&
+                messageId.map { !self.hasAlreadySounded(messageId: $0, accountId: currentUserId) } == true &&
                 senderId != nil &&
                 senderId != currentUserId
 
             if let messageId,
                isNewIncomingMessage {
-                self.markSounded(messageId: messageId)
+                self.markSounded(messageId: messageId, accountId: currentUserId)
 
-                if !shouldSuppressTone, UIApplication.shared.applicationState == .active {
-                    AudioPlayerService.shared.playIncomingChatTone(
-                        messageId: messageId, userId: currentUserId
-                    )
-                }
+                NotificationCoordinator.shared.receiveSocketMessage(
+                    channel: .chat, messageId: messageId,
+                    conversationId: NotificationCoordinator.positiveID(payload["roomId"])
+                        ?? NotificationCoordinator.positiveID(message["chatRoomId"]),
+                    accountId: currentUserId
+                )
             }
 
             var notificationUserInfo: [AnyHashable: Any] = [
@@ -530,27 +536,26 @@ func markRandomMatchCompleted() {
 
     // MARK: - Helpers
     
-   private var suppressMessageToneUntil: Date = .distantPast
-
-    func suppressMessageTonesForOpeningThread(seconds: TimeInterval = 8.0) {
-        suppressMessageToneUntil = Date().addingTimeInterval(seconds)
+    static func soundedMessageIdsKey(for accountId: Int) -> String {
+        "chatforia.soundedMessageIds.\(accountId)"
     }
 
-    private let soundedMessageIdsKey = "chatforia.soundedMessageIds"
-
-    private func hasAlreadySounded(messageId: Int) -> Bool {
-        let ids = Set(UserDefaults.standard.array(forKey: soundedMessageIdsKey) as? [Int] ?? [])
+    private func hasAlreadySounded(messageId: Int, accountId: Int) -> Bool {
+        guard accountId > 0 else { return false }
+        let key = Self.soundedMessageIdsKey(for: accountId)
+        let ids = Set(UserDefaults.standard.array(forKey: key) as? [Int] ?? [])
         return ids.contains(messageId)
     }
 
-    private func markSounded(messageId: Int) {
-        markSounded(messageIds: [messageId])
+    private func markSounded(messageId: Int, accountId: Int) {
+        markSounded(messageIds: [messageId], accountId: accountId)
     }
 
-    private func markSounded(messageIds: [Int]) {
-        guard !messageIds.isEmpty else { return }
+    private func markSounded(messageIds: [Int], accountId: Int) {
+        guard accountId > 0, !messageIds.isEmpty else { return }
+        let key = Self.soundedMessageIdsKey(for: accountId)
 
-        var ids = Set(UserDefaults.standard.array(forKey: soundedMessageIdsKey) as? [Int] ?? [])
+        var ids = Set(UserDefaults.standard.array(forKey: key) as? [Int] ?? [])
 
         for id in messageIds where id > 0 {
             ids.insert(id)
@@ -560,7 +565,7 @@ func markRandomMatchCompleted() {
             ids = Set(ids.sorted().suffix(500))
         }
 
-        UserDefaults.standard.set(Array(ids), forKey: soundedMessageIdsKey)
+        UserDefaults.standard.set(Array(ids), forKey: key)
     }
 
     func markMessagesAsAlreadySounded(_ messages: [MessageDTO]) {
@@ -568,7 +573,10 @@ func markRandomMatchCompleted() {
             .map(\.id)
             .filter { $0 > 0 }
 
-        markSounded(messageIds: ids)
+        markSounded(
+            messageIds: ids,
+            accountId: UserDefaults.standard.integer(forKey: "chatforia.currentUserId")
+        )
     }
     
     private func handleInvalidSession() {

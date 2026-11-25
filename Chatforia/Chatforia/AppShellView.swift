@@ -6,6 +6,7 @@ struct AppShellView: View {
     @EnvironmentObject private var themeManager: ThemeManager
     @EnvironmentObject private var checkoutReturn: CheckoutReturnCoordinator
     @EnvironmentObject private var voicemailLinks: VoicemailLinkCoordinator
+    @EnvironmentObject private var notificationCoordinator: NotificationCoordinator
     @State private var voicemailLink: VoicemailLinkRequest?
 
     @AppStorage("chatforia_language")
@@ -84,9 +85,13 @@ struct AppShellView: View {
             voicemailLinks.pending = nil
         }
         .onAppear {
+            notificationCoordinator.setSelectedTab(selectedTab, accountId: user.id)
             if voicemailLink == nil && checkoutReturn.pendingEvent != nil {
                 selectedTab = 3
             }
+        }
+        .onChange(of: selectedTab) { _, tab in
+            notificationCoordinator.setSelectedTab(tab, accountId: user.id)
         }
         .onChange(
             of: checkoutReturn.pendingEvent?.id

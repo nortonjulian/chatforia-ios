@@ -7,6 +7,7 @@ struct ChatsRootView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @EnvironmentObject private var vm: ChatsViewModel
+    @EnvironmentObject private var notificationCoordinator: NotificationCoordinator
     @ObservedObject private var subscriptionManager = SubscriptionManager.shared
 
     @State private var showingStartChat = false
@@ -43,6 +44,19 @@ struct ChatsRootView: View {
                 subscriptionManager.backendEntitlements?.entitlements.adsEnabled,
             isPaid: auth.isPaid
         )
+    }
+
+    private var chatsListVisible: Bool {
+        ChatsListPresentation.isVisible(
+            room: showSelectedRoom, sms: showSelectedSMS, ria: showRiaChat,
+            startChat: showingStartChat, matching: isMatching,
+            modal: showDeleteConfirm || showBulkDeleteConfirm || showPeerEndedAlert
+        )
+    }
+
+    private func updateNotificationVisibility() {
+        guard let accountId = auth.currentUser?.id else { return }
+        notificationCoordinator.setChatsListVisible(chatsListVisible, accountId: accountId)
     }
 
     // Unlike SwiftUI's navigation search drawer, this stays visible when
@@ -575,6 +589,14 @@ struct ChatsRootView: View {
             }
             .onReceive(NotificationCenter.default.publisher(for: .init("randomNextPerson"))) { _ in
                 startRandomChat()
+            }
+        }
+        .onAppear { updateNotificationVisibility() }
+        .onChange(of: chatsListVisible) { _, _ in updateNotificationVisibility() }
+        .onChange(of: auth.currentUser?.id) { _, _ in updateNotificationVisibility() }
+        .onDisappear {
+            if let accountId = auth.currentUser?.id {
+                notificationCoordinator.setChatsListVisible(false, accountId: accountId)
             }
         }
     }

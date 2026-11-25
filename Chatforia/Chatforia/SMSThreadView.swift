@@ -33,6 +33,8 @@ struct SMSThreadView: View {
     @State private var pollingTask: Task<Void, Never>?
     @State private var visibleMessageIds: Set<Int> = []
     @State private var isThreadScreenVisible = false
+    @State private var notificationVisibleAccountId: Int?
+    @State private var notificationVisibleThreadId: Int?
     @State private var showPhotoPicker = false
     @State private var showVideoPicker = false
     @State private var showGIFPicker = false
@@ -186,17 +188,35 @@ struct SMSThreadView: View {
         }
         .onAppear {
             isThreadScreenVisible = true
+            notificationVisibleAccountId = auth.currentUser?.id
+            notificationVisibleThreadId = activeConversation.id
+            if let accountId = notificationVisibleAccountId,
+               let threadId = notificationVisibleThreadId {
+                NotificationCoordinator.shared.setVisibleConversation(
+                    channel: .sms, id: threadId, accountId: accountId
+                )
+            }
             syncReadVisibility()
             syncTranslationVisibility()
         }
         .onDisappear {
             isThreadScreenVisible = false
+            if let accountId = notificationVisibleAccountId,
+               let threadId = notificationVisibleThreadId {
+                NotificationCoordinator.shared.clearVisibleConversation(
+                    channel: .sms, id: threadId, accountId: accountId
+                )
+            }
+            notificationVisibleAccountId = nil
+            notificationVisibleThreadId = nil
             syncReadVisibility()
             translationStore.reset()
             stopPolling()
             voice.discard()
         }
         .onChange(of: auth.currentUser?.id) { _, _ in
+            notificationVisibleAccountId = nil
+            notificationVisibleThreadId = nil
             translationStore.reset()
             visibleMessageIds = []
             vm.updateVisibleMessages([], threadId: nil, accountId: nil,
@@ -206,6 +226,20 @@ struct SMSThreadView: View {
             voice.discard()
         }
         .onChange(of: activeConversation.uniqueId) { _, _ in
+            if let accountId = notificationVisibleAccountId,
+               let oldThreadId = notificationVisibleThreadId {
+                NotificationCoordinator.shared.clearVisibleConversation(
+                    channel: .sms, id: oldThreadId, accountId: accountId
+                )
+            }
+            notificationVisibleThreadId = activeConversation.id
+            if isThreadScreenVisible,
+               let accountId = notificationVisibleAccountId,
+               let threadId = notificationVisibleThreadId {
+                NotificationCoordinator.shared.setVisibleConversation(
+                    channel: .sms, id: threadId, accountId: accountId
+                )
+            }
             translationStore.reset()
             visibleMessageIds = []
             syncReadVisibility()
