@@ -35,6 +35,8 @@ struct ChatsRootView: View {
     @State private var activeRandomRoomIds = Set<Int>()
     @State private var activeRandomSessions: [Int: RandomSession] = [:]
     @State private var showPeerEndedAlert = false
+    @State private var randomMatchingUpdateRequired = false
+    @State private var showRandomUpdateRequiredAlert = false
 
     @StateObject private var settingsVM = SettingsViewModel()
 
@@ -498,6 +500,11 @@ struct ChatsRootView: View {
             } message: {
                 Text("Your partner left the Random Chat.")
             }
+            .alert("Update required", isPresented: $showRandomUpdateRequiredAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Update Chatforia to use Random Chat.")
+            }
             .sheet(
                 isPresented: $isMatching,
                 onDismiss: {
@@ -514,6 +521,7 @@ struct ChatsRootView: View {
                 }
             ) {
                 RandomMatchingView(
+                    updateRequired: randomMatchingUpdateRequired,
                     onCancel: {
                         SocketManager.shared.leaveRandomQueue()
                         isMatching = false
@@ -561,6 +569,8 @@ struct ChatsRootView: View {
                     setupRandomMatchListener()
                     didSetupRandomMatchListener = true
                 }
+
+                SocketManager.shared.resumeRandomChat()
 
                 await vm.loadInitialConversationsIfNeeded(
                     token: auth.currentToken
@@ -720,6 +730,7 @@ struct ChatsRootView: View {
 
     private func startRandomChat() {
         randomMatchSucceeded = false
+        randomMatchingUpdateRequired = false
         guard let token = TokenStore.shared.read(), !token.isEmpty else {
             isMatching = false
             return
@@ -750,6 +761,53 @@ struct ChatsRootView: View {
 
     private func setupRandomMatchListener() {
 
+        SocketManager.shared.on("random:error") { data, _ in
+            guard let payload = data.first as? [String: Any] else { return }
+            Task { @MainActor in
+                guard SocketManager.shared.acceptRandomUpdateRequired(payload) else { return }
+                randomMatchNavigation.cancel()
+                if isMatching {
+                    randomMatchingUpdateRequired = true
+                } else {
+                    showRandomUpdateRequiredAlert = true
+                }
+            }
+        }
+
+        SocketManager.shared.on("random:resumed") { data, _ in
+            guard let dict = data.first as? [String: Any],
+                  let session = RandomSession(socketPayload: dict) else { return }
+            let roomId = session.roomId
+            Task { @MainActor in
+                guard SocketManager.shared.acceptRandomResumed(dict) else { return }
+                activeRandomRoomIds.insert(roomId)
+                activeRandomSessions[roomId] = session
+                if selectedRoom?.id == roomId {
+                    selectedRandomSession = session
+                }
+                if isMatching {
+                    await handleMatchFound(roomId: roomId, myAlias: session.myAlias,
+                                           partnerAlias: session.partnerAlias, restoredSession: session)
+                } else {
+                    await reload()
+                }
+            }
+        }
+
+        SocketManager.shared.on("random:none") { data, _ in
+            let payload = data.first as? [String: Any]
+            Task { @MainActor in
+                guard SocketManager.shared.acceptRandomNone(payload) else { return }
+                activeRandomRoomIds.removeAll()
+                activeRandomSessions.removeAll()
+                if selectedRandomSession != nil {
+                    selectedRandomSession = nil
+                    showSelectedRoom = false
+                }
+                await reload()
+            }
+        }
+
         // 🔹 MATCH FOUND
         SocketManager.shared.on("random:matched") { data, _ in
             guard let dict = data.first as? [String: Any],
@@ -764,6 +822,7 @@ struct ChatsRootView: View {
                 ?? appText("random.stranger", languageCode: appLanguage)
 
             Task { @MainActor in
+                SocketManager.shared.invalidateRandomResume()
                 await handleMatchFound(
                     roomId: roomId,
                     myAlias: myAlias,
@@ -810,7 +869,8 @@ struct ChatsRootView: View {
         }
     }
 
-    private func handleMatchFound(roomId: Int, myAlias: String, partnerAlias: String) async {
+    private func handleMatchFound(roomId: Int, myAlias: String, partnerAlias: String,
+                                  restoredSession: RandomSession? = nil) async {
         guard isMatching else { return }
         randomMatchNavigation.matched(roomId: roomId)
         let navigationGeneration = randomMatchNavigation.generation
@@ -829,7 +889,7 @@ struct ChatsRootView: View {
 
             guard randomMatchNavigation.generation == navigationGeneration else { return }
 
-            let session = RandomSession(
+            let session = restoredSession ?? RandomSession(
                 roomId: roomId,
                 myAlias: myAlias,
                 partnerAlias: partnerAlias

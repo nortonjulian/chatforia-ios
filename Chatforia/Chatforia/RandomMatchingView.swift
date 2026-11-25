@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct RandomMatchingView: View {
+    let updateRequired: Bool
     let onCancel: () -> Void
 
     @AppStorage("chatforia_language") private var appLanguage = "en"
@@ -10,15 +11,18 @@ struct RandomMatchingView: View {
             VStack(spacing: 24) {
                 Spacer()
 
-                ProgressView()
-                    .scaleEffect(1.5)
+                if !updateRequired {
+                    ProgressView()
+                        .scaleEffect(1.5)
+                }
 
                 VStack(spacing: 10) {
-                    Text(appText("ios.finding_someone", languageCode: appLanguage))
+                    Text(updateRequired ? "Update required" : appText("ios.finding_someone", languageCode: appLanguage))
                         .font(.title2)
                         .fontWeight(.semibold)
 
-                    Text(appText("ios.we_re_looking_for_someone_who_s_open_to_chat_right_now", languageCode: appLanguage))
+                    Text(updateRequired ? "Update Chatforia to use Random Chat." :
+                         appText("ios.we_re_looking_for_someone_who_s_open_to_chat_right_now", languageCode: appLanguage))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
